@@ -19,20 +19,14 @@
 #![no_std]
 extern crate alloc;
 
-// Intermediate Representation - generic type system
-pub mod ir;
+pub mod algo;
+pub mod kind;
+pub mod traits;
 
 // Concrete builder implementations
-pub mod arena_builder;
-pub mod box_builder;
+mod arena_builder;
+mod box_builder;
 
-// Re-export IR types for convenience
-pub use ir::{
-    ClosureVisitor, Scalar, Ty, TyData, TyDisplay, TypeBuilder, TypeChildren, TypeFolder,
-    TypeFormatter, TypeKind, TypeKindDisplay, TypeView, TypeVisitor, Zip, Zipper, convert_ty,
-    types_cmp, types_equal,
-};
-
-// Re-export concrete builders
+// TODO: Re-export top-level symbols.
 pub use arena_builder::ArenaBuilder;
 pub use box_builder::BoxBuilder;

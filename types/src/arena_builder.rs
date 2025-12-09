@@ -1,6 +1,6 @@
-use crate::ir::{TyData, TypeBuilder, TypeKind};
-use alloc::vec::Vec;
+use crate::traits::{Ty, TyBuilder, TyNode};
 use bumpalo::Bump;
+use core::{fmt::Debug, hash::Hash};
 
 /// Interner that uses arena allocation.
 ///
@@ -51,150 +51,27 @@ impl<'arena> ArenaBuilder<'arena> {
     }
 }
 
-impl<'arena> TypeBuilder for ArenaBuilder<'arena> {
-    type TypeView = crate::Ty<Self>;
-    type InternedTy = &'arena TyData<Self>;
-    type InternedStr = &'arena str;
-    type InternedTypes = &'arena [crate::Ty<Self>];
-    type InternedFieldTypes = &'arena [(&'arena str, crate::Ty<Self>)];
-    type InternedSymbolParts = &'arena [&'arena str];
-
-    // ========================================================================
-    // High-level type constructors
-    // ========================================================================
-
-    fn type_var(self, id: u16) -> Self::TypeView {
-        TypeKind::TypeVar(id).intern(self)
-    }
-
-    fn int(self) -> Self::TypeView {
-        TypeKind::Scalar(crate::Scalar::Int).intern(self)
-    }
-
-    fn float(self) -> Self::TypeView {
-        TypeKind::Scalar(crate::Scalar::Float).intern(self)
-    }
-
-    fn bool(self) -> Self::TypeView {
-        TypeKind::Scalar(crate::Scalar::Bool).intern(self)
-    }
-
-    fn str(self) -> Self::TypeView {
-        TypeKind::Scalar(crate::Scalar::Str).intern(self)
-    }
-
-    fn bytes(self) -> Self::TypeView {
-        TypeKind::Scalar(crate::Scalar::Bytes).intern(self)
-    }
-
-    fn array(self, elem: Self::TypeView) -> Self::TypeView {
-        TypeKind::Array(elem).intern(self)
-    }
-
-    fn map(self, key: Self::TypeView, val: Self::TypeView) -> Self::TypeView {
-        TypeKind::Map(key, val).intern(self)
-    }
-
-    fn record(
-        self,
-        fields: impl IntoIterator<Item = (impl AsRef<str>, Self::TypeView)>,
-    ) -> Self::TypeView {
-        TypeKind::Record(self.intern_field_types(fields)).intern(self)
-    }
-
-    fn function(
-        self,
-        params: impl IntoIterator<Item = Self::TypeView>,
-        ret: Self::TypeView,
-    ) -> Self::TypeView {
-        TypeKind::Function {
-            params: self.intern_types(params),
-            ret,
-        }
-        .intern(self)
-    }
-
-    fn symbol(self, parts: impl IntoIterator<Item = impl AsRef<str>>) -> Self::TypeView {
-        TypeKind::Symbol(self.intern_symbol_parts(parts)).intern(self)
-    }
-
-    // ========================================================================
-    // Low-level internals
-    // ========================================================================
-
-    fn intern_ty(self, kind: TypeKind<Self>) -> Self::InternedTy {
-        // Compute flags from the type kind
-        let flags = kind.compute_flags(self);
-
-        // Wrap in TyData and allocate
-        // For now, just allocate - no deduplication
-        // We can add a HashMap for interning later if needed
-        self.arena.alloc(TyData { kind, flags })
-    }
-
-    fn ty_data(self, ty: &Self::InternedTy) -> &TyData<Self> {
-        ty
-    }
-
-    fn intern_types<E>(self, data: impl IntoIterator<Item = E>) -> Self::InternedTypes
+impl<'arena> TyBuilder for ArenaBuilder<'arena> {
+    type Ty = Ty<Self>;
+    type TyHandle = &'arena TyNode<Self>;
+    type Str = &'arena str;
+    type List<T>
+        = &'arena [T]
     where
-        E: Into<crate::Ty<Self>>,
+        T: Debug + PartialEq + Eq + Clone + Hash;
+
+    fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle {
+        self.arena.alloc(node)
+    }
+
+    fn alloc_str(&self, s: impl AsRef<str>) -> Self::Str {
+        self.arena.alloc_str(s.as_ref())
+    }
+
+    fn alloc_list<T>(&self, iter: impl IntoIterator<Item = T>) -> Self::List<T>
+    where
+        T: Debug + PartialEq + Eq + Clone + Hash,
     {
-        let types: Vec<_> = data.into_iter().map(|e| e.into()).collect();
-        self.arena.alloc_slice_copy(&types)
-    }
-
-    fn types_data(self, types: &Self::InternedTypes) -> &[crate::Ty<Self>] {
-        types
-    }
-
-    fn intern_field_types(
-        self,
-        data: impl IntoIterator<Item = (impl AsRef<str>, crate::Ty<Self>)>,
-    ) -> Self::InternedFieldTypes {
-        // Intern all field name strings in the arena
-        let mut interned_fields: Vec<(&'arena str, crate::Ty<Self>)> = data
-            .into_iter()
-            .map(|(name, ty)| {
-                let interned_name: &'arena str = self.arena.alloc_str(name.as_ref());
-                (interned_name, ty)
-            })
-            .collect();
-
-        // Sort by field name for canonical representation
-        interned_fields.sort_by(|(a, _), (b, _)| a.cmp(b));
-
-        self.arena
-            .alloc_slice_fill_iter(interned_fields.into_iter())
-    }
-
-    fn field_types_data(
-        self,
-        fields: &Self::InternedFieldTypes,
-    ) -> &[(Self::InternedStr, crate::Ty<Self>)] {
-        fields
-    }
-
-    fn intern_symbol_parts(
-        self,
-        data: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Self::InternedSymbolParts {
-        // Intern all strings in the arena
-        let mut interned_parts: Vec<&'arena str> = data
-            .into_iter()
-            .map(|part| {
-                let s: &'arena str = self.arena.alloc_str(part.as_ref());
-                s
-            })
-            .collect();
-
-        // Sort for canonical representation
-        interned_parts.sort();
-
-        self.arena.alloc_slice_copy(&interned_parts)
-    }
-
-    fn symbol_parts_data(self, parts: &Self::InternedSymbolParts) -> &[Self::InternedStr] {
-        parts
+        self.arena.alloc_slice_fill_iter(iter)
     }
 }
