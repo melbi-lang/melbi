@@ -88,6 +88,15 @@ pub struct Ident<B: TyBuilder>(B::IdentHandle);
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TyList<B: TyBuilder>(B::TyListHandle);
 
+impl<B: TyBuilder> TyList<B> {
+    pub fn from_iter(
+        builder: &B,
+        iter: impl IntoIterator<Item = Ty<B>, IntoIter: ExactSizeIterator>,
+    ) -> Self {
+        Self(builder.alloc_ty_list(iter))
+    }
+}
+
 impl<'a, B: TyBuilder> IntoIterator for &'a TyList<B> {
     type Item = &'a Ty<B>;
     type IntoIter = core::slice::Iter<'a, Ty<B>>;
