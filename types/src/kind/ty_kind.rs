@@ -1,6 +1,20 @@
 use crate::traits::{Ty, TyBuilder, TyFlags, TyNode};
 use core::{fmt::Debug, hash::Hash};
 
+// pub trait System<B: TyBuilder> {
+//     type Ty;
+//     type Fields;
+//     type Tuple;
+// }
+
+// struct TyTree;
+
+// impl<B: TyBuilder> System<B> for TyTree {
+//     type Ty = Ty<B>;
+//     type Fields = Fields<B>;
+//     type Tuple = Tuple<B>;
+// }
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TyKind<B: TyBuilder> {
     /// Type variable for unification (Hindley-Milner style).
@@ -22,18 +36,18 @@ pub enum TyKind<B: TyBuilder> {
     ///
     /// Fields are stored sorted by name for canonical representation.
     /// Field names are interned strings for efficient comparison.
-    Record(B::List<(B::Str, B::Ty)>),
+    Record(B::FieldList),
 
     /// Function type with parameters and return type.
     ///
     /// Parameters are stored as an interned list of types.
-    Function { params: B::List<B::Ty>, ret: B::Ty },
+    Function { params: B::TyList, ret: B::Ty },
 
     /// Symbol (tagged union) with sorted parts.
     ///
     /// Parts are interned strings stored in sorted order.
     /// Example: Symbol["error", "pending", "success"]
-    Symbol(B::List<B::Str>),
+    Symbol(B::IdentList),
 }
 
 impl<B: TyBuilder<Ty = Ty<B>>> TyKind<B> {

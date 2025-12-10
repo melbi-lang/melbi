@@ -2,6 +2,7 @@ use crate::traits::{Ty, TyBuilder, TyNode};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::{fmt::Debug, hash::Hash};
+use string_cache::DefaultAtom;
 
 /// Interner that uses reference counting (no deduplication).
 ///
@@ -34,24 +35,31 @@ impl BoxBuilder {
 impl TyBuilder for BoxBuilder {
     type Ty = self::Ty<Self>;
     type TyHandle = Rc<TyNode<Self>>;
-    type Str = Rc<str>;
-    type List<T>
-        = Vec<T>
-    where
-        T: Debug + PartialEq + Eq + Clone + Hash;
+    type Ident = DefaultAtom;
+    type TyList = Vec<Self::Ty>;
+    type IdentList = Vec<Self::Ident>;
+    type FieldList = Vec<(Self::Ident, Self::Ty)>;
 
     fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle {
         Rc::new(node)
     }
 
-    fn alloc_str(&self, s: impl AsRef<str>) -> Self::Str {
-        Rc::from(s.as_ref())
+    fn alloc_ident(&self, s: impl AsRef<str>) -> Self::Ident {
+        DefaultAtom::from(s.as_ref())
     }
 
-    fn alloc_list<T>(&self, iter: impl IntoIterator<Item = T>) -> Self::List<T>
-    where
-        T: Debug + PartialEq + Eq + Clone + Hash,
-    {
+    fn alloc_ty_list(&self, iter: impl IntoIterator<Item = Self::Ty>) -> Self::TyList {
+        iter.into_iter().collect()
+    }
+
+    fn alloc_ident_list(&self, iter: impl IntoIterator<Item = impl AsRef<str>>) -> Self::IdentList {
+        iter.into_iter().map(|s| self.alloc_ident(s)).collect()
+    }
+
+    fn alloc_field_list(
+        &self,
+        iter: impl IntoIterator<Item = (Self::Ident, Self::Ty)>,
+    ) -> Self::FieldList {
         iter.into_iter().collect()
     }
 }
