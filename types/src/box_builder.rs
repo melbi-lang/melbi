@@ -1,4 +1,4 @@
-use crate::traits::{Ty, TyBuilder, TyNode};
+use crate::traits::{Ident, Ty, TyBuilder, TyNode};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::{fmt::Debug, hash::Hash};
@@ -33,33 +33,38 @@ impl BoxBuilder {
 }
 
 impl TyBuilder for BoxBuilder {
-    type Ty = self::Ty<Self>;
     type TyHandle = Rc<TyNode<Self>>;
-    type Ident = DefaultAtom;
-    type TyList = Vec<Self::Ty>;
-    type IdentList = Vec<Self::Ident>;
-    type FieldList = Vec<(Self::Ident, Self::Ty)>;
+    type IdentHandle = DefaultAtom;
+    type TyListHandle = Vec<Ty<Self>>;
+    type IdentListHandle = Vec<Ident<Self>>;
+    type FieldListHandle = Vec<(Ident<Self>, Ty<Self>)>;
 
     fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle {
         Rc::new(node)
     }
 
-    fn alloc_ident(&self, s: impl AsRef<str>) -> Self::Ident {
-        DefaultAtom::from(s.as_ref())
+    fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle {
+        DefaultAtom::from(ident.as_ref())
     }
 
-    fn alloc_ty_list(&self, iter: impl IntoIterator<Item = Self::Ty>) -> Self::TyList {
+    fn alloc_ty_list(
+        &self,
+        iter: impl IntoIterator<Item = Ty<Self>, IntoIter: ExactSizeIterator>,
+    ) -> Self::TyListHandle {
         iter.into_iter().collect()
     }
 
-    fn alloc_ident_list(&self, iter: impl IntoIterator<Item = impl AsRef<str>>) -> Self::IdentList {
-        iter.into_iter().map(|s| self.alloc_ident(s)).collect()
+    fn alloc_ident_list(
+        &self,
+        iter: impl IntoIterator<Item = Ident<Self>, IntoIter: ExactSizeIterator>,
+    ) -> Self::IdentListHandle {
+        iter.into_iter().collect()
     }
 
     fn alloc_field_list(
         &self,
-        iter: impl IntoIterator<Item = (Self::Ident, Self::Ty)>,
-    ) -> Self::FieldList {
+        iter: impl IntoIterator<Item = (Ident<Self>, Ty<Self>), IntoIter: ExactSizeIterator>,
+    ) -> Self::FieldListHandle {
         iter.into_iter().collect()
     }
 }

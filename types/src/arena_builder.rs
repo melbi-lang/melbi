@@ -1,5 +1,4 @@
-use crate::traits::{Ty, TyBuilder, TyNode};
-use alloc::vec::Vec;
+use crate::traits::{Ident, Ty, TyBuilder, TyNode};
 use bumpalo::Bump;
 use core::{fmt::Debug, hash};
 
@@ -53,39 +52,38 @@ impl<'arena> ArenaBuilder<'arena> {
 }
 
 impl<'arena> TyBuilder for ArenaBuilder<'arena> {
-    type Ty = Ty<Self>;
     type TyHandle = &'arena TyNode<Self>;
-    type Ident = &'arena str;
-    type TyList = &'arena [Self::Ty];
-    type IdentList = &'arena [Self::Ident];
-    type FieldList = &'arena [(Self::Ident, Self::Ty)];
+    type IdentHandle = &'arena str;
+    type TyListHandle = &'arena [Ty<Self>];
+    type IdentListHandle = &'arena [Ident<Self>];
+    type FieldListHandle = &'arena [(Ident<Self>, Ty<Self>)];
 
     fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle {
         self.arena.alloc(node)
     }
 
-    fn alloc_ty_list(&self, iter: impl IntoIterator<Item = Self::Ty>) -> Self::TyList {
-        let vec = iter.into_iter().collect::<Vec<_>>();
-        self.arena.alloc_slice_copy(&vec)
+    fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle {
+        self.arena.alloc_str(ident.as_ref()) // TODO: intern string.
     }
 
-    fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::Ident {
-        self.arena.alloc_str(ident.as_ref())
+    fn alloc_ty_list(
+        &self,
+        iter: impl IntoIterator<Item = Ty<Self>, IntoIter: ExactSizeIterator>,
+    ) -> Self::TyListHandle {
+        self.arena.alloc_slice_fill_iter(iter)
     }
 
-    fn alloc_ident_list(&self, iter: impl IntoIterator<Item = impl AsRef<str>>) -> Self::IdentList {
-        let vec = iter
-            .into_iter()
-            .map(|ident| self.alloc_ident(ident))
-            .collect::<Vec<_>>();
-        self.arena.alloc_slice_copy(&vec)
+    fn alloc_ident_list(
+        &self,
+        iter: impl IntoIterator<Item = Ident<Self>, IntoIter: ExactSizeIterator>,
+    ) -> Self::IdentListHandle {
+        self.arena.alloc_slice_fill_iter(iter)
     }
 
     fn alloc_field_list(
         &self,
-        iter: impl IntoIterator<Item = (Self::Ident, Self::Ty)>,
-    ) -> Self::FieldList {
-        let vec = iter.into_iter().collect::<Vec<_>>();
-        self.arena.alloc_slice_copy(&vec)
+        iter: impl IntoIterator<Item = (Ident<Self>, Ty<Self>), IntoIter: ExactSizeIterator>,
+    ) -> Self::FieldListHandle {
+        self.arena.alloc_slice_fill_iter(iter)
     }
 }

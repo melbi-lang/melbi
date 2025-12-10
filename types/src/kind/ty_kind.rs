@@ -1,4 +1,4 @@
-use crate::traits::{Ty, TyBuilder, TyFlags, TyNode};
+use crate::traits::{FieldList, IdentList, Ty, TyBuilder, TyFlags, TyList, TyNode};
 use core::{fmt::Debug, hash::Hash};
 
 // pub trait System<B: TyBuilder> {
@@ -27,30 +27,30 @@ pub enum TyKind<B: TyBuilder> {
     Scalar(Scalar),
 
     /// Array type with element type
-    Array(B::Ty),
+    Array(Ty<B>),
 
     /// Map type with key and value types
-    Map(B::Ty, B::Ty),
+    Map(Ty<B>, Ty<B>),
 
     /// Record (struct) with named fields.
     ///
     /// Fields are stored sorted by name for canonical representation.
     /// Field names are interned strings for efficient comparison.
-    Record(B::FieldList),
+    Record(FieldList<B>),
 
     /// Function type with parameters and return type.
     ///
     /// Parameters are stored as an interned list of types.
-    Function { params: B::TyList, ret: B::Ty },
+    Function { params: TyList<B>, ret: Ty<B> },
 
     /// Symbol (tagged union) with sorted parts.
     ///
     /// Parts are interned strings stored in sorted order.
     /// Example: Symbol["error", "pending", "success"]
-    Symbol(B::IdentList),
+    Symbol(IdentList<B>),
 }
 
-impl<B: TyBuilder<Ty = Ty<B>>> TyKind<B> {
+impl<B: TyBuilder> TyKind<B> {
     pub fn compute_flags(&self) -> TyFlags {
         TyFlags::empty() // TODO: Implement this.
     }

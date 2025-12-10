@@ -15,7 +15,7 @@ pub trait Visit<B: TyBuilder, C> {
 
 impl<B, C> Visit<B, C> for Ty<B>
 where
-    B: TyBuilder<Ty = Ty<B>>,
+    B: TyBuilder,
     TyKind<B>: Visit<B, C>,
 {
     fn visit(&self, builder: &B, ctx: &mut C) {
