@@ -5,13 +5,22 @@ use crate::{
     traits::{Ty, TyBuilder},
 };
 
-pub trait Visitor<B: TyBuilder> {
-    type Output;
+pub enum VisitStep<B: TyBuilder> {
+    Return(Ty<B>),
+    Replace(Ty<B>),
+    Recurse,
 }
 
-enum Task<'a, 'b, B: TyBuilder> {
+pub trait Visitor<B: TyBuilder> {
+    type Output;
+
+    fn visit(&mut self, builder: &B, ty: &Ty<B>) -> VisitStep<B>;
+    fn combine(&mut self, builder: &B, ty: &Ty<B>, result: Self::Output) -> Self::Output;
+}
+
+enum Task<'a, B: TyBuilder> {
     Visit(&'a Ty<B>),
-    Combine(&'b Ty<B>),
+    Combine(TyKind<B>), // Should be a "template" actually
 }
 
 pub fn drive_visitor<B, V>(builder: &B, root: &Ty<B>, mut visitor: V) -> V::Output
@@ -25,19 +34,19 @@ where
     while let Some(task) = stack.pop() {
         match task {
             Task::Visit(ty) => {
-                match visitor.enter(builder, ty) {
+                match visitor.visit(builder, ty) {
                     // A. Prune/Leaf: Push result, don't recurse
                     VisitStep::Return(val) => results.push(val),
 
                     // B. Replace: Push the NEW handle to be visited
-                    VisitStep::Replace(new_handle) => stack.push(Task::Visit(new_handle)),
+                    VisitStep::Replace(new_handle) => stack.push(Task::Visit(&new_handle)),
 
                     // C. Standard Recursion
                     VisitStep::Recurse => {
-                        let (_, kind) = builder.resolve(&handle);
+                        let ty_kind = ty.node().kind();
 
                         // Push "PostVisit" (so it runs AFTER children)
-                        stack.push(Task::PostVisit(kind.clone()));
+                        stack.push(Task::Combine(ty_kind.clone()));
 
                         // Push children (in reverse, so they pop in order)
                         kind.push_children_rev(&mut stack);

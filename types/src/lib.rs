@@ -5,15 +5,15 @@
 //!
 //! # Example
 //!
-//! ```ignore
-//! use melbi_types::{TypeBuilder, ArenaBuilder, Scalar};
+//! ```
+//! use melbi_types::{ArenaBuilder, traits::TyBuilder, kind::{TyKind, Scalar}};
 //! use bumpalo::Bump;
 //!
 //! let arena = Bump::new();
 //! let builder = ArenaBuilder::new(&arena);
 //!
-//! let int_ty = builder.int();
-//! let arr_ty = builder.array(int_ty);
+//! let int_ty = TyKind::Scalar(Scalar::Int).alloc(&builder);
+//! let arr_ty = TyKind::Array(int_ty).alloc(&builder);
 //! ```
 
 #![no_std]

@@ -17,10 +17,12 @@ use string_cache::DefaultAtom;
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
+/// use melbi_types::{BoxBuilder, traits::TyBuilder, kind::{TyKind, Scalar}};
+///
 /// let builder = BoxBuilder::new();
-/// let int_ty = TyKind::Scalar(Scalar::Int).alloc(builder);
-/// let arr_ty = TyKind::Array(int_ty).alloc(builder);
+/// let int_ty = TyKind::Scalar(Scalar::Int).alloc(&builder);
+/// let arr_ty = TyKind::Array(int_ty).alloc(&builder);
 /// ```
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BoxBuilder;

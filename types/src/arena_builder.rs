@@ -14,14 +14,14 @@ use core::{fmt::Debug, hash};
 /// # Example
 ///
 /// ```
-/// use melbi_types::{TypeBuilder, ArenaBuilder, Scalar, TypeKind};
+/// use melbi_types::{ArenaBuilder, traits::TyBuilder, kind::{TyKind, Scalar}};
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
 /// let builder = ArenaBuilder::new(&arena);
 ///
-/// let int_ty = TypeKind::Scalar(Scalar::Int).intern(builder);
-/// let arr_ty = TypeKind::Array(int_ty).intern(builder);
+/// let int_ty = TyKind::Scalar(Scalar::Int).alloc(&builder);
+/// let arr_ty = TyKind::Array(int_ty).alloc(&builder);
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct ArenaBuilder<'arena> {
