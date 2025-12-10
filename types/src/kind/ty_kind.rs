@@ -1,20 +1,6 @@
 use crate::traits::{FieldList, IdentList, Ty, TyBuilder, TyFlags, TyList, TyNode};
 use core::{fmt::Debug, hash::Hash};
 
-// pub trait System<B: TyBuilder> {
-//     type Ty;
-//     type Fields;
-//     type Tuple;
-// }
-
-// struct TyTree;
-
-// impl<B: TyBuilder> System<B> for TyTree {
-//     type Ty = Ty<B>;
-//     type Fields = Fields<B>;
-//     type Tuple = Tuple<B>;
-// }
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TyKind<B: TyBuilder> {
     /// Type variable for unification (Hindley-Milner style).
