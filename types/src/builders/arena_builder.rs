@@ -1,4 +1,4 @@
-use crate::traits::{Ident, Ty, TyBuilder, TyNode};
+use crate::core::{Ident, Ty, TyBuilder, TyNode};
 use bumpalo::Bump;
 use core::{fmt::Debug, hash};
 
@@ -14,7 +14,7 @@ use core::{fmt::Debug, hash};
 /// # Example
 ///
 /// ```
-/// use melbi_types::{ArenaBuilder, traits::TyBuilder, kind::{TyKind, Scalar}};
+/// use melbi_types::{ArenaBuilder, TyBuilder, TyKind, Scalar};
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();

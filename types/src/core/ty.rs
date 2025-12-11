@@ -1,41 +1,6 @@
-use core::{fmt::Debug, hash::Hash, ops::Deref};
-
-use crate::{kind::TyKind, traits::TyFlags};
-
-pub trait TyBuilder: Copy + Clone + Debug + Eq + Hash + Sized {
-    /// Examples: `&'a TyNode<Self>`, `Rc<TyNode<Self>>`.
-    type TyHandle: AsRef<TyNode<Self>> + Clone + Debug + Eq + Hash;
-
-    /// Examples: `string_cache::DefaultAtom`, `&'a str`, `Rc<str>`.
-    type IdentHandle: AsRef<str> + Clone + Debug + Eq + Hash;
-
-    /// Lists could be `Vec<T>` for Heap, and `&'a [T]` for Arena.
-    /// We don't use a GAT like `List<T>` as that makes lifetime handling more complex.
-    type TyListHandle: Deref<Target = [Ty<Self>]> + Clone + Debug + Eq + Hash;
-    type IdentListHandle: Deref<Target = [Ident<Self>]> + Clone + Debug + Eq + Hash;
-    type FieldListHandle: Deref<Target = [(Ident<Self>, Ty<Self>)]> + Clone + Debug + Eq + Hash;
-
-    /// Internal: Allocate a new type with the given kind.
-    /// Call instead: `TypeKind(...).alloc(builder)`.
-    fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle;
-
-    fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle;
-
-    fn alloc_ty_list(
-        &self,
-        iter: impl IntoIterator<Item = Ty<Self>, IntoIter: ExactSizeIterator>,
-    ) -> Self::TyListHandle;
-
-    fn alloc_ident_list(
-        &self,
-        iter: impl IntoIterator<Item = Ident<Self>, IntoIter: ExactSizeIterator>,
-    ) -> Self::IdentListHandle;
-
-    fn alloc_field_list(
-        &self,
-        iter: impl IntoIterator<Item = (Ident<Self>, Ty<Self>), IntoIter: ExactSizeIterator>,
-    ) -> Self::FieldListHandle;
-}
+use super::builder::TyBuilder;
+use super::flags::TyFlags;
+use super::kind::TyKind;
 
 /// Lightweight wrapper around the builder's representation.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -55,7 +20,7 @@ impl<B: TyBuilder> Ty<B> {
     }
 }
 
-// Implement Copy when InternedTy is Copy (e.g., for ArenaBuilder)
+// Implement Copy when TyHandle is Copy (e.g., for ArenaBuilder)
 impl<B: TyBuilder> Copy for Ty<B> where B::TyHandle: Copy {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -66,7 +31,9 @@ impl<B: TyBuilder> TyNode<B> {
         let flags = kind.compute_flags();
         Self(flags, kind)
     }
+}
 
+impl<B: TyBuilder> TyNode<B> {
     pub fn flags(&self) -> TyFlags {
         self.0
     }
@@ -85,6 +52,19 @@ impl<B: TyBuilder> AsRef<TyNode<B>> for TyNode<B> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ident<B: TyBuilder>(B::IdentHandle);
 
+impl<B: TyBuilder> Ident<B> {
+    pub fn new(builder: &B, name: impl AsRef<str>) -> Self {
+        Self(builder.alloc_ident(name))
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+// Implement Copy when IdentHandle is Copy (e.g., for ArenaBuilder)
+impl<B: TyBuilder> Copy for Ident<B> where B::IdentHandle: Copy {}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TyList<B: TyBuilder>(B::TyListHandle);
 
@@ -94,6 +74,10 @@ impl<B: TyBuilder> TyList<B> {
         iter: impl IntoIterator<Item = Ty<B>, IntoIter: ExactSizeIterator>,
     ) -> Self {
         Self(builder.alloc_ty_list(iter))
+    }
+
+    pub fn iter(&self) -> core::slice::Iter<'_, Ty<B>> {
+        self.0.iter()
     }
 }
 
@@ -109,6 +93,19 @@ impl<'a, B: TyBuilder> IntoIterator for &'a TyList<B> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IdentList<B: TyBuilder>(B::IdentListHandle);
 
+impl<B: TyBuilder> IdentList<B> {
+    pub fn from_iter(
+        builder: &B,
+        iter: impl IntoIterator<Item = Ident<B>, IntoIter: ExactSizeIterator>,
+    ) -> Self {
+        Self(builder.alloc_ident_list(iter))
+    }
+
+    pub fn iter(&self) -> core::slice::Iter<'_, Ident<B>> {
+        self.0.iter()
+    }
+}
+
 impl<'a, B: TyBuilder> IntoIterator for &'a IdentList<B> {
     type Item = &'a Ident<B>;
     type IntoIter = core::slice::Iter<'a, Ident<B>>;
@@ -120,6 +117,19 @@ impl<'a, B: TyBuilder> IntoIterator for &'a IdentList<B> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FieldList<B: TyBuilder>(B::FieldListHandle);
+
+impl<B: TyBuilder> FieldList<B> {
+    pub fn from_iter(
+        builder: &B,
+        iter: impl IntoIterator<Item = (Ident<B>, Ty<B>), IntoIter: ExactSizeIterator>,
+    ) -> Self {
+        Self(builder.alloc_field_list(iter))
+    }
+
+    pub fn iter(&self) -> core::slice::Iter<'_, (Ident<B>, Ty<B>)> {
+        self.0.iter()
+    }
+}
 
 impl<'a, B: TyBuilder> IntoIterator for &'a FieldList<B> {
     type Item = &'a (Ident<B>, Ty<B>);

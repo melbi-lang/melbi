@@ -1,5 +1,6 @@
-use crate::traits::{FieldList, IdentList, Ty, TyBuilder, TyFlags, TyList, TyNode};
-use core::{fmt::Debug, hash::Hash};
+use super::builder::TyBuilder;
+use super::flags::TyFlags;
+use super::ty::{FieldList, IdentList, Ty, TyList, TyNode};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TyKind<B: TyBuilder> {
@@ -38,7 +39,22 @@ pub enum TyKind<B: TyBuilder> {
 
 impl<B: TyBuilder> TyKind<B> {
     pub fn compute_flags(&self) -> TyFlags {
-        TyFlags::empty() // TODO: Implement this.
+        match self {
+            TyKind::TypeVar(_) => TyFlags::HAS_TYPE_VARS,
+            TyKind::Scalar(_) => TyFlags::empty(),
+            TyKind::Array(elem) => elem.node().flags(),
+            TyKind::Map(k, v) => k.node().flags() | v.node().flags(),
+            TyKind::Record(fields) => fields
+                .iter()
+                .fold(TyFlags::empty(), |acc, (_, ty)| acc | ty.node().flags()),
+            TyKind::Function { params, ret } => {
+                let param_flags = params
+                    .iter()
+                    .fold(TyFlags::empty(), |acc, ty| acc | ty.node().flags());
+                param_flags | ret.node().flags()
+            }
+            TyKind::Symbol(_) => TyFlags::empty(),
+        }
     }
 
     pub fn alloc(self, builder: &B) -> Ty<B> {
@@ -65,46 +81,9 @@ pub enum Scalar {
     Bytes,
 }
 
-#[cfg(feature = "experimental")]
+#[cfg(test)]
 mod tests {
     use super::*;
-
-    #[derive(Copy, Clone, Debug)]
-    struct TestBuilder<'a> {
-        arena: &'a bumpalo::Bump,
-    }
-
-    impl<'arena> PartialEq for TestBuilder<'arena> {
-        fn eq(&self, other: &Self) -> bool {
-            core::ptr::eq(self.arena, other.arena)
-        }
-    }
-
-    impl<'arena> Eq for TestBuilder<'arena> {}
-
-    impl<'arena> core::hash::Hash for TestBuilder<'arena> {
-        fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-            core::ptr::hash(self.arena, state)
-        }
-    }
-
-    impl<'a> TyBuilder for TestBuilder<'a> {
-        type Ty = (); // Ty<Self>;
-        type TyHandle = &'a TyKind<Self>;
-        type Str = &'a str;
-        type List<T> = &'a [T];
-
-        fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle {
-            self.arena.alloc(*node.kind())
-        }
-
-        fn alloc_list<T>(&self, iter: impl IntoIterator<Item = T>) -> Self::List<T>
-        where
-            T: Debug + PartialEq + Eq + Clone + Hash,
-        {
-            self.arena.alloc_slice_fill_iter(iter)
-        }
-    }
 
     #[test]
     fn test_scalar_ord() {
@@ -112,10 +91,5 @@ mod tests {
         assert!(Scalar::Int < Scalar::Float);
         assert!(Scalar::Float < Scalar::Str);
         assert!(Scalar::Str < Scalar::Bytes);
-    }
-
-    #[test]
-    fn test_something() {
-        assert!(true);
     }
 }

@@ -1,7 +1,6 @@
-use crate::traits::{Ident, Ty, TyBuilder, TyNode};
+use crate::core::{Ident, Ty, TyBuilder, TyNode};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use core::{fmt::Debug, hash::Hash};
 use string_cache::DefaultAtom;
 
 /// Interner that uses reference counting (no deduplication).
@@ -18,7 +17,7 @@ use string_cache::DefaultAtom;
 /// # Example
 ///
 /// ```
-/// use melbi_types::{BoxBuilder, traits::TyBuilder, kind::{TyKind, Scalar}};
+/// use melbi_types::{BoxBuilder, TyBuilder, TyKind, Scalar};
 ///
 /// let builder = BoxBuilder::new();
 /// let int_ty = TyKind::Scalar(Scalar::Int).alloc(&builder);
@@ -31,6 +30,12 @@ impl BoxBuilder {
     /// Create a new box builder.
     pub fn new() -> Self {
         Self
+    }
+}
+
+impl Default for BoxBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -6,7 +6,7 @@
 //! # Example
 //!
 //! ```
-//! use melbi_types::{ArenaBuilder, traits::TyBuilder, kind::{TyKind, Scalar}};
+//! use melbi_types::{ArenaBuilder, TyBuilder, TyKind, Scalar};
 //! use bumpalo::Bump;
 //!
 //! let arena = Bump::new();
@@ -20,13 +20,12 @@
 extern crate alloc;
 
 pub mod algo;
-pub mod kind;
-pub mod traits;
+pub mod builders;
+pub mod core;
 
-// Concrete builder implementations
-mod arena_builder;
-mod box_builder;
-
-// TODO: Re-export top-level symbols.
-pub use arena_builder::ArenaBuilder;
-pub use box_builder::BoxBuilder;
+// Re-export commonly used types at crate root
+pub use builders::{ArenaBuilder, BoxBuilder};
+pub use core::traversal::Visit;
+pub use core::{
+    FieldList, Ident, IdentList, Scalar, Ty, TyBuilder, TyFlags, TyKind, TyList, TyNode,
+};

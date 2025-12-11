@@ -1,6 +1,7 @@
-use crate::{
+use crate::core::{
     kind::TyKind,
-    traits::{Ty, TyBuilder},
+    ty::Ty,
+    builder::TyBuilder,
 };
 
 /// A generic trait for traversing a type and producing a result.
@@ -31,7 +32,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BoxBuilder, kind::Scalar};
+    use crate::builders::BoxBuilder;
+    use crate::core::kind::Scalar;
 
     struct IntCounterCtx {
         count: usize,
