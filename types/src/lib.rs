@@ -22,10 +22,3 @@ extern crate alloc;
 pub mod algo;
 pub mod builders;
 pub mod core;
-
-// Re-export commonly used types at crate root
-pub use builders::{ArenaBuilder, BoxBuilder};
-pub use core::traversal::Visit;
-pub use core::{
-    FieldList, Ident, IdentList, Scalar, Ty, TyBuilder, TyFlags, TyKind, TyList, TyNode,
-};

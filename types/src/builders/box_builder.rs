@@ -1,6 +1,7 @@
-use crate::core::{Ident, Ty, TyBuilder, TyNode};
+use crate::core::{FieldList, Ident, IdentList, Ty, TyBuilder, TyKind, TyList, TyNode};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
+use core::hash;
 use string_cache::DefaultAtom;
 
 /// Interner that uses reference counting (no deduplication).
@@ -40,14 +41,20 @@ impl Default for BoxBuilder {
 }
 
 impl TyBuilder for BoxBuilder {
+    type Ty = Ty<Self>;
+    type Ident = Ident<Self>;
+    type TyList = TyList<Self>;
+    type IdentList = IdentList<Self>;
+    type FieldList = FieldList<Self>;
+
     type TyHandle = Rc<TyNode<Self>>;
     type IdentHandle = DefaultAtom;
     type TyListHandle = Vec<Ty<Self>>;
     type IdentListHandle = Vec<Ident<Self>>;
     type FieldListHandle = Vec<(Ident<Self>, Ty<Self>)>;
 
-    fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle {
-        Rc::new(node)
+    fn alloc(&self, kind: TyKind<Self>) -> Self::TyHandle {
+        Rc::new(TyNode::new(kind))
     }
 
     fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle {
@@ -73,5 +80,34 @@ impl TyBuilder for BoxBuilder {
         iter: impl IntoIterator<Item = (Ident<Self>, Ty<Self>), IntoIter: ExactSizeIterator>,
     ) -> Self::FieldListHandle {
         iter.into_iter().collect()
+    }
+
+    fn resolve_ty_node(ty: &Self::Ty) -> &TyNode<Self> {
+        ty.node()
+    }
+}
+
+// --- Ty<BoxBuilder> impls: structural equality via Rc ---
+
+impl PartialEq for Ty<BoxBuilder> {
+    fn eq(&self, other: &Self) -> bool {
+        self.handle() == other.handle()
+    }
+}
+
+impl Eq for Ty<BoxBuilder> {}
+
+impl hash::Hash for Ty<BoxBuilder> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.handle().hash(state)
+    }
+}
+
+// --- TyNode<BoxBuilder> impl: structural hash ---
+
+impl hash::Hash for TyNode<BoxBuilder> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.flags().hash(state);
+        self.kind().hash(state);
     }
 }

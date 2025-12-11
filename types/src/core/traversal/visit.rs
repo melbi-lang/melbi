@@ -1,8 +1,4 @@
-use crate::core::{
-    kind::TyKind,
-    ty::Ty,
-    builder::TyBuilder,
-};
+use crate::core::{builder::TyBuilder, kind::TyKind, ty::Ty};
 
 /// A generic trait for traversing a type and producing a result.
 pub trait Visit<B: TyBuilder, C> {
@@ -20,8 +16,7 @@ where
     TyKind<B>: Visit<B, C>,
 {
     fn visit(&self, builder: &B, ctx: &mut C) {
-        let node = self.node();
-        node.kind().visit(builder, ctx)
+        self.kind().visit(builder, ctx)
     }
 
     fn walk(&self, builder: &B, ctx: &mut C) {

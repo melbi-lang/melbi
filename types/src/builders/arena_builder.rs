@@ -1,8 +1,8 @@
-use crate::core::{Ident, Ty, TyBuilder, TyNode};
+use crate::core::{FieldList, Ident, IdentList, Ty, TyBuilder, TyKind, TyList, TyNode};
 use bumpalo::Bump;
 use core::cell::RefCell;
 use core::{fmt, hash};
-use hashbrown::{DefaultHashBuilder, HashSet};
+use hashbrown::{Equivalent, HashSet};
 
 /// An interned string reference with pointer-based equality.
 ///
@@ -51,16 +51,47 @@ impl<'arena> hash::Hash for InternedStr<'arena> {
     }
 }
 
-type StringSet<'arena> = HashSet<&'arena str, DefaultHashBuilder, &'arena Bump>;
+type StringSet<'arena> = HashSet<&'arena str, hashbrown::DefaultHashBuilder, &'arena Bump>;
+type TypeSet<'arena> =
+    HashSet<&'arena TyNode<ArenaBuilder<'arena>>, hashbrown::DefaultHashBuilder, &'arena Bump>;
+
+// --- Ty<ArenaBuilder> impls: pointer-based equality and hash ---
+
+impl PartialEq for Ty<ArenaBuilder<'_>> {
+    fn eq(&self, other: &Self) -> bool {
+        core::ptr::eq(self.handle(), other.handle())
+    }
+}
+
+impl Eq for Ty<ArenaBuilder<'_>> {}
+
+impl hash::Hash for Ty<ArenaBuilder<'_>> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        (*self.handle() as *const TyNode<ArenaBuilder<'_>>).hash(state)
+    }
+}
+
+// --- TyNode<ArenaBuilder> impl: hash by kind only ---
+
+impl hash::Hash for TyNode<ArenaBuilder<'_>> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.kind().hash(state)
+    }
+}
+
+// --- Equivalent impl for heterogeneous lookup: lookup by TyKind, store &TyNode ---
+
+impl<'arena> Equivalent<&'arena TyNode<ArenaBuilder<'arena>>> for TyKind<ArenaBuilder<'arena>> {
+    fn equivalent(&self, key: &&'arena TyNode<ArenaBuilder<'arena>>) -> bool {
+        self == key.kind()
+    }
+}
 
 /// Interner that uses arena allocation.
 ///
-/// Types are allocated in a `Bump` arena. Identifiers are interned
-/// (deduplicated), so the same string always returns the same pointer,
-/// enabling fast pointer-based equality checks.
-///
-/// Following Chalk's design, we compute type flags during interning and
-/// wrap the TyKind in TyData.
+/// Types and identifiers are allocated in a `Bump` arena and interned
+/// (deduplicated), so structurally identical values share the same pointer.
+/// This enables O(1) pointer-based equality checks via `==`.
 ///
 /// # Example
 ///
@@ -71,10 +102,12 @@ type StringSet<'arena> = HashSet<&'arena str, DefaultHashBuilder, &'arena Bump>;
 /// let arena = Bump::new();
 /// let builder = ArenaBuilder::new(&arena);
 ///
-/// let int_ty = TyKind::Scalar(Scalar::Int).alloc(&builder);
-/// let arr_ty = TyKind::Array(int_ty).alloc(&builder);
+/// // Types are interned - same structure, same pointer
+/// let int1 = TyKind::Scalar(Scalar::Int).alloc(&builder);
+/// let int2 = TyKind::Scalar(Scalar::Int).alloc(&builder);
+/// assert_eq!(int1, int2);  // O(1) pointer equality
 ///
-/// // Interned identifiers with same content are equal (pointer equality)
+/// // Identifiers are also interned
 /// let id1 = Ident::new(&builder, "foo");
 /// let id2 = Ident::new(&builder, "foo");
 /// assert_eq!(id1, id2);
@@ -83,6 +116,7 @@ type StringSet<'arena> = HashSet<&'arena str, DefaultHashBuilder, &'arena Bump>;
 pub struct ArenaBuilder<'arena> {
     arena: &'arena Bump,
     interned_strs: &'arena RefCell<StringSet<'arena>>,
+    interned_types: &'arena RefCell<TypeSet<'arena>>,
 }
 
 impl<'arena> fmt::Debug for ArenaBuilder<'arena> {
@@ -113,22 +147,40 @@ impl<'arena> ArenaBuilder<'arena> {
     /// Create a new arena builder.
     pub fn new(arena: &'arena Bump) -> Self {
         let interned_strs = arena.alloc(RefCell::new(HashSet::with_capacity_in(256, arena)));
+        let interned_types = arena.alloc(RefCell::new(HashSet::with_capacity_in(256, arena)));
         Self {
             arena,
             interned_strs,
+            interned_types,
         }
     }
 }
 
 impl<'arena> TyBuilder for ArenaBuilder<'arena> {
+    type Ty = Ty<Self>;
+    type Ident = Ident<Self>;
+    type TyList = TyList<Self>;
+    type IdentList = IdentList<Self>;
+    type FieldList = FieldList<Self>;
+
     type TyHandle = &'arena TyNode<Self>;
     type IdentHandle = InternedStr<'arena>;
     type TyListHandle = &'arena [Ty<Self>];
     type IdentListHandle = &'arena [Ident<Self>];
     type FieldListHandle = &'arena [(Ident<Self>, Ty<Self>)];
 
-    fn alloc(&self, node: TyNode<Self>) -> Self::TyHandle {
-        self.arena.alloc(node)
+    fn alloc(&self, kind: TyKind<Self>) -> Self::TyHandle {
+        let mut set = self.interned_types.borrow_mut();
+
+        // Look up by TyKind using Equivalent trait
+        if let Some(&existing) = set.get(&kind) {
+            return existing;
+        }
+
+        // Allocate and insert
+        let allocated = self.arena.alloc(TyNode::new(kind));
+        set.insert(allocated);
+        allocated
     }
 
     fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle {
@@ -162,12 +214,15 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     ) -> Self::FieldListHandle {
         self.arena.alloc_slice_fill_iter(iter)
     }
+
+    fn resolve_ty_node(ty: &Self::Ty) -> &TyNode<Self> {
+        ty.node()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Ident;
 
     #[test]
     fn test_interned_str_equality() {
