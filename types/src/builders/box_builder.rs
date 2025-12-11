@@ -1,7 +1,6 @@
 use crate::core::{FieldList, Ident, IdentList, Ty, TyBuilder, TyKind, TyList, TyNode};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use core::hash;
 use string_cache::DefaultAtom;
 
 /// Interner that uses reference counting (no deduplication).
@@ -84,21 +83,5 @@ impl TyBuilder for BoxBuilder {
 
     fn resolve_ty_node(ty: &Self::Ty) -> &TyNode<Self> {
         ty.node()
-    }
-}
-
-// --- Ty<BoxBuilder> impls: structural equality via Rc ---
-
-impl PartialEq for Ty<BoxBuilder> {
-    fn eq(&self, other: &Self) -> bool {
-        self.handle() == other.handle()
-    }
-}
-
-impl Eq for Ty<BoxBuilder> {}
-
-impl hash::Hash for Ty<BoxBuilder> {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.handle().hash(state)
     }
 }

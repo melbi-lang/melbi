@@ -7,11 +7,24 @@ use super::kind::TyKind;
 
 /// Lightweight wrapper around the builder's representation.
 ///
-/// Note: `PartialEq`, `Eq`, and `Hash` are implemented by each builder module
-/// (arena_builder.rs, box_builder.rs) to allow different equality semantics
-/// (pointer-based for interning builders, structural for others).
+/// Equality and hashing delegate to `TyBuilder::ty_eq` and `TyBuilder::ty_hash`,
+/// allowing builders to customize behavior (e.g., pointer-based for interning).
 #[derive(Clone, Debug)]
 pub struct Ty<B: TyBuilder>(B::TyHandle);
+
+impl<B: TyBuilder<Ty = Ty<B>>> PartialEq for Ty<B> {
+    fn eq(&self, other: &Self) -> bool {
+        B::ty_eq(self, other)
+    }
+}
+
+impl<B: TyBuilder<Ty = Ty<B>>> Eq for Ty<B> {}
+
+impl<B: TyBuilder<Ty = Ty<B>>> hash::Hash for Ty<B> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        B::ty_hash(self, state)
+    }
+}
 
 impl<B: TyBuilder> Ty<B> {
     pub fn new(builder: &B, kind: TyKind<B>) -> Self {
@@ -73,8 +86,22 @@ impl<B: TyBuilder> hash::Hash for TyNode<B> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+// === Ident ===
+
+/// Identifier (interned string).
+///
+/// Equality delegates to `TyBuilder::ident_eq`, allowing builders to customize
+/// behavior (e.g., pointer-based for interning).
+#[derive(Debug, Clone, Hash)]
 pub struct Ident<B: TyBuilder>(B::IdentHandle);
+
+impl<B: TyBuilder<Ident = Ident<B>>> PartialEq for Ident<B> {
+    fn eq(&self, other: &Self) -> bool {
+        B::ident_eq(self, other)
+    }
+}
+
+impl<B: TyBuilder<Ident = Ident<B>>> Eq for Ident<B> {}
 
 impl<B: TyBuilder> Ident<B> {
     pub fn new(builder: &B, name: impl AsRef<str>) -> Self {
@@ -88,6 +115,14 @@ impl<B: TyBuilder> Ident<B> {
 
 // Implement Copy when IdentHandle is Copy (e.g., for ArenaBuilder)
 impl<B: TyBuilder> Copy for Ident<B> where B::IdentHandle: Copy {}
+
+impl<B: TyBuilder> Deref for Ident<B> {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
 
 // === TyList ===
 

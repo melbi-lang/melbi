@@ -1,75 +1,13 @@
 use crate::core::{FieldList, Ident, IdentList, Ty, TyBuilder, TyKind, TyList, TyNode};
 use bumpalo::Bump;
 use core::cell::RefCell;
+use core::hash::Hash;
 use core::{fmt, hash};
 use hashbrown::{Equivalent, HashSet};
-
-/// An interned string reference with pointer-based equality.
-///
-/// Two `InternedStr` values are equal if and only if they point to the
-/// same memory location. This is guaranteed when using `ArenaBuilder`
-/// since identical strings are deduplicated during interning.
-#[derive(Clone, Copy)]
-pub struct InternedStr<'arena>(&'arena str);
-
-impl<'arena> InternedStr<'arena> {
-    /// Returns the string slice.
-    pub fn as_str(&self) -> &'arena str {
-        self.0
-    }
-}
-
-impl<'arena> AsRef<str> for InternedStr<'arena> {
-    fn as_ref(&self) -> &str {
-        self.0
-    }
-}
-
-impl<'arena> fmt::Debug for InternedStr<'arena> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self.0, f)
-    }
-}
-
-impl<'arena> fmt::Display for InternedStr<'arena> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(self.0, f)
-    }
-}
-
-impl<'arena> PartialEq for InternedStr<'arena> {
-    fn eq(&self, other: &Self) -> bool {
-        core::ptr::eq(self.0.as_ptr(), other.0.as_ptr())
-    }
-}
-
-impl<'arena> Eq for InternedStr<'arena> {}
-
-impl<'arena> hash::Hash for InternedStr<'arena> {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.0.as_ptr().hash(state)
-    }
-}
 
 type StringSet<'arena> = HashSet<&'arena str, hashbrown::DefaultHashBuilder, &'arena Bump>;
 type TypeSet<'arena> =
     HashSet<&'arena TyNode<ArenaBuilder<'arena>>, hashbrown::DefaultHashBuilder, &'arena Bump>;
-
-// --- Ty<ArenaBuilder> impls: pointer-based equality and hash ---
-
-impl PartialEq for Ty<ArenaBuilder<'_>> {
-    fn eq(&self, other: &Self) -> bool {
-        core::ptr::eq(self.handle(), other.handle())
-    }
-}
-
-impl Eq for Ty<ArenaBuilder<'_>> {}
-
-impl hash::Hash for Ty<ArenaBuilder<'_>> {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        (self.handle() as *const TyNode<ArenaBuilder<'_>>).hash(state)
-    }
-}
 
 // --- Equivalent impl for heterogeneous lookup: lookup by TyKind, store &TyNode ---
 
@@ -156,7 +94,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     type FieldList = FieldList<Self>;
 
     type TyHandle = &'arena TyNode<Self>;
-    type IdentHandle = InternedStr<'arena>;
+    type IdentHandle = &'arena str;
     type TyListHandle = &'arena [Ty<Self>];
     type IdentListHandle = &'arena [Ident<Self>];
     type FieldListHandle = &'arena [(Ident<Self>, Ty<Self>)];
@@ -179,11 +117,11 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
         let s = ident.as_ref();
         let mut set = self.interned_strs.borrow_mut();
         if let Some(&interned) = set.get(s) {
-            return InternedStr(interned);
+            return interned;
         }
         let allocated = self.arena.alloc_str(s);
         set.insert(allocated);
-        InternedStr(allocated)
+        allocated
     }
 
     fn alloc_ty_list(
@@ -209,6 +147,18 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
 
     fn resolve_ty_node(ty: &Self::Ty) -> &TyNode<Self> {
         ty.node()
+    }
+
+    fn ty_eq(a: &Self::Ty, b: &Self::Ty) -> bool {
+        core::ptr::eq(a.handle(), b.handle())
+    }
+
+    fn ty_hash<H: hash::Hasher>(ty: &Self::Ty, state: &mut H) {
+        (ty.handle() as *const TyNode<Self>).hash(state)
+    }
+
+    fn ident_eq(a: &Self::Ident, b: &Self::Ident) -> bool {
+        core::ptr::eq(a.as_str().as_ptr(), b.as_str().as_ptr())
     }
 }
 
