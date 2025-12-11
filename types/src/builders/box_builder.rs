@@ -102,12 +102,3 @@ impl hash::Hash for Ty<BoxBuilder> {
         self.handle().hash(state)
     }
 }
-
-// --- TyNode<BoxBuilder> impl: structural hash ---
-
-impl hash::Hash for TyNode<BoxBuilder> {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.flags().hash(state);
-        self.kind().hash(state);
-    }
-}

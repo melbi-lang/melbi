@@ -67,15 +67,7 @@ impl Eq for Ty<ArenaBuilder<'_>> {}
 
 impl hash::Hash for Ty<ArenaBuilder<'_>> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        (*self.handle() as *const TyNode<ArenaBuilder<'_>>).hash(state)
-    }
-}
-
-// --- TyNode<ArenaBuilder> impl: hash by kind only ---
-
-impl hash::Hash for TyNode<ArenaBuilder<'_>> {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.kind().hash(state)
+        (self.handle() as *const TyNode<ArenaBuilder<'_>>).hash(state)
     }
 }
 
@@ -223,6 +215,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::Scalar;
 
     #[test]
     fn test_interned_str_equality() {
@@ -266,6 +259,73 @@ mod tests {
         };
 
         // Same interned string -> same hash
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_type_interning_equality() {
+        let arena = Bump::new();
+        let builder = ArenaBuilder::new(&arena);
+
+        // Same scalar type -> same pointer -> equal
+        let int1 = TyKind::Scalar(Scalar::Int).alloc(&builder);
+        let int2 = TyKind::Scalar(Scalar::Int).alloc(&builder);
+        assert_eq!(int1, int2);
+
+        // Different scalar types -> different pointers -> not equal
+        let float_ty = TyKind::Scalar(Scalar::Float).alloc(&builder);
+        assert_ne!(int1, float_ty);
+    }
+
+    #[test]
+    fn test_nested_type_interning() {
+        let arena = Bump::new();
+        let builder = ArenaBuilder::new(&arena);
+
+        let int_ty = TyKind::Scalar(Scalar::Int).alloc(&builder);
+
+        // Array types with same element type -> same pointer -> equal
+        let arr1 = TyKind::Array(int_ty).alloc(&builder);
+        let arr2 = TyKind::Array(int_ty).alloc(&builder);
+        assert_eq!(arr1, arr2);
+
+        // Map types with same key/value types -> same pointer -> equal
+        let str_ty = TyKind::Scalar(Scalar::Str).alloc(&builder);
+        let map1 = TyKind::Map(str_ty, int_ty).alloc(&builder);
+        let map2 = TyKind::Map(str_ty, int_ty).alloc(&builder);
+        assert_eq!(map1, map2);
+
+        // Different element types -> different pointers -> not equal
+        let float_ty = TyKind::Scalar(Scalar::Float).alloc(&builder);
+        let arr_float = TyKind::Array(float_ty).alloc(&builder);
+        assert_ne!(arr1, arr_float);
+    }
+
+    #[test]
+    fn test_type_interning_hash() {
+        use core::hash::{BuildHasher, Hash, Hasher};
+
+        let arena = Bump::new();
+        let builder = ArenaBuilder::new(&arena);
+
+        let int1 = TyKind::Scalar(Scalar::Int).alloc(&builder);
+        let int2 = TyKind::Scalar(Scalar::Int).alloc(&builder);
+
+        let hash_builder = hashbrown::DefaultHashBuilder::default();
+
+        let hash1 = {
+            let mut hasher = hash_builder.build_hasher();
+            int1.hash(&mut hasher);
+            hasher.finish()
+        };
+
+        let hash2 = {
+            let mut hasher = hash_builder.build_hasher();
+            int2.hash(&mut hasher);
+            hasher.finish()
+        };
+
+        // Same interned type -> same hash
         assert_eq!(hash1, hash2);
     }
 }

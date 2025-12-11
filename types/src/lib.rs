@@ -22,3 +22,7 @@ extern crate alloc;
 pub mod algo;
 pub mod builders;
 pub mod core;
+
+// Re-export commonly used types for convenience
+pub use builders::{ArenaBuilder, BoxBuilder};
+pub use core::{Ident, Scalar, Ty, TyBuilder, TyKind, TyNode};

@@ -1,3 +1,4 @@
+use core::hash;
 use core::ops::Deref;
 
 use super::builder::TyBuilder;
@@ -17,8 +18,8 @@ impl<B: TyBuilder> Ty<B> {
         Self(builder.alloc(kind))
     }
 
-    pub fn handle(&self) -> &B::TyHandle {
-        &self.0
+    pub fn handle(&self) -> B::TyHandle {
+        self.0.clone()
     }
 
     pub fn node(&self) -> &TyNode<B> {
@@ -62,6 +63,13 @@ impl<B: TyBuilder> TyNode<B> {
 impl<B: TyBuilder> AsRef<TyNode<B>> for TyNode<B> {
     fn as_ref(&self) -> &TyNode<B> {
         self
+    }
+}
+
+impl<B: TyBuilder> hash::Hash for TyNode<B> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        // Flags are computed from the kind, so we don't need to hash them.
+        self.kind().hash(state);
     }
 }
 
