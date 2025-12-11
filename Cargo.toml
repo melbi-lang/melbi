@@ -29,7 +29,7 @@ melbi-macros = { version = "0.1.0" }
 allocator-api2 = "0.2.21"  # Match bumpalo and hashbrown
 ariadne = "0.6.0"
 bumpalo = { version = "3.19.0", features = ["allocator-api2"] }
-hashbrown = "0.16.0"
+hashbrown = { version = "0.16", default-features = false, features = ["default-hasher", "inline-more", "allocator-api2", "equivalent"] }
 lazy_static = "1.4"
 miette = { version = "7.6.0", features = ["derive", "fancy"] }
 once_cell = { version = "1.21.3" }

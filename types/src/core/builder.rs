@@ -2,7 +2,7 @@ use core::{fmt::Debug, hash::Hash, ops::Deref};
 
 use super::ty::{Ident, Ty, TyNode};
 
-pub trait TyBuilder: Copy + Clone + Debug + Eq + Hash + Sized {
+pub trait TyBuilder: Clone + Debug + Eq + Hash + Sized {
     /// Examples: `&'a TyNode<Self>`, `Rc<TyNode<Self>>`.
     type TyHandle: AsRef<TyNode<Self>> + Clone + Debug + Eq + Hash;
 
