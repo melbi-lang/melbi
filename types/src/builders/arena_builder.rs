@@ -162,7 +162,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn ident_hash<H: hash::Hasher>(ident: &Self::Ident, state: &mut H) {
-        (ident.as_str().as_ptr() as *const u8).hash(state)
+        ident.as_str().as_ptr().hash(state)
     }
 }
 
