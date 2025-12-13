@@ -92,7 +92,7 @@ impl<B: TyBuilder> hash::Hash for TyNode<B> {
 ///
 /// Equality delegates to `TyBuilder::ident_eq`, allowing builders to customize
 /// behavior (e.g., pointer-based for interning).
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Ident<B: TyBuilder>(B::IdentHandle);
 
 impl<B: TyBuilder<Ident = Ident<B>>> PartialEq for Ident<B> {
@@ -102,6 +102,12 @@ impl<B: TyBuilder<Ident = Ident<B>>> PartialEq for Ident<B> {
 }
 
 impl<B: TyBuilder<Ident = Ident<B>>> Eq for Ident<B> {}
+
+impl<B: TyBuilder<Ident = Ident<B>>> hash::Hash for Ident<B> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        B::ident_hash(self, state)
+    }
+}
 
 impl<B: TyBuilder> Ident<B> {
     pub fn new(builder: &B, name: impl AsRef<str>) -> Self {

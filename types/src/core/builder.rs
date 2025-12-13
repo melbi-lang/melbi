@@ -46,19 +46,29 @@ pub trait TyBuilder: Clone + Debug + Eq + Hash + Sized {
 
     /// Compare two types for equality.
     /// Default: structural equality via TyNode.
+    #[inline]
     fn ty_eq(a: &Self::Ty, b: &Self::Ty) -> bool {
         Self::resolve_ty_node(a) == Self::resolve_ty_node(b)
     }
 
     /// Hash a type.
     /// Default: structural hash via TyNode.
+    #[inline]
     fn ty_hash<H: hash::Hasher>(ty: &Self::Ty, state: &mut H) {
         Self::resolve_ty_node(ty).hash(state)
     }
 
     /// Compare two identifiers for equality.
     /// Default: structural equality via string content.
+    #[inline]
     fn ident_eq(a: &Self::Ident, b: &Self::Ident) -> bool {
         *a == *b
+    }
+
+    /// Hash an identifier.
+    /// Default: structural hash via string content.
+    #[inline]
+    fn ident_hash<H: hash::Hasher>(ident: &Self::Ident, state: &mut H) {
+        ident.hash(state)
     }
 }

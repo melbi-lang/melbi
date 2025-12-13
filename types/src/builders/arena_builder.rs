@@ -160,6 +160,10 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     fn ident_eq(a: &Self::Ident, b: &Self::Ident) -> bool {
         core::ptr::eq(a.as_str().as_ptr(), b.as_str().as_ptr())
     }
+
+    fn ident_hash<H: hash::Hasher>(ident: &Self::Ident, state: &mut H) {
+        (ident.as_str().as_ptr() as *const u8).hash(state)
+    }
 }
 
 #[cfg(test)]
