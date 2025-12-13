@@ -356,82 +356,115 @@ melbi_fn_impl!(
 );
 
 // ============================================================================
+// Test Helpers
+// ============================================================================
+
+use melbi_core::evaluator::{ExecutionError, ExecutionErrorKind};
+
+/// Test context providing arena and type manager for FFI tests.
+struct TestCtx<'a> {
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
+}
+
+impl<'a> TestCtx<'a> {
+    fn new(arena: &'a Bump) -> Self {
+        let type_mgr = TypeManager::new(arena);
+        Self { arena, type_mgr }
+    }
+
+    fn int(&self, v: i64) -> Value<'a, 'a> {
+        Value::int(self.type_mgr, v)
+    }
+
+    fn float(&self, v: f64) -> Value<'a, 'a> {
+        Value::float(self.type_mgr, v)
+    }
+
+    fn bool(&self, v: bool) -> Value<'a, 'a> {
+        Value::bool(self.type_mgr, v)
+    }
+
+    fn str(&self, s: &str) -> Value<'a, 'a> {
+        Value::str(self.arena, self.type_mgr.str(), s)
+    }
+
+    fn int_array(&self, values: &[i64]) -> Value<'a, 'a> {
+        let array = Array::<i64>::new(self.arena, values);
+        let ty = self.type_mgr.array(self.type_mgr.int());
+        Value::from_raw_unchecked(ty, array.as_raw_value())
+    }
+
+    fn str_array(&self, values: Vec<&str>) -> Value<'a, 'a> {
+        let array = Array::from_strs(self.arena, values);
+        let ty = self.type_mgr.array(self.type_mgr.str());
+        Value::from_raw_unchecked(ty, array.as_raw_value())
+    }
+
+    fn optional_int(&self, v: Option<i64>) -> Value<'a, 'a> {
+        let opt = match v {
+            Some(x) => Optional::some(self.arena, x),
+            None => Optional::<i64>::none(),
+        };
+        let ty = self.type_mgr.option(self.type_mgr.int());
+        Value::from_raw_unchecked(
+            ty,
+            <Optional<i64> as RawConvertible>::to_raw_value(self.arena, opt),
+        )
+    }
+
+    fn call<F: Function<'a, 'a> + AnnotatedFunction<'a> + 'a>(
+        &self,
+        f: F,
+        args: &[Value<'a, 'a>],
+    ) -> Result<Value<'a, 'a>, ExecutionError> {
+        let value = Value::function(self.arena, f).unwrap();
+        let ctx = FfiContext::new(self.arena, self.type_mgr);
+        unsafe { value.as_function().unwrap().call_unchecked(&ctx, args) }
+    }
+
+    fn call_ok<F: Function<'a, 'a> + AnnotatedFunction<'a> + 'a>(
+        &self,
+        f: F,
+        args: &[Value<'a, 'a>],
+    ) -> Value<'a, 'a> {
+        self.call(f, args).expect("expected successful call")
+    }
+}
+
+// ============================================================================
 // Tests
 // ============================================================================
 
 #[test]
 fn test_legacy_mode_plain() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let add_fn = DeclAdd::new(type_mgr);
-
-    // Check metadata
+    let add_fn = DeclAdd::new(ctx.type_mgr);
     assert_eq!(add_fn.name(), "DeclAdd");
 
-    // Create and call
-    let value = Value::function(&arena, add_fn).unwrap();
-    let a = Value::int(type_mgr, 5);
-    let b = Value::int(type_mgr, 3);
-    let args = [a, b];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let result = ctx.call_ok(add_fn, &[ctx.int(5), ctx.int(3)]);
     assert_eq!(result.as_int().unwrap(), 8);
 }
 
 #[test]
 fn test_legacy_mode_result_success() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let div_fn = DeclSafeDiv::new(type_mgr);
-
-    // 10 / 2 = 5
-    let value = Value::function(&arena, div_fn).unwrap();
-    let a = Value::int(type_mgr, 10);
-    let b = Value::int(type_mgr, 2);
-    let args = [a, b];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let result = ctx.call_ok(DeclSafeDiv::new(ctx.type_mgr), &[ctx.int(10), ctx.int(2)]);
     assert_eq!(result.as_int().unwrap(), 5);
 }
 
 #[test]
 fn test_legacy_mode_result_error() {
-    use melbi_core::evaluator::ExecutionErrorKind;
-
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let div_fn = DeclSafeDiv::new(type_mgr);
-
-    // 10 / 0 should error
-    let value = Value::function(&arena, div_fn).unwrap();
-    let a = Value::int(type_mgr, 10);
-    let b = Value::int(type_mgr, 0);
-    let args = [a, b];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
-
-    assert!(result.is_err());
-    let err = result.unwrap_err();
+    let err = ctx
+        .call(DeclSafeDiv::new(ctx.type_mgr), &[ctx.int(10), ctx.int(0)])
+        .unwrap_err();
     assert!(matches!(
         err.kind,
         ExecutionErrorKind::Runtime(RuntimeError::DivisionByZero {})
@@ -441,73 +474,38 @@ fn test_legacy_mode_result_error() {
 #[test]
 fn test_pure_mode_plain() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let add_fn = DeclPureAdd::new(type_mgr);
-
+    let add_fn = DeclPureAdd::new(ctx.type_mgr);
     assert_eq!(add_fn.name(), "DeclPureAdd");
 
-    let value = Value::function(&arena, add_fn).unwrap();
-    let a = Value::int(type_mgr, 10);
-    let b = Value::int(type_mgr, 32);
-    let args = [a, b];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let result = ctx.call_ok(add_fn, &[ctx.int(10), ctx.int(32)]);
     assert_eq!(result.as_int().unwrap(), 42);
 }
 
 #[test]
 fn test_pure_mode_result_success() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let add_fn = DeclPureCheckedAdd::new(type_mgr);
-
-    let value = Value::function(&arena, add_fn).unwrap();
-    let a = Value::int(type_mgr, 1);
-    let b = Value::int(type_mgr, 2);
-    let args = [a, b];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let result = ctx.call_ok(
+        DeclPureCheckedAdd::new(ctx.type_mgr),
+        &[ctx.int(1), ctx.int(2)],
+    );
     assert_eq!(result.as_int().unwrap(), 3);
 }
 
 #[test]
 fn test_pure_mode_result_error() {
-    use melbi_core::evaluator::ExecutionErrorKind;
-
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let add_fn = DeclPureCheckedAdd::new(type_mgr);
-    let value = Value::function(&arena, add_fn).unwrap();
-
-    // Overflow case
-    let a = Value::int(type_mgr, i64::MAX);
-    let b = Value::int(type_mgr, 1);
-    let args = [a, b];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
-
-    assert!(result.is_err());
-    let err = result.unwrap_err();
+    let err = ctx
+        .call(
+            DeclPureCheckedAdd::new(ctx.type_mgr),
+            &[ctx.int(i64::MAX), ctx.int(1)],
+        )
+        .unwrap_err();
     assert!(matches!(
         err.kind,
         ExecutionErrorKind::Runtime(RuntimeError::IntegerOverflow {})
@@ -517,39 +515,24 @@ fn test_pure_mode_result_error() {
 #[test]
 fn test_with_lifetimes() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let upper_fn = DeclUpper::new(type_mgr);
-
+    let upper_fn = DeclUpper::new(ctx.type_mgr);
     assert_eq!(upper_fn.name(), "DeclUpper");
 
-    let value = Value::function(&arena, upper_fn).unwrap();
-    let str_ty = type_mgr.str();
-    let s = Value::str(&arena, str_ty, "hello");
-    let args = [s];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let result = ctx.call_ok(upper_fn, &[ctx.str("hello")]);
     assert_eq!(&*result.as_str().unwrap(), "HELLO");
 }
 
 #[test]
 fn test_function_type_unwraps_result() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
     // The function type should be (Int, Int) -> Int, not (Int, Int) -> Result<Int, ...>
-    let div_fn = DeclSafeDiv::new(type_mgr);
-    let fn_ty = div_fn.ty();
+    let div_fn = DeclSafeDiv::new(ctx.type_mgr);
+    let fn_ty_str = format!("{}", div_fn.ty());
 
-    let fn_ty_str = format!("{}", fn_ty);
     assert!(
         fn_ty_str.contains("Int"),
         "Function type should contain Int: {}",
@@ -565,15 +548,13 @@ fn test_function_type_unwraps_result() {
 #[test]
 fn test_annotated_function_register() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    // Register the function using RecordBuilder
-    let add_fn = DeclAdd::new(type_mgr);
-    let builder = Value::record_builder(type_mgr);
-    let builder = add_fn.register(&arena, builder).unwrap();
+    let add_fn = DeclAdd::new(ctx.type_mgr);
+    let builder = Value::record_builder(ctx.type_mgr);
+    let builder = add_fn.register(ctx.arena, builder).unwrap();
 
-    // Build the record and verify it has the function
-    let record = builder.build(&arena).unwrap();
+    let record = builder.build(ctx.arena).unwrap();
     assert!(record.as_record().is_ok());
 }
 
@@ -585,6 +566,11 @@ fn test_annotated_function_register() {
 // in the melbi_fn_impl! macro implementation.
 
 use melbi_core::values::typed::{Array, Optional, RawConvertible};
+
+/// Helper to extract Optional<i64> from a Value
+fn extract_optional_int(v: &Value) -> Option<i64> {
+    v.as_option().unwrap().map(|inner| inner.as_int().unwrap())
+}
 
 // ----------------------------------------------------------------------------
 // Test Functions for Edge Cases
@@ -899,936 +885,487 @@ melbi_fn_impl!(
 // ADVERSARIAL TESTS
 // ----------------------------------------------------------------------------
 
-// ============================================================================
 // 1. ZERO-ARGUMENT FUNCTIONS
-// ============================================================================
-// Bug being tested: Does the macro handle empty parameter lists correctly?
-// The parameter extraction loop uses `_idx += 1` which might have issues
-// when there are no parameters.
+// Tests that empty params = [] works correctly.
 
 #[test]
 fn test_zero_args_legacy_mode() {
-    // Bug target: Empty params = [] should compile and work correctly.
-    // The macro's @call_body uses `$($param_name : $param_ty),*` which
-    // should expand to nothing for zero parameters.
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclZeroArgs::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    // Call with empty args slice
-    let args: [Value; 0] = [];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 42);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclZeroArgs::new(ctx.type_mgr), &[])
+            .as_int()
+            .unwrap(),
+        42
+    );
 }
 
 #[test]
 fn test_zero_args_pure_mode() {
-    // Bug target: Pure mode with zero parameters
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclPureZeroArgs::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args: [Value; 0] = [];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 42);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclPureZeroArgs::new(ctx.type_mgr), &[])
+            .as_int()
+            .unwrap(),
+        42
+    );
 }
 
 #[test]
 fn test_zero_args_with_result() {
-    // Bug target: Zero parameters combined with Result return type
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclZeroArgsResult::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args: [Value; 0] = [];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 42);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclZeroArgsResult::new(ctx.type_mgr), &[])
+            .as_int()
+            .unwrap(),
+        42
+    );
 }
 
-// ============================================================================
 // 2. MANY-ARGUMENT FUNCTIONS
-// ============================================================================
-// Bug being tested: Does the macro correctly handle many parameters?
-// The repetition pattern `$($param_name : $param_ty),*` and index counter
-// `_idx += 1` should work correctly for any number of parameters.
+// Tests macro repetition patterns with multiple parameters.
 
 #[test]
 fn test_many_args_all_same_type() {
-    // Bug target: 5 parameters of the same type
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclManyArgs::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [
-        Value::int(type_mgr, 1),
-        Value::int(type_mgr, 2),
-        Value::int(type_mgr, 3),
-        Value::int(type_mgr, 4),
-        Value::int(type_mgr, 5),
-    ];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    // 1 + 2 + 3 + 4 + 5 = 15
-    assert_eq!(result.as_int().unwrap(), 15);
+    let ctx = TestCtx::new(&arena);
+    let args = [ctx.int(1), ctx.int(2), ctx.int(3), ctx.int(4), ctx.int(5)];
+    assert_eq!(
+        ctx.call_ok(DeclManyArgs::new(ctx.type_mgr), &args)
+            .as_int()
+            .unwrap(),
+        15
+    );
 }
 
 #[test]
 fn test_single_arg() {
-    // Bug target: Single parameter (boundary case between 0 and many)
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclSingleArg::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, 21)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 42);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclSingleArg::new(ctx.type_mgr), &[ctx.int(21)])
+            .as_int()
+            .unwrap(),
+        42
+    );
 }
 
-// ============================================================================
 // 3. NUMERIC BOUNDARY VALUES
-// ============================================================================
-// Bug being tested: Does the macro correctly handle extreme integer values?
-// These test the RawConvertible implementations indirectly.
+// Tests extreme integer values through RawConvertible.
 
 #[test]
 fn test_i64_max_value() {
-    // Bug target: Maximum i64 value should be preserved through conversion
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    // Test that i64::MAX is correctly passed through conversions
-    let add_fn = DeclAdd::new(type_mgr);
-    let add_value = Value::function(&arena, add_fn).unwrap();
-
-    let args = [Value::int(type_mgr, i64::MAX), Value::int(type_mgr, 0)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        add_value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), i64::MAX);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclAdd::new(ctx.type_mgr), &[ctx.int(i64::MAX), ctx.int(0)])
+            .as_int()
+            .unwrap(),
+        i64::MAX
+    );
 }
 
 #[test]
 fn test_i64_min_value() {
-    // Bug target: Minimum i64 value should be preserved through conversion
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let add_fn = DeclAdd::new(type_mgr);
-    let value = Value::function(&arena, add_fn).unwrap();
-
-    let args = [Value::int(type_mgr, i64::MIN), Value::int(type_mgr, 0)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), i64::MIN);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclAdd::new(ctx.type_mgr), &[ctx.int(i64::MIN), ctx.int(0)])
+            .as_int()
+            .unwrap(),
+        i64::MIN
+    );
 }
 
 #[test]
 fn test_zero_values() {
-    // Bug target: Zero should not be confused with null pointers or special values
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let add_fn = DeclAdd::new(type_mgr);
-    let value = Value::function(&arena, add_fn).unwrap();
-
-    let args = [Value::int(type_mgr, 0), Value::int(type_mgr, 0)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 0);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclAdd::new(ctx.type_mgr), &[ctx.int(0), ctx.int(0)])
+            .as_int()
+            .unwrap(),
+        0
+    );
 }
 
 #[test]
 fn test_negative_one() {
-    // Bug target: -1 has all bits set (0xFFFFFFFFFFFFFFFF)
-    // This could be confused with error codes or special values
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let add_fn = DeclAdd::new(type_mgr);
-    let value = Value::function(&arena, add_fn).unwrap();
-
-    let args = [Value::int(type_mgr, -1), Value::int(type_mgr, 0)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), -1);
+    let ctx = TestCtx::new(&arena);
+    // -1 has all bits set (0xFFFFFFFFFFFFFFFF)
+    assert_eq!(
+        ctx.call_ok(DeclAdd::new(ctx.type_mgr), &[ctx.int(-1), ctx.int(0)])
+            .as_int()
+            .unwrap(),
+        -1
+    );
 }
 
-// ============================================================================
 // 4. MIXED PARAMETER TYPES
-// ============================================================================
-// Bug being tested: Does the macro correctly index into args[] when
-// parameters have different types?
+// Tests correct indexing into args[] with different types.
 
 #[test]
 fn test_mixed_types_i64_f64_bool() {
-    // Bug target: Three different types in order - tests correct indexing
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclMixedTypes::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
+    let ctx = TestCtx::new(&arena);
     // i=10, f=0.5, b=true => (10 + 0.5) = 10.5
-    let args = [
-        Value::int(type_mgr, 10),
-        Value::float(type_mgr, 0.5),
-        Value::bool(type_mgr, true),
-    ];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let result = ctx.call_ok(
+        DeclMixedTypes::new(ctx.type_mgr),
+        &[ctx.int(10), ctx.float(0.5), ctx.bool(true)],
+    );
     assert_eq!(result.as_float().unwrap(), 10.5);
 }
 
 #[test]
 fn test_mixed_types_with_false_flag() {
-    // Bug target: Bool false might be represented as 0, which could cause issues
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclMixedTypes::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
+    let ctx = TestCtx::new(&arena);
     // i=10, f=0.5, b=false => -(10 + 0.5) = -10.5
-    let args = [
-        Value::int(type_mgr, 10),
-        Value::float(type_mgr, 0.5),
-        Value::bool(type_mgr, false),
-    ];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let result = ctx.call_ok(
+        DeclMixedTypes::new(ctx.type_mgr),
+        &[ctx.int(10), ctx.float(0.5), ctx.bool(false)],
+    );
     assert_eq!(result.as_float().unwrap(), -10.5);
 }
 
-// ============================================================================
 // 5. BOOL RETURN TYPE
-// ============================================================================
-// Bug being tested: Does the Bridge for bool correctly convert?
+// Tests Bridge for bool.
 
 #[test]
 fn test_returns_bool_true() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclReturnsBool::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, 5)]; // 5 > 0, should return true
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_bool().unwrap(), true);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(5)])
+            .as_bool()
+            .unwrap(),
+        true
+    );
 }
 
 #[test]
 fn test_returns_bool_false() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclReturnsBool::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, -5)]; // -5 <= 0, should return false
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_bool().unwrap(), false);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(-5)])
+            .as_bool()
+            .unwrap(),
+        false
+    );
 }
 
 #[test]
 fn test_returns_bool_zero_edge_case() {
-    // Bug target: 0 is the boundary - tests off-by-one in comparison
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclReturnsBool::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, 0)]; // 0 > 0 is false
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_bool().unwrap(), false);
+    let ctx = TestCtx::new(&arena);
+    // 0 > 0 is false (boundary test)
+    assert_eq!(
+        ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(0)])
+            .as_bool()
+            .unwrap(),
+        false
+    );
 }
 
-// ============================================================================
 // 6. FLOAT PARAMETER AND RETURN
-// ============================================================================
-// Bug being tested: Float representation quirks (NaN, Inf, -0.0)
+// Tests float representation quirks (NaN, Inf, -0.0).
 
 #[test]
 fn test_float_zero() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesFloat::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::float(type_mgr, 0.0)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_float().unwrap(), 0.0);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclTakesFloat::new(ctx.type_mgr), &[ctx.float(0.0)])
+            .as_float()
+            .unwrap(),
+        0.0
+    );
 }
 
 #[test]
 fn test_float_negative_zero() {
-    // Bug target: -0.0 is distinct from 0.0 in IEEE 754
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesFloat::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::float(type_mgr, -0.0)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    // -0.0 * 2.0 = -0.0 (IEEE 754 preserves sign of zero)
-    // But -0.0 == 0.0 in rust comparison
-    assert!(result.as_float().unwrap().is_sign_negative() || result.as_float().unwrap() == 0.0);
+    let ctx = TestCtx::new(&arena);
+    let result = ctx
+        .call_ok(DeclTakesFloat::new(ctx.type_mgr), &[ctx.float(-0.0)])
+        .as_float()
+        .unwrap();
+    // -0.0 * 2.0 = -0.0 (IEEE 754 preserves sign of zero), but -0.0 == 0.0 in Rust
+    assert!(result.is_sign_negative() || result == 0.0);
 }
 
 #[test]
 fn test_float_infinity() {
-    // Bug target: Infinity should be preserved through conversions
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesFloat::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::float(type_mgr, f64::INFINITY)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_float().unwrap(), f64::INFINITY);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(
+            DeclTakesFloat::new(ctx.type_mgr),
+            &[ctx.float(f64::INFINITY)]
+        )
+        .as_float()
+        .unwrap(),
+        f64::INFINITY
+    );
 }
 
 #[test]
 fn test_float_neg_infinity() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesFloat::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::float(type_mgr, f64::NEG_INFINITY)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_float().unwrap(), f64::NEG_INFINITY);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(
+            DeclTakesFloat::new(ctx.type_mgr),
+            &[ctx.float(f64::NEG_INFINITY)]
+        )
+        .as_float()
+        .unwrap(),
+        f64::NEG_INFINITY
+    );
 }
 
 #[test]
 fn test_float_nan() {
-    // Bug target: NaN has special comparison semantics (NaN != NaN)
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesFloat::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::float(type_mgr, f64::NAN)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let ctx = TestCtx::new(&arena);
     // NaN * 2.0 = NaN
-    assert!(result.as_float().unwrap().is_nan());
+    assert!(
+        ctx.call_ok(DeclTakesFloat::new(ctx.type_mgr), &[ctx.float(f64::NAN)])
+            .as_float()
+            .unwrap()
+            .is_nan()
+    );
 }
 
-// ============================================================================
 // 7. STRING EDGE CASES
-// ============================================================================
-// Bug being tested: Empty strings, unicode, special characters
+// Tests empty strings, unicode, special characters.
 
 #[test]
 fn test_string_empty() {
-    // Bug target: Empty string might be confused with null
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let upper_fn = DeclUpper::new(type_mgr);
-    let value = Value::function(&arena, upper_fn).unwrap();
-
-    let str_ty = type_mgr.str();
-    let s = Value::str(&arena, str_ty, "");
-    let args = [s];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(&*result.as_str().unwrap(), "");
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        &*ctx
+            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("")])
+            .as_str()
+            .unwrap(),
+        ""
+    );
 }
 
 #[test]
 fn test_string_single_char() {
-    // Bug target: Single character string (boundary case)
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let upper_fn = DeclUpper::new(type_mgr);
-    let value = Value::function(&arena, upper_fn).unwrap();
-
-    let str_ty = type_mgr.str();
-    let s = Value::str(&arena, str_ty, "a");
-    let args = [s];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(&*result.as_str().unwrap(), "A");
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        &*ctx
+            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("a")])
+            .as_str()
+            .unwrap(),
+        "A"
+    );
 }
 
 #[test]
 fn test_string_unicode() {
-    // Bug target: Multi-byte UTF-8 characters
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let upper_fn = DeclUpper::new(type_mgr);
-    let value = Value::function(&arena, upper_fn).unwrap();
-
-    let str_ty = type_mgr.str();
-    // Note: to_ascii_uppercase only affects ASCII, so this tests preservation
-    let s = Value::str(&arena, str_ty, "hello world");
-    let args = [s];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(&*result.as_str().unwrap(), "HELLO WORLD");
+    let ctx = TestCtx::new(&arena);
+    // to_ascii_uppercase only affects ASCII
+    assert_eq!(
+        &*ctx
+            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("hello world")])
+            .as_str()
+            .unwrap(),
+        "HELLO WORLD"
+    );
 }
 
-// ============================================================================
-// 8. COMPLEX GENERIC TYPES
-// ============================================================================
-// Bug being tested: Does the macro correctly handle Array<T> and other generics?
+// 8. COMPLEX GENERIC TYPES (Array<T>)
 
 #[test]
 fn test_takes_array_empty() {
-    // Bug target: Empty array as parameter
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesArray::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let empty_array = Array::<i64>::new(&arena, &[]);
-    let array_ty = type_mgr.array(type_mgr.int());
-    let arr_value = Value::from_raw_unchecked(array_ty, empty_array.as_raw_value());
-
-    let args = [arr_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 0); // Sum of empty array
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclTakesArray::new(ctx.type_mgr), &[ctx.int_array(&[])])
+            .as_int()
+            .unwrap(),
+        0
+    );
 }
 
 #[test]
 fn test_takes_array_single_element() {
-    // Bug target: Single element array
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesArray::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let array = Array::<i64>::new(&arena, &[42]);
-    let array_ty = type_mgr.array(type_mgr.int());
-    let arr_value = Value::from_raw_unchecked(array_ty, array.as_raw_value());
-
-    let args = [arr_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 42);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(DeclTakesArray::new(ctx.type_mgr), &[ctx.int_array(&[42])])
+            .as_int()
+            .unwrap(),
+        42
+    );
 }
 
 #[test]
 fn test_takes_array_multiple_elements() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesArray::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let array = Array::<i64>::new(&arena, &[1, 2, 3, 4, 5]);
-    let array_ty = type_mgr.array(type_mgr.int());
-    let arr_value = Value::from_raw_unchecked(array_ty, array.as_raw_value());
-
-    let args = [arr_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 15); // 1+2+3+4+5
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(
+            DeclTakesArray::new(ctx.type_mgr),
+            &[ctx.int_array(&[1, 2, 3, 4, 5])]
+        )
+        .as_int()
+        .unwrap(),
+        15
+    );
 }
 
 #[test]
 fn test_returns_array() {
-    // Bug target: Returning complex generic type
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let fn_wrapper = DeclReturnsArray::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, 5)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
+    let result = ctx.call_ok(DeclReturnsArray::new(ctx.type_mgr), &[ctx.int(5)]);
+    let arr = result.as_array().unwrap();
 
     // Function returns [x, x*2, x*3] = [5, 10, 15]
-    let arr = result.as_array().unwrap();
     assert_eq!(arr.len(), 3);
-    let v0 = arr.get(0).unwrap().as_int().unwrap();
-    let v1 = arr.get(1).unwrap().as_int().unwrap();
-    let v2 = arr.get(2).unwrap().as_int().unwrap();
-    assert_eq!(v0, 5);
-    assert_eq!(v1, 10);
-    assert_eq!(v2, 15);
+    assert_eq!(arr.get(0).unwrap().as_int().unwrap(), 5);
+    assert_eq!(arr.get(1).unwrap().as_int().unwrap(), 10);
+    assert_eq!(arr.get(2).unwrap().as_int().unwrap(), 15);
 }
 
-// ============================================================================
 // 9. OPTIONAL TYPE
-// ============================================================================
-// Bug being tested: Optional<T> uses null pointer for None, which might
-// interact oddly with the macro's value conversion.
+// Tests Optional<T> which uses null pointer for None.
 
 #[test]
 fn test_takes_optional_some() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesOptional::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let opt = Optional::some(&arena, 42i64);
-    let opt_ty = type_mgr.option(type_mgr.int());
-    let opt_value = Value::from_raw_unchecked(
-        opt_ty,
-        <Optional<i64> as RawConvertible>::to_raw_value(&arena, opt),
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(
+            DeclTakesOptional::new(ctx.type_mgr),
+            &[ctx.optional_int(Some(42))]
+        )
+        .as_int()
+        .unwrap(),
+        42
     );
-
-    let args = [opt_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 42);
 }
 
 #[test]
 fn test_takes_optional_none() {
-    // Bug target: None is represented as null pointer
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesOptional::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let opt = Optional::<i64>::none();
-    let opt_ty = type_mgr.option(type_mgr.int());
-    let opt_value = Value::from_raw_unchecked(
-        opt_ty,
-        <Optional<i64> as RawConvertible>::to_raw_value(&arena, opt),
+    let ctx = TestCtx::new(&arena);
+    // None => unwrap_or(0) => 0
+    assert_eq!(
+        ctx.call_ok(
+            DeclTakesOptional::new(ctx.type_mgr),
+            &[ctx.optional_int(None)]
+        )
+        .as_int()
+        .unwrap(),
+        0
     );
-
-    let args = [opt_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 0); // unwrap_or(0)
 }
 
 #[test]
 fn test_returns_optional_some() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
+    // x > 0 returns Some(x)
+    let result = ctx.call_ok(DeclReturnsOptional::new(ctx.type_mgr), &[ctx.int(42)]);
 
-    let fn_wrapper = DeclReturnsOptional::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, 42)]; // x > 0, returns Some(42)
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    // Result should be an Optional with Some(42)
-    let opt = unsafe { <Optional<i64> as RawConvertible>::from_raw_value(result.raw()) };
-    assert!(opt.is_some());
-    assert_eq!(opt.unwrap(), 42);
+    assert_eq!(extract_optional_int(&result), Some(42));
 }
 
 #[test]
 fn test_returns_optional_none() {
-    // Bug target: Function returning None
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclReturnsOptional::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, -5)]; // x <= 0, returns None
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    let opt = unsafe { <Optional<i64> as RawConvertible>::from_raw_value(result.raw()) };
-    assert!(opt.is_none());
+    let ctx = TestCtx::new(&arena);
+    // x <= 0 returns None
+    let result = ctx.call_ok(DeclReturnsOptional::new(ctx.type_mgr), &[ctx.int(-5)]);
+    assert_eq!(extract_optional_int(&result), None);
 }
 
-// ============================================================================
 // 10. RESULT WITH LIFETIME IN OK TYPE
-// ============================================================================
-// Bug being tested: Result<Str<'a>, E> - does the macro correctly handle
-// lifetimes in the Ok type of a Result?
+// Tests Result<Str<'a>, E> with lifetimes in the Ok type.
 
 #[test]
 fn test_result_with_lifetime_success() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclResultWithLifetime::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let str_ty = type_mgr.str();
-    let s = Value::str(&arena, str_ty, "hello");
-    let args = [s];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(&*result.as_str().unwrap(), "HELLO");
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        &*ctx
+            .call_ok(
+                DeclResultWithLifetime::new(ctx.type_mgr),
+                &[ctx.str("hello")]
+            )
+            .as_str()
+            .unwrap(),
+        "HELLO"
+    );
 }
 
 #[test]
 fn test_result_with_lifetime_error() {
-    use melbi_core::evaluator::ExecutionErrorKind;
-
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclResultWithLifetime::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let str_ty = type_mgr.str();
-    let s = Value::str(&arena, str_ty, ""); // Empty string triggers error
-    let args = [s];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
-
-    assert!(result.is_err());
-    let err = result.unwrap_err();
+    let ctx = TestCtx::new(&arena);
+    // Empty string triggers error
+    let err = ctx
+        .call(DeclResultWithLifetime::new(ctx.type_mgr), &[ctx.str("")])
+        .unwrap_err();
     assert!(matches!(
         err.kind,
         ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
     ));
 }
 
-// ============================================================================
 // 11. PURE MODE WITH RESULT RETURNING NON-INT
-// ============================================================================
-// Bug being tested: Pure mode + Result + non-i64 return type
 
 #[test]
 fn test_pure_result_returns_float_success() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclPureResultComplex::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [Value::int(type_mgr, 10), Value::int(type_mgr, 4)];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_float().unwrap(), 2.5);
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(
+            DeclPureResultComplex::new(ctx.type_mgr),
+            &[ctx.int(10), ctx.int(4)]
+        )
+        .as_float()
+        .unwrap(),
+        2.5
+    );
 }
 
 #[test]
 fn test_pure_result_returns_float_error() {
-    use melbi_core::evaluator::ExecutionErrorKind;
-
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclPureResultComplex::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let args = [
-        Value::int(type_mgr, 10),
-        Value::int(type_mgr, 0), // Division by zero
-    ];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
-
-    assert!(result.is_err());
-    let err = result.unwrap_err();
+    let ctx = TestCtx::new(&arena);
+    let err = ctx
+        .call(
+            DeclPureResultComplex::new(ctx.type_mgr),
+            &[ctx.int(10), ctx.int(0)],
+        )
+        .unwrap_err();
     assert!(matches!(
         err.kind,
         ExecutionErrorKind::Runtime(RuntimeError::DivisionByZero {})
     ));
 }
 
-// ============================================================================
 // 12. FUNCTION TYPE CORRECTNESS
-// ============================================================================
-// Bug being tested: Does the generated function type correctly reflect
-// the parameter and return types?
 
 #[test]
 fn test_zero_args_function_type() {
-    // Bug target: Zero-arg functions should have type () -> Int
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclZeroArgs::new(type_mgr);
-    let fn_ty = fn_wrapper.ty();
-
-    let fn_ty_str = format!("{}", fn_ty);
-    // Should contain "() -> Int" or similar
+    let ctx = TestCtx::new(&arena);
+    let fn_ty_str = format!("{}", DeclZeroArgs::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
         "Zero-arg function type should contain Int: {}",
@@ -1838,16 +1375,9 @@ fn test_zero_args_function_type() {
 
 #[test]
 fn test_many_args_function_type() {
-    // Bug target: 5-arg function should have correct type signature
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclManyArgs::new(type_mgr);
-    let fn_ty = fn_wrapper.ty();
-
-    let fn_ty_str = format!("{}", fn_ty);
-    // Type should reference Int multiple times (5 params + return)
-    // This is a weak check, but verifies the type was generated
+    let ctx = TestCtx::new(&arena);
+    let fn_ty_str = format!("{}", DeclManyArgs::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
         "Many-arg function type should contain Int: {}",
@@ -1857,15 +1387,9 @@ fn test_many_args_function_type() {
 
 #[test]
 fn test_mixed_types_function_type() {
-    // Bug target: Mixed param types should be reflected in function type
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclMixedTypes::new(type_mgr);
-    let fn_ty = fn_wrapper.ty();
-
-    let fn_ty_str = format!("{}", fn_ty);
-    // Should contain Int, Float, Bool, and return Float
+    let ctx = TestCtx::new(&arena);
+    let fn_ty_str = format!("{}", DeclMixedTypes::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
         "Mixed-types function should contain Int: {}",
@@ -1883,137 +1407,70 @@ fn test_mixed_types_function_type() {
     );
 }
 
-// ============================================================================
 // 13. ANNOTATED FUNCTION NAME
-// ============================================================================
-// Bug being tested: Does the generated AnnotatedFunction correctly report
-// the wrapper struct name (not the impl function name)?
 
 #[test]
 fn test_annotated_name_matches_struct() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    let ctx = TestCtx::new(&arena);
 
-    let fn_wrapper = DeclZeroArgs::new(type_mgr);
-    assert_eq!(fn_wrapper.name(), "DeclZeroArgs");
-
-    let fn_wrapper2 = DeclManyArgs::new(type_mgr);
-    assert_eq!(fn_wrapper2.name(), "DeclManyArgs");
-
-    let fn_wrapper3 = DeclTakesArray::new(type_mgr);
-    assert_eq!(fn_wrapper3.name(), "DeclTakesArray");
+    assert_eq!(DeclZeroArgs::new(ctx.type_mgr).name(), "DeclZeroArgs");
+    assert_eq!(DeclManyArgs::new(ctx.type_mgr).name(), "DeclManyArgs");
+    assert_eq!(DeclTakesArray::new(ctx.type_mgr).name(), "DeclTakesArray");
 }
 
-// ============================================================================
 // 14. NESTED ARRAY TYPE (Array<Str<'a>>)
-// ============================================================================
-// Bug being tested: Does the macro handle doubly-parameterized types?
 
 #[test]
 fn test_takes_str_array_empty() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesStrArray::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let empty_array = Array::<Str>::from_strs(&arena, Vec::<&str>::new());
-    let array_ty = type_mgr.array(type_mgr.str());
-    let arr_value = Value::from_raw_unchecked(array_ty, empty_array.as_raw_value());
-
-    let args = [arr_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 0); // Length of empty array
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(
+            DeclTakesStrArray::new(ctx.type_mgr),
+            &[ctx.str_array(vec![])]
+        )
+        .as_int()
+        .unwrap(),
+        0
+    );
 }
 
 #[test]
 fn test_takes_str_array_with_elements() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclTakesStrArray::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let array = Array::from_strs(&arena, vec!["hello", "world", "test"]);
-    let array_ty = type_mgr.array(type_mgr.str());
-    let arr_value = Value::from_raw_unchecked(array_ty, array.as_raw_value());
-
-    let args = [arr_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    assert_eq!(result.as_int().unwrap(), 3); // Length of array with 3 strings
+    let ctx = TestCtx::new(&arena);
+    assert_eq!(
+        ctx.call_ok(
+            DeclTakesStrArray::new(ctx.type_mgr),
+            &[ctx.str_array(vec!["hello", "world", "test"])]
+        )
+        .as_int()
+        .unwrap(),
+        3
+    );
 }
 
-// ============================================================================
 // 15. PURE MODE WITH NESTED GENERICS AND RESULT
-// ============================================================================
-// Bug being tested: Pure mode + Array<'a, Str<'a>> + Result<Str<'a>, E>
-// This combines multiple complexity factors.
 
 #[test]
 fn test_array_first_success() {
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclArrayFirst::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let array = Array::from_strs(&arena, vec!["first", "second", "third"]);
-    let array_ty = type_mgr.array(type_mgr.str());
-    let arr_value = Value::from_raw_unchecked(array_ty, array.as_raw_value());
-
-    let args = [arr_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
+    let ctx = TestCtx::new(&arena);
+    let result = ctx.call_ok(
+        DeclArrayFirst::new(ctx.type_mgr),
+        &[ctx.str_array(vec!["first", "second", "third"])],
+    );
     assert_eq!(&*result.as_str().unwrap(), "first");
 }
 
 #[test]
 fn test_array_first_empty_error() {
-    use melbi_core::evaluator::ExecutionErrorKind;
-
     let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let fn_wrapper = DeclArrayFirst::new(type_mgr);
-    let value = Value::function(&arena, fn_wrapper).unwrap();
-
-    let empty_array = Array::<Str>::from_strs(&arena, Vec::<&str>::new());
-    let array_ty = type_mgr.array(type_mgr.str());
-    let arr_value = Value::from_raw_unchecked(array_ty, empty_array.as_raw_value());
-
-    let args = [arr_value];
-    let ctx = FfiContext::new(&arena, type_mgr);
-
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
-
-    assert!(result.is_err());
-    let err = result.unwrap_err();
+    let ctx = TestCtx::new(&arena);
+    let err = ctx
+        .call(DeclArrayFirst::new(ctx.type_mgr), &[ctx.str_array(vec![])])
+        .unwrap_err();
     assert!(matches!(
         err.kind,
         ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
