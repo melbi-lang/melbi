@@ -18,14 +18,14 @@ macro_rules! melbi_fn_generate {
         name = $name:ident,
         fn_name = $fn_name:ident,
         lt = $lt:lifetime,
-        context = $context:ident,
+        context_arg = $context_arg:tt,
         signature = $sig:tt -> $ret_ty:ty,
         fallible = $fallible:tt
     ) => {
         const $name: &'static str = stringify!(
             fn_name = $fn_name,
             lt = $lt,
-            context = $context,
+            context_arg = $context_arg,
             signature = $sig -> $ret_ty,
             fallible = $fallible
         );
@@ -80,24 +80,24 @@ mod full_output {
         let normalized: String = Add.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = add, lt = '__a, context = Pure, signature = { a : i64, b : i64 } -> i64, fallible = false"
+            "fn_name = add, lt = '__a, context_arg = false, signature = { a : i64, b : i64 } -> i64, fallible = false"
         );
     }
 
-    struct Bump;
-    struct TypeManager;
+    struct FfiContext;
 
     #[melbi_fn]
-    fn legacy_div(_arena: &Bump, _type_mgr: &TypeManager, a: i64, b: i64) -> i64 {
-        a / b
+    fn with_context(ctx: &FfiContext, a: i64, b: i64) -> i64 {
+        let _ = ctx;
+        a + b
     }
 
     #[test]
-    fn test_legacy_two_params() {
-        let normalized: String = LegacyDiv.split_whitespace().collect::<Vec<_>>().join(" ");
+    fn test_with_context_two_params() {
+        let normalized: String = WithContext.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = legacy_div, lt = '__a, context = Legacy, signature = { a : i64, b : i64 } -> i64, fallible = false"
+            "fn_name = with_context, lt = '__a, context_arg = true, signature = { a : i64, b : i64 } -> i64, fallible = false"
         );
     }
 
@@ -113,7 +113,7 @@ mod full_output {
         let normalized: String = SafeDiv.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = safe_div, lt = '__a, context = Pure, signature = { a : i64, b : i64 } -> i64, fallible = true"
+            "fn_name = safe_div, lt = '__a, context_arg = false, signature = { a : i64, b : i64 } -> i64, fallible = true"
         );
     }
 
@@ -129,7 +129,7 @@ mod full_output {
         let normalized: String = Upper.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = upper, lt = 'a, context = Pure, signature = { s : Str < 'a > } -> Str < 'a >, fallible = false"
+            "fn_name = upper, lt = 'a, context_arg = false, signature = { s : Str < 'a > } -> Str < 'a >, fallible = false"
         );
     }
 
@@ -143,7 +143,7 @@ mod full_output {
         let normalized: String = NoParams.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = no_params, lt = '__a, context = Pure, signature = {} -> i64, fallible = false"
+            "fn_name = no_params, lt = '__a, context_arg = false, signature = {} -> i64, fallible = false"
         );
     }
 }
@@ -196,9 +196,6 @@ mod name_derivation {
 mod context_modes {
     use super::*;
 
-    // Mock types for testing context detection
-    struct Bump;
-    struct TypeManager;
     struct FfiContext;
 
     #[melbi_fn]
@@ -208,81 +205,18 @@ mod context_modes {
 
     #[test]
     fn test_pure_mode() {
-        assert_output_contains!(PureFunction, "context = Pure");
+        assert_output_contains!(PureFunction, "context_arg = false");
     }
 
     #[melbi_fn]
-    fn arena_only_function(arena: &Bump, x: i64) -> i64 {
-        let _ = arena;
-        x
-    }
-
-    #[test]
-    fn test_arena_only_mode() {
-        assert_output_contains!(ArenaOnlyFunction, "context = ArenaOnly");
-    }
-
-    #[melbi_fn]
-    fn arena_only_with_underscore(_arena: &Bump, x: i64) -> i64 {
-        x
-    }
-
-    #[test]
-    fn test_arena_only_with_underscore() {
-        assert_output_contains!(ArenaOnlyWithUnderscore, "context = ArenaOnly");
-    }
-
-    #[melbi_fn]
-    fn type_mgr_only_function(type_mgr: &TypeManager, x: i64) -> i64 {
-        let _ = type_mgr;
-        x
-    }
-
-    #[test]
-    fn test_type_mgr_only_mode() {
-        assert_output_contains!(TypeMgrOnlyFunction, "context = TypeMgrOnly");
-    }
-
-    #[melbi_fn]
-    fn type_mgr_only_with_underscore(_type_mgr: &TypeManager, x: i64) -> i64 {
-        x
-    }
-
-    #[test]
-    fn test_type_mgr_only_with_underscore() {
-        assert_output_contains!(TypeMgrOnlyWithUnderscore, "context = TypeMgrOnly");
-    }
-
-    #[melbi_fn]
-    fn legacy_function(arena: &Bump, type_mgr: &TypeManager, x: i64) -> i64 {
-        let _ = (arena, type_mgr);
-        x
-    }
-
-    #[test]
-    fn test_legacy_mode() {
-        assert_output_contains!(LegacyFunction, "context = Legacy");
-    }
-
-    #[melbi_fn]
-    fn legacy_with_underscores(_arena: &Bump, _type_mgr: &TypeManager, x: i64) -> i64 {
-        x
-    }
-
-    #[test]
-    fn test_legacy_with_underscores() {
-        assert_output_contains!(LegacyWithUnderscores, "context = Legacy");
-    }
-
-    #[melbi_fn]
-    fn full_context_function(ctx: &FfiContext, x: i64) -> i64 {
+    fn with_context_function(ctx: &FfiContext, x: i64) -> i64 {
         let _ = ctx;
         x
     }
 
     #[test]
-    fn test_full_context_mode() {
-        assert_output_contains!(FullContextFunction, "context = FullContext");
+    fn test_with_context_mode() {
+        assert_output_contains!(WithContextFunction, "context_arg = true");
     }
 
     #[melbi_fn]
@@ -292,65 +226,29 @@ mod context_modes {
 
     #[test]
     fn test_zero_args_is_pure() {
-        assert_output_contains!(ZeroArgsPure, "context = Pure");
+        assert_output_contains!(ZeroArgsPure, "context_arg = false");
     }
 
     #[melbi_fn]
-    fn zero_args_legacy(_arena: &Bump, _type_mgr: &TypeManager) -> i64 {
+    fn zero_args_with_context(_ctx: &FfiContext) -> i64 {
         42
     }
 
     #[test]
-    fn test_zero_business_args_legacy() {
-        assert_output_contains!(ZeroArgsLegacy, "context = Legacy");
+    fn test_zero_business_args_with_context() {
+        assert_output_contains!(ZeroArgsWithContext, "context_arg = true");
     }
 
-    // -------------------------------------------------------------------------
-    // Alternative parameter names (detected by type, not name)
-    // -------------------------------------------------------------------------
-
+    // Alternative parameter name for FfiContext
     #[melbi_fn]
-    fn arena_alt_name(bump: &Bump, x: i64) -> i64 {
-        let _ = bump;
-        x
-    }
-
-    #[test]
-    fn test_arena_alt_name() {
-        assert_output_contains!(ArenaAltName, "context = ArenaOnly");
-    }
-
-    #[melbi_fn]
-    fn type_mgr_alt_name(type_manager: &TypeManager, x: i64) -> i64 {
-        let _ = type_manager;
-        x
-    }
-
-    #[test]
-    fn test_type_mgr_alt_name() {
-        assert_output_contains!(TypeMgrAltName, "context = TypeMgrOnly");
-    }
-
-    #[melbi_fn]
-    fn legacy_alt_names(bump: &Bump, type_manager: &TypeManager, x: i64) -> i64 {
-        let _ = (bump, type_manager);
-        x
-    }
-
-    #[test]
-    fn test_legacy_alt_names() {
-        assert_output_contains!(LegacyAltNames, "context = Legacy");
-    }
-
-    #[melbi_fn]
-    fn full_context_alt_name(context: &FfiContext, x: i64) -> i64 {
+    fn context_alt_name(context: &FfiContext, x: i64) -> i64 {
         let _ = context;
         x
     }
 
     #[test]
-    fn test_full_context_alt_name() {
-        assert_output_contains!(FullContextAltName, "context = FullContext");
+    fn test_context_alt_name() {
+        assert_output_contains!(ContextAltName, "context_arg = true");
     }
 }
 
@@ -477,22 +375,21 @@ mod signature {
         assert_output_contains!(MultipleParams, "-> f64");
     }
 
-    // Test that context params are NOT included in signature
-    struct Bump;
-    struct TypeManager;
+    // Test that FfiContext is NOT included in signature
+    struct FfiContext;
 
     #[melbi_fn]
-    fn legacy_with_business_params(_arena: &Bump, _type_mgr: &TypeManager, x: i64, y: i64) -> i64 {
+    fn with_context_and_params(_ctx: &FfiContext, x: i64, y: i64) -> i64 {
         x + y
     }
 
     #[test]
-    fn test_context_params_excluded_from_signature() {
-        // Should contain x and y but not arena or type_mgr
-        assert_output_contains!(LegacyWithBusinessParams, "x : i64");
-        assert_output_contains!(LegacyWithBusinessParams, "y : i64");
-        assert_output_not_contains!(LegacyWithBusinessParams, "arena");
-        assert_output_not_contains!(LegacyWithBusinessParams, "type_mgr");
+    fn test_context_param_excluded_from_signature() {
+        // Should contain x and y but not ctx or FfiContext
+        assert_output_contains!(WithContextAndParams, "x : i64");
+        assert_output_contains!(WithContextAndParams, "y : i64");
+        assert_output_not_contains!(WithContextAndParams, "ctx");
+        assert_output_not_contains!(WithContextAndParams, "FfiContext");
     }
 }
 

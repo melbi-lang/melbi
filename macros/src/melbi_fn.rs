@@ -41,34 +41,16 @@ struct MelbiAttr {
     name: Option<String>,
 }
 
-/// How the function receives context resources (arena, type_mgr, etc.)
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum ContextMode {
-    /// Pure function: fn(args...) - no context at all
-    Pure,
-    /// Arena only: fn(arena: &Bump, args...)
-    ArenaOnly,
-    /// Type manager only: fn(type_mgr: &TypeManager, args...)
-    TypeMgrOnly,
-    /// Legacy mode: fn(arena: &Bump, type_mgr: &TypeManager, args...)
-    Legacy,
-    /// Full context: fn(ctx: &FfiContext, args...)
-    FullContext,
-}
-
 /// Parsed function signature information
 struct ParsedSignature {
     /// The Rust function name
     fn_name: syn::Ident,
     /// Lifetime from the function (if any). None means use default '__a.
     lifetime: Option<syn::Lifetime>,
-    /// How the function receives context resources
-    context_mode: ContextMode,
+    /// Whether the first parameter is &FfiContext
+    has_context: bool,
     /// Business logic parameters (excluding context params)
     params: Vec<(syn::Ident, Box<Type>)>,
-    /// The full return type as written (kept for future use)
-    #[allow(dead_code)]
-    return_type: Box<Type>,
     /// The "bridge" return type - unwrapped if Result<T, E>
     bridge_return_type: Box<Type>,
     /// Whether the function returns Result<T, E>
@@ -163,15 +145,14 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
     // Check if return type is Result<T, E> and extract bridge type
     let (bridge_return_type, is_fallible) = analyze_return_type(&return_type);
 
-    // Detect context mode and extract business parameters
-    let (context_mode, params) = detect_context_mode_and_params(&func.sig)?;
+    // Detect context and extract business parameters
+    let (has_context, params) = detect_context_and_params(&func.sig)?;
 
     Ok(ParsedSignature {
         fn_name,
         lifetime,
-        context_mode,
+        has_context,
         params,
-        return_type,
         bridge_return_type,
         is_fallible,
     })
@@ -259,18 +240,15 @@ fn extract_result_ok_type(ty: &Type) -> Option<Box<Type>> {
     None
 }
 
-/// Detect context mode from function parameters and extract business params.
-fn detect_context_mode_and_params(
+/// Detect if first param is FfiContext and extract business params.
+fn detect_context_and_params(
     sig: &syn::Signature,
-) -> syn::Result<(ContextMode, Vec<(syn::Ident, Box<Type>)>)> {
-    let mut inputs_iter = sig.inputs.iter().peekable();
+) -> syn::Result<(bool, Vec<(syn::Ident, Box<Type>)>)> {
+    let mut inputs_iter = sig.inputs.iter();
 
     // Check first parameter
     let first = match inputs_iter.next() {
-        None => {
-            // No parameters at all - Pure mode
-            return Ok((ContextMode::Pure, Vec::new()));
-        }
+        None => return Ok((false, Vec::new())),
         Some(arg) => arg,
     };
 
@@ -280,36 +258,10 @@ fn detect_context_mode_and_params(
     // Check for FfiContext
     if is_ffi_context_type(first_ty) {
         let params = collect_remaining_params(&mut inputs_iter);
-        return Ok((ContextMode::FullContext, params));
+        return Ok((true, params));
     }
 
-    // Check for arena (Bump) - detected by type, any name allowed
-    if is_bump_type(first_ty) {
-        // Check if second param is TypeManager
-        if let Some(second) = inputs_iter.peek() {
-            if let Some((_second_name, second_ty)) = extract_param_info(second) {
-                if is_type_manager_type(second_ty) {
-                    // Legacy mode: (arena, type_mgr, ...)
-                    let _ = inputs_iter.next(); // consume second param
-                    let params = collect_remaining_params(&mut inputs_iter);
-                    return Ok((ContextMode::Legacy, params));
-                }
-            }
-        }
-
-        // ArenaOnly mode: (arena, ...)
-        let params = collect_remaining_params(&mut inputs_iter);
-        return Ok((ContextMode::ArenaOnly, params));
-    }
-
-    // Check for TypeManager only - detected by type, any name allowed
-    if is_type_manager_type(first_ty) {
-        let params = collect_remaining_params(&mut inputs_iter);
-        return Ok((ContextMode::TypeMgrOnly, params));
-    }
-
-    // First param is not a context param - Pure mode
-    // Include this first param in the business params
+    // First param is not FfiContext - include it in business params
     let mut params = Vec::new();
     if let FnArg::Typed(PatType { pat, ty, .. }) = first {
         if let Pat::Ident(pat_ident) = &**pat {
@@ -318,7 +270,7 @@ fn detect_context_mode_and_params(
     }
     params.extend(collect_remaining_params(&mut inputs_iter));
 
-    Ok((ContextMode::Pure, params))
+    Ok((false, params))
 }
 
 /// Extract parameter name and type from a FnArg.
@@ -340,30 +292,6 @@ fn is_ffi_context_type(ty: &Type) -> bool {
                 .segments
                 .iter()
                 .any(|s| s.ident == "FfiContext");
-        }
-    }
-    false
-}
-
-/// Check if a type looks like Bump (contains "Bump" in path).
-fn is_bump_type(ty: &Type) -> bool {
-    if let Type::Reference(type_ref) = ty {
-        if let Type::Path(type_path) = &*type_ref.elem {
-            return type_path.path.segments.iter().any(|s| s.ident == "Bump");
-        }
-    }
-    false
-}
-
-/// Check if a type looks like TypeManager (contains "TypeManager" in path).
-fn is_type_manager_type(ty: &Type) -> bool {
-    if let Type::Reference(type_ref) = ty {
-        if let Type::Path(type_path) = &*type_ref.elem {
-            return type_path
-                .path
-                .segments
-                .iter()
-                .any(|s| s.ident == "TypeManager");
         }
     }
     false
@@ -408,15 +336,6 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
         None => syn::Lifetime::new("'__a", proc_macro2::Span::call_site()),
     };
 
-    // Generate context mode identifier
-    let context_mode = match sig.context_mode {
-        ContextMode::Pure => quote! { Pure },
-        ContextMode::ArenaOnly => quote! { ArenaOnly },
-        ContextMode::TypeMgrOnly => quote! { TypeMgrOnly },
-        ContextMode::Legacy => quote! { Legacy },
-        ContextMode::FullContext => quote! { FullContext },
-    };
-
     // Generate parameter list: { a: i64, b: i64 }
     let param_names: Vec<_> = sig.params.iter().map(|(name, _)| name).collect();
     let param_types: Vec<_> = sig.params.iter().map(|(_, ty)| ty).collect();
@@ -424,7 +343,8 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
     // Generate bridge return type
     let bridge_return_type = &sig.bridge_return_type;
 
-    // Generate fallible flag
+    // Generate flags
+    let has_context = sig.has_context;
     let fallible = sig.is_fallible;
 
     quote! {
@@ -434,7 +354,7 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
             name = #struct_name,
             fn_name = #fn_name,
             lt = #lifetime,
-            context = #context_mode,
+            context_arg = #has_context,
             signature = { #( #param_names : #param_types ),* } -> #bridge_return_type,
             fallible = #fallible
         );
