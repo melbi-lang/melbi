@@ -1,5 +1,0 @@
-error: TypeManager parameter must be named `type_mgr` or `_type_mgr`, found `type_manager`
-  --> tests/compile_fail/type_manager_typo.rs:10:20
-   |
-10 | fn uses_wrong_name(type_manager: &TypeManager) -> i64 {
-   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^

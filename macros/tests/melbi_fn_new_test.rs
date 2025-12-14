@@ -304,6 +304,54 @@ mod context_modes {
     fn test_zero_business_args_legacy() {
         assert_output_contains!(ZeroArgsLegacy, "context = Legacy");
     }
+
+    // -------------------------------------------------------------------------
+    // Alternative parameter names (detected by type, not name)
+    // -------------------------------------------------------------------------
+
+    #[melbi_fn_new]
+    fn arena_alt_name(bump: &Bump, x: i64) -> i64 {
+        let _ = bump;
+        x
+    }
+
+    #[test]
+    fn test_arena_alt_name() {
+        assert_output_contains!(ArenaAltName, "context = ArenaOnly");
+    }
+
+    #[melbi_fn_new]
+    fn type_mgr_alt_name(type_manager: &TypeManager, x: i64) -> i64 {
+        let _ = type_manager;
+        x
+    }
+
+    #[test]
+    fn test_type_mgr_alt_name() {
+        assert_output_contains!(TypeMgrAltName, "context = TypeMgrOnly");
+    }
+
+    #[melbi_fn_new]
+    fn legacy_alt_names(bump: &Bump, type_manager: &TypeManager, x: i64) -> i64 {
+        let _ = (bump, type_manager);
+        x
+    }
+
+    #[test]
+    fn test_legacy_alt_names() {
+        assert_output_contains!(LegacyAltNames, "context = Legacy");
+    }
+
+    #[melbi_fn_new]
+    fn full_context_alt_name(context: &FfiContext, x: i64) -> i64 {
+        let _ = context;
+        x
+    }
+
+    #[test]
+    fn test_full_context_alt_name() {
+        assert_output_contains!(FullContextAltName, "context = FullContext");
+    }
 }
 
 // ============================================================================

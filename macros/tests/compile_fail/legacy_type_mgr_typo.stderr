@@ -1,5 +1,0 @@
-error: TypeManager parameter must be named `type_mgr` or `_type_mgr`, found `types`
- --> tests/compile_fail/legacy_type_mgr_typo.rs:9:46
-  |
-9 | fn legacy_wrong_type_mgr_name(_arena: &Bump, types: &TypeManager) -> i64 {
-  |                                              ^^^^^^^^^^^^^^^^^^^

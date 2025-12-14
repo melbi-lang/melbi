@@ -271,7 +271,7 @@ fn detect_context_mode_and_params(
         Some(arg) => arg,
     };
 
-    let (first_name, first_ty) = extract_param_info(first)
+    let (_first_name, first_ty) = extract_param_info(first)
         .ok_or_else(|| syn::Error::new_spanned(first, "Expected typed parameter"))?;
 
     // Check for FfiContext
@@ -280,31 +280,12 @@ fn detect_context_mode_and_params(
         return Ok((ContextMode::FullContext, params));
     }
 
-    // Check for arena (Bump)
+    // Check for arena (Bump) - detected by type, any name allowed
     if is_bump_type(first_ty) {
-        if first_name != "arena" && first_name != "_arena" {
-            return Err(syn::Error::new_spanned(
-                first,
-                format!(
-                    "Bump parameter must be named `arena` or `_arena`, found `{}`",
-                    first_name
-                ),
-            ));
-        }
-
-        // Check if second param is type_mgr
+        // Check if second param is TypeManager
         if let Some(second) = inputs_iter.peek() {
-            if let Some((second_name, second_ty)) = extract_param_info(second) {
+            if let Some((_second_name, second_ty)) = extract_param_info(second) {
                 if is_type_manager_type(second_ty) {
-                    if second_name != "type_mgr" && second_name != "_type_mgr" {
-                        return Err(syn::Error::new_spanned(
-                            *second,
-                            format!(
-                                "TypeManager parameter must be named `type_mgr` or `_type_mgr`, found `{}`",
-                                second_name
-                            ),
-                        ));
-                    }
                     // Legacy mode: (arena, type_mgr, ...)
                     let _ = inputs_iter.next(); // consume second param
                     let params = collect_remaining_params(&mut inputs_iter);
@@ -318,17 +299,8 @@ fn detect_context_mode_and_params(
         return Ok((ContextMode::ArenaOnly, params));
     }
 
-    // Check for type_mgr only
+    // Check for TypeManager only - detected by type, any name allowed
     if is_type_manager_type(first_ty) {
-        if first_name != "type_mgr" && first_name != "_type_mgr" {
-            return Err(syn::Error::new_spanned(
-                first,
-                format!(
-                    "TypeManager parameter must be named `type_mgr` or `_type_mgr`, found `{}`",
-                    first_name
-                ),
-            ));
-        }
         let params = collect_remaining_params(&mut inputs_iter);
         return Ok((ContextMode::TypeMgrOnly, params));
     }
