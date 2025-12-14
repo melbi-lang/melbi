@@ -53,11 +53,29 @@ macro_rules! melbi_fn_impl {
     };
 
     // ========================================================================
-    // @struct: Generate the struct definition
+    // @struct: Generate the struct definition (extract bridge type, then normalize lifetime)
     // ========================================================================
 
-    // With lifetime + Result
-    (@struct $name:ident, [$lt:lifetime], [$($param_ty:ty),*], Result<$ok_ty:ty, $err_ty:ty>) => {
+    // Extract bridge type from Result<T, E> -> T
+    (@struct $name:ident, [$($lt:lifetime)?], [$($param_ty:ty),*], Result<$ok_ty:ty, $err_ty:ty>) => {
+        melbi_fn_impl!(@struct_lt $name, [$($lt)?], [$($param_ty),*], $ok_ty);
+    };
+    // Plain return type -> use as-is
+    (@struct $name:ident, [$($lt:lifetime)?], [$($param_ty:ty),*], $ret_ty:ty) => {
+        melbi_fn_impl!(@struct_lt $name, [$($lt)?], [$($param_ty),*], $ret_ty);
+    };
+
+    // Normalize lifetime: user-provided
+    (@struct_lt $name:ident, [$lt:lifetime], [$($param_ty:ty),*], $bridge_ty:ty) => {
+        melbi_fn_impl!(@struct_body $name, $lt, [$($param_ty),*], $bridge_ty);
+    };
+    // Normalize lifetime: default to 'types
+    (@struct_lt $name:ident, [], [$($param_ty:ty),*], $bridge_ty:ty) => {
+        melbi_fn_impl!(@struct_body $name, 'types, [$($param_ty),*], $bridge_ty);
+    };
+
+    // Actual struct generation (single rule)
+    (@struct_body $name:ident, $lt:lifetime, [$($param_ty:ty),*], $bridge_ty:ty) => {
         pub struct $name<$lt> {
             fn_type: &$lt ::melbi_core::types::Type<$lt>,
         }
@@ -67,61 +85,7 @@ macro_rules! melbi_fn_impl {
                 use ::melbi_core::values::typed::Bridge;
                 let fn_type = type_mgr.function(
                     &[$( <$param_ty as Bridge>::type_from(type_mgr) ),*],
-                    <$ok_ty as Bridge>::type_from(type_mgr),
-                );
-                Self { fn_type }
-            }
-        }
-    };
-
-    // With lifetime + plain return
-    (@struct $name:ident, [$lt:lifetime], [$($param_ty:ty),*], $ret_ty:ty) => {
-        pub struct $name<$lt> {
-            fn_type: &$lt ::melbi_core::types::Type<$lt>,
-        }
-
-        impl<$lt> $name<$lt> {
-            pub fn new(type_mgr: &$lt ::melbi_core::types::manager::TypeManager<$lt>) -> Self {
-                use ::melbi_core::values::typed::Bridge;
-                let fn_type = type_mgr.function(
-                    &[$( <$param_ty as Bridge>::type_from(type_mgr) ),*],
-                    <$ret_ty as Bridge>::type_from(type_mgr),
-                );
-                Self { fn_type }
-            }
-        }
-    };
-
-    // No lifetime + Result
-    (@struct $name:ident, [], [$($param_ty:ty),*], Result<$ok_ty:ty, $err_ty:ty>) => {
-        pub struct $name<'types> {
-            fn_type: &'types ::melbi_core::types::Type<'types>,
-        }
-
-        impl<'types> $name<'types> {
-            pub fn new(type_mgr: &'types ::melbi_core::types::manager::TypeManager<'types>) -> Self {
-                use ::melbi_core::values::typed::Bridge;
-                let fn_type = type_mgr.function(
-                    &[$( <$param_ty as Bridge>::type_from(type_mgr) ),*],
-                    <$ok_ty as Bridge>::type_from(type_mgr),
-                );
-                Self { fn_type }
-            }
-        }
-    };
-
-    // No lifetime + plain return
-    (@struct $name:ident, [], [$($param_ty:ty),*], $ret_ty:ty) => {
-        pub struct $name<'types> {
-            fn_type: &'types ::melbi_core::types::Type<'types>,
-        }
-
-        impl<'types> $name<'types> {
-            pub fn new(type_mgr: &'types ::melbi_core::types::manager::TypeManager<'types>) -> Self {
-                use ::melbi_core::values::typed::Bridge;
-                let fn_type = type_mgr.function(
-                    &[$( <$param_ty as Bridge>::type_from(type_mgr) ),*],
-                    <$ret_ty as Bridge>::type_from(type_mgr),
+                    <$bridge_ty as Bridge>::type_from(type_mgr),
                 );
                 Self { fn_type }
             }
@@ -132,8 +96,17 @@ macro_rules! melbi_fn_impl {
     // @function_impl: Generate the Function trait implementation
     // ========================================================================
 
-    // With lifetime
+    // Normalize lifetime: user-provided
     (@function_impl $name:ident, $fn_name:ident, [$lt:lifetime], $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {
+        melbi_fn_impl!(@function_impl_body $name, $fn_name, $lt, $context, [$($param_name : $param_ty),*], $($ret)+);
+    };
+    // Normalize lifetime: default to 'types
+    (@function_impl $name:ident, $fn_name:ident, [], $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {
+        melbi_fn_impl!(@function_impl_body $name, $fn_name, 'types, $context, [$($param_name : $param_ty),*], $($ret)+);
+    };
+
+    // Actual implementation (single rule)
+    (@function_impl_body $name:ident, $fn_name:ident, $lt:lifetime, $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {
         impl<$lt> ::melbi_core::values::function::Function<$lt, $lt> for $name<$lt> {
             fn ty(&self) -> &$lt ::melbi_core::types::Type<$lt> {
                 self.fn_type
@@ -145,24 +118,6 @@ macro_rules! melbi_fn_impl {
                 ctx: &::melbi_core::values::function::FfiContext<$lt, $lt>,
                 args: &[::melbi_core::values::dynamic::Value<$lt, $lt>],
             ) -> Result<::melbi_core::values::dynamic::Value<$lt, $lt>, ::melbi_core::evaluator::ExecutionError> {
-                melbi_fn_impl!(@call_body $fn_name, ctx, args, $context, [$($param_name : $param_ty),*], $($ret)+)
-            }
-        }
-    };
-
-    // No lifetime
-    (@function_impl $name:ident, $fn_name:ident, [], $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {
-        impl<'types, 'arena> ::melbi_core::values::function::Function<'types, 'arena> for $name<'types> {
-            fn ty(&self) -> &'types ::melbi_core::types::Type<'types> {
-                self.fn_type
-            }
-
-            #[allow(unused_variables)]
-            unsafe fn call_unchecked(
-                &self,
-                ctx: &::melbi_core::values::function::FfiContext<'types, 'arena>,
-                args: &[::melbi_core::values::dynamic::Value<'types, 'arena>],
-            ) -> Result<::melbi_core::values::dynamic::Value<'types, 'arena>, ::melbi_core::evaluator::ExecutionError> {
                 melbi_fn_impl!(@call_body $fn_name, ctx, args, $context, [$($param_name : $param_ty),*], $($ret)+)
             }
         }
@@ -193,46 +148,41 @@ macro_rules! melbi_fn_impl {
     // ========================================================================
 
     // Legacy + Result
-    (@invoke $fn_name:ident, $ctx:ident, Legacy, [$($param_name:ident),*], Result<$ok_ty:ty, $err_ty:ty>) => {{
-        use ::melbi_core::values::typed::{Bridge, RawConvertible};
-        let result = $fn_name($ctx.arena(), $ctx.type_mgr(), $($param_name),*)
-            .map_err(|e| ::melbi_core::evaluator::ExecutionError {
-                kind: e.into(),
-                source: ::alloc::string::String::new(),
-                span: ::melbi_core::parser::Span(0..0),
-            })?;
-        let raw = <$ok_ty as RawConvertible>::to_raw_value($ctx.arena(), result);
-        let ty = <$ok_ty as Bridge>::type_from($ctx.type_mgr());
-        Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
-    }};
-
+    (@invoke $fn_name:ident, $ctx:ident, Legacy, [$($param_name:ident),*], Result<$ok_ty:ty, $err_ty:ty>) => {
+        melbi_fn_impl!(@wrap_result $ctx, $ok_ty,
+            $fn_name($ctx.arena(), $ctx.type_mgr(), $($param_name),*))
+    };
     // Legacy + plain
-    (@invoke $fn_name:ident, $ctx:ident, Legacy, [$($param_name:ident),*], $ret_ty:ty) => {{
-        use ::melbi_core::values::typed::{Bridge, RawConvertible};
-        let result = $fn_name($ctx.arena(), $ctx.type_mgr(), $($param_name),*);
-        let raw = <$ret_ty as RawConvertible>::to_raw_value($ctx.arena(), result);
-        let ty = <$ret_ty as Bridge>::type_from($ctx.type_mgr());
-        Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
-    }};
-
+    (@invoke $fn_name:ident, $ctx:ident, Legacy, [$($param_name:ident),*], $ret_ty:ty) => {
+        melbi_fn_impl!(@wrap_ok $ctx, $ret_ty,
+            $fn_name($ctx.arena(), $ctx.type_mgr(), $($param_name),*))
+    };
     // Pure + Result
-    (@invoke $fn_name:ident, $ctx:ident, Pure, [$($param_name:ident),*], Result<$ok_ty:ty, $err_ty:ty>) => {{
+    (@invoke $fn_name:ident, $ctx:ident, Pure, [$($param_name:ident),*], Result<$ok_ty:ty, $err_ty:ty>) => {
+        melbi_fn_impl!(@wrap_result $ctx, $ok_ty, $fn_name($($param_name),*))
+    };
+    // Pure + plain
+    (@invoke $fn_name:ident, $ctx:ident, Pure, [$($param_name:ident),*], $ret_ty:ty) => {
+        melbi_fn_impl!(@wrap_ok $ctx, $ret_ty, $fn_name($($param_name),*))
+    };
+
+    // @wrap_result: Handle Result return (map_err + unwrap ok value)
+    (@wrap_result $ctx:ident, $ok_ty:ty, $call:expr) => {{
         use ::melbi_core::values::typed::{Bridge, RawConvertible};
-        let result = $fn_name($($param_name),*)
-            .map_err(|e| ::melbi_core::evaluator::ExecutionError {
-                kind: e.into(),
-                source: ::alloc::string::String::new(),
-                span: ::melbi_core::parser::Span(0..0),
-            })?;
+        let result = $call.map_err(|e| ::melbi_core::evaluator::ExecutionError {
+            kind: e.into(),
+            source: ::alloc::string::String::new(),
+            span: ::melbi_core::parser::Span(0..0),
+        })?;
         let raw = <$ok_ty as RawConvertible>::to_raw_value($ctx.arena(), result);
         let ty = <$ok_ty as Bridge>::type_from($ctx.type_mgr());
         Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
     }};
 
-    // Pure + plain
-    (@invoke $fn_name:ident, $ctx:ident, Pure, [$($param_name:ident),*], $ret_ty:ty) => {{
+    // @wrap_ok: Handle plain return (just wrap value)
+    (@wrap_ok $ctx:ident, $ret_ty:ty, $call:expr) => {{
         use ::melbi_core::values::typed::{Bridge, RawConvertible};
-        let result = $fn_name($($param_name),*);
+        let result = $call;
         let raw = <$ret_ty as RawConvertible>::to_raw_value($ctx.arena(), result);
         let ty = <$ret_ty as Bridge>::type_from($ctx.type_mgr());
         Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
@@ -242,22 +192,20 @@ macro_rules! melbi_fn_impl {
     // @annotated_impl: Generate the AnnotatedFunction trait implementation
     // ========================================================================
 
-    // With lifetime
+    // Normalize lifetime: user-provided
     (@annotated_impl $name:ident, [$lt:lifetime]) => {
-        impl<$lt> ::melbi_core::values::function::AnnotatedFunction<$lt> for $name<$lt> {
-            fn name(&self) -> &str { stringify!($name) }
-            fn location(&self) -> (&str, &str, &str, u32, u32) {
-                (env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"), file!(), line!(), column!())
-            }
-            fn doc(&self) -> Option<&str> { None }
-        }
+        melbi_fn_impl!(@annotated_body $name, $lt);
+    };
+    // Normalize lifetime: default to 'types
+    (@annotated_impl $name:ident, []) => {
+        melbi_fn_impl!(@annotated_body $name, 'types);
     };
 
-    // No lifetime
-    (@annotated_impl $name:ident, []) => {
-        impl<'types> ::melbi_core::values::function::AnnotatedFunction<'types> for $name<'types> {
-            fn name(&self) -> &str { stringify!($name) }
-            fn location(&self) -> (&str, &str, &str, u32, u32) {
+    // Actual implementation (single rule)
+    (@annotated_body $name:ident, $lt:lifetime) => {
+        impl<$lt> ::melbi_core::values::function::AnnotatedFunction<$lt> for $name<$lt> {
+            fn name(&self) -> &'static str { stringify!($name) }
+            fn location(&self) -> (&'static str, &'static str, &'static str, u32, u32) {
                 (env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"), file!(), line!(), column!())
             }
             fn doc(&self) -> Option<&str> { None }
