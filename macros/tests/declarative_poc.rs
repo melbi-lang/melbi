@@ -24,58 +24,30 @@ use melbi_core::{
 
 /// Declarative macro that generates all the boilerplate for a melbi_fn.
 ///
-/// The proc macro will parse the user's function and call this with
-/// normalized/easy-to-match arguments.
+/// The proc macro normalizes the function signature and calls this with
+/// pre-processed arguments, so no parsing is needed here.
 ///
 /// # Arguments
 ///
 /// - `name`: The Melbi function name (becomes the struct name)
 /// - `fn_name`: The Rust function name to wrap
-/// - `lifetime`: Optional single lifetime, e.g., `['a]` or `[]` for none
+/// - `lt`: The lifetime to use (proc macro provides default `'__a` if none)
 /// - `context`: How context is passed: `Legacy` or `Pure`
 /// - `params`: Business parameters, e.g., `[a: i64, b: i64]`
-/// - `return_type`: The return type (can be `Result<T, E>` or plain `T`)
+/// - `bridge_type`: The return type for the Melbi function signature (T from Result<T,E> or just T)
+/// - `fallible`: Whether the function returns Result (true) or not (false)
 macro_rules! melbi_fn_impl {
-    // ========================================================================
-    // Entry point: delegate to internal rules
-    // ========================================================================
+    // Single entry point - all normalization done by proc macro
     (
         name = $name:ident,
         fn_name = $fn_name:ident,
-        lifetime = [$($lt:lifetime)?],
+        lt = $lt:lifetime,
         context = $context:ident,
         params = [$($param_name:ident : $param_ty:ty),* $(,)?],
-        return_type = $($ret:tt)+
+        bridge_type = $bridge_ty:ty,
+        fallible = $fallible:tt
     ) => {
-        melbi_fn_impl!(@struct $name, [$($lt)?], [$($param_ty),*], $($ret)+);
-        melbi_fn_impl!(@function_impl $name, $fn_name, [$($lt)?], $context, [$($param_name : $param_ty),*], $($ret)+);
-        melbi_fn_impl!(@annotated_impl $name, [$($lt)?]);
-    };
-
-    // ========================================================================
-    // @struct: Generate the struct definition (extract bridge type, then normalize lifetime)
-    // ========================================================================
-
-    // Extract bridge type from Result<T, E> -> T
-    (@struct $name:ident, [$($lt:lifetime)?], [$($param_ty:ty),*], Result<$ok_ty:ty, $err_ty:ty>) => {
-        melbi_fn_impl!(@struct_lt $name, [$($lt)?], [$($param_ty),*], $ok_ty);
-    };
-    // Plain return type -> use as-is
-    (@struct $name:ident, [$($lt:lifetime)?], [$($param_ty:ty),*], $ret_ty:ty) => {
-        melbi_fn_impl!(@struct_lt $name, [$($lt)?], [$($param_ty),*], $ret_ty);
-    };
-
-    // Normalize lifetime: user-provided
-    (@struct_lt $name:ident, [$lt:lifetime], [$($param_ty:ty),*], $bridge_ty:ty) => {
-        melbi_fn_impl!(@struct_body $name, $lt, [$($param_ty),*], $bridge_ty);
-    };
-    // Normalize lifetime: default to 'types
-    (@struct_lt $name:ident, [], [$($param_ty:ty),*], $bridge_ty:ty) => {
-        melbi_fn_impl!(@struct_body $name, 'types, [$($param_ty),*], $bridge_ty);
-    };
-
-    // Actual struct generation (single rule)
-    (@struct_body $name:ident, $lt:lifetime, [$($param_ty:ty),*], $bridge_ty:ty) => {
+        // Struct definition
         pub struct $name<$lt> {
             fn_type: &$lt ::melbi_core::types::Type<$lt>,
         }
@@ -90,23 +62,8 @@ macro_rules! melbi_fn_impl {
                 Self { fn_type }
             }
         }
-    };
 
-    // ========================================================================
-    // @function_impl: Generate the Function trait implementation
-    // ========================================================================
-
-    // Normalize lifetime: user-provided
-    (@function_impl $name:ident, $fn_name:ident, [$lt:lifetime], $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {
-        melbi_fn_impl!(@function_impl_body $name, $fn_name, $lt, $context, [$($param_name : $param_ty),*], $($ret)+);
-    };
-    // Normalize lifetime: default to 'types
-    (@function_impl $name:ident, $fn_name:ident, [], $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {
-        melbi_fn_impl!(@function_impl_body $name, $fn_name, 'types, $context, [$($param_name : $param_ty),*], $($ret)+);
-    };
-
-    // Actual implementation (single rule)
-    (@function_impl_body $name:ident, $fn_name:ident, $lt:lifetime, $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {
+        // Function trait implementation
         impl<$lt> ::melbi_core::values::function::Function<$lt, $lt> for $name<$lt> {
             fn ty(&self) -> &$lt ::melbi_core::types::Type<$lt> {
                 self.fn_type
@@ -118,91 +75,29 @@ macro_rules! melbi_fn_impl {
                 ctx: &::melbi_core::values::function::FfiContext<$lt, $lt>,
                 args: &[::melbi_core::values::dynamic::Value<$lt, $lt>],
             ) -> Result<::melbi_core::values::dynamic::Value<$lt, $lt>, ::melbi_core::evaluator::ExecutionError> {
-                melbi_fn_impl!(@call_body $fn_name, ctx, args, $context, [$($param_name : $param_ty),*], $($ret)+)
+                #[allow(unused_imports)]
+                use ::melbi_core::values::typed::{Bridge, RawConvertible};
+
+                // Extract parameters
+                let mut _idx = 0usize;
+                $(
+                    #[allow(unused_assignments)]
+                    let $param_name = unsafe { <$param_ty as RawConvertible>::from_raw_value(args[_idx].raw()) };
+                    _idx += 1;
+                )*
+
+                // Call the user function
+                let call_result = melbi_fn_impl!(@call $context, $fn_name, ctx, [$($param_name),*]);
+                // Handle the result
+                let ok_result = melbi_fn_impl!(@result $fallible, ctx, call_result, $bridge_ty);
+
+                let raw = <$bridge_ty as RawConvertible>::to_raw_value(ctx.arena(), ok_result);
+                let ty = <$bridge_ty as Bridge>::type_from(ctx.type_mgr());
+                Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
             }
         }
-    };
 
-    // ========================================================================
-    // @call_body: Generate the body of call_unchecked
-    // ========================================================================
-
-    (@call_body $fn_name:ident, $ctx:ident, $args:ident, $context:ident, [$($param_name:ident : $param_ty:ty),*], $($ret:tt)+) => {{
-        #[allow(unused_imports)]
-        use ::melbi_core::values::typed::RawConvertible;
-
-        // Extract parameters
-        let mut _idx = 0usize;
-        $(
-            #[allow(unused_assignments)]
-            let $param_name = unsafe { <$param_ty as RawConvertible>::from_raw_value($args[_idx].raw()) };
-            _idx += 1;
-        )*
-
-        // Call user function and handle result
-        melbi_fn_impl!(@invoke $fn_name, $ctx, $context, [$($param_name),*], $($ret)+)
-    }};
-
-    // ========================================================================
-    // @invoke: Call the user function with appropriate context args
-    // ========================================================================
-
-    // Legacy + Result
-    (@invoke $fn_name:ident, $ctx:ident, Legacy, [$($param_name:ident),*], Result<$ok_ty:ty, $err_ty:ty>) => {
-        melbi_fn_impl!(@wrap_result $ctx, $ok_ty,
-            $fn_name($ctx.arena(), $ctx.type_mgr(), $($param_name),*))
-    };
-    // Legacy + plain
-    (@invoke $fn_name:ident, $ctx:ident, Legacy, [$($param_name:ident),*], $ret_ty:ty) => {
-        melbi_fn_impl!(@wrap_ok $ctx, $ret_ty,
-            $fn_name($ctx.arena(), $ctx.type_mgr(), $($param_name),*))
-    };
-    // Pure + Result
-    (@invoke $fn_name:ident, $ctx:ident, Pure, [$($param_name:ident),*], Result<$ok_ty:ty, $err_ty:ty>) => {
-        melbi_fn_impl!(@wrap_result $ctx, $ok_ty, $fn_name($($param_name),*))
-    };
-    // Pure + plain
-    (@invoke $fn_name:ident, $ctx:ident, Pure, [$($param_name:ident),*], $ret_ty:ty) => {
-        melbi_fn_impl!(@wrap_ok $ctx, $ret_ty, $fn_name($($param_name),*))
-    };
-
-    // @wrap_result: Handle Result return (map_err + unwrap ok value)
-    (@wrap_result $ctx:ident, $ok_ty:ty, $call:expr) => {{
-        use ::melbi_core::values::typed::{Bridge, RawConvertible};
-        let result = $call.map_err(|e| ::melbi_core::evaluator::ExecutionError {
-            kind: e.into(),
-            source: ::alloc::string::String::new(),
-            span: ::melbi_core::parser::Span(0..0),
-        })?;
-        let raw = <$ok_ty as RawConvertible>::to_raw_value($ctx.arena(), result);
-        let ty = <$ok_ty as Bridge>::type_from($ctx.type_mgr());
-        Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
-    }};
-
-    // @wrap_ok: Handle plain return (just wrap value)
-    (@wrap_ok $ctx:ident, $ret_ty:ty, $call:expr) => {{
-        use ::melbi_core::values::typed::{Bridge, RawConvertible};
-        let result = $call;
-        let raw = <$ret_ty as RawConvertible>::to_raw_value($ctx.arena(), result);
-        let ty = <$ret_ty as Bridge>::type_from($ctx.type_mgr());
-        Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
-    }};
-
-    // ========================================================================
-    // @annotated_impl: Generate the AnnotatedFunction trait implementation
-    // ========================================================================
-
-    // Normalize lifetime: user-provided
-    (@annotated_impl $name:ident, [$lt:lifetime]) => {
-        melbi_fn_impl!(@annotated_body $name, $lt);
-    };
-    // Normalize lifetime: default to 'types
-    (@annotated_impl $name:ident, []) => {
-        melbi_fn_impl!(@annotated_body $name, 'types);
-    };
-
-    // Actual implementation (single rule)
-    (@annotated_body $name:ident, $lt:lifetime) => {
+        // AnnotatedFunction trait implementation
         impl<$lt> ::melbi_core::values::function::AnnotatedFunction<$lt> for $name<$lt> {
             fn name(&self) -> &'static str { stringify!($name) }
             fn location(&self) -> (&'static str, &'static str, &'static str, u32, u32) {
@@ -211,6 +106,23 @@ macro_rules! melbi_fn_impl {
             fn doc(&self) -> Option<&str> { None }
         }
     };
+
+    (@call Legacy, $fn_name:ident, $ctx:ident, [$($param_name:ident),*]) => {
+        $fn_name($ctx.arena(), $ctx.type_mgr(), $($param_name),*)
+    };
+
+    (@call Pure, $fn_name:ident, $ctx:ident, [$($param_name:ident),*]) => {
+        $fn_name($($param_name),*)
+    };
+
+    (@result true, $ctx:ident, $result:ident, $bridge_ty:ty) => {
+        $result.map_err(|e| ::melbi_core::evaluator::ExecutionError {
+            kind: e.into(),
+            source: ::alloc::string::String::new(),
+            span: ::melbi_core::parser::Span(0..0),
+        })?
+    };
+    (@result false, $ctx:ident, $result:ident, $bridge_ty:ty) => {$result};
 }
 
 // ============================================================================
@@ -261,46 +173,51 @@ fn string_upper_impl<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>
 melbi_fn_impl!(
     name = DeclAdd,
     fn_name = add_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [a: i64, b: i64],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclSafeDiv,
     fn_name = safe_div_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [a: i64, b: i64],
-    return_type = Result<i64, RuntimeError>
+    bridge_type = i64,
+    fallible = true
 );
 
 melbi_fn_impl!(
     name = DeclPureAdd,
     fn_name = pure_add_impl,
-    lifetime = [],
+    lt = '__a,
     context = Pure,
     params = [a: i64, b: i64],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclPureCheckedAdd,
     fn_name = pure_checked_add_impl,
-    lifetime = [],
+    lt = '__a,
     context = Pure,
     params = [a: i64, b: i64],
-    return_type = Result<i64, RuntimeError>
+    bridge_type = i64,
+    fallible = true
 );
 
 melbi_fn_impl!(
     name = DeclUpper,
     fn_name = string_upper_impl,
-    lifetime = ['a],
+    lt = 'a,
     context = Legacy,
     params = [s: Str<'a>],
-    return_type = Str<'a>
+    bridge_type = Str<'a>,
+    fallible = false
 );
 
 // ============================================================================
@@ -666,166 +583,184 @@ fn array_first<'value>(
 melbi_fn_impl!(
     name = DeclZeroArgs,
     fn_name = zero_args_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclPureZeroArgs,
     fn_name = pure_zero_args_impl,
-    lifetime = [],
+    lt = '__a,
     context = Pure,
     params = [],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclZeroArgsResult,
     fn_name = zero_args_result_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [],
-    return_type = Result<i64, RuntimeError>
+    bridge_type = i64,
+    fallible = true
 );
 
 melbi_fn_impl!(
     name = DeclManyArgs,
     fn_name = many_args_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [a: i64, b: i64, c: i64, d: i64, e: i64],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclSingleArg,
     fn_name = single_arg_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [x: i64],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclReturnsBool,
     fn_name = returns_bool_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [x: i64],
-    return_type = bool
+    bridge_type = bool,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclReturnsFloat,
     fn_name = returns_float_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [x: i64],
-    return_type = f64
+    bridge_type = f64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclTakesBool,
     fn_name = takes_bool_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [flag: bool],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclTakesFloat,
     fn_name = takes_float_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [x: f64],
-    return_type = f64
+    bridge_type = f64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclMixedTypes,
     fn_name = mixed_types_impl,
-    lifetime = [],
+    lt = '__a,
     context = Legacy,
     params = [i: i64, f: f64, b: bool],
-    return_type = f64
+    bridge_type = f64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclTakesArray,
     fn_name = takes_array_impl,
-    lifetime = ['a],
+    lt = 'a,
     context = Legacy,
     params = [arr: Array<'a, i64>],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclReturnsArray,
     fn_name = returns_array_impl,
-    lifetime = ['a],
+    lt = 'a,
     context = Legacy,
     params = [x: i64],
-    return_type = Array<'a, i64>
+    bridge_type = Array<'a, i64>,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclTakesStrArray,
     fn_name = takes_str_array_impl,
-    lifetime = ['a],
+    lt = 'a,
     context = Legacy,
     params = [arr: Array<'a, Str<'a>>],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclTakesOptional,
     fn_name = takes_optional_impl,
-    lifetime = ['a],
+    lt = 'a,
     context = Legacy,
     params = [opt: Optional<'a, i64>],
-    return_type = i64
+    bridge_type = i64,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclReturnsOptional,
     fn_name = returns_optional_impl,
-    lifetime = ['a],
+    lt = 'a,
     context = Legacy,
     params = [x: i64],
-    return_type = Optional<'a, i64>
+    bridge_type = Optional<'a, i64>,
+    fallible = false
 );
 
 melbi_fn_impl!(
     name = DeclResultWithLifetime,
     fn_name = result_with_lifetime_impl,
-    lifetime = ['a],
+    lt = 'a,
     context = Legacy,
     params = [s: Str<'a>],
-    return_type = Result<Str<'a>, RuntimeError>
+    bridge_type = Str<'a>,
+    fallible = true
 );
 
 melbi_fn_impl!(
     name = DeclPureResultComplex,
     fn_name = pure_result_complex_impl,
-    lifetime = [],
+    lt = '__a,
     context = Pure,
     params = [a: i64, b: i64],
-    return_type = Result<f64, RuntimeError>
+    bridge_type = f64,
+    fallible = true
 );
 
 melbi_fn_impl!(
     name = DeclArrayFirst,
     fn_name = array_first,
-    lifetime = ['value],
+    lt = 'value,
     context = Pure,
     params = [arr: Array<'value, Str<'value>>],
-    return_type = Result<Str<'value>, melbi_core::evaluator::ExecutionErrorKind>
+    bridge_type = Str<'value>,
+    fallible = true
 );
 
-// NOTE: Only a single lifetime is supported (e.g., lifetime = ['a]).
+// NOTE: Only a single lifetime is supported (e.g., lt = 'a).
 // All values in Melbi FFI share the same arena/type_mgr lifetime.
 // The proc macro should reject functions with multiple lifetimes.
 
