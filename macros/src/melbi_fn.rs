@@ -51,8 +51,8 @@ struct ParsedSignature {
     has_context: bool,
     /// Business logic parameters (excluding context params)
     params: Vec<(syn::Ident, Box<Type>)>,
-    /// The "bridge" return type - unwrapped if Result<T, E>
-    bridge_return_type: Box<Type>,
+    /// The "okay" return type - unwrapped if Result<T, E>
+    ok_return_type: Box<Type>,
     /// Whether the function returns Result<T, E>
     is_fallible: bool,
 }
@@ -142,8 +142,8 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
     // Extract return type
     let return_type = extract_return_type(&func.sig)?;
 
-    // Check if return type is Result<T, E> and extract bridge type
-    let (bridge_return_type, is_fallible) = analyze_return_type(&return_type);
+    // Check if return type is Result<T, E> and extract okay type
+    let (ok_return_type, is_fallible) = analyze_return_type(&return_type);
 
     // Detect context and extract business parameters
     let (has_context, params) = detect_context_and_params(&func.sig)?;
@@ -153,7 +153,7 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
         lifetime,
         has_context,
         params,
-        bridge_return_type,
+        ok_return_type,
         is_fallible,
     })
 }
@@ -214,7 +214,7 @@ fn extract_return_type(sig: &syn::Signature) -> syn::Result<Box<Type>> {
 }
 
 /// Check if a type is `Result<T, E>` and extract the Ok type `T`.
-/// Returns (bridge_type, is_fallible).
+/// Returns (ok_type, is_fallible).
 fn analyze_return_type(ty: &Type) -> (Box<Type>, bool) {
     if let Some(ok_type) = extract_result_ok_type(ty) {
         (ok_type, true)
@@ -340,8 +340,8 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
     let param_names: Vec<_> = sig.params.iter().map(|(name, _)| name).collect();
     let param_types: Vec<_> = sig.params.iter().map(|(_, ty)| ty).collect();
 
-    // Generate bridge return type
-    let bridge_return_type = &sig.bridge_return_type;
+    // Generate okay return type
+    let ok_return_type = &sig.ok_return_type;
 
     // Generate flags
     let has_context = sig.has_context;
@@ -355,7 +355,7 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
             fn_name = #fn_name,
             lt = #lifetime,
             context_arg = #has_context,
-            signature = { #( #param_names : #param_types ),* } -> #bridge_return_type,
+            signature = { #( #param_names : #param_types ),* } -> #ok_return_type,
             fallible = #fallible
         );
     }

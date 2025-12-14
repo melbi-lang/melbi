@@ -288,7 +288,7 @@ mod fallible {
 
     #[test]
     fn test_fallible_unwraps_return_type() {
-        // The bridge return type should be i64, not Result<i64, RuntimeError>
+        // The ok return type should be i64, not Result<i64, RuntimeError>
         assert_output_contains!(FallibleWithUnwrappedReturn, "-> i64");
         assert_output_not_contains!(FallibleWithUnwrappedReturn, "Result");
     }

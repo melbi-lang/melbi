@@ -42,7 +42,7 @@ macro_rules! melbi_fn_impl {
         fn_name = $fn_name:ident,
         lt = $lt:lifetime,
         context = $context:ident,
-        signature = { $($param_name:ident : $param_ty:ty),* $(,)? } -> $bridge_ty:ty,
+        signature = { $($param_name:ident : $param_ty:ty),* $(,)? } -> $ok_ty:ty,
         fallible = $fallible:ident
     ) => {
         // Struct definition
@@ -55,7 +55,7 @@ macro_rules! melbi_fn_impl {
                 use ::melbi_core::values::typed::Bridge;
                 let fn_type = type_mgr.function(
                     &[$( <$param_ty as Bridge>::type_from(type_mgr) ),*],
-                    <$bridge_ty as Bridge>::type_from(type_mgr),
+                    <$ok_ty as Bridge>::type_from(type_mgr),
                 );
                 Self { fn_type }
             }
@@ -87,10 +87,10 @@ macro_rules! melbi_fn_impl {
                 // Call the user function
                 let call_result = melbi_fn_impl!(@call $context, $fn_name, ctx, [$($param_name),*]);
                 // Handle the result
-                let ok_result = melbi_fn_impl!(@result $fallible, ctx, call_result, $bridge_ty);
+                let ok_result = melbi_fn_impl!(@result $fallible, ctx, call_result, $ok_ty);
 
-                let raw = <$bridge_ty as RawConvertible>::to_raw_value(ctx.arena(), ok_result);
-                let ty = <$bridge_ty as Bridge>::type_from(ctx.type_mgr());
+                let raw = <$ok_ty as RawConvertible>::to_raw_value(ctx.arena(), ok_result);
+                let ty = <$ok_ty as Bridge>::type_from(ctx.type_mgr());
                 Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(ty, raw))
             }
         }
@@ -113,14 +113,14 @@ macro_rules! melbi_fn_impl {
         $fn_name($($param_name),*)
     };
 
-    (@result true, $ctx:ident, $result:ident, $bridge_ty:ty) => {
+    (@result true, $ctx:ident, $result:ident, $ok_ty:ty) => {
         $result.map_err(|e| ::melbi_core::evaluator::ExecutionError {
             kind: e.into(),
             source: ::alloc::string::String::new(),
             span: ::melbi_core::parser::Span(0..0),
         })?
     };
-    (@result false, $ctx:ident, $result:ident, $bridge_ty:ty) => {$result};
+    (@result false, $ctx:ident, $result:ident, $ok_ty:ty) => {$result};
 }
 
 // ============================================================================
