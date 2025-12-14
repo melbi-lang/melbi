@@ -232,10 +232,16 @@ fn parse_params(sig: &syn::Signature) -> syn::Result<(bool, Vec<(syn::Ident, Box
 
     for (i, input) in sig.inputs.iter().enumerate() {
         let FnArg::Typed(PatType { pat, ty, .. }) = input else {
-            return Err(syn::Error::new_spanned(input, "Expected typed parameter"));
+            return Err(syn::Error::new_spanned(
+                input,
+                "[melbi] normal typed argument expected (name: type)",
+            ));
         };
         let Pat::Ident(pat_ident) = &**pat else {
-            return Err(syn::Error::new_spanned(pat, "Expected identifier pattern"));
+            return Err(syn::Error::new_spanned(
+                pat,
+                "[melbi] no pattern matching supported in melbi functions",
+            ));
         };
 
         // Skip first param if it's FfiContext
