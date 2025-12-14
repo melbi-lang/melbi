@@ -1,380 +1,496 @@
-//! Test the #[melbi_fn] macro
+#![allow(non_upper_case_globals)]
+#![allow(dead_code)]
+//! Tests for the `#[melbi_fn]` proc macro
+//!
+//! These tests use a mock `melbi_fn_generate!` macro that stringifies its arguments,
+//! allowing us to verify the proc macro's output without needing the full implementation.
 
-extern crate alloc;
+use melbi_macros::melbi_fn;
 
-use bumpalo::Bump;
-use melbi_core::{
-    evaluator::{ExecutionErrorKind, RuntimeError},
-    types::manager::TypeManager,
-    values::{
-        FfiContext,
-        dynamic::Value,
-        function::{AnnotatedFunction, Function},
-        typed::Str,
-    },
-};
-use melbi_macros::melbi_fn_old;
+// ============================================================================
+// Mock Declarative Macro
+// ============================================================================
 
-/// Simple integer addition function
-#[melbi_fn_old(name = "Add")]
-fn add_function(_arena: &Bump, _type_mgr: &TypeManager, a: i64, b: i64) -> i64 {
-    a + b
-}
-
-/// String length function
-#[melbi_fn_old(name = "Len")]
-fn len_function(_arena: &Bump, _type_mgr: &TypeManager, s: Str) -> i64 {
-    s.chars().count() as i64
-}
-
-/// String uppercase function with explicit lifetimes
-#[melbi_fn_old(name = "Upper")]
-fn string_upper<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Str<'a> {
-    let upper = s.to_ascii_uppercase();
-    Str::from_str(arena, &upper)
-}
-
-#[test]
-fn test_macro_generates_struct() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    // Should be able to create instances
-    let add_fn = Add::new(type_mgr);
-    let len_fn = Len::new(type_mgr);
-
-    // Check metadata
-    assert_eq!(add_fn.name(), "Add");
-    assert_eq!(len_fn.name(), "Len");
-
-    // Check locations are set
-    let (crate_name, version, file, line, col) = add_fn.location();
-    // The file path will be from the macro expansion location
-    assert!(
-        crate_name.contains("melbi") || crate_name.contains("macro_test"),
-        "{}",
-        crate_name
-    );
-    assert!(!version.is_empty());
-    assert!(file.contains("melbi_fn_test.rs") || file.contains("melbi_fn.rs"));
-    assert!(line > 0);
-    assert!(col > 0);
-}
-
-#[test]
-fn test_function_trait_impl() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let add_fn = Add::new(type_mgr);
-
-    // Check type is correct - just verify we can get the type
-    let _fn_ty = add_fn.ty();
-
-    // Create Value and call the function
-    let value = Value::function(&arena, add_fn).unwrap();
-
-    // Create arguments
-    let a = Value::int(type_mgr, 5);
-    let b = Value::int(type_mgr, 3);
-    let args = [a, b];
-
-    // Call the function
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
+/// Mock implementation that captures the generated arguments as a const string.
+/// This lets us verify what the proc macro generates.
+macro_rules! melbi_fn_generate {
+    (
+        name = $name:ident,
+        fn_name = $fn_name:ident,
+        lt = $lt:lifetime,
+        context_arg = $context_arg:tt,
+        signature = $sig:tt -> $ret_ty:ty,
+        fallible = $fallible:tt
+    ) => {
+        const $name: &'static str = stringify!(
+            fn_name = $fn_name,
+            lt = $lt,
+            context_arg = $context_arg,
+            signature = $sig -> $ret_ty,
+            fallible = $fallible
+        );
     };
-
-    // Check result
-    assert_eq!(result.as_int().unwrap(), 8);
-}
-
-#[test]
-fn test_annotated_function_register() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    // Register the function using RecordBuilder
-    let add_fn = Add::new(type_mgr);
-    let builder = Value::record_builder(type_mgr);
-    let builder = add_fn.register(&arena, builder).unwrap();
-
-    // Build the record and verify it has the function
-    let record = builder.build(&arena).unwrap();
-    assert!(record.as_record().is_ok());
-}
-
-#[test]
-fn test_string_function() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    let len_fn = Len::new(type_mgr);
-    let value = Value::function(&arena, len_fn).unwrap();
-
-    // Create a string argument
-    let str_ty = type_mgr.str();
-    let s = Value::str(&arena, str_ty, "hello");
-    let args = [s];
-
-    // Call the function
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-
-    // Check result
-    assert_eq!(result.as_int().unwrap(), 5);
 }
 
 // ============================================================================
-// Tests for Result-returning functions
+// Test Helpers
 // ============================================================================
 
-/// Division function that returns Result for error handling
-#[melbi_fn_old(name = "SafeDiv")]
-fn safe_div(_arena: &Bump, _type_mgr: &TypeManager, a: i64, b: i64) -> Result<i64, RuntimeError> {
-    if b == 0 {
-        Err(RuntimeError::DivisionByZero {})
-    } else {
-        Ok(a / b)
+/// Assert that `haystack` contains `needle`, showing the full output on failure.
+macro_rules! assert_output_contains {
+    ($haystack:expr, $needle:expr) => {
+        assert!(
+            $haystack.contains($needle),
+            "expected output to contain {:?}\n\nactual output:\n{}",
+            $needle,
+            $haystack
+        );
+    };
+}
+
+/// Assert that `haystack` does NOT contain `needle`, showing the full output on failure.
+macro_rules! assert_output_not_contains {
+    ($haystack:expr, $needle:expr) => {
+        assert!(
+            !$haystack.contains($needle),
+            "expected output to NOT contain {:?}\n\nactual output:\n{}",
+            $needle,
+            $haystack
+        );
+    };
+}
+
+// ============================================================================
+// Full Output Comparison Tests
+// ============================================================================
+
+/// These tests compare the complete output to catch regressions.
+/// Note: stringify! adds spaces around tokens and may insert newlines.
+mod full_output {
+    use super::*;
+
+    #[melbi_fn]
+    fn add(a: i64, b: i64) -> i64 {
+        a + b
+    }
+
+    #[test]
+    fn test_pure_two_params() {
+        // Normalize whitespace for comparison
+        let normalized: String = Add.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert_eq!(
+            normalized,
+            "fn_name = add, lt = '__a, context_arg = false, signature = { a : i64, b : i64 } -> i64, fallible = false"
+        );
+    }
+
+    struct FfiContext;
+
+    #[melbi_fn]
+    fn with_context(ctx: &FfiContext, a: i64, b: i64) -> i64 {
+        let _ = ctx;
+        a + b
+    }
+
+    #[test]
+    fn test_with_context_two_params() {
+        let normalized: String = WithContext.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert_eq!(
+            normalized,
+            "fn_name = with_context, lt = '__a, context_arg = true, signature = { a : i64, b : i64 } -> i64, fallible = false"
+        );
+    }
+
+    struct RuntimeError;
+
+    #[melbi_fn]
+    fn safe_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
+        if b == 0 { Err(RuntimeError) } else { Ok(a / b) }
+    }
+
+    #[test]
+    fn test_fallible_pure() {
+        let normalized: String = SafeDiv.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert_eq!(
+            normalized,
+            "fn_name = safe_div, lt = '__a, context_arg = false, signature = { a : i64, b : i64 } -> i64, fallible = true"
+        );
+    }
+
+    struct Str<'a>(&'a str);
+
+    #[melbi_fn]
+    fn upper<'a>(s: Str<'a>) -> Str<'a> {
+        s
+    }
+
+    #[test]
+    fn test_with_lifetime() {
+        let normalized: String = Upper.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert_eq!(
+            normalized,
+            "fn_name = upper, lt = 'a, context_arg = false, signature = { s : Str < 'a > } -> Str < 'a >, fallible = false"
+        );
+    }
+
+    #[melbi_fn]
+    fn no_params() -> i64 {
+        42
+    }
+
+    #[test]
+    fn test_zero_params() {
+        let normalized: String = NoParams.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert_eq!(
+            normalized,
+            "fn_name = no_params, lt = '__a, context_arg = false, signature = {} -> i64, fallible = false"
+        );
     }
 }
 
-/// Function that can return overflow error
-#[melbi_fn_old(name = "CheckedNegate")]
-fn checked_negate(_arena: &Bump, _type_mgr: &TypeManager, a: i64) -> Result<i64, RuntimeError> {
-    if a == i64::MIN {
-        Err(RuntimeError::IntegerOverflow {})
-    } else {
-        Ok(-a)
+// ============================================================================
+// Name Derivation Tests
+// ============================================================================
+
+mod name_derivation {
+    use super::*;
+
+    #[melbi_fn]
+    fn simple_add(a: i64, b: i64) -> i64 {
+        a + b
+    }
+
+    #[test]
+    fn test_simple_name_to_pascal_case() {
+        // simple_add -> SimpleAdd
+        assert_output_contains!(SimpleAdd, "fn_name = simple_add");
+    }
+
+    #[melbi_fn]
+    fn add_two_numbers(a: i64, b: i64) -> i64 {
+        a + b
+    }
+
+    #[test]
+    fn test_multi_word_name_to_pascal_case() {
+        // add_two_numbers -> AddTwoNumbers
+        assert_output_contains!(AddTwoNumbers, "fn_name = add_two_numbers");
+    }
+
+    #[melbi_fn(name = "CustomName")]
+    fn my_function(x: i64) -> i64 {
+        x
+    }
+
+    #[test]
+    fn test_explicit_name_override() {
+        // Explicit name should be used
+        assert_output_contains!(CustomName, "fn_name = my_function");
     }
 }
 
-#[test]
-fn test_result_function_success() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+// ============================================================================
+// Context Mode Detection Tests
+// ============================================================================
 
-    let div_fn = SafeDiv::new(type_mgr);
-    let value = Value::function(&arena, div_fn).unwrap();
+mod context_modes {
+    use super::*;
 
-    // 10 / 2 = 5
-    let a = Value::int(type_mgr, 10);
-    let b = Value::int(type_mgr, 2);
-    let args = [a, b];
+    struct FfiContext;
 
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
+    #[melbi_fn]
+    fn pure_function(a: i64, b: i64) -> i64 {
+        a + b
+    }
 
-    assert_eq!(result.as_int().unwrap(), 5);
-}
+    #[test]
+    fn test_pure_mode() {
+        assert_output_contains!(PureFunction, "context_arg = false");
+    }
 
-#[test]
-fn test_result_function_division_by_zero_error() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    #[melbi_fn]
+    fn with_context_function(ctx: &FfiContext, x: i64) -> i64 {
+        let _ = ctx;
+        x
+    }
 
-    let div_fn = SafeDiv::new(type_mgr);
-    let value = Value::function(&arena, div_fn).unwrap();
+    #[test]
+    fn test_with_context_mode() {
+        assert_output_contains!(WithContextFunction, "context_arg = true");
+    }
 
-    // 10 / 0 should return DivisionByZero error
-    let a = Value::int(type_mgr, 10);
-    let b = Value::int(type_mgr, 0);
-    let args = [a, b];
+    #[melbi_fn]
+    fn zero_args_pure() -> i64 {
+        42
+    }
 
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
+    #[test]
+    fn test_zero_args_is_pure() {
+        assert_output_contains!(ZeroArgsPure, "context_arg = false");
+    }
 
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(
-        matches!(
-            err.kind,
-            ExecutionErrorKind::Runtime(RuntimeError::DivisionByZero {})
-        ),
-        "Expected DivisionByZero error, got {:?}",
-        err.kind
-    );
-}
+    #[melbi_fn]
+    fn zero_args_with_context(_ctx: &FfiContext) -> i64 {
+        42
+    }
 
-#[test]
-fn test_result_function_overflow_error() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+    #[test]
+    fn test_zero_business_args_with_context() {
+        assert_output_contains!(ZeroArgsWithContext, "context_arg = true");
+    }
 
-    let negate_fn = CheckedNegate::new(type_mgr);
-    let value = Value::function(&arena, negate_fn).unwrap();
+    // Alternative parameter name for FfiContext
+    #[melbi_fn]
+    fn context_alt_name(context: &FfiContext, x: i64) -> i64 {
+        let _ = context;
+        x
+    }
 
-    // -i64::MIN overflows
-    let a = Value::int(type_mgr, i64::MIN);
-    let args = [a];
-
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
-
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(
-        matches!(
-            err.kind,
-            ExecutionErrorKind::Runtime(RuntimeError::IntegerOverflow {})
-        ),
-        "Expected IntegerOverflow error, got {:?}",
-        err.kind
-    );
-}
-
-#[test]
-fn test_result_function_metadata() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    // Result-returning functions should have the same metadata support
-    let div_fn = SafeDiv::new(type_mgr);
-
-    assert_eq!(div_fn.name(), "SafeDiv");
-
-    let (crate_name, version, file, line, col) = div_fn.location();
-    assert!(!crate_name.is_empty());
-    assert!(!version.is_empty());
-    assert!(file.contains("melbi_fn_test.rs") || file.contains("melbi_fn.rs"));
-    assert!(line > 0);
-    assert!(col > 0);
-}
-
-#[test]
-fn test_result_function_type_is_unwrapped() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
-
-    // The function type should be (Int, Int) -> Int, not (Int, Int) -> Result<Int, ...>
-    let div_fn = SafeDiv::new(type_mgr);
-    let fn_ty = div_fn.ty();
-
-    // The return type should be Int (the Ok type), not Result
-    let fn_ty_str = format!("{}", fn_ty);
-    assert!(
-        fn_ty_str.contains("Int"),
-        "Function type should contain Int: {}",
-        fn_ty_str
-    );
-    assert!(
-        !fn_ty_str.contains("Result"),
-        "Function type should not contain Result: {}",
-        fn_ty_str
-    );
+    #[test]
+    fn test_context_alt_name() {
+        assert_output_contains!(ContextAltName, "context_arg = true");
+    }
 }
 
 // ============================================================================
-// Tests for new context modes
+// Fallible Detection Tests
 // ============================================================================
 
-/// Pure function - no context needed at all
-#[melbi_fn_old(name = "PureAdd")]
-fn pure_add(a: i64, b: i64) -> i64 {
-    a + b
+mod fallible {
+    use super::*;
+
+    struct RuntimeError;
+
+    #[melbi_fn]
+    fn infallible_function(a: i64) -> i64 {
+        a
+    }
+
+    #[test]
+    fn test_infallible() {
+        assert_output_contains!(InfallibleFunction, "fallible = false");
+    }
+
+    #[melbi_fn]
+    fn fallible_function(a: i64) -> Result<i64, RuntimeError> {
+        Ok(a)
+    }
+
+    #[test]
+    fn test_fallible() {
+        assert_output_contains!(FallibleFunction, "fallible = true");
+    }
+
+    #[melbi_fn]
+    fn fallible_with_unwrapped_return(a: i64, b: i64) -> Result<i64, RuntimeError> {
+        if b == 0 { Err(RuntimeError) } else { Ok(a / b) }
+    }
+
+    #[test]
+    fn test_fallible_unwraps_return_type() {
+        // The bridge return type should be i64, not Result<i64, RuntimeError>
+        assert_output_contains!(FallibleWithUnwrappedReturn, "-> i64");
+        assert_output_not_contains!(FallibleWithUnwrappedReturn, "Result");
+    }
 }
 
-/// Pure function with Result return type
-#[melbi_fn_old(name = "PureCheckedAdd")]
-fn pure_checked_add(a: i64, b: i64) -> Result<i64, RuntimeError> {
-    a.checked_add(b).ok_or(RuntimeError::IntegerOverflow {})
+// ============================================================================
+// Lifetime Extraction Tests
+// ============================================================================
+
+mod lifetimes {
+    use super::*;
+
+    struct Str<'a>(&'a str);
+
+    #[melbi_fn]
+    fn no_lifetime_uses_default(x: i64) -> i64 {
+        x
+    }
+
+    #[test]
+    fn test_default_lifetime() {
+        assert_output_contains!(NoLifetimeUsesDefault, "lt = '__a");
+    }
+
+    #[melbi_fn]
+    fn with_lifetime<'a>(s: Str<'a>) -> Str<'a> {
+        s
+    }
+
+    #[test]
+    fn test_explicit_lifetime() {
+        assert_output_contains!(WithLifetime, "lt = 'a");
+    }
+
+    #[melbi_fn]
+    fn with_named_lifetime<'value>(s: Str<'value>) -> Str<'value> {
+        s
+    }
+
+    #[test]
+    fn test_named_lifetime() {
+        assert_output_contains!(WithNamedLifetime, "lt = 'value");
+    }
 }
 
-#[test]
-fn test_pure_mode_function() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+// ============================================================================
+// Signature Tests
+// ============================================================================
 
-    let add_fn = PureAdd::new(type_mgr);
+mod signature {
+    use super::*;
 
-    // Check metadata
-    assert_eq!(add_fn.name(), "PureAdd");
+    #[melbi_fn]
+    fn no_params() -> i64 {
+        42
+    }
 
-    // Create and call
-    let value = Value::function(&arena, add_fn).unwrap();
-    let a = Value::int(type_mgr, 10);
-    let b = Value::int(type_mgr, 32);
-    let args = [a, b];
+    #[test]
+    fn test_no_params_signature() {
+        // signature should have empty params: {} -> i64 (no spaces in empty braces)
+        assert_output_contains!(NoParams, "signature = {} -> i64");
+    }
 
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
+    #[melbi_fn]
+    fn single_param(x: i64) -> i64 {
+        x
+    }
 
-    assert_eq!(result.as_int().unwrap(), 42);
+    #[test]
+    fn test_single_param_signature() {
+        assert_output_contains!(SingleParam, "x : i64");
+    }
+
+    #[melbi_fn]
+    fn multiple_params(a: i64, b: f64, c: bool) -> f64 {
+        if c { a as f64 + b } else { b }
+    }
+
+    #[test]
+    fn test_multiple_params_signature() {
+        assert_output_contains!(MultipleParams, "a : i64");
+        assert_output_contains!(MultipleParams, "b : f64");
+        assert_output_contains!(MultipleParams, "c : bool");
+        assert_output_contains!(MultipleParams, "-> f64");
+    }
+
+    // Test that FfiContext is NOT included in signature
+    struct FfiContext;
+
+    #[melbi_fn]
+    fn with_context_and_params(_ctx: &FfiContext, x: i64, y: i64) -> i64 {
+        x + y
+    }
+
+    #[test]
+    fn test_context_param_excluded_from_signature() {
+        // Should contain x and y but not ctx or FfiContext
+        assert_output_contains!(WithContextAndParams, "x : i64");
+        assert_output_contains!(WithContextAndParams, "y : i64");
+        assert_output_not_contains!(WithContextAndParams, "ctx");
+        assert_output_not_contains!(WithContextAndParams, "FfiContext");
+    }
 }
 
-#[test]
-fn test_pure_mode_with_result() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+// ============================================================================
+// Complex Type Tests
+// ============================================================================
 
-    let add_fn = PureCheckedAdd::new(type_mgr);
+mod complex_types {
+    use super::*;
 
-    // Check metadata
-    assert_eq!(add_fn.name(), "PureCheckedAdd");
+    struct Array<'a, T>(&'a [T]);
+    struct Optional<'a, T>(&'a Option<T>);
+    struct Str<'a>(&'a str);
 
-    // Success case
-    let value = Value::function(&arena, add_fn).unwrap();
-    let a = Value::int(type_mgr, 1);
-    let b = Value::int(type_mgr, 2);
-    let args = [a, b];
+    #[melbi_fn]
+    fn with_array<'a>(arr: Array<'a, i64>) -> i64 {
+        let _ = arr;
+        0
+    }
 
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-            .unwrap()
-    };
-    assert_eq!(result.as_int().unwrap(), 3);
+    #[test]
+    fn test_array_param() {
+        assert_output_contains!(WithArray, "arr : Array");
+    }
+
+    #[melbi_fn]
+    fn with_optional<'a>(opt: Optional<'a, i64>) -> i64 {
+        let _ = opt;
+        0
+    }
+
+    #[test]
+    fn test_optional_param() {
+        assert_output_contains!(WithOptional, "opt : Optional");
+    }
+
+    #[melbi_fn]
+    fn with_str<'a>(s: Str<'a>) -> Str<'a> {
+        s
+    }
+
+    #[test]
+    fn test_str_param_and_return() {
+        assert_output_contains!(WithStr, "s : Str");
+        // Return type appears after -> (may have newline due to stringify!)
+        // Just verify the return type info is present
+        assert_output_contains!(WithStr, "Str < 'a >");
+    }
+
+    #[melbi_fn]
+    fn nested_generic<'a>(arr: Array<'a, Str<'a>>) -> i64 {
+        let _ = arr;
+        0
+    }
+
+    #[test]
+    fn test_nested_generic() {
+        assert_output_contains!(NestedGeneric, "arr : Array");
+    }
 }
 
-#[test]
-fn test_pure_mode_overflow_error() {
-    let arena = Bump::new();
-    let type_mgr = TypeManager::new(&arena);
+// ============================================================================
+// Edge Cases
+// ============================================================================
 
-    let add_fn = PureCheckedAdd::new(type_mgr);
-    let value = Value::function(&arena, add_fn).unwrap();
+mod edge_cases {
+    use super::*;
 
-    // Overflow case
-    let a = Value::int(type_mgr, i64::MAX);
-    let b = Value::int(type_mgr, 1);
-    let args = [a, b];
+    // Single letter function name
+    #[melbi_fn]
+    fn a() -> i64 {
+        0
+    }
 
-    let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
+    #[test]
+    fn test_single_letter_name() {
+        assert_output_contains!(A, "fn_name = a");
+    }
 
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(
-        matches!(
-            err.kind,
-            ExecutionErrorKind::Runtime(RuntimeError::IntegerOverflow {})
-        ),
-        "Expected IntegerOverflow error, got {:?}",
-        err.kind
-    );
+    // Function name starting with underscore
+    #[melbi_fn]
+    fn _private_helper() -> i64 {
+        0
+    }
+
+    #[test]
+    fn test_underscore_prefix_name() {
+        // _private_helper -> PrivateHelper
+        assert_output_contains!(PrivateHelper, "fn_name = _private_helper");
+    }
+
+    // Multiple consecutive underscores
+    #[allow(non_snake_case)]
+    #[melbi_fn]
+    fn foo__bar() -> i64 {
+        0
+    }
+
+    #[test]
+    fn test_double_underscore() {
+        // foo__bar -> FooBar (consecutive underscores collapse)
+        assert_output_contains!(FooBar, "fn_name = foo__bar");
+    }
 }
