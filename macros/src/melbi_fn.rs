@@ -274,7 +274,7 @@ fn is_ffi_context_type(ty: &Type) -> bool {
 // Code Generation
 // ============================================================================
 
-/// Generate the output: original function + melbi_fn_generate! call.
+/// Generate the output: original function + wrapper struct + trait impls.
 fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -> TokenStream2 {
     // Determine the struct name
     let struct_name = match &attr.name {
@@ -284,36 +284,107 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
             syn::Ident::new(&pascal_name, sig.fn_name.span())
         }
     };
+    let struct_name_str = struct_name.to_string();
 
     let fn_name = &sig.fn_name;
 
     // Determine the lifetime to use
-    let lifetime = match &sig.lifetime {
+    let lt = match &sig.lifetime {
         Some(lt) => lt.clone(),
         None => syn::Lifetime::new("'__a", proc_macro2::Span::call_site()),
     };
 
-    // Generate parameter list: { a: i64, b: i64 }
     let param_names: Vec<_> = sig.params.iter().map(|(name, _)| name).collect();
     let param_types: Vec<_> = sig.params.iter().map(|(_, ty)| ty).collect();
+    let param_indices: Vec<_> = (0..sig.params.len()).collect();
 
-    // Generate okay return type
-    let ok_return_type = &sig.ok_return_type;
+    let ok_ty = &sig.ok_return_type;
 
-    // Generate flags
-    let has_context = sig.has_context;
-    let fallible = sig.is_fallible;
+    // Generate the function call expression
+    let call_expr = if sig.has_context {
+        quote! { #fn_name(__ctx, #(#param_names),*) }
+    } else {
+        quote! { #fn_name(#(#param_names),*) }
+    };
+
+    // Generate result handling
+    let result_handling = if sig.is_fallible {
+        quote! {
+            let __ok_result = __call_result.map_err(|e| ::melbi_core::evaluator::ExecutionError {
+                kind: e.into(),
+                source: ::alloc::string::String::new(),
+                span: ::melbi_core::parser::Span(0..0),
+            })?;
+        }
+    } else {
+        quote! {
+            let __ok_result = __call_result;
+        }
+    };
 
     quote! {
         #input_fn
 
-        melbi_fn_generate!(
-            name = #struct_name,
-            fn_name = #fn_name,
-            lt = #lifetime,
-            context_arg = #has_context,
-            signature = { #( #param_names : #param_types ),* } -> #ok_return_type,
-            fallible = #fallible
-        );
+        #[doc(hidden)]
+        pub struct #struct_name<#lt> {
+            __fn_type: &#lt ::melbi_core::types::Type<#lt>,
+        }
+
+        impl<#lt> #struct_name<#lt> {
+            pub fn new(__type_mgr: &#lt ::melbi_core::types::manager::TypeManager<#lt>) -> Self {
+                use ::melbi_core::values::typed::Bridge;
+                let __fn_type = __type_mgr.function(
+                    &[#( <#param_types as Bridge>::type_from(__type_mgr) ),*],
+                    <#ok_ty as Bridge>::type_from(__type_mgr),
+                );
+                Self { __fn_type }
+            }
+        }
+
+        impl<#lt> ::melbi_core::values::function::Function<#lt, #lt> for #struct_name<#lt> {
+            fn ty(&self) -> &#lt ::melbi_core::types::Type<#lt> {
+                self.__fn_type
+            }
+
+            #[allow(unused_variables)]
+            unsafe fn call_unchecked(
+                &self,
+                __ctx: &::melbi_core::values::function::FfiContext<#lt, #lt>,
+                __args: &[::melbi_core::values::dynamic::Value<#lt, #lt>],
+            ) -> Result<::melbi_core::values::dynamic::Value<#lt, #lt>, ::melbi_core::evaluator::ExecutionError> {
+                use ::melbi_core::values::typed::{Bridge, RawConvertible};
+
+                // Extract parameters
+                #(
+                    let #param_names = unsafe {
+                        <#param_types as RawConvertible>::from_raw_value(__args[#param_indices].raw())
+                    };
+                )*
+
+                // Call the user function
+                let __call_result = #call_expr;
+
+                // Handle the result
+                #result_handling
+
+                let __raw = <#ok_ty as RawConvertible>::to_raw_value(__ctx.arena(), __ok_result);
+                let __ty = <#ok_ty as Bridge>::type_from(__ctx.type_mgr());
+                Ok(::melbi_core::values::dynamic::Value::from_raw_unchecked(__ty, __raw))
+            }
+        }
+
+        impl<#lt> ::melbi_core::values::function::AnnotatedFunction<#lt> for #struct_name<#lt> {
+            fn name(&self) -> &'static str {
+                #struct_name_str
+            }
+
+            fn location(&self) -> (&'static str, &'static str, &'static str, u32, u32) {
+                (env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"), file!(), line!(), column!())
+            }
+
+            fn doc(&self) -> Option<&str> {
+                None
+            }
+        }
     }
 }
