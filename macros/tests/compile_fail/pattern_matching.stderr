@@ -1,0 +1,5 @@
+error: [melbi] no pattern matching supported in melbi functions
+ --> tests/compile_fail/pattern_matching.rs:6:22
+  |
+6 | fn destructure_tuple((a, b): (i64, i64)) -> i64 {
+  |                      ^^^^^^

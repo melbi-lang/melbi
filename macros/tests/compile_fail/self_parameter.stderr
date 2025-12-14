@@ -1,0 +1,5 @@
+error: [melbi] normal typed argument expected (name: type)
+ --> tests/compile_fail/self_parameter.rs:9:15
+  |
+9 |     fn method(self) -> i64 {
+  |               ^^^^
