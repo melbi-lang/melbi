@@ -33,9 +33,8 @@ use melbi_core::{
 /// - `fn_name`: The Rust function name to wrap
 /// - `lt`: The lifetime to use (proc macro provides default `'__a` if none)
 /// - `context`: How context is passed: `Legacy` or `Pure`
-/// - `params`: Business parameters, e.g., `[a: i64, b: i64]`
-/// - `bridge_type`: The return type for the Melbi function signature (T from Result<T,E> or just T)
-/// - `fallible`: Whether the function returns Result (true) or not (false)
+/// - `signature`: Business parameters, e.g., `{ a: i64, b: i64 } -> i64`
+/// - `fallible`: Whether the function can fail, that is, it returns Result (true) or not (false)
 macro_rules! melbi_fn_impl {
     // Single entry point - all normalization done by proc macro
     (
@@ -43,9 +42,8 @@ macro_rules! melbi_fn_impl {
         fn_name = $fn_name:ident,
         lt = $lt:lifetime,
         context = $context:ident,
-        params = [$($param_name:ident : $param_ty:ty),* $(,)?],
-        bridge_type = $bridge_ty:ty,
-        fallible = $fallible:tt
+        signature = { $($param_name:ident : $param_ty:ty),* $(,)? } -> $bridge_ty:ty,
+        fallible = $fallible:ident
     ) => {
         // Struct definition
         pub struct $name<$lt> {
@@ -175,8 +173,7 @@ melbi_fn_impl!(
     fn_name = add_impl,
     lt = '__a,
     context = Legacy,
-    params = [a: i64, b: i64],
-    bridge_type = i64,
+    signature = { a: i64, b: i64 } -> i64,
     fallible = false
 );
 
@@ -185,8 +182,7 @@ melbi_fn_impl!(
     fn_name = safe_div_impl,
     lt = '__a,
     context = Legacy,
-    params = [a: i64, b: i64],
-    bridge_type = i64,
+    signature = { a: i64, b: i64 } -> i64,
     fallible = true
 );
 
@@ -195,8 +191,7 @@ melbi_fn_impl!(
     fn_name = pure_add_impl,
     lt = '__a,
     context = Pure,
-    params = [a: i64, b: i64],
-    bridge_type = i64,
+    signature = { a: i64, b: i64 } -> i64,
     fallible = false
 );
 
@@ -205,8 +200,7 @@ melbi_fn_impl!(
     fn_name = pure_checked_add_impl,
     lt = '__a,
     context = Pure,
-    params = [a: i64, b: i64],
-    bridge_type = i64,
+    signature = { a: i64, b: i64 } -> i64,
     fallible = true
 );
 
@@ -215,8 +209,7 @@ melbi_fn_impl!(
     fn_name = string_upper_impl,
     lt = 'a,
     context = Legacy,
-    params = [s: Str<'a>],
-    bridge_type = Str<'a>,
+    signature = { s: Str<'a> } -> Str<'a>,
     fallible = false
 );
 
@@ -585,8 +578,7 @@ melbi_fn_impl!(
     fn_name = zero_args_impl,
     lt = '__a,
     context = Legacy,
-    params = [],
-    bridge_type = i64,
+    signature = {  } -> i64,
     fallible = false
 );
 
@@ -595,8 +587,7 @@ melbi_fn_impl!(
     fn_name = pure_zero_args_impl,
     lt = '__a,
     context = Pure,
-    params = [],
-    bridge_type = i64,
+    signature = { } -> i64,
     fallible = false
 );
 
@@ -605,8 +596,7 @@ melbi_fn_impl!(
     fn_name = zero_args_result_impl,
     lt = '__a,
     context = Legacy,
-    params = [],
-    bridge_type = i64,
+    signature = {  } -> i64,
     fallible = true
 );
 
@@ -615,8 +605,7 @@ melbi_fn_impl!(
     fn_name = many_args_impl,
     lt = '__a,
     context = Legacy,
-    params = [a: i64, b: i64, c: i64, d: i64, e: i64],
-    bridge_type = i64,
+    signature = { a: i64, b: i64, c: i64, d: i64, e: i64 } -> i64,
     fallible = false
 );
 
@@ -625,8 +614,7 @@ melbi_fn_impl!(
     fn_name = single_arg_impl,
     lt = '__a,
     context = Legacy,
-    params = [x: i64],
-    bridge_type = i64,
+    signature = { x: i64 } -> i64,
     fallible = false
 );
 
@@ -635,8 +623,7 @@ melbi_fn_impl!(
     fn_name = returns_bool_impl,
     lt = '__a,
     context = Legacy,
-    params = [x: i64],
-    bridge_type = bool,
+    signature = { x: i64 } -> bool,
     fallible = false
 );
 
@@ -645,8 +632,7 @@ melbi_fn_impl!(
     fn_name = returns_float_impl,
     lt = '__a,
     context = Legacy,
-    params = [x: i64],
-    bridge_type = f64,
+    signature = { x: i64 } -> f64,
     fallible = false
 );
 
@@ -655,8 +641,7 @@ melbi_fn_impl!(
     fn_name = takes_bool_impl,
     lt = '__a,
     context = Legacy,
-    params = [flag: bool],
-    bridge_type = i64,
+    signature = { flag: bool } -> i64,
     fallible = false
 );
 
@@ -665,8 +650,7 @@ melbi_fn_impl!(
     fn_name = takes_float_impl,
     lt = '__a,
     context = Legacy,
-    params = [x: f64],
-    bridge_type = f64,
+    signature = { x: f64 } -> f64,
     fallible = false
 );
 
@@ -675,8 +659,7 @@ melbi_fn_impl!(
     fn_name = mixed_types_impl,
     lt = '__a,
     context = Legacy,
-    params = [i: i64, f: f64, b: bool],
-    bridge_type = f64,
+    signature = { i: i64, f: f64, b: bool } -> f64,
     fallible = false
 );
 
@@ -685,8 +668,7 @@ melbi_fn_impl!(
     fn_name = takes_array_impl,
     lt = 'a,
     context = Legacy,
-    params = [arr: Array<'a, i64>],
-    bridge_type = i64,
+    signature = { arr: Array<'a, i64> } -> i64,
     fallible = false
 );
 
@@ -695,8 +677,7 @@ melbi_fn_impl!(
     fn_name = returns_array_impl,
     lt = 'a,
     context = Legacy,
-    params = [x: i64],
-    bridge_type = Array<'a, i64>,
+    signature = { x: i64 } -> Array<'a, i64>,
     fallible = false
 );
 
@@ -705,8 +686,7 @@ melbi_fn_impl!(
     fn_name = takes_str_array_impl,
     lt = 'a,
     context = Legacy,
-    params = [arr: Array<'a, Str<'a>>],
-    bridge_type = i64,
+    signature = { arr: Array<'a, Str<'a>> } -> i64,
     fallible = false
 );
 
@@ -715,8 +695,7 @@ melbi_fn_impl!(
     fn_name = takes_optional_impl,
     lt = 'a,
     context = Legacy,
-    params = [opt: Optional<'a, i64>],
-    bridge_type = i64,
+    signature = { opt: Optional<'a, i64> } -> i64,
     fallible = false
 );
 
@@ -725,8 +704,7 @@ melbi_fn_impl!(
     fn_name = returns_optional_impl,
     lt = 'a,
     context = Legacy,
-    params = [x: i64],
-    bridge_type = Optional<'a, i64>,
+    signature = { x: i64 } -> Optional<'a, i64>,
     fallible = false
 );
 
@@ -735,8 +713,7 @@ melbi_fn_impl!(
     fn_name = result_with_lifetime_impl,
     lt = 'a,
     context = Legacy,
-    params = [s: Str<'a>],
-    bridge_type = Str<'a>,
+    signature = { s: Str<'a> } -> Str<'a>,
     fallible = true
 );
 
@@ -745,8 +722,7 @@ melbi_fn_impl!(
     fn_name = pure_result_complex_impl,
     lt = '__a,
     context = Pure,
-    params = [a: i64, b: i64],
-    bridge_type = f64,
+    signature = { a: i64, b: i64 } -> f64,
     fallible = true
 );
 
@@ -755,8 +731,7 @@ melbi_fn_impl!(
     fn_name = array_first,
     lt = 'value,
     context = Pure,
-    params = [arr: Array<'value, Str<'value>>],
-    bridge_type = Str<'value>,
+    signature = { arr: Array<'value, Str<'value>> } -> Str<'value>,
     fallible = true
 );
 
