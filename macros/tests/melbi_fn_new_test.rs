@@ -80,7 +80,7 @@ mod full_output {
         let normalized: String = Add.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = add, lt = '__melbi, context = Pure, signature = { a : i64, b : i64 } -> i64, fallible = false"
+            "fn_name = add, lt = '__a, context = Pure, signature = { a : i64, b : i64 } -> i64, fallible = false"
         );
     }
 
@@ -97,7 +97,7 @@ mod full_output {
         let normalized: String = LegacyDiv.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = legacy_div, lt = '__melbi, context = Legacy, signature = { a : i64, b : i64 } -> i64, fallible = false"
+            "fn_name = legacy_div, lt = '__a, context = Legacy, signature = { a : i64, b : i64 } -> i64, fallible = false"
         );
     }
 
@@ -113,7 +113,7 @@ mod full_output {
         let normalized: String = SafeDiv.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = safe_div, lt = '__melbi, context = Pure, signature = { a : i64, b : i64 } -> i64, fallible = true"
+            "fn_name = safe_div, lt = '__a, context = Pure, signature = { a : i64, b : i64 } -> i64, fallible = true"
         );
     }
 
@@ -143,7 +143,7 @@ mod full_output {
         let normalized: String = NoParams.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
             normalized,
-            "fn_name = no_params, lt = '__melbi, context = Pure, signature = {} -> i64, fallible = false"
+            "fn_name = no_params, lt = '__a, context = Pure, signature = {} -> i64, fallible = false"
         );
     }
 }
@@ -412,7 +412,7 @@ mod lifetimes {
 
     #[test]
     fn test_default_lifetime() {
-        assert_output_contains!(NoLifetimeUsesDefault, "lt = '__melbi");
+        assert_output_contains!(NoLifetimeUsesDefault, "lt = '__a");
     }
 
     #[melbi_fn_new]

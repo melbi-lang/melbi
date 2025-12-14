@@ -84,7 +84,7 @@ pub fn melbi_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// melbi_fn_generate!(
 ///     name = SafeDiv,
 ///     fn_name = safe_div,
-///     lt = '__melbi,
+///     lt = '__a,
 ///     context = Pure,
 ///     signature = { a: i64, b: i64 } -> i64,
 ///     fallible = true

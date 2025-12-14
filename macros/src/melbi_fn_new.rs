@@ -7,8 +7,8 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{
-    parse_macro_input, Expr, FnArg, GenericArgument, GenericParam, ItemFn, Lit, Meta, Pat,
-    PatType, PathArguments, ReturnType, Type,
+    Expr, FnArg, GenericArgument, GenericParam, ItemFn, Lit, Meta, Pat, PatType, PathArguments,
+    ReturnType, Type, parse_macro_input,
 };
 
 /// Entry point for the `#[melbi_fn_new]` attribute macro.
@@ -60,7 +60,7 @@ enum ContextMode {
 struct ParsedSignature {
     /// The Rust function name
     fn_name: syn::Ident,
-    /// Lifetime from the function (if any). None means use default '__melbi.
+    /// Lifetime from the function (if any). None means use default '__a.
     lifetime: Option<syn::Lifetime>,
     /// How the function receives context resources
     context_mode: ContextMode,
@@ -107,7 +107,10 @@ fn parse_attribute(attr: TokenStream) -> syn::Result<MelbiAttr> {
                 "name attribute must be a string literal",
             ));
         }
-        return Err(syn::Error::new_spanned(nv.path, "expected 'name' attribute"));
+        return Err(syn::Error::new_spanned(
+            nv.path,
+            "expected 'name' attribute",
+        ));
     }
 
     Err(syn::Error::new_spanned(
@@ -402,7 +405,7 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
     // Determine the lifetime to use
     let lifetime = match &sig.lifetime {
         Some(lt) => lt.clone(),
-        None => syn::Lifetime::new("'__melbi", proc_macro2::Span::call_site()),
+        None => syn::Lifetime::new("'__a", proc_macro2::Span::call_site()),
     };
 
     // Generate context mode identifier
