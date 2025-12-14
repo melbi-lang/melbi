@@ -11,32 +11,32 @@ use crate::{
     values::{dynamic::Value, from_raw::TypeError},
 };
 use bumpalo::Bump;
-use melbi_macros::melbi_fn_old;
+use melbi_macros::melbi_fn;
 
 // ============================================================================
 // Basic Operations
 // ============================================================================
 
 /// Absolute value of a float
-#[melbi_fn_old(name = "Abs")]
+#[melbi_fn(name = "Abs")]
 fn math_abs(value: f64) -> f64 {
     value.abs()
 }
 
 /// Minimum of two floats
-#[melbi_fn_old(name = "Min")]
+#[melbi_fn(name = "Min")]
 fn math_min(a: f64, b: f64) -> f64 {
     a.min(b)
 }
 
 /// Maximum of two floats
-#[melbi_fn_old(name = "Max")]
+#[melbi_fn(name = "Max")]
 fn math_max(a: f64, b: f64) -> f64 {
     a.max(b)
 }
 
 /// Clamp a value between min and max
-#[melbi_fn_old(name = "Clamp")]
+#[melbi_fn(name = "Clamp")]
 fn math_clamp(value: f64, min: f64, max: f64) -> f64 {
     value.clamp(min, max)
 }
@@ -46,19 +46,19 @@ fn math_clamp(value: f64, min: f64, max: f64) -> f64 {
 // ============================================================================
 
 /// Floor function - returns largest integer <= x
-#[melbi_fn_old(name = "Floor")]
+#[melbi_fn(name = "Floor")]
 fn math_floor(value: f64) -> i64 {
     value.floor() as i64
 }
 
 /// Ceiling function - returns smallest integer >= x
-#[melbi_fn_old(name = "Ceil")]
+#[melbi_fn(name = "Ceil")]
 fn math_ceil(value: f64) -> i64 {
     value.ceil() as i64
 }
 
 /// Round to nearest integer
-#[melbi_fn_old(name = "Round")]
+#[melbi_fn(name = "Round")]
 fn math_round(value: f64) -> i64 {
     value.round() as i64
 }
@@ -68,14 +68,14 @@ fn math_round(value: f64) -> i64 {
 // ============================================================================
 
 /// Square root
-#[melbi_fn_old(name = "Sqrt")]
+#[melbi_fn(name = "Sqrt")]
 fn math_sqrt(value: f64) -> f64 {
     // Note: sqrt of negative returns NaN (IEEE 754 semantics)
     value.sqrt()
 }
 
 /// Power function - base^exp
-#[melbi_fn_old(name = "Pow")]
+#[melbi_fn(name = "Pow")]
 fn math_pow(base: f64, exp: f64) -> f64 {
     base.powf(exp)
 }
@@ -85,43 +85,43 @@ fn math_pow(base: f64, exp: f64) -> f64 {
 // ============================================================================
 
 /// Sine function
-#[melbi_fn_old(name = "Sin")]
+#[melbi_fn(name = "Sin")]
 fn math_sin(value: f64) -> f64 {
     value.sin()
 }
 
 /// Cosine function
-#[melbi_fn_old(name = "Cos")]
+#[melbi_fn(name = "Cos")]
 fn math_cos(value: f64) -> f64 {
     value.cos()
 }
 
 /// Tangent function
-#[melbi_fn_old(name = "Tan")]
+#[melbi_fn(name = "Tan")]
 fn math_tan(value: f64) -> f64 {
     value.tan()
 }
 
 /// Arc sine function
-#[melbi_fn_old(name = "Asin")]
+#[melbi_fn(name = "Asin")]
 fn math_asin(value: f64) -> f64 {
     value.asin()
 }
 
 /// Arc cosine function
-#[melbi_fn_old(name = "Acos")]
+#[melbi_fn(name = "Acos")]
 fn math_acos(value: f64) -> f64 {
     value.acos()
 }
 
 /// Arc tangent function
-#[melbi_fn_old(name = "Atan")]
+#[melbi_fn(name = "Atan")]
 fn math_atan(value: f64) -> f64 {
     value.atan()
 }
 
 /// Two-argument arc tangent function
-#[melbi_fn_old(name = "Atan2")]
+#[melbi_fn(name = "Atan2")]
 fn math_atan2(y: f64, x: f64) -> f64 {
     y.atan2(x)
 }
@@ -131,19 +131,19 @@ fn math_atan2(y: f64, x: f64) -> f64 {
 // ============================================================================
 
 /// Natural logarithm (base e)
-#[melbi_fn_old(name = "Log")]
+#[melbi_fn(name = "Log")]
 fn math_log(value: f64) -> f64 {
     value.ln()
 }
 
 /// Base-10 logarithm
-#[melbi_fn_old(name = "Log10")]
+#[melbi_fn(name = "Log10")]
 fn math_log10(value: f64) -> f64 {
     value.log10()
 }
 
 /// Exponential function (e^x)
-#[melbi_fn_old(name = "Exp")]
+#[melbi_fn(name = "Exp")]
 fn math_exp(value: f64) -> f64 {
     value.exp()
 }
