@@ -56,7 +56,7 @@ fn test_macro_generates_struct() {
         crate_name
     );
     assert!(!version.is_empty());
-    assert!(file.contains("melbi_fn_test.rs") || file.contains("melbi_fn.rs"));
+    assert!(file.contains("melbi_fn_old_test.rs"));
     assert!(line > 0);
     assert!(col > 0);
 }
@@ -252,7 +252,7 @@ fn test_result_function_metadata() {
     let (crate_name, version, file, line, col) = div_fn.location();
     assert!(!crate_name.is_empty());
     assert!(!version.is_empty());
-    assert!(file.contains("melbi_fn_test.rs") || file.contains("melbi_fn.rs"));
+    assert!(file.contains("melbi_fn_old_test.rs"));
     assert!(line > 0);
     assert!(col > 0);
 }
