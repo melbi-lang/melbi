@@ -1,4 +1,4 @@
-//! Implementation of the `#[melbi_fn_new]` attribute macro
+//! Implementation of the `#[melbi_fn]` attribute macro
 //!
 //! This proc macro parses function signatures and generates calls to the
 //! `melbi_fn_generate!` declarative macro, which handles the actual code generation.
@@ -11,8 +11,8 @@ use syn::{
     ReturnType, Type, parse_macro_input,
 };
 
-/// Entry point for the `#[melbi_fn_new]` attribute macro.
-pub fn melbi_fn_new_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
+/// Entry point for the `#[melbi_fn]` attribute macro.
+pub fn melbi_fn_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_fn = parse_macro_input!(item as ItemFn);
 
     // Parse the attribute to extract optional name
@@ -35,7 +35,7 @@ pub fn melbi_fn_new_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 // Data Structures
 // ============================================================================
 
-/// Parsed attribute from `#[melbi_fn_new]` or `#[melbi_fn_new(name = "...")]`
+/// Parsed attribute from `#[melbi_fn]` or `#[melbi_fn(name = "...")]`
 struct MelbiAttr {
     /// The Melbi function name. If None, derive from fn name as PascalCase.
     name: Option<String>,
@@ -82,8 +82,8 @@ struct ParsedSignature {
 /// Parse the attribute to extract optional name parameter.
 ///
 /// Supports:
-/// - `#[melbi_fn_new]` - no args
-/// - `#[melbi_fn_new(name = "CustomName")]` - explicit name
+/// - `#[melbi_fn]` - no args
+/// - `#[melbi_fn(name = "CustomName")]` - explicit name
 fn parse_attribute(attr: TokenStream) -> syn::Result<MelbiAttr> {
     // Empty attribute - derive name from function
     if attr.is_empty() {
@@ -115,7 +115,7 @@ fn parse_attribute(attr: TokenStream) -> syn::Result<MelbiAttr> {
 
     Err(syn::Error::new_spanned(
         meta,
-        "expected attribute format: #[melbi_fn_new] or #[melbi_fn_new(name = \"FunctionName\")]",
+        "expected attribute format: #[melbi_fn] or #[melbi_fn(name = \"FunctionName\")]",
     ))
 }
 
@@ -196,7 +196,7 @@ fn validate_and_extract_lifetime(generics: &syn::Generics) -> syn::Result<Option
         1 => Ok(Some(lifetimes[0].lifetime.clone())),
         _ => Err(syn::Error::new_spanned(
             generics,
-            "melbi_fn_new functions can have at most one lifetime parameter",
+            "melbi_fn functions can have at most one lifetime parameter",
         )),
     }
 }
@@ -207,14 +207,14 @@ fn validate_no_type_params(generics: &syn::Generics) -> syn::Result<()> {
         if let GenericParam::Type(type_param) = param {
             return Err(syn::Error::new_spanned(
                 type_param,
-                "melbi_fn_new does not yet support type parameters. \
+                "melbi_fn does not yet support type parameters. \
                  This feature is planned for a future version.",
             ));
         }
         if let GenericParam::Const(const_param) = param {
             return Err(syn::Error::new_spanned(
                 const_param,
-                "melbi_fn_new does not support const generics",
+                "melbi_fn does not support const generics",
             ));
         }
     }
@@ -226,7 +226,7 @@ fn extract_return_type(sig: &syn::Signature) -> syn::Result<Box<Type>> {
     match &sig.output {
         ReturnType::Default => Err(syn::Error::new_spanned(
             sig,
-            "melbi_fn_new functions must have an explicit return type",
+            "melbi_fn functions must have an explicit return type",
         )),
         ReturnType::Type(_, ty) => Ok(ty.clone()),
     }

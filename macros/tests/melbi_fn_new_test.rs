@@ -1,11 +1,11 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
-//! Tests for the `#[melbi_fn_new]` proc macro
+//! Tests for the `#[melbi_fn]` proc macro
 //!
 //! These tests use a mock `melbi_fn_generate!` macro that stringifies its arguments,
 //! allowing us to verify the proc macro's output without needing the full implementation.
 
-use melbi_macros::melbi_fn_new;
+use melbi_macros::melbi_fn;
 
 // ============================================================================
 // Mock Declarative Macro
@@ -69,7 +69,7 @@ macro_rules! assert_output_not_contains {
 mod full_output {
     use super::*;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn add(a: i64, b: i64) -> i64 {
         a + b
     }
@@ -87,7 +87,7 @@ mod full_output {
     struct Bump;
     struct TypeManager;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn legacy_div(_arena: &Bump, _type_mgr: &TypeManager, a: i64, b: i64) -> i64 {
         a / b
     }
@@ -103,7 +103,7 @@ mod full_output {
 
     struct RuntimeError;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn safe_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
         if b == 0 { Err(RuntimeError) } else { Ok(a / b) }
     }
@@ -119,7 +119,7 @@ mod full_output {
 
     struct Str<'a>(&'a str);
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn upper<'a>(s: Str<'a>) -> Str<'a> {
         s
     }
@@ -133,7 +133,7 @@ mod full_output {
         );
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn no_params() -> i64 {
         42
     }
@@ -155,7 +155,7 @@ mod full_output {
 mod name_derivation {
     use super::*;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn simple_add(a: i64, b: i64) -> i64 {
         a + b
     }
@@ -166,7 +166,7 @@ mod name_derivation {
         assert_output_contains!(SimpleAdd, "fn_name = simple_add");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn add_two_numbers(a: i64, b: i64) -> i64 {
         a + b
     }
@@ -177,7 +177,7 @@ mod name_derivation {
         assert_output_contains!(AddTwoNumbers, "fn_name = add_two_numbers");
     }
 
-    #[melbi_fn_new(name = "CustomName")]
+    #[melbi_fn(name = "CustomName")]
     fn my_function(x: i64) -> i64 {
         x
     }
@@ -201,7 +201,7 @@ mod context_modes {
     struct TypeManager;
     struct FfiContext;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn pure_function(a: i64, b: i64) -> i64 {
         a + b
     }
@@ -211,7 +211,7 @@ mod context_modes {
         assert_output_contains!(PureFunction, "context = Pure");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn arena_only_function(arena: &Bump, x: i64) -> i64 {
         let _ = arena;
         x
@@ -222,7 +222,7 @@ mod context_modes {
         assert_output_contains!(ArenaOnlyFunction, "context = ArenaOnly");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn arena_only_with_underscore(_arena: &Bump, x: i64) -> i64 {
         x
     }
@@ -232,7 +232,7 @@ mod context_modes {
         assert_output_contains!(ArenaOnlyWithUnderscore, "context = ArenaOnly");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn type_mgr_only_function(type_mgr: &TypeManager, x: i64) -> i64 {
         let _ = type_mgr;
         x
@@ -243,7 +243,7 @@ mod context_modes {
         assert_output_contains!(TypeMgrOnlyFunction, "context = TypeMgrOnly");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn type_mgr_only_with_underscore(_type_mgr: &TypeManager, x: i64) -> i64 {
         x
     }
@@ -253,7 +253,7 @@ mod context_modes {
         assert_output_contains!(TypeMgrOnlyWithUnderscore, "context = TypeMgrOnly");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn legacy_function(arena: &Bump, type_mgr: &TypeManager, x: i64) -> i64 {
         let _ = (arena, type_mgr);
         x
@@ -264,7 +264,7 @@ mod context_modes {
         assert_output_contains!(LegacyFunction, "context = Legacy");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn legacy_with_underscores(_arena: &Bump, _type_mgr: &TypeManager, x: i64) -> i64 {
         x
     }
@@ -274,7 +274,7 @@ mod context_modes {
         assert_output_contains!(LegacyWithUnderscores, "context = Legacy");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn full_context_function(ctx: &FfiContext, x: i64) -> i64 {
         let _ = ctx;
         x
@@ -285,7 +285,7 @@ mod context_modes {
         assert_output_contains!(FullContextFunction, "context = FullContext");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn zero_args_pure() -> i64 {
         42
     }
@@ -295,7 +295,7 @@ mod context_modes {
         assert_output_contains!(ZeroArgsPure, "context = Pure");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn zero_args_legacy(_arena: &Bump, _type_mgr: &TypeManager) -> i64 {
         42
     }
@@ -309,7 +309,7 @@ mod context_modes {
     // Alternative parameter names (detected by type, not name)
     // -------------------------------------------------------------------------
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn arena_alt_name(bump: &Bump, x: i64) -> i64 {
         let _ = bump;
         x
@@ -320,7 +320,7 @@ mod context_modes {
         assert_output_contains!(ArenaAltName, "context = ArenaOnly");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn type_mgr_alt_name(type_manager: &TypeManager, x: i64) -> i64 {
         let _ = type_manager;
         x
@@ -331,7 +331,7 @@ mod context_modes {
         assert_output_contains!(TypeMgrAltName, "context = TypeMgrOnly");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn legacy_alt_names(bump: &Bump, type_manager: &TypeManager, x: i64) -> i64 {
         let _ = (bump, type_manager);
         x
@@ -342,7 +342,7 @@ mod context_modes {
         assert_output_contains!(LegacyAltNames, "context = Legacy");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn full_context_alt_name(context: &FfiContext, x: i64) -> i64 {
         let _ = context;
         x
@@ -363,7 +363,7 @@ mod fallible {
 
     struct RuntimeError;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn infallible_function(a: i64) -> i64 {
         a
     }
@@ -373,7 +373,7 @@ mod fallible {
         assert_output_contains!(InfallibleFunction, "fallible = false");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn fallible_function(a: i64) -> Result<i64, RuntimeError> {
         Ok(a)
     }
@@ -383,7 +383,7 @@ mod fallible {
         assert_output_contains!(FallibleFunction, "fallible = true");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn fallible_with_unwrapped_return(a: i64, b: i64) -> Result<i64, RuntimeError> {
         if b == 0 { Err(RuntimeError) } else { Ok(a / b) }
     }
@@ -405,7 +405,7 @@ mod lifetimes {
 
     struct Str<'a>(&'a str);
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn no_lifetime_uses_default(x: i64) -> i64 {
         x
     }
@@ -415,7 +415,7 @@ mod lifetimes {
         assert_output_contains!(NoLifetimeUsesDefault, "lt = '__a");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn with_lifetime<'a>(s: Str<'a>) -> Str<'a> {
         s
     }
@@ -425,7 +425,7 @@ mod lifetimes {
         assert_output_contains!(WithLifetime, "lt = 'a");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn with_named_lifetime<'value>(s: Str<'value>) -> Str<'value> {
         s
     }
@@ -443,7 +443,7 @@ mod lifetimes {
 mod signature {
     use super::*;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn no_params() -> i64 {
         42
     }
@@ -454,7 +454,7 @@ mod signature {
         assert_output_contains!(NoParams, "signature = {} -> i64");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn single_param(x: i64) -> i64 {
         x
     }
@@ -464,7 +464,7 @@ mod signature {
         assert_output_contains!(SingleParam, "x : i64");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn multiple_params(a: i64, b: f64, c: bool) -> f64 {
         if c { a as f64 + b } else { b }
     }
@@ -481,7 +481,7 @@ mod signature {
     struct Bump;
     struct TypeManager;
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn legacy_with_business_params(_arena: &Bump, _type_mgr: &TypeManager, x: i64, y: i64) -> i64 {
         x + y
     }
@@ -507,7 +507,7 @@ mod complex_types {
     struct Optional<'a, T>(&'a Option<T>);
     struct Str<'a>(&'a str);
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn with_array<'a>(arr: Array<'a, i64>) -> i64 {
         let _ = arr;
         0
@@ -518,7 +518,7 @@ mod complex_types {
         assert_output_contains!(WithArray, "arr : Array");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn with_optional<'a>(opt: Optional<'a, i64>) -> i64 {
         let _ = opt;
         0
@@ -529,7 +529,7 @@ mod complex_types {
         assert_output_contains!(WithOptional, "opt : Optional");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn with_str<'a>(s: Str<'a>) -> Str<'a> {
         s
     }
@@ -542,7 +542,7 @@ mod complex_types {
         assert_output_contains!(WithStr, "Str < 'a >");
     }
 
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn nested_generic<'a>(arr: Array<'a, Str<'a>>) -> i64 {
         let _ = arr;
         0
@@ -562,7 +562,7 @@ mod edge_cases {
     use super::*;
 
     // Single letter function name
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn a() -> i64 {
         0
     }
@@ -573,7 +573,7 @@ mod edge_cases {
     }
 
     // Function name starting with underscore
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn _private_helper() -> i64 {
         0
     }
@@ -586,7 +586,7 @@ mod edge_cases {
 
     // Multiple consecutive underscores
     #[allow(non_snake_case)]
-    #[melbi_fn_new]
+    #[melbi_fn]
     fn foo__bar() -> i64 {
         0
     }

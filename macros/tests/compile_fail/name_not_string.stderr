@@ -1,5 +1,5 @@
 error: name attribute must be a string literal
- --> tests/compile_fail/name_not_string.rs:5:23
+ --> tests/compile_fail/name_not_string.rs:5:19
   |
-5 | #[melbi_fn_new(name = 123)]
-  |                       ^^^
+5 | #[melbi_fn(name = 123)]
+  |                   ^^^

@@ -1,4 +1,4 @@
-//! Compile-fail tests for `#[melbi_fn_new]` error detection.
+//! Compile-fail tests for `#[melbi_fn]` error detection.
 //!
 //! These tests verify that the macro produces helpful error messages
 //! for invalid input.

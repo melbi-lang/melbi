@@ -7,7 +7,7 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 
-mod melbi_fn_new;
+mod melbi_fn;
 mod melbi_fn_old;
 
 /// Generate a type-safe FFI function for Melbi.
@@ -70,7 +70,7 @@ pub fn melbi_fn_old(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// # Example
 ///
 /// ```ignore
-/// #[melbi_fn_new]  // name derived from fn name as PascalCase
+/// #[melbi_fn]  // name derived from fn name as PascalCase
 /// fn safe_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
 ///     if b == 0 { return Err(RuntimeError::DivisionByZero {}); }
 ///     Ok(a / b)
@@ -104,6 +104,6 @@ pub fn melbi_fn_old(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// - `Legacy`: `fn old(arena: &Bump, type_mgr: &TypeManager, ...)`
 /// - `FullContext`: `fn ctx_fn(ctx: &FfiContext, ...)`
 #[proc_macro_attribute]
-pub fn melbi_fn_new(attr: TokenStream, item: TokenStream) -> TokenStream {
-    melbi_fn_new::melbi_fn_new_impl(attr, item)
+pub fn melbi_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
+    melbi_fn::melbi_fn_impl(attr, item)
 }
