@@ -1,0 +1,5 @@
+error: Bump parameter must be named `arena` or `_arena`, found `bump`
+ --> tests/compile_fail/arena_typo.rs:8:26
+  |
+8 | fn uses_wrong_arena_name(bump: &Bump) -> i64 {
+  |                          ^^^^^^^^^^^

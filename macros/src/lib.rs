@@ -8,6 +8,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 
 mod melbi_fn;
+mod melbi_fn_new;
 
 /// Generate a type-safe FFI function for Melbi.
 ///
@@ -58,4 +59,51 @@ mod melbi_fn;
 #[proc_macro_attribute]
 pub fn melbi_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     melbi_fn::melbi_fn_impl(attr, item)
+}
+
+/// Generate a type-safe FFI function for Melbi (new implementation).
+///
+/// This is a simpler implementation that generates a call to the `melbi_fn_generate!`
+/// declarative macro. The proc macro handles parsing and validation, while the
+/// declarative macro handles code generation.
+///
+/// # Example
+///
+/// ```ignore
+/// #[melbi_fn_new]  // name derived from fn name as PascalCase
+/// fn safe_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
+///     if b == 0 { return Err(RuntimeError::DivisionByZero {}); }
+///     Ok(a / b)
+/// }
+/// ```
+///
+/// This generates:
+/// ```ignore
+/// fn safe_div(...) { ... }  // Original function unchanged
+///
+/// melbi_fn_generate!(
+///     name = SafeDiv,
+///     fn_name = safe_div,
+///     lt = '__melbi,
+///     context = Pure,
+///     signature = { a: i64, b: i64 } -> i64,
+///     fallible = true
+/// );
+/// ```
+///
+/// # Attributes
+///
+/// - `name` (optional): Override the struct name. Default: PascalCase of fn name.
+///
+/// # Context Modes
+///
+/// The macro automatically detects the context mode from parameters:
+/// - `Pure`: No context params - `fn add(a: i64, b: i64)`
+/// - `ArenaOnly`: `fn alloc(arena: &Bump, ...)`
+/// - `TypeMgrOnly`: `fn get_type(type_mgr: &TypeManager, ...)`
+/// - `Legacy`: `fn old(arena: &Bump, type_mgr: &TypeManager, ...)`
+/// - `FullContext`: `fn ctx_fn(ctx: &FfiContext, ...)`
+#[proc_macro_attribute]
+pub fn melbi_fn_new(attr: TokenStream, item: TokenStream) -> TokenStream {
+    melbi_fn_new::melbi_fn_new_impl(attr, item)
 }

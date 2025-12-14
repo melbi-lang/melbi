@@ -1,0 +1,5 @@
+error: melbi_fn_new functions can have at most one lifetime parameter
+ --> tests/compile_fail/multiple_lifetimes.rs:6:16
+  |
+6 | fn bad_function<'a, 'b>(x: &'a str, y: &'b str) -> &'a str {
+  |                ^^^^^^^^

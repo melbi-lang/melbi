@@ -1,0 +1,5 @@
+error: melbi_fn_new does not yet support type parameters. This feature is planned for a future version.
+ --> tests/compile_fail/type_parameter.rs:6:21
+  |
+6 | fn generic_function<T>(x: T) -> T {
+  |                     ^

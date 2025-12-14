@@ -1,0 +1,5 @@
+error: melbi_fn_new does not support const generics
+ --> tests/compile_fail/const_generic.rs:6:27
+  |
+6 | fn const_generic_function<const N: usize>() -> i64 {
+  |                           ^^^^^^^^^^^^^^
