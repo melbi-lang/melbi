@@ -86,18 +86,18 @@ fn parse_attribute(attr: TokenStream) -> syn::Result<MelbiAttr> {
             }
             return Err(syn::Error::new_spanned(
                 &nv.value,
-                "name attribute must be a string literal",
+                "[melbi] name attribute must be a string literal",
             ));
         }
         return Err(syn::Error::new_spanned(
             nv.path,
-            "expected 'name' attribute",
+            "[melbi] expected 'name' attribute",
         ));
     }
 
     Err(syn::Error::new_spanned(
         meta,
-        "expected attribute format: #[melbi_fn] or #[melbi_fn(name = \"FunctionName\")]",
+        "[melbi] expected attribute format: #[melbi_fn] or #[melbi_fn(name = \"FunctionName\")]",
     ))
 }
 
@@ -134,19 +134,16 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
     let fn_name = func.sig.ident.clone();
 
     // Validate and extract lifetime
-    let lifetime = validate_and_extract_lifetime(&func.sig.generics)?;
-
-    // Validate no type parameters (for now)
-    validate_no_type_params(&func.sig.generics)?;
+    let lifetime = parse_generics(&func.sig.generics)?;
 
     // Extract return type
-    let return_type = extract_return_type(&func.sig)?;
+    let return_type = parse_return_type(&func.sig)?;
 
     // Check if return type is Result<T, E> and extract okay type
     let (ok_return_type, is_fallible) = analyze_return_type(&return_type);
 
     // Detect context and extract business parameters
-    let (has_context, params) = detect_context_and_params(&func.sig)?;
+    let (has_context, params) = parse_params(&func.sig)?;
 
     Ok(ParsedSignature {
         fn_name,
@@ -159,51 +156,39 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
 }
 
 /// Validate that there is at most one lifetime parameter and extract it.
-fn validate_and_extract_lifetime(generics: &syn::Generics) -> syn::Result<Option<syn::Lifetime>> {
-    let lifetimes: Vec<_> = generics
-        .params
-        .iter()
-        .filter_map(|p| {
-            if let GenericParam::Lifetime(lt) = p {
-                Some(lt)
-            } else {
-                None
-            }
-        })
-        .collect();
+fn parse_generics(generics: &syn::Generics) -> syn::Result<Option<syn::Lifetime>> {
+    let mut lifetime = Option::None;
 
-    match lifetimes.len() {
-        0 => Ok(None),
-        1 => Ok(Some(lifetimes[0].lifetime.clone())),
-        _ => Err(syn::Error::new_spanned(
-            generics,
-            "melbi_fn functions can have at most one lifetime parameter",
-        )),
-    }
-}
-
-/// Validate that there are no type parameters (for now).
-fn validate_no_type_params(generics: &syn::Generics) -> syn::Result<()> {
     for param in &generics.params {
-        if let GenericParam::Type(type_param) = param {
-            return Err(syn::Error::new_spanned(
-                type_param,
-                "melbi_fn does not yet support type parameters. \
-                 This feature is planned for a future version.",
-            ));
-        }
-        if let GenericParam::Const(const_param) = param {
-            return Err(syn::Error::new_spanned(
-                const_param,
-                "melbi_fn does not support const generics",
-            ));
-        }
+        match param {
+            GenericParam::Lifetime(lifetime_param) => {
+                if !lifetime.is_none() {
+                    return Err(syn::Error::new_spanned(
+                        generics,
+                        "[melbi] please rewrite your function to use a single lifetime parameter",
+                    ));
+                }
+                lifetime.replace(lifetime_param.lifetime.clone());
+            }
+            GenericParam::Type(type_param) => {
+                return Err(syn::Error::new_spanned(
+                    type_param,
+                    "[melbi] generic type parameters not supported",
+                ));
+            }
+            GenericParam::Const(const_param) => {
+                return Err(syn::Error::new_spanned(
+                    const_param,
+                    "melbi_fn does not support const generics",
+                ));
+            }
+        };
     }
-    Ok(())
+    Ok(lifetime)
 }
 
 /// Extract the return type from the function signature.
-fn extract_return_type(sig: &syn::Signature) -> syn::Result<Box<Type>> {
+fn parse_return_type(sig: &syn::Signature) -> syn::Result<Box<Type>> {
     match &sig.output {
         ReturnType::Default => Err(syn::Error::new_spanned(
             sig,
@@ -241,46 +226,28 @@ fn extract_result_ok_type(ty: &Type) -> Option<Box<Type>> {
 }
 
 /// Detect if first param is FfiContext and extract business params.
-fn detect_context_and_params(
-    sig: &syn::Signature,
-) -> syn::Result<(bool, Vec<(syn::Ident, Box<Type>)>)> {
-    let mut inputs_iter = sig.inputs.iter();
-
-    // Check first parameter
-    let first = match inputs_iter.next() {
-        None => return Ok((false, Vec::new())),
-        Some(arg) => arg,
-    };
-
-    let (_first_name, first_ty) = extract_param_info(first)
-        .ok_or_else(|| syn::Error::new_spanned(first, "Expected typed parameter"))?;
-
-    // Check for FfiContext
-    if is_ffi_context_type(first_ty) {
-        let params = collect_remaining_params(&mut inputs_iter);
-        return Ok((true, params));
-    }
-
-    // First param is not FfiContext - include it in business params
+fn parse_params(sig: &syn::Signature) -> syn::Result<(bool, Vec<(syn::Ident, Box<Type>)>)> {
     let mut params = Vec::new();
-    if let FnArg::Typed(PatType { pat, ty, .. }) = first {
-        if let Pat::Ident(pat_ident) = &**pat {
-            params.push((pat_ident.ident.clone(), ty.clone()));
-        }
-    }
-    params.extend(collect_remaining_params(&mut inputs_iter));
+    let mut has_context = false;
 
-    Ok((false, params))
-}
+    for (i, input) in sig.inputs.iter().enumerate() {
+        let FnArg::Typed(PatType { pat, ty, .. }) = input else {
+            return Err(syn::Error::new_spanned(input, "Expected typed parameter"));
+        };
+        let Pat::Ident(pat_ident) = &**pat else {
+            return Err(syn::Error::new_spanned(pat, "Expected identifier pattern"));
+        };
 
-/// Extract parameter name and type from a FnArg.
-fn extract_param_info(arg: &FnArg) -> Option<(String, &Type)> {
-    if let FnArg::Typed(PatType { pat, ty, .. }) = arg {
-        if let Pat::Ident(pat_ident) = &**pat {
-            return Some((pat_ident.ident.to_string(), ty));
+        // Skip first param if it's FfiContext
+        if i == 0 && is_ffi_context_type(ty) {
+            has_context = true;
+            continue;
         }
+
+        params.push((pat_ident.ident.clone(), ty.clone()));
     }
-    None
+
+    Ok((has_context, params))
 }
 
 /// Check if a type looks like FfiContext (contains "FfiContext" in path).
@@ -295,22 +262,6 @@ fn is_ffi_context_type(ty: &Type) -> bool {
         }
     }
     false
-}
-
-/// Collect remaining parameters from iterator.
-fn collect_remaining_params<'a, I>(inputs_iter: &mut I) -> Vec<(syn::Ident, Box<Type>)>
-where
-    I: Iterator<Item = &'a FnArg>,
-{
-    let mut params = Vec::new();
-    for input in inputs_iter {
-        if let FnArg::Typed(PatType { pat, ty, .. }) = input {
-            if let Pat::Ident(pat_ident) = &**pat {
-                params.push((pat_ident.ident.clone(), ty.clone()));
-            }
-        }
-    }
-    params
 }
 
 // ============================================================================
