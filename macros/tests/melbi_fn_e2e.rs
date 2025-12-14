@@ -30,15 +30,15 @@ fn safe_div_impl(_ctx: &FfiContext, a: i64, b: i64) -> Result<i64, RuntimeError>
     }
 }
 
-/// Pure mode: no context
-#[melbi_fn(name = "DeclPureAdd")]
-fn pure_add_impl(a: i64, b: i64) -> i64 {
+/// NoContext mode: no context
+#[melbi_fn(name = "DeclNoContextAdd")]
+fn no_context_add_impl(a: i64, b: i64) -> i64 {
     a + b
 }
 
-/// Pure mode with Result
-#[melbi_fn(name = "DeclPureCheckedAdd")]
-fn pure_checked_add_impl(a: i64, b: i64) -> Result<i64, RuntimeError> {
+/// NoContext mode with Result
+#[melbi_fn(name = "DeclNoContextCheckedAdd")]
+fn no_context_checked_add_impl(a: i64, b: i64) -> Result<i64, RuntimeError> {
     a.checked_add(b).ok_or(RuntimeError::IntegerOverflow {})
 }
 
@@ -166,37 +166,37 @@ fn test_legacy_mode_result_error() {
 }
 
 #[test]
-fn test_pure_mode_plain() {
+fn test_no_context_mode_plain() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
-    let add_fn = DeclPureAdd::new(ctx.type_mgr);
-    assert_eq!(add_fn.name(), "DeclPureAdd");
+    let add_fn = DeclNoContextAdd::new(ctx.type_mgr);
+    assert_eq!(add_fn.name(), "DeclNoContextAdd");
 
     let result = ctx.call_ok(add_fn, &[ctx.int(10), ctx.int(32)]);
     assert_eq!(result.as_int().unwrap(), 42);
 }
 
 #[test]
-fn test_pure_mode_result_success() {
+fn test_no_context_mode_result_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
     let result = ctx.call_ok(
-        DeclPureCheckedAdd::new(ctx.type_mgr),
+        DeclNoContextCheckedAdd::new(ctx.type_mgr),
         &[ctx.int(1), ctx.int(2)],
     );
     assert_eq!(result.as_int().unwrap(), 3);
 }
 
 #[test]
-fn test_pure_mode_result_error() {
+fn test_no_context_mode_result_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
     let err = ctx
         .call(
-            DeclPureCheckedAdd::new(ctx.type_mgr),
+            DeclNoContextCheckedAdd::new(ctx.type_mgr),
             &[ctx.int(i64::MAX), ctx.int(1)],
         )
         .unwrap_err();
@@ -277,9 +277,9 @@ fn zero_args_impl(_ctx: &FfiContext) -> i64 {
     42
 }
 
-/// Zero-argument function (Pure mode)
-#[melbi_fn(name = "DeclPureZeroArgs")]
-fn pure_zero_args_impl() -> i64 {
+/// Zero-argument function (NoContext mode)
+#[melbi_fn(name = "DeclNoContextZeroArgs")]
+fn no_context_zero_args_impl() -> i64 {
     42
 }
 
@@ -291,14 +291,7 @@ fn zero_args_result_impl(_ctx: &FfiContext) -> Result<i64, RuntimeError> {
 
 /// Many-argument function (5 parameters) - tests macro repetition patterns
 #[melbi_fn(name = "DeclManyArgs")]
-fn many_args_impl(
-    _ctx: &FfiContext,
-    a: i64,
-    b: i64,
-    c: i64,
-    d: i64,
-    e: i64,
-) -> i64 {
+fn many_args_impl(_ctx: &FfiContext, a: i64, b: i64, c: i64, d: i64, e: i64) -> i64 {
     a + b + c + d + e
 }
 
@@ -354,30 +347,21 @@ fn returns_array_impl<'a>(ctx: &FfiContext<'a, 'a>, x: i64) -> Array<'a, i64> {
 
 /// Function with nested generic type: Array<Str<'a>>
 #[melbi_fn(name = "DeclTakesStrArray")]
-fn takes_str_array_impl<'a>(
-    ctx: &FfiContext<'a, 'a>,
-    arr: Array<'a, Str<'a>>,
-) -> i64 {
+fn takes_str_array_impl<'a>(ctx: &FfiContext<'a, 'a>, arr: Array<'a, Str<'a>>) -> i64 {
     let _ = ctx;
     arr.len() as i64
 }
 
 /// Function with Optional parameter
 #[melbi_fn(name = "DeclTakesOptional")]
-fn takes_optional_impl<'a>(
-    ctx: &FfiContext<'a, 'a>,
-    opt: Optional<'a, i64>,
-) -> i64 {
+fn takes_optional_impl<'a>(ctx: &FfiContext<'a, 'a>, opt: Optional<'a, i64>) -> i64 {
     let _ = ctx;
     opt.as_option().unwrap_or(0)
 }
 
 /// Function returning Optional
 #[melbi_fn(name = "DeclReturnsOptional")]
-fn returns_optional_impl<'a>(
-    ctx: &FfiContext<'a, 'a>,
-    x: i64,
-) -> Optional<'a, i64> {
+fn returns_optional_impl<'a>(ctx: &FfiContext<'a, 'a>, x: i64) -> Optional<'a, i64> {
     if x > 0 {
         Optional::some(ctx.arena(), x)
     } else {
@@ -400,9 +384,9 @@ fn result_with_lifetime_impl<'a>(
     }
 }
 
-/// Pure function with Result returning complex type
-#[melbi_fn(name = "DeclPureResultComplex")]
-fn pure_result_complex_impl(a: i64, b: i64) -> Result<f64, RuntimeError> {
+/// NoContext function with Result returning complex type
+#[melbi_fn(name = "DeclNoContextResultComplex")]
+fn no_context_result_complex_impl(a: i64, b: i64) -> Result<f64, RuntimeError> {
     if b == 0 {
         Err(RuntimeError::DivisionByZero {})
     } else {
@@ -410,7 +394,7 @@ fn pure_result_complex_impl(a: i64, b: i64) -> Result<f64, RuntimeError> {
     }
 }
 
-/// Pure function with nested generics and Result<Str<'value>, E>
+/// NoContext function with nested generics and Result<Str<'value>, E>
 #[melbi_fn(name = "DeclArrayFirst")]
 fn array_first<'value>(
     arr: Array<'value, Str<'value>>,
@@ -446,11 +430,11 @@ fn test_zero_args_legacy_mode() {
 }
 
 #[test]
-fn test_zero_args_pure_mode() {
+fn test_zero_args_no_context_mode() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
-        ctx.call_ok(DeclPureZeroArgs::new(ctx.type_mgr), &[])
+        ctx.call_ok(DeclNoContextZeroArgs::new(ctx.type_mgr), &[])
             .as_int()
             .unwrap(),
         42
@@ -871,15 +855,15 @@ fn test_result_with_lifetime_error() {
     ));
 }
 
-// 11. PURE MODE WITH RESULT RETURNING NON-INT
+// 11. NO-CONTEXT MODE WITH RESULT RETURNING NON-INT
 
 #[test]
-fn test_pure_result_returns_float_success() {
+fn test_no_context_result_returns_float_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
         ctx.call_ok(
-            DeclPureResultComplex::new(ctx.type_mgr),
+            DeclNoContextResultComplex::new(ctx.type_mgr),
             &[ctx.int(10), ctx.int(4)]
         )
         .as_float()
@@ -889,12 +873,12 @@ fn test_pure_result_returns_float_success() {
 }
 
 #[test]
-fn test_pure_result_returns_float_error() {
+fn test_no_context_result_returns_float_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let err = ctx
         .call(
-            DeclPureResultComplex::new(ctx.type_mgr),
+            DeclNoContextResultComplex::new(ctx.type_mgr),
             &[ctx.int(10), ctx.int(0)],
         )
         .unwrap_err();
