@@ -7,8 +7,8 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 
-mod melbi_fn;
 mod melbi_fn_new;
+mod melbi_fn_old;
 
 /// Generate a type-safe FFI function for Melbi.
 ///
@@ -57,8 +57,8 @@ mod melbi_fn_new;
 /// Len::new(type_mgr).register(arena, type_mgr, env)?;
 /// ```
 #[proc_macro_attribute]
-pub fn melbi_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
-    melbi_fn::melbi_fn_impl(attr, item)
+pub fn melbi_fn_old(attr: TokenStream, item: TokenStream) -> TokenStream {
+    melbi_fn_old::melbi_fn_impl(attr, item)
 }
 
 /// Generate a type-safe FFI function for Melbi (new implementation).

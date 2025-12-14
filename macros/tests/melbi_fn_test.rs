@@ -13,22 +13,22 @@ use melbi_core::{
         typed::Str,
     },
 };
-use melbi_macros::melbi_fn;
+use melbi_macros::melbi_fn_old;
 
 /// Simple integer addition function
-#[melbi_fn(name = "Add")]
+#[melbi_fn_old(name = "Add")]
 fn add_function(_arena: &Bump, _type_mgr: &TypeManager, a: i64, b: i64) -> i64 {
     a + b
 }
 
 /// String length function
-#[melbi_fn(name = "Len")]
+#[melbi_fn_old(name = "Len")]
 fn len_function(_arena: &Bump, _type_mgr: &TypeManager, s: Str) -> i64 {
     s.chars().count() as i64
 }
 
 /// String uppercase function with explicit lifetimes
-#[melbi_fn(name = "Upper")]
+#[melbi_fn_old(name = "Upper")]
 fn string_upper<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Str<'a> {
     let upper = s.to_ascii_uppercase();
     Str::from_str(arena, &upper)
@@ -140,13 +140,8 @@ fn test_string_function() {
 // ============================================================================
 
 /// Division function that returns Result for error handling
-#[melbi_fn(name = "SafeDiv")]
-fn safe_div(
-    _arena: &Bump,
-    _type_mgr: &TypeManager,
-    a: i64,
-    b: i64,
-) -> Result<i64, RuntimeError> {
+#[melbi_fn_old(name = "SafeDiv")]
+fn safe_div(_arena: &Bump, _type_mgr: &TypeManager, a: i64, b: i64) -> Result<i64, RuntimeError> {
     if b == 0 {
         Err(RuntimeError::DivisionByZero {})
     } else {
@@ -155,12 +150,8 @@ fn safe_div(
 }
 
 /// Function that can return overflow error
-#[melbi_fn(name = "CheckedNegate")]
-fn checked_negate(
-    _arena: &Bump,
-    _type_mgr: &TypeManager,
-    a: i64,
-) -> Result<i64, RuntimeError> {
+#[melbi_fn_old(name = "CheckedNegate")]
+fn checked_negate(_arena: &Bump, _type_mgr: &TypeManager, a: i64) -> Result<i64, RuntimeError> {
     if a == i64::MIN {
         Err(RuntimeError::IntegerOverflow {})
     } else {
@@ -207,12 +198,7 @@ fn test_result_function_division_by_zero_error() {
     let args = [a, b];
 
     let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-    };
+    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
 
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -239,12 +225,7 @@ fn test_result_function_overflow_error() {
     let args = [a];
 
     let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-    };
+    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
 
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -304,13 +285,13 @@ fn test_result_function_type_is_unwrapped() {
 // ============================================================================
 
 /// Pure function - no context needed at all
-#[melbi_fn(name = "PureAdd")]
+#[melbi_fn_old(name = "PureAdd")]
 fn pure_add(a: i64, b: i64) -> i64 {
     a + b
 }
 
 /// Pure function with Result return type
-#[melbi_fn(name = "PureCheckedAdd")]
+#[melbi_fn_old(name = "PureCheckedAdd")]
 fn pure_checked_add(a: i64, b: i64) -> Result<i64, RuntimeError> {
     a.checked_add(b).ok_or(RuntimeError::IntegerOverflow {})
 }
@@ -384,12 +365,7 @@ fn test_pure_mode_overflow_error() {
     let args = [a, b];
 
     let ctx = FfiContext::new(&arena, type_mgr);
-    let result = unsafe {
-        value
-            .as_function()
-            .unwrap()
-            .call_unchecked(&ctx, &args)
-    };
+    let result = unsafe { value.as_function().unwrap().call_unchecked(&ctx, &args) };
 
     assert!(result.is_err());
     let err = result.unwrap_err();
