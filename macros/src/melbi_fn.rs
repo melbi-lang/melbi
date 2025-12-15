@@ -179,7 +179,7 @@ fn parse_generics(generics: &syn::Generics) -> syn::Result<Option<syn::Lifetime>
             GenericParam::Const(const_param) => {
                 return Err(syn::Error::new_spanned(
                     const_param,
-                    "melbi_fn does not support const generics",
+                    "[melbi] const generics are not supported",
                 ));
             }
         };
@@ -192,7 +192,7 @@ fn parse_return_type(sig: &syn::Signature) -> syn::Result<Box<Type>> {
     match &sig.output {
         ReturnType::Default => Err(syn::Error::new_spanned(
             sig,
-            "melbi_fn functions must have an explicit return type",
+            "[melbi] functions must have an explicit return type",
         )),
         ReturnType::Type(_, ty) => Ok(ty.clone()),
     }
@@ -312,7 +312,7 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
         quote! {
             let __ok_result = __call_result.map_err(|e| ::melbi_core::evaluator::ExecutionError {
                 kind: e.into(),
-                source: ::alloc::string::String::new(),
+                source: ::melbi_core::shim::String::new(),
                 span: ::melbi_core::parser::Span(0..0),
             })?;
         }

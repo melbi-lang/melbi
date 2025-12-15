@@ -1,16 +1,15 @@
-extern crate alloc;
-
 use bumpalo::Bump;
 use melbi_core::{
-    evaluator::RuntimeError,
+    evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError},
     types::manager::TypeManager,
     values::{
         FfiContext,
         dynamic::Value,
         function::{AnnotatedFunction, Function},
-        typed::Str,
+        typed::{Array, Optional, RawConvertible, Str},
     },
 };
+use melbi_macros::melbi_fn;
 
 // ============================================================================
 // Test functions (what the user would write)
@@ -52,8 +51,6 @@ fn string_upper_impl<'a>(ctx: &FfiContext<'a, 'a>, s: Str<'a>) -> Str<'a> {
 // ============================================================================
 // Test Helpers
 // ============================================================================
-
-use melbi_core::evaluator::{ExecutionError, ExecutionErrorKind};
 
 /// Test context providing arena and type manager for FFI tests.
 struct TestCtx<'a> {
@@ -258,9 +255,6 @@ fn test_annotated_function_register() {
 //
 // These tests specifically target edge cases and potential failure modes
 // in the melbi_fn_impl! macro implementation.
-
-use melbi_core::values::typed::{Array, Optional, RawConvertible};
-use melbi_macros::melbi_fn;
 
 /// Helper to extract Optional<i64> from a Value
 fn extract_optional_int(v: &Value) -> Option<i64> {
@@ -706,10 +700,10 @@ fn test_string_unicode() {
     // to_ascii_uppercase only affects ASCII
     assert_eq!(
         &*ctx
-            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("hello world")])
+            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("Γεια σας κόσμε")])
             .as_str()
             .unwrap(),
-        "HELLO WORLD"
+        "Γεια σας κόσμε"
     );
 }
 

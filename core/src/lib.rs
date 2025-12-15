@@ -2,12 +2,22 @@
 // #![deny(unsafe_code)]  // TODO: uncomment this.
 // #![cfg_attr(not(test), no_std)]
 
-extern crate alloc;
+// Needed so that macros can uniformly refer to `::melbi_core` and still work
+// from within this crate or a different one.
 extern crate self as melbi_core;
 
-// Re-export for convenience so other modules don't need alloc:: prefix
+// This works on std and no_std and is harmless.
+extern crate alloc;
+
+// Exports some symbols publicly basically so that macros can always refer to these.
+#[doc(hidden)]
+pub mod shim {
+    pub use alloc::{boxed::Box, fmt, format, string::String, string::ToString, vec, vec::Vec};
+}
+
+// Re-export (crate only) for convenience so other modules don't need alloc:: prefix
 #[allow(unused_imports)]
-pub(crate) use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
+pub(crate) use shim::*;
 
 pub mod analyzer;
 pub mod api;
