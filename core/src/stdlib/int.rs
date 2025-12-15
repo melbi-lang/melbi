@@ -59,7 +59,7 @@ fn check_overflow(a: i64, b: i64) -> Result<(), RuntimeError> {
 /// - `Int.Quot(-7, 3)  -> -2`
 /// - `Int.Quot(7, -3)  -> -2`
 /// - `Int.Quot(-7, -3) ->  2`
-#[melbi_fn(name = "Quot")]
+#[melbi_fn(name = Quot)]
 fn int_quot(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;
@@ -80,7 +80,7 @@ fn int_quot(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// - `Int.Rem(-7, 3)  -> -1`
 /// - `Int.Rem(7, -3)  ->  1`
 /// - `Int.Rem(-7, -3) -> -1`
-#[melbi_fn(name = "Rem")]
+#[melbi_fn(name = Rem)]
 fn int_rem(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;
@@ -109,7 +109,7 @@ fn int_rem(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// - `Int.Div(-7, 3)  -> -3`
 /// - `Int.Div(7, -3)  -> -2`
 /// - `Int.Div(-7, -3) ->  3`
-#[melbi_fn(name = "Div")]
+#[melbi_fn(name = Div)]
 fn int_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;
@@ -130,7 +130,7 @@ fn int_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// - `Int.Mod(-7, 3)  ->  2`
 /// - `Int.Mod(7, -3)  ->  1`
 /// - `Int.Mod(-7, -3) ->  2` (result is positive even if b is negative)
-#[melbi_fn(name = "Mod")]
+#[melbi_fn(name = Mod)]
 fn int_mod(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;

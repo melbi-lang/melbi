@@ -1,16 +1,117 @@
 //! Shared utilities for Melbi procedural macros.
 
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{Attribute, Expr, Lit, Meta};
+use syn::{Attribute, Expr, Meta};
 
-/// Result of extracting a Melbi name from an attribute.
-pub enum NameExtraction {
-    /// Explicit name provided via `name = "X"`
-    Explicit(String),
-    /// Name derived from function name (already case-converted)
-    Derived(String),
-    /// Attribute not found on this item
-    NotFound,
+/// Parse a single `key = "value"` from attribute tokens.
+///
+/// # Arguments
+/// - `tokens`: The token stream inside the attribute's parentheses.
+/// - `key`: The identifier to look for (e.g., "name", "builder").
+///
+/// # Returns
+/// - `Ok(Some(value))` if `key = "value"` is found.
+/// - `Ok(None)` if the tokens are empty.
+/// - `Err(...)` if malformed or another key is present.
+pub(crate) fn parse_string_name_value(
+    tokens: TokenStream2,
+    key: &str,
+) -> syn::Result<Option<String>> {
+    if tokens.is_empty() {
+        return Ok(None);
+    }
+
+    let meta: Meta = syn::parse2(tokens)?;
+    match meta {
+        Meta::NameValue(nv) if nv.path.is_ident(key) => {
+            // Handle `key = ident`
+            if let Expr::Path(expr_path) = &nv.value {
+                if let Some(ident) = expr_path.path.get_ident() {
+                    return Ok(Some(ident.to_string()));
+                }
+            }
+            Err(syn::Error::new_spanned(
+                &nv.value,
+                format!("[melbi] {} must be an identifier", key),
+            ))
+        }
+        _ => Err(syn::Error::new_spanned(
+            meta,
+            format!("[melbi] expected `{} = identifier`, or no arguments", key),
+        )),
+    }
+}
+
+/// Public entry-point for name resolution when inspecting an item's attributes.
+///
+/// # Arguments
+/// - `item_attrs`: A slice of the item's attributes.
+/// - `attr_name`: The name of the attribute to look for (e.g., "melbi_fn", "melbi_const").
+/// - `rust_item_name`: The Rust item's name (e.g., function name) for derivation.
+///
+/// # Returns
+/// - `Ok(Some(String))`: If the attribute is found and name resolved.
+/// - `Ok(None)`: If the attribute is not found on the item.
+/// - `Err(...)`: If the attribute is found but malformed.
+pub(crate) fn get_name_from_item(
+    item_attrs: &[Attribute],
+    attr_name: &str,
+    key: &str,
+    rust_item_name: &str,
+) -> syn::Result<Option<String>> {
+    // Find attribute matching attr_name
+    let attr = item_attrs.iter().find(|a| a.path().is_ident(attr_name));
+    let Some(attr) = attr else {
+        return Ok(None);
+    };
+
+    // Extract tokens from the attribute
+    let tokens = match &attr.meta {
+        Meta::Path(_) => TokenStream2::new(), // #[attr] - no arguments
+        Meta::List(list) => list.tokens.clone(), // #[attr(...)] - get the tokens inside parens
+        Meta::NameValue(_) => {
+            // #[attr = ...] - invalid syntax for these attributes
+            return Err(syn::Error::new_spanned(
+                attr,
+                format!("[melbi] invalid attribute syntax for `#[{}]`", attr_name),
+            ));
+        }
+    };
+
+    // Use the central resolve_name logic
+    get_name_from_tokens(tokens.into(), attr_name, key, rust_item_name).map(Some)
+}
+
+/// Public entry-point for name resolution from macro attribute tokens.
+///
+/// # Arguments
+/// - `attr_tokens`: The token stream passed directly to the attribute macro (e.g., `attr: TokenStream`).
+/// - `attr_name`: The name of the attribute macro (e.g., "melbi_fn", "melbi_package").
+/// - `item_name`: The Rust item's name (e.g., function name, module name) for derivation.
+///
+/// # Returns
+/// The resolved Melbi name as a `String`.
+pub(crate) fn get_name_from_tokens(
+    attr_tokens: proc_macro::TokenStream,
+    attr_name: &str,
+    key: &str,
+    item_name: &str,
+) -> syn::Result<String> {
+    // Parse the tokens for an explicit name using the common helper
+    let explicit_name = parse_string_name_value(attr_tokens.into(), key)?;
+
+    if let Some(name) = explicit_name {
+        return Ok(name);
+    }
+
+    // If no explicit name, derive it based on the attribute type
+    let derived_name = match attr_name {
+        "melbi_fn" => to_pascal_case(item_name),
+        "melbi_const" => to_screaming_snake_case(item_name),
+        "melbi_package" => format!("build_{}_package", item_name),
+        _ => item_name.to_string(), // Should not happen given the key match above
+    };
+    Ok(derived_name)
 }
 
 /// Convert snake_case to PascalCase.
@@ -45,106 +146,6 @@ pub fn to_pascal_case(s: &str) -> String {
 /// - `speed_of_light` -> `SPEED_OF_LIGHT`
 pub fn to_screaming_snake_case(s: &str) -> String {
     s.to_ascii_uppercase()
-}
-
-/// Parse melbi_fn name from attribute tokens.
-///
-/// Returns explicit name if `name = "X"` is provided, otherwise derives from
-/// function name as PascalCase.
-pub fn parse_melbi_fn_name(tokens: TokenStream2, rust_fn_name: &str) -> syn::Result<String> {
-    match parse_explicit_name(tokens)? {
-        Some(name) => Ok(name),
-        None => Ok(to_pascal_case(rust_fn_name)),
-    }
-}
-
-/// Parse explicit name from attribute arguments.
-///
-/// Call this with the token content of a melbi attribute (what's inside the parens).
-///
-/// # Returns
-/// - `Ok(Some(name))` if `name = "X"` is specified
-/// - `Ok(None)` if empty (name should be derived)
-/// - `Err(...)` if malformed
-fn parse_explicit_name(tokens: TokenStream2) -> syn::Result<Option<String>> {
-    if tokens.is_empty() {
-        return Ok(None);
-    }
-
-    let meta: Meta = syn::parse2(tokens)?;
-    match meta {
-        Meta::NameValue(nv) if nv.path.is_ident("name") => {
-            if let Expr::Lit(expr_lit) = &nv.value {
-                if let Lit::Str(lit) = &expr_lit.lit {
-                    return Ok(Some(lit.value()));
-                }
-            }
-            Err(syn::Error::new_spanned(
-                &nv.value,
-                "[melbi] name must be a string literal",
-            ))
-        }
-        _ => Err(syn::Error::new_spanned(
-            meta,
-            "[melbi] expected `name = \"...\"` or no arguments",
-        )),
-    }
-}
-
-/// Extract Melbi name from an attribute on a function.
-///
-/// # Arguments
-/// - `attrs`: The function's attributes
-/// - `attr_name`: "melbi_fn" or "melbi_const"
-/// - `rust_fn_name`: The Rust function name (for derivation)
-///
-/// # Returns
-/// - `Ok(NotFound)` - attribute not present
-/// - `Ok(Explicit(name))` - `#[attr(name = "X")]` found
-/// - `Ok(Derived(name))` - `#[attr]` or `#[attr()]` found, name derived from rust_fn_name
-/// - `Err(...)` - malformed attribute
-pub fn extract_melbi_name(
-    attrs: &[Attribute],
-    attr_name: &str,
-    rust_fn_name: &str,
-) -> syn::Result<NameExtraction> {
-    // Find attribute matching attr_name
-    let attr = attrs.iter().find(|a| a.path().is_ident(attr_name));
-    let Some(attr) = attr else {
-        return Ok(NameExtraction::NotFound);
-    };
-
-    // Helper to derive the name based on attribute type
-    let derive_name = || match attr_name {
-        "melbi_fn" => to_pascal_case(rust_fn_name),
-        "melbi_const" => to_screaming_snake_case(rust_fn_name),
-        _ => rust_fn_name.to_string(),
-    };
-
-    // Extract tokens from the attribute
-    let tokens = match &attr.meta {
-        Meta::Path(_) => {
-            // #[melbi_fn] - no arguments
-            TokenStream2::new()
-        }
-        Meta::List(list) => {
-            // #[melbi_fn(...)] - get the tokens inside parens
-            list.tokens.clone()
-        }
-        Meta::NameValue(_) => {
-            // #[melbi_fn = ...] - invalid syntax
-            return Err(syn::Error::new_spanned(
-                attr,
-                "[melbi] invalid attribute syntax",
-            ));
-        }
-    };
-
-    // Use shared parsing logic
-    match parse_explicit_name(tokens)? {
-        Some(name) => Ok(NameExtraction::Explicit(name)),
-        None => Ok(NameExtraction::Derived(derive_name())),
-    }
 }
 
 #[cfg(test)]

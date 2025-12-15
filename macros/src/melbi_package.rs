@@ -6,9 +6,9 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{Expr, Item, ItemMod, Lit, Meta, parse_macro_input};
+use syn::{Item, ItemMod, parse_macro_input};
 
-use crate::common::{NameExtraction, extract_melbi_name};
+use crate::common::{get_name_from_item, get_name_from_tokens};
 
 /// Information about a function marked with `#[melbi_fn]`
 struct MelbiFnInfo {
@@ -24,67 +24,22 @@ struct MelbiConstInfo {
     rust_fn_name: syn::Ident,
 }
 
-/// Configuration parsed from `#[melbi_package(...)]` attribute
-struct PackageConfig {
-    /// Custom builder function name (if specified)
-    builder_name: Option<String>,
-}
-
 pub fn melbi_package_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let config = match parse_package_attribute(attr) {
-        Ok(config) => config,
+    let input_mod = parse_macro_input!(item as ItemMod);
+    let mod_name = input_mod.ident.to_string();
+    let builder_name = match get_name_from_tokens(attr, "melbi_package", "builder", &mod_name) {
+        Ok(name) => name,
         Err(err) => return err.to_compile_error().into(),
     };
 
-    let input_mod = parse_macro_input!(item as ItemMod);
-
-    match generate_package(&config, input_mod) {
+    match generate_package(&builder_name, input_mod) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
 }
 
-/// Parse the `#[melbi_package(...)]` attribute
-fn parse_package_attribute(attr: TokenStream) -> syn::Result<PackageConfig> {
-    if attr.is_empty() {
-        return Ok(PackageConfig { builder_name: None });
-    }
-
-    let meta = syn::parse::<Meta>(attr)?;
-
-    match meta {
-        Meta::NameValue(nv) if nv.path.is_ident("builder") => {
-            if let Expr::Lit(expr_lit) = &nv.value {
-                if let Lit::Str(lit) = &expr_lit.lit {
-                    return Ok(PackageConfig {
-                        builder_name: Some(lit.value()),
-                    });
-                }
-            }
-            Err(syn::Error::new_spanned(
-                &nv.value,
-                "[melbi] builder attribute must be a string literal",
-            ))
-        }
-        _ => Err(syn::Error::new_spanned(
-            meta,
-            "[melbi] expected #[melbi_package] or #[melbi_package(builder = \"name\")]",
-        )),
-    }
-}
-
 /// Generate the package with builder function
-fn generate_package(config: &PackageConfig, mut input_mod: ItemMod) -> syn::Result<TokenStream2> {
-    let mod_name = &input_mod.ident;
-    let mod_vis = &input_mod.vis;
-    let mod_attrs = &input_mod.attrs;
-
-    // Determine builder function name
-    let builder_name = match &config.builder_name {
-        Some(name) => format_ident!("{}", name),
-        None => format_ident!("build_{}_package", mod_name),
-    };
-
+fn generate_package(builder_name: &str, mut input_mod: ItemMod) -> syn::Result<TokenStream2> {
     // Get the module content
     let content = match &mut input_mod.content {
         Some((_, items)) => items,
@@ -105,31 +60,31 @@ fn generate_package(config: &PackageConfig, mut input_mod: ItemMod) -> syn::Resu
             let fn_name = item_fn.sig.ident.to_string();
 
             // Check for melbi_fn attribute
-            match extract_melbi_name(&item_fn.attrs, "melbi_fn", &fn_name)? {
-                NameExtraction::Explicit(name) | NameExtraction::Derived(name) => {
-                    functions.push(MelbiFnInfo { melbi_name: name });
-                }
-                NameExtraction::NotFound => {}
+            if let Some(name) = get_name_from_item(&item_fn.attrs, "melbi_fn", "name", &fn_name)? {
+                functions.push(MelbiFnInfo { melbi_name: name });
             }
 
             // Check for melbi_const attribute
-            match extract_melbi_name(&item_fn.attrs, "melbi_const", &fn_name)? {
-                NameExtraction::Explicit(name) | NameExtraction::Derived(name) => {
-                    constants.push(MelbiConstInfo {
-                        melbi_name: name,
-                        rust_fn_name: item_fn.sig.ident.clone(),
-                    });
-                }
-                NameExtraction::NotFound => {}
+            if let Some(name) = get_name_from_item(&item_fn.attrs, "melbi_const", "name", &fn_name)?
+            {
+                constants.push(MelbiConstInfo {
+                    melbi_name: name,
+                    rust_fn_name: item_fn.sig.ident.clone(),
+                });
             }
         }
     }
 
     // Generate the builder function
-    let builder_fn = generate_builder_function(&builder_name, &functions, &constants);
+    let builder_ident = format_ident!("{}", builder_name);
+    let builder_fn = generate_builder_function(&builder_ident, &functions, &constants);
 
     // Append the builder function to the module content
     content.push(syn::parse2(builder_fn)?);
+
+    let mod_name = &input_mod.ident;
+    let mod_vis = &input_mod.vis;
+    let mod_attrs = &input_mod.attrs;
 
     // Reconstruct the module
     Ok(quote! {

@@ -11,7 +11,7 @@ use syn::{
     parse_macro_input,
 };
 
-use crate::common::parse_melbi_fn_name;
+use crate::common::get_name_from_tokens;
 
 /// Entry point for the `#[melbi_fn]` attribute macro.
 pub fn melbi_fn_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -19,7 +19,7 @@ pub fn melbi_fn_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_name = input_fn.sig.ident.to_string();
 
     // Parse the attribute to get the Melbi name (explicit or derived)
-    let melbi_name = match parse_melbi_fn_name(attr.into(), &fn_name) {
+    let melbi_name = match get_name_from_tokens(attr, "melbi_fn", "name", &fn_name) {
         Ok(name) => name,
         Err(err) => return err.to_compile_error().into(),
     };

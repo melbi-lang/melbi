@@ -22,7 +22,7 @@ mod basic_pkg {
         a + b
     }
 
-    #[melbi_fn(name = "Mul")]
+    #[melbi_fn(name = Mul)]
     fn pkg_mul(a: i64, b: i64) -> i64 {
         a * b
     }
@@ -78,22 +78,22 @@ fn test_basic_package_functions_work() {
 mod math_pkg {
     use super::*;
 
-    #[melbi_const(name = "PI")]
+    #[melbi_const(name = PI)]
     fn pi<'a>(_arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
         Value::float(type_mgr, core::f64::consts::PI)
     }
 
-    #[melbi_const(name = "E")]
+    #[melbi_const(name = E)]
     fn e<'a>(_arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
         Value::float(type_mgr, core::f64::consts::E)
     }
 
-    #[melbi_fn(name = "Abs")]
+    #[melbi_fn(name = Abs)]
     fn math_abs(value: f64) -> f64 {
         value.abs()
     }
 
-    #[melbi_fn(name = "Sqrt")]
+    #[melbi_fn(name = Sqrt)]
     fn math_sqrt(value: f64) -> f64 {
         value.sqrt()
     }
@@ -158,11 +158,11 @@ fn test_package_with_constants_functions_work() {
 // Custom builder name
 // ============================================================================
 
-#[melbi_package(builder = "create_custom_package")]
+#[melbi_package(builder = create_custom_package)]
 mod custom_pkg {
     use super::*;
 
-    #[melbi_fn(name = "Double")]
+    #[melbi_fn(name = Double)]
     fn double_it(x: i64) -> i64 {
         x * 2
     }
@@ -197,7 +197,7 @@ fn test_custom_builder_name() {
 pub mod public_pkg {
     use super::*;
 
-    #[melbi_fn(name = "Inc")]
+    #[melbi_fn(name = Inc)]
     fn increment(x: i64) -> i64 {
         x + 1
     }
@@ -223,12 +223,12 @@ fn test_public_module_stays_public() {
 mod constants_only_pkg {
     use super::*;
 
-    #[melbi_const(name = "ANSWER")]
+    #[melbi_const(name = ANSWER)]
     fn answer<'a>(_arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
         Value::int(type_mgr, 42)
     }
 
-    #[melbi_const(name = "GREETING")]
+    #[melbi_const(name = GREETING)]
     fn greeting<'a>(arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
         let str_ty = type_mgr.str();
         Value::str(arena, str_ty, "Hello")
@@ -307,7 +307,7 @@ mod mixed_names_pkg {
     use super::*;
 
     // Explicit name
-    #[melbi_const(name = "PI")]
+    #[melbi_const(name = PI)]
     fn math_pi<'a>(_arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
         Value::float(type_mgr, core::f64::consts::PI)
     }
@@ -319,7 +319,7 @@ mod mixed_names_pkg {
     }
 
     // Explicit name
-    #[melbi_fn(name = "Add")]
+    #[melbi_fn(name = Add)]
     fn do_add(a: i64, b: i64) -> i64 {
         a + b
     }
