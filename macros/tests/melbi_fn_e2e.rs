@@ -999,3 +999,64 @@ fn test_array_first_empty_error() {
         ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
     ));
 }
+
+// ============================================================================
+// 15. DERIVED NAMES (no explicit name attribute)
+// ============================================================================
+
+/// Test #[melbi_fn] without explicit name - derives PascalCase from function name
+#[melbi_fn]
+fn derived_add(a: i64, b: i64) -> i64 {
+    a + b
+}
+
+/// Test #[melbi_fn()] with empty parentheses - same as no parentheses
+#[melbi_fn()]
+fn empty_parens_mul(a: i64, b: i64) -> i64 {
+    a * b
+}
+
+/// Test derived name with underscores: get_first_item -> GetFirstItem
+#[melbi_fn]
+fn get_first_item(a: i64, _b: i64) -> i64 {
+    a
+}
+
+#[test]
+fn test_derived_name_no_parens() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+
+    // Should generate struct named DerivedAdd
+    let func = DerivedAdd::new(ctx.type_mgr);
+    assert_eq!(func.name(), "DerivedAdd");
+
+    let result = ctx.call_ok(func, &[ctx.int(3), ctx.int(4)]);
+    assert_eq!(result.as_int().unwrap(), 7);
+}
+
+#[test]
+fn test_derived_name_empty_parens() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+
+    // Should generate struct named EmptyParensMul
+    let func = EmptyParensMul::new(ctx.type_mgr);
+    assert_eq!(func.name(), "EmptyParensMul");
+
+    let result = ctx.call_ok(func, &[ctx.int(3), ctx.int(4)]);
+    assert_eq!(result.as_int().unwrap(), 12);
+}
+
+#[test]
+fn test_derived_name_with_underscores() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+
+    // Should generate struct named GetFirstItem (underscores removed, each word capitalized)
+    let func = GetFirstItem::new(ctx.type_mgr);
+    assert_eq!(func.name(), "GetFirstItem");
+
+    let result = ctx.call_ok(func, &[ctx.int(42), ctx.int(0)]);
+    assert_eq!(result.as_int().unwrap(), 42);
+}

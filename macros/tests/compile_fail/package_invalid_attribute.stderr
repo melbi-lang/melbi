@@ -1,0 +1,5 @@
+error: [melbi] expected #[melbi_package] or #[melbi_package(builder = "name")]
+ --> tests/compile_fail/package_invalid_attribute.rs:5:17
+  |
+5 | #[melbi_package(invalid = "value")]
+  |                 ^^^^^^^^^^^^^^^^^

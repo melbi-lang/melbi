@@ -7,17 +7,20 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{
-    Expr, FnArg, GenericArgument, GenericParam, ItemFn, Lit, Meta, Pat, PatType, PathArguments,
-    ReturnType, Type, parse_macro_input,
+    FnArg, GenericArgument, GenericParam, ItemFn, Pat, PatType, PathArguments, ReturnType, Type,
+    parse_macro_input,
 };
+
+use crate::common::parse_melbi_fn_name;
 
 /// Entry point for the `#[melbi_fn]` attribute macro.
 pub fn melbi_fn_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_fn = parse_macro_input!(item as ItemFn);
+    let fn_name = input_fn.sig.ident.to_string();
 
-    // Parse the attribute to extract optional name
-    let attr = match parse_attribute(attr) {
-        Ok(attr) => attr,
+    // Parse the attribute to get the Melbi name (explicit or derived)
+    let melbi_name = match parse_melbi_fn_name(attr.into(), &fn_name) {
+        Ok(name) => name,
         Err(err) => return err.to_compile_error().into(),
     };
 
@@ -28,18 +31,12 @@ pub fn melbi_fn_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     // Generate the output
-    generate_output(&input_fn, &attr, &sig).into()
+    generate_output(&input_fn, &melbi_name, &sig).into()
 }
 
 // ============================================================================
 // Data Structures
 // ============================================================================
-
-/// Parsed attribute from `#[melbi_fn]` or `#[melbi_fn(name = "...")]`
-struct MelbiAttr {
-    /// The Melbi function name. If None, derive from fn name as PascalCase.
-    name: Option<String>,
-}
 
 /// Parsed function signature information
 struct ParsedSignature {
@@ -55,74 +52,6 @@ struct ParsedSignature {
     ok_return_type: Box<Type>,
     /// Whether the function returns Result<T, E>
     is_fallible: bool,
-}
-
-// ============================================================================
-// Attribute Parsing
-// ============================================================================
-
-/// Parse the attribute to extract optional name parameter.
-///
-/// Supports:
-/// - `#[melbi_fn]` - no args
-/// - `#[melbi_fn(name = "CustomName")]` - explicit name
-fn parse_attribute(attr: TokenStream) -> syn::Result<MelbiAttr> {
-    // Empty attribute - derive name from function
-    if attr.is_empty() {
-        return Ok(MelbiAttr { name: None });
-    }
-
-    // Parse as Meta
-    let meta = syn::parse::<Meta>(attr)?;
-
-    if let Meta::NameValue(nv) = meta {
-        if nv.path.is_ident("name") {
-            if let Expr::Lit(expr_lit) = &nv.value {
-                if let Lit::Str(lit) = &expr_lit.lit {
-                    return Ok(MelbiAttr {
-                        name: Some(lit.value()),
-                    });
-                }
-            }
-            return Err(syn::Error::new_spanned(
-                &nv.value,
-                "[melbi] name attribute must be a string literal",
-            ));
-        }
-        return Err(syn::Error::new_spanned(
-            nv.path,
-            "[melbi] expected 'name' attribute",
-        ));
-    }
-
-    Err(syn::Error::new_spanned(
-        meta,
-        "[melbi] expected attribute format: #[melbi_fn] or #[melbi_fn(name = \"FunctionName\")]",
-    ))
-}
-
-/// Convert snake_case to PascalCase.
-///
-/// Examples:
-/// - `add` -> `Add`
-/// - `safe_div` -> `SafeDiv`
-/// - `add_numbers` -> `AddNumbers`
-fn to_pascal_case(s: &str) -> String {
-    let mut result = String::with_capacity(s.len());
-    let mut capitalize_next = true;
-
-    for c in s.chars() {
-        if c == '_' {
-            capitalize_next = true;
-        } else if capitalize_next {
-            result.push(c.to_ascii_uppercase());
-            capitalize_next = false;
-        } else {
-            result.push(c);
-        }
-    }
-
-    result
 }
 
 // ============================================================================
@@ -275,15 +204,9 @@ fn is_ffi_context_type(ty: &Type) -> bool {
 // ============================================================================
 
 /// Generate the output: original function + wrapper struct + trait impls.
-fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -> TokenStream2 {
-    // Determine the struct name
-    let struct_name = match &attr.name {
-        Some(name) => syn::Ident::new(name, proc_macro2::Span::call_site()),
-        None => {
-            let pascal_name = to_pascal_case(&sig.fn_name.to_string());
-            syn::Ident::new(&pascal_name, sig.fn_name.span())
-        }
-    };
+fn generate_output(input_fn: &ItemFn, melbi_name: &str, sig: &ParsedSignature) -> TokenStream2 {
+    // Create the struct name identifier
+    let struct_name = syn::Ident::new(melbi_name, proc_macro2::Span::call_site());
     let struct_name_str = struct_name.to_string();
 
     let fn_name = &sig.fn_name;
