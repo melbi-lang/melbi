@@ -1,7 +1,7 @@
 //! Implementation of the `#[melbi_fn]` attribute macro
 //!
-//! This proc macro parses function signatures and generates calls to the
-//! `melbi_fn_generate!` declarative macro, which handles the actual code generation.
+//! Parses function signatures, validates them, and directly generates the wrapper struct
+//! and FFI glue code needed to bridge Rust functions into the Melbi runtime.
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
@@ -162,7 +162,7 @@ fn parse_generics(generics: &syn::Generics) -> syn::Result<Option<syn::Lifetime>
     for param in &generics.params {
         match param {
             GenericParam::Lifetime(lifetime_param) => {
-                if !lifetime.is_none() {
+                if lifetime.is_some() {
                     return Err(syn::Error::new_spanned(
                         generics,
                         "[melbi] please rewrite your function to use a single lifetime parameter",
