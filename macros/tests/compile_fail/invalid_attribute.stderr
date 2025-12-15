@@ -1,0 +1,5 @@
+error: [melbi] expected 'name' attribute
+ --> tests/compile_fail/invalid_attribute.rs:5:12
+  |
+5 | #[melbi_fn(invalid_key = "value")]
+  |            ^^^^^^^^^^^

@@ -12,6 +12,7 @@ use crate::{
     Vec,
     types::manager::TypeManager,
     values::{
+        FfiContext,
         dynamic::Value,
         from_raw::TypeError,
         typed::{Array, Optional, Str},
@@ -60,64 +61,57 @@ fn string_ends_with(s: Str, suffix: Str) -> bool {
 
 /// Convert string to uppercase (ASCII-only)
 #[melbi_fn(name = "Upper")]
-fn string_upper<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Str<'a> {
+fn string_upper<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let upper = s.to_ascii_uppercase();
-    Str::from_str(arena, &upper)
+    Str::from_str(ctx.arena(), &upper)
 }
 
 /// Convert string to lowercase (ASCII-only)
 #[melbi_fn(name = "Lower")]
-fn string_lower<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Str<'a> {
+fn string_lower<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let lower = s.to_ascii_lowercase();
-    Str::from_str(arena, &lower)
+    Str::from_str(ctx.arena(), &lower)
 }
 
 /// Trim whitespace from both ends
 #[melbi_fn(name = "Trim")]
-fn string_trim<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Str<'a> {
+fn string_trim<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let trimmed = s.as_str().trim();
-    Str::from_borrowed_str(arena, trimmed)
+    Str::from_borrowed_str(ctx.arena(), trimmed)
 }
 
 /// Trim whitespace from start
 #[melbi_fn(name = "TrimStart")]
-fn string_trim_start<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Str<'a> {
+fn string_trim_start<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let trimmed = s.as_str().trim_start();
-    Str::from_borrowed_str(arena, trimmed)
+    Str::from_borrowed_str(ctx.arena(), trimmed)
 }
 
 /// Trim whitespace from end
 #[melbi_fn(name = "TrimEnd")]
-fn string_trim_end<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Str<'a> {
+fn string_trim_end<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let trimmed = s.as_str().trim_end();
-    Str::from_borrowed_str(arena, trimmed)
+    Str::from_borrowed_str(ctx.arena(), trimmed)
 }
 
 /// Replace all occurrences of pattern with replacement
 #[melbi_fn(name = "Replace")]
-fn string_replace<'a>(
-    arena: &'a Bump,
-    _type_mgr: &'a TypeManager,
-    s: Str<'a>,
-    from: Str<'a>,
-    to: Str<'a>,
-) -> Str<'a> {
+fn string_replace<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, from: Str<'a>, to: Str<'a>) -> Str<'a> {
     let replaced = s.replace(from.as_ref(), to.as_ref());
-    Str::from_str(arena, &replaced)
+    Str::from_str(ctx.arena(), &replaced)
 }
 
 /// Replace first N occurrences of pattern with replacement
 #[melbi_fn(name = "ReplaceN")]
 fn string_replace_n<'a>(
-    arena: &'a Bump,
-    _type_mgr: &'a TypeManager,
+    ctx: &FfiContext<'_, 'a>,
     s: Str<'a>,
     from: Str<'a>,
     to: Str<'a>,
     count: i64,
 ) -> Str<'a> {
     let replaced = s.replacen(from.as_ref(), to.as_ref(), count as usize);
-    Str::from_str(arena, &replaced)
+    Str::from_str(ctx.arena(), &replaced)
 }
 
 // ============================================================================
@@ -129,8 +123,7 @@ fn string_replace_n<'a>(
 /// Special case: empty delimiter splits into individual characters (codepoints)
 #[melbi_fn(name = "Split")]
 fn string_split<'a>(
-    arena: &'a Bump,
-    _type_mgr: &'a TypeManager,
+    ctx: &FfiContext<'_, 'a>,
     s: Str<'a>,
     delimiter: Str<'a>,
 ) -> Array<'a, Str<'a>> {
@@ -141,31 +134,30 @@ fn string_split<'a>(
             .chars()
             .map(|c| {
                 let char_str = alloc::string::String::from(c);
-                Str::from_str(arena, &char_str)
+                Str::from_str(ctx.arena(), &char_str)
             })
             .collect()
     } else {
         // Non-empty delimiter: use standard split (zero-copy substrings)
         s.as_str()
             .split(delimiter.as_ref())
-            .map(|part| Str::from_borrowed_str(arena, part))
+            .map(|part| Str::from_borrowed_str(ctx.arena(), part))
             .collect()
     };
 
-    Array::new(arena, &parts)
+    Array::new(ctx.arena(), &parts)
 }
 
 /// Join array of strings with separator
 #[melbi_fn(name = "Join")]
 fn string_join<'a>(
-    arena: &'a Bump,
-    _type_mgr: &'a TypeManager,
+    ctx: &FfiContext<'_, 'a>,
     parts: Array<'a, Str<'a>>,
     separator: Str<'a>,
 ) -> Str<'a> {
     let strings: Vec<&'a str> = parts.iter().map(|s: Str<'a>| s.as_str()).collect();
     let joined = strings.join(separator.as_ref());
-    Str::from_str(arena, &joined)
+    Str::from_str(ctx.arena(), &joined)
 }
 
 // ============================================================================
@@ -188,13 +180,7 @@ fn string_join<'a>(
 /// This operation is O(n) where n is the string length, as it must count UTF-8 codepoints
 /// to find byte positions. The resulting substring is zero-copy (shares the original string's data).
 #[melbi_fn(name = "Substring")]
-fn string_substring<'a>(
-    arena: &'a Bump,
-    _type_mgr: &'a TypeManager,
-    s: Str<'a>,
-    start: i64,
-    end: i64,
-) -> Str<'a> {
+fn string_substring<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, start: i64, end: i64) -> Str<'a> {
     let start_idx = start as usize;
     let end_idx = end as usize;
 
@@ -217,17 +203,17 @@ fn string_substring<'a>(
     // If start is beyond the string, return empty
     let byte_start = match byte_start {
         Some(pos) => pos,
-        None => return Str::from_str(arena, ""),
+        None => return Str::from_str(ctx.arena(), ""),
     };
 
     // If start >= end, return empty
     if byte_start >= byte_end {
-        return Str::from_str(arena, "");
+        return Str::from_str(ctx.arena(), "");
     }
 
     // Zero-copy substring
     let substring = &s_str[byte_start..byte_end];
-    Str::from_borrowed_str(arena, substring)
+    Str::from_borrowed_str(ctx.arena(), substring)
 }
 
 // ============================================================================
@@ -236,22 +222,18 @@ fn string_substring<'a>(
 
 /// Parse string to integer
 #[melbi_fn(name = "ToInt")]
-fn string_to_int<'a>(arena: &'a Bump, _type_mgr: &'a TypeManager, s: Str<'a>) -> Optional<'a, i64> {
+fn string_to_int<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, i64> {
     match s.parse::<i64>() {
-        Ok(value) => Optional::some(arena, value),
+        Ok(value) => Optional::some(ctx.arena(), value),
         Err(_) => Optional::none(),
     }
 }
 
 /// Parse string to float
 #[melbi_fn(name = "ToFloat")]
-fn string_to_float<'a>(
-    arena: &'a Bump,
-    _type_mgr: &'a TypeManager,
-    s: Str<'a>,
-) -> Optional<'a, f64> {
+fn string_to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64> {
     match s.parse::<f64>() {
-        Ok(value) => Optional::some(arena, value),
+        Ok(value) => Optional::some(ctx.arena(), value),
         Err(_) => Optional::none(),
     }
 }
@@ -272,7 +254,7 @@ fn string_to_float<'a>(
 /// # Example
 ///
 /// ```ignore
-/// let string = build_string_package(arena, type_mgr)?;
+/// let string = build_string_package(ctx.arena(), type_mgr)?;
 /// env.register("String", string)?;
 /// ```
 pub fn build_string_package<'arena>(

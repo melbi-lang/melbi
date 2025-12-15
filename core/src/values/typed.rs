@@ -5,7 +5,7 @@
 //! the untyped RawValue representation. Types are guaranteed at compile time,
 //! eliminating the need for runtime type checking or TypeManager.
 
-use crate::{String, Vec};
+use crate::Vec;
 use core::marker::PhantomData;
 use core::ops::Deref;
 
@@ -29,9 +29,13 @@ pub trait Bridge<'a>: RawConvertible<'a> {
 
 /// Typed wrapper around a string slice stored in the arena.
 ///
-/// Internally stores a pointer to a Slice. Can be constructed from
-/// both `&str` and `String`, with the latter taking ownership and
-/// allocating in the arena.
+/// Provides two constructors:
+/// - `from_str`: Copies a `&str` into the arena (allocates)
+/// - `from_borrowed_str`: Wraps an existing `&'a str` that's already arena-allocated (zero-copy)
+///
+/// Note: There is no constructor that takes `String` by value - if you have a `String`,
+/// convert it to `&str` with `as_str()` and use `from_str()`. Taking ownership of a `String`
+/// only to copy its contents into the arena would be wasteful.
 ///
 /// Implements `Deref<Target = str>` for seamless usage as a string slice.
 #[repr(transparent)]
@@ -52,17 +56,6 @@ impl<'a> Str<'a> {
     /// Create from a &str by allocating in the arena
     pub fn from_str(arena: &'a Bump, s: &str) -> Self {
         // Allocate the string's bytes into the arena to ensure they live long enough
-        let bytes: &'a [u8] = arena.alloc_slice_copy(s.as_bytes());
-        let slice = Slice::new(arena, bytes);
-        Str {
-            slice: slice as *const Slice,
-            _phantom: PhantomData,
-        }
-    }
-
-    /// Create from a String by taking ownership and allocating in arena
-    pub fn from_string(arena: &'a Bump, s: String) -> Self {
-        // Allocate the string's bytes into the arena first
         let bytes: &'a [u8] = arena.alloc_slice_copy(s.as_bytes());
         let slice = Slice::new(arena, bytes);
         Str {
@@ -1237,7 +1230,7 @@ mod tests {
         let arena = Bump::new();
 
         let s1 = Str::from_str(&arena, "hello world");
-        let s2 = Str::from_string(&arena, String::from("hello world"));
+        let s2 = Str::from_str(&arena, &String::from("hello world"));
 
         // Test Deref
         assert_eq!(&*s1, "hello world");

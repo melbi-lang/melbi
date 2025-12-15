@@ -17,3 +17,4 @@ proc-macro2 = "1.0"
 melbi-macros.workspace = true
 melbi-core.workspace = true
 bumpalo.workspace = true
+trybuild = "1.0"
