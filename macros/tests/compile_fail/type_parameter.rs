@@ -1,4 +1,4 @@
-//! Test: Type parameters should produce an error (not yet supported).
+//! Test: Type parameters should produce an error.
 
 use melbi_macros::melbi_fn;
 

@@ -297,6 +297,7 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
     let param_names: Vec<_> = sig.params.iter().map(|(name, _)| name).collect();
     let param_types: Vec<_> = sig.params.iter().map(|(_, ty)| ty).collect();
     let param_indices: Vec<_> = (0..sig.params.len()).collect();
+    let arity = param_indices.len();
 
     let ok_ty = &sig.ok_return_type;
 
@@ -353,6 +354,7 @@ fn generate_output(input_fn: &ItemFn, attr: &MelbiAttr, sig: &ParsedSignature) -
                 __args: &[::melbi_core::values::dynamic::Value<#lt, #lt>],
             ) -> Result<::melbi_core::values::dynamic::Value<#lt, #lt>, ::melbi_core::evaluator::ExecutionError> {
                 use ::melbi_core::values::typed::{Bridge, RawConvertible};
+                debug_assert_eq!(__args.len(), #arity);
 
                 // Extract parameters
                 #(
