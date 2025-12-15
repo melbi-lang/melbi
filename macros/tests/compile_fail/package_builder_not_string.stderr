@@ -1,4 +1,4 @@
-error: [melbi] builder attribute must be a string literal
+error: [melbi] builder must be an identifier
  --> tests/compile_fail/package_builder_not_string.rs:5:27
   |
 5 | #[melbi_package(builder = 123)]

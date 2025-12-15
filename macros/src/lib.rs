@@ -50,7 +50,7 @@ mod melbi_package;
 /// You can override this with the `name` attribute:
 ///
 /// ```ignore
-/// #[melbi_fn(name = "Sum")]
+/// #[melbi_fn(name = Sum)]
 /// fn add_numbers(a: i64, b: i64) -> i64 {
 ///     a + b
 /// }
@@ -122,7 +122,7 @@ pub fn melbi_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// You can override with `name`:
 ///
 /// ```ignore
-/// #[melbi_const(name = "TAU")]
+/// #[melbi_const(name = TAU)]
 /// fn two_pi<'a>(arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
 ///     Value::float(type_mgr, core::f64::consts::TAU)
 /// }
@@ -155,12 +155,12 @@ pub fn melbi_const(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// mod math {
 ///     use super::*;
 ///
-///     #[melbi_const(name = "PI")]
+///     #[melbi_const(name = PI)]
 ///     fn pi<'a>(type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
 ///         Value::float(type_mgr, core::f64::consts::PI)
 ///     }
 ///
-///     #[melbi_fn(name = "Abs")]
+///     #[melbi_fn(name = Abs)]
 ///     fn math_abs(value: f64) -> f64 {
 ///         value.abs()
 ///     }
@@ -174,7 +174,7 @@ pub fn melbi_const(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// - `builder`: Custom name for the builder function (default: `build_<mod>_package`)
 ///
 /// ```ignore
-/// #[melbi_package(builder = "create_math")]
+/// #[melbi_package(builder = create_math)]
 /// mod math { ... }
 /// // Generated: pub fn create_math<'arena>(...) -> Result<Value, TypeError>
 /// ```

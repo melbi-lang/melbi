@@ -1,4 +1,4 @@
-error: [melbi] expected `name = "..."` or no arguments
+error: [melbi] expected `name = identifier`, or no arguments
  --> tests/compile_fail/invalid_attribute.rs:5:12
   |
 5 | #[melbi_fn(invalid_key = "value")]

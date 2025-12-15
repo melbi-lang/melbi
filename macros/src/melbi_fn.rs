@@ -204,9 +204,13 @@ fn is_ffi_context_type(ty: &Type) -> bool {
 // ============================================================================
 
 /// Generate the output: original function + wrapper struct + trait impls.
-fn generate_output(input_fn: &ItemFn, melbi_name: &str, sig: &ParsedSignature) -> TokenStream2 {
-    // Create the struct name identifier
-    let struct_name = syn::Ident::new(melbi_name, proc_macro2::Span::call_site());
+fn generate_output(
+    input_fn: &ItemFn,
+    melbi_name: &syn::Ident,
+    sig: &ParsedSignature,
+) -> TokenStream2 {
+    // The struct name is the melbi_name identifier.
+    let struct_name = melbi_name;
     let struct_name_str = struct_name.to_string();
 
     let fn_name = &sig.fn_name;

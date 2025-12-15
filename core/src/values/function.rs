@@ -30,7 +30,7 @@ use bumpalo::Bump;
 ///
 /// ```ignore
 /// // Function using full context
-/// #[melbi_fn(name = "ComplexOp")]
+/// #[melbi_fn(name = ComplexOp)]
 /// fn complex_op(ctx: &FfiContext, data: Array<i64>) -> Value {
 ///     let result = process(data);
 ///     Value::array(ctx.arena(), ctx.type_mgr().array(ctx.type_mgr().int()), &result)

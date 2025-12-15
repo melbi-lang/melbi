@@ -1,7 +1,8 @@
 //! Shared utilities for Melbi procedural macros.
 
+use quote::format_ident;
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{Attribute, Expr, Meta};
+use syn::{Attribute, Expr, Ident, Meta};
 
 /// Parse a single `key = "value"` from attribute tokens.
 ///
@@ -13,10 +14,10 @@ use syn::{Attribute, Expr, Meta};
 /// - `Ok(Some(value))` if `key = "value"` is found.
 /// - `Ok(None)` if the tokens are empty.
 /// - `Err(...)` if malformed or another key is present.
-pub(crate) fn parse_string_name_value(
+pub(crate) fn parse_name_value(
     tokens: TokenStream2,
     key: &str,
-) -> syn::Result<Option<String>> {
+) -> syn::Result<Option<Ident>> {
     if tokens.is_empty() {
         return Ok(None);
     }
@@ -27,7 +28,7 @@ pub(crate) fn parse_string_name_value(
             // Handle `key = ident`
             if let Expr::Path(expr_path) = &nv.value {
                 if let Some(ident) = expr_path.path.get_ident() {
-                    return Ok(Some(ident.to_string()));
+                    return Ok(Some(ident.clone()));
                 }
             }
             Err(syn::Error::new_spanned(
@@ -50,7 +51,7 @@ pub(crate) fn parse_string_name_value(
 /// - `rust_item_name`: The Rust item's name (e.g., function name) for derivation.
 ///
 /// # Returns
-/// - `Ok(Some(String))`: If the attribute is found and name resolved.
+/// - `Ok(Some(Ident))`: If the attribute is found and name resolved.
 /// - `Ok(None)`: If the attribute is not found on the item.
 /// - `Err(...)`: If the attribute is found but malformed.
 pub(crate) fn get_name_from_item(
@@ -58,7 +59,7 @@ pub(crate) fn get_name_from_item(
     attr_name: &str,
     key: &str,
     rust_item_name: &str,
-) -> syn::Result<Option<String>> {
+) -> syn::Result<Option<Ident>> {
     // Find attribute matching attr_name
     let attr = item_attrs.iter().find(|a| a.path().is_ident(attr_name));
     let Some(attr) = attr else {
@@ -90,28 +91,28 @@ pub(crate) fn get_name_from_item(
 /// - `item_name`: The Rust item's name (e.g., function name, module name) for derivation.
 ///
 /// # Returns
-/// The resolved Melbi name as a `String`.
+/// The resolved Melbi name as a `Ident`.
 pub(crate) fn get_name_from_tokens(
     attr_tokens: proc_macro::TokenStream,
     attr_name: &str,
     key: &str,
     item_name: &str,
-) -> syn::Result<String> {
+) -> syn::Result<Ident> {
     // Parse the tokens for an explicit name using the common helper
-    let explicit_name = parse_string_name_value(attr_tokens.into(), key)?;
+    let explicit_name = parse_name_value(attr_tokens.into(), key)?;
 
     if let Some(name) = explicit_name {
         return Ok(name);
     }
 
     // If no explicit name, derive it based on the attribute type
-    let derived_name = match attr_name {
+    let derived_name_str = match attr_name {
         "melbi_fn" => to_pascal_case(item_name),
         "melbi_const" => to_screaming_snake_case(item_name),
         "melbi_package" => format!("build_{}_package", item_name),
         _ => item_name.to_string(), // Should not happen given the key match above
     };
-    Ok(derived_name)
+    Ok(format_ident!("{}", derived_name_str))
 }
 
 /// Convert snake_case to PascalCase.

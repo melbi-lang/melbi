@@ -19,7 +19,7 @@ use proc_macro::TokenStream;
 ///     Value::float(type_mgr, core::f64::consts::PI)
 /// }
 ///
-/// #[melbi_const(name = "SPEED_OF_LIGHT")]  // Name explicitly provided
+/// #[melbi_const(name = SPEED_OF_LIGHT)]  // Name explicitly provided
 /// fn physics_speed_of_light<'a>(type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
 ///     Value::float(type_mgr, ...)
 /// }

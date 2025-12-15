@@ -5,23 +5,23 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
-use syn::{Item, ItemMod, parse_macro_input};
+use quote::quote;
+use syn::{Item, ItemMod, parse_macro_input, Ident};
 
 use crate::common::{get_name_from_item, get_name_from_tokens};
 
 /// Information about a function marked with `#[melbi_fn]`
 struct MelbiFnInfo {
     /// The Melbi name (explicit or derived)
-    melbi_name: String,
+    melbi_name: Ident,
 }
 
 /// Information about a constant marked with `#[melbi_const]`
 struct MelbiConstInfo {
     /// The Melbi name (explicit or derived)
-    melbi_name: String,
+    melbi_name: Ident,
     /// The Rust function name
-    rust_fn_name: syn::Ident,
+    rust_fn_name: Ident,
 }
 
 pub fn melbi_package_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -39,7 +39,7 @@ pub fn melbi_package_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 /// Generate the package with builder function
-fn generate_package(builder_name: &str, mut input_mod: ItemMod) -> syn::Result<TokenStream2> {
+fn generate_package(builder_name: &Ident, mut input_mod: ItemMod) -> syn::Result<TokenStream2> {
     // Get the module content
     let content = match &mut input_mod.content {
         Some((_, items)) => items,
@@ -76,8 +76,7 @@ fn generate_package(builder_name: &str, mut input_mod: ItemMod) -> syn::Result<T
     }
 
     // Generate the builder function
-    let builder_ident = format_ident!("{}", builder_name);
-    let builder_fn = generate_builder_function(&builder_ident, &functions, &constants);
+    let builder_fn = generate_builder_function(builder_name, &functions, &constants);
 
     // Append the builder function to the module content
     content.push(syn::parse2(builder_fn)?);
@@ -97,7 +96,7 @@ fn generate_package(builder_name: &str, mut input_mod: ItemMod) -> syn::Result<T
 
 /// Generate the builder function
 fn generate_builder_function(
-    builder_name: &syn::Ident,
+    builder_name: &Ident,
     functions: &[MelbiFnInfo],
     constants: &[MelbiConstInfo],
 ) -> TokenStream2 {
@@ -109,7 +108,7 @@ fn generate_builder_function(
             let melbi_name = &c.melbi_name;
             let rust_fn = &c.rust_fn_name;
             quote! {
-                builder = builder.field(#melbi_name, #rust_fn(arena, type_mgr));
+                builder = builder.field(stringify!(#melbi_name), #rust_fn(arena, type_mgr));
             }
         })
         .collect();
@@ -118,7 +117,7 @@ fn generate_builder_function(
     let fn_registrations: Vec<_> = functions
         .iter()
         .map(|f| {
-            let struct_name = format_ident!("{}", f.melbi_name);
+            let struct_name = &f.melbi_name;
             quote! {
                 builder = #struct_name::new(type_mgr).register(arena, builder)?;
             }
@@ -145,3 +144,4 @@ fn generate_builder_function(
         }
     }
 }
+
