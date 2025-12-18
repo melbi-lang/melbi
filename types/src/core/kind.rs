@@ -1,3 +1,8 @@
+use smallvec::SmallVec;
+
+use crate::core::IdentList;
+use crate::{FieldList, Ident, TyList};
+
 use super::builder::TyBuilder;
 use super::flags::TyFlags;
 use super::ty::Ty;
@@ -14,27 +19,27 @@ pub enum TyKind<B: TyBuilder> {
     Scalar(Scalar),
 
     /// Array type with element type
-    Array(B::Ty),
+    Array(Ty<B>),
 
     /// Map type with key and value types
-    Map(B::Ty, B::Ty),
+    Map(Ty<B>, Ty<B>),
 
     /// Record (struct) with named fields.
     ///
     /// Fields are stored sorted by name for canonical representation.
     /// Field names are interned strings for efficient comparison.
-    Record(B::FieldList),
+    Record(FieldList<B>),
 
     /// Function type with parameters and return type.
     ///
     /// Parameters are stored as an interned list of types.
-    Function { params: B::TyList, ret: B::Ty },
+    Function { params: TyList<B>, ret: Ty<B> },
 
     /// Symbol (tagged union) with sorted parts.
     ///
     /// Parts are interned strings stored in sorted order.
     /// Example: Symbol["error", "pending", "success"]
-    Symbol(B::IdentList),
+    Symbol(IdentList<B>),
 }
 
 impl<B: TyBuilder> TyKind<B> {
@@ -59,6 +64,75 @@ impl<B: TyBuilder> TyKind<B> {
 
     pub fn alloc(self, builder: &B) -> Ty<B> {
         Ty::new(builder, self)
+    }
+
+    pub fn iter_children(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &Ty<B>> + DoubleEndedIterator + '_ {
+        // TODO: Consider using a custom iterator to avoid copying a few references?
+        match self {
+            TyKind::TypeVar(_) | TyKind::Scalar(_) | TyKind::Symbol(_) => {
+                SmallVec::<[_; 8]>::from_slice(&[]).into_iter()
+            }
+            TyKind::Array(e) => SmallVec::from_slice(&[e]).into_iter(),
+            TyKind::Map(k, v) => SmallVec::from_slice(&[k, v]).into_iter(),
+            TyKind::Record(fields) => fields
+                .iter()
+                .map(|(_, ty)| ty)
+                .collect::<SmallVec<[_; 8]>>()
+                .into_iter(),
+            TyKind::Function { params, ret } => {
+                let mut v = params.iter().collect::<SmallVec<[_; 8]>>();
+                v.push(ret);
+                v.into_iter()
+            }
+        }
+    }
+
+    pub fn from_iter_children<Other: TyBuilder>(
+        &self,
+        builder: &Other,
+        mut children: impl ExactSizeIterator<Item = Ty<Other>> + DoubleEndedIterator,
+    ) -> TyKind<Other> {
+        match self {
+            // Leafs: just copy the data
+            TyKind::TypeVar(id) => TyKind::TypeVar(*id),
+            TyKind::Scalar(scalar) => TyKind::Scalar(*scalar),
+            TyKind::Symbol(parts) => {
+                let s = parts
+                    .iter()
+                    .map(|symbol| Ident::new(builder, symbol.as_str()));
+                TyKind::Symbol(IdentList::from_iter(builder, s))
+            }
+
+            // Recursive: consume from iterator
+            TyKind::Array(_) => TyKind::Array(children.next().unwrap()),
+
+            TyKind::Map(_, _) => {
+                let k = children.next().unwrap();
+                let v = children.next().unwrap();
+                TyKind::Map(k, v)
+            }
+
+            TyKind::Record(fields) => {
+                // Reconstruct record: Keep original names, take new types
+                // We assume `Other::Ty` is compatible with the storage in `TyKind::Record`
+                // (e.g., standard Vec or generic list handle)
+                let new_fields = fields.iter().map(|(name, _)| {
+                    (Ident::new(builder, name.as_str()), children.next().unwrap())
+                });
+                TyKind::Record(FieldList::from_iter(builder, new_fields))
+            }
+
+            TyKind::Function { .. } => {
+                let new_ret = children.next_back().unwrap();
+            
+                TyKind::Function {
+                    params: TyList::from_iter(builder, children),
+                    ret: new_ret,
+                }
+            }
+        }
     }
 }
 

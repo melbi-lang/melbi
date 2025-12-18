@@ -1,4 +1,4 @@
-use crate::core::{FieldList, Ident, IdentList, Ty, TyBuilder, TyKind, TyList, TyNode};
+use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 use bumpalo::Bump;
 use core::cell::RefCell;
 use core::hash::Hash;
@@ -87,12 +87,6 @@ impl<'arena> ArenaBuilder<'arena> {
 }
 
 impl<'arena> TyBuilder for ArenaBuilder<'arena> {
-    type Ty = Ty<Self>;
-    type Ident = Ident<Self>;
-    type TyList = TyList<Self>;
-    type IdentList = IdentList<Self>;
-    type FieldList = FieldList<Self>;
-
     type TyHandle = &'arena TyNode<Self>;
     type IdentHandle = &'arena str;
     type TyListHandle = &'arena [Ty<Self>];
@@ -145,23 +139,23 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
         self.arena.alloc_slice_fill_iter(iter)
     }
 
-    fn resolve_ty_node(ty: &Self::Ty) -> &TyNode<Self> {
+    fn resolve_ty_node(ty: &Ty<Self>) -> &TyNode<Self> {
         ty.node()
     }
 
-    fn ty_eq(a: &Self::Ty, b: &Self::Ty) -> bool {
+    fn ty_eq(a: &Ty<Self>, b: &Ty<Self>) -> bool {
         core::ptr::eq(a.handle(), b.handle())
     }
 
-    fn ty_hash<H: hash::Hasher>(ty: &Self::Ty, state: &mut H) {
+    fn ty_hash<H: hash::Hasher>(ty: &Ty<Self>, state: &mut H) {
         (ty.handle() as *const TyNode<Self>).hash(state)
     }
 
-    fn ident_eq(a: &Self::Ident, b: &Self::Ident) -> bool {
+    fn ident_eq(a: &Ident<Self>, b: &Ident<Self>) -> bool {
         core::ptr::eq(a.as_str().as_ptr(), b.as_str().as_ptr())
     }
 
-    fn ident_hash<H: hash::Hasher>(ident: &Self::Ident, state: &mut H) {
+    fn ident_hash<H: hash::Hasher>(ident: &Ident<Self>, state: &mut H) {
         ident.as_str().as_ptr().hash(state)
     }
 }

@@ -1526,6 +1526,7 @@ dependencies = [
  "bumpalo",
  "hashbrown 0.16.0",
  "pretty_assertions",
+ "smallvec",
  "string_cache",
 ]
 

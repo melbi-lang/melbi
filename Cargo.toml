@@ -37,6 +37,7 @@ pest = { version = "^2.8.0", default-features = false }
 pest_derive = { version = "^2.8.0", default-features = false }
 pest_generator = { version = "^2.7", default-features = false}
 pretty_assertions = "1.4"
+smallvec = { version = "1.15.1", features = ["const_new", "union"] }
 thiserror = { version = "2.0.17", default-features = false }
 tokio = { version = "1.47.1", features = ["full"] }
 

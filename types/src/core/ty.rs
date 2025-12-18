@@ -12,15 +12,15 @@ use super::kind::TyKind;
 #[derive(Clone, Debug)]
 pub struct Ty<B: TyBuilder>(B::TyHandle);
 
-impl<B: TyBuilder<Ty = Ty<B>>> PartialEq for Ty<B> {
+impl<B: TyBuilder> PartialEq for Ty<B> {
     fn eq(&self, other: &Self) -> bool {
         B::ty_eq(self, other)
     }
 }
 
-impl<B: TyBuilder<Ty = Ty<B>>> Eq for Ty<B> {}
+impl<B: TyBuilder> Eq for Ty<B> {}
 
-impl<B: TyBuilder<Ty = Ty<B>>> hash::Hash for Ty<B> {
+impl<B: TyBuilder> hash::Hash for Ty<B> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         B::ty_hash(self, state)
     }
@@ -95,15 +95,15 @@ impl<B: TyBuilder> hash::Hash for TyNode<B> {
 #[derive(Debug, Clone)]
 pub struct Ident<B: TyBuilder>(B::IdentHandle);
 
-impl<B: TyBuilder<Ident = Ident<B>>> PartialEq for Ident<B> {
+impl<B: TyBuilder> PartialEq for Ident<B> {
     fn eq(&self, other: &Self) -> bool {
         B::ident_eq(self, other)
     }
 }
 
-impl<B: TyBuilder<Ident = Ident<B>>> Eq for Ident<B> {}
+impl<B: TyBuilder> Eq for Ident<B> {}
 
-impl<B: TyBuilder<Ident = Ident<B>>> hash::Hash for Ident<B> {
+impl<B: TyBuilder> hash::Hash for Ident<B> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         B::ident_hash(self, state)
     }
@@ -138,18 +138,18 @@ pub struct TyList<B: TyBuilder>(B::TyListHandle);
 impl<B: TyBuilder> TyList<B> {
     pub fn from_iter(
         builder: &B,
-        iter: impl IntoIterator<Item = B::Ty, IntoIter: ExactSizeIterator>,
+        iter: impl IntoIterator<Item = Ty<B>, IntoIter: ExactSizeIterator>,
     ) -> Self {
         Self(builder.alloc_ty_list(iter))
     }
 
-    pub fn iter(&self) -> core::slice::Iter<'_, B::Ty> {
+    pub fn iter(&self) -> core::slice::Iter<'_, Ty<B>> {
         self.0.iter()
     }
 }
 
 impl<B: TyBuilder> Deref for TyList<B> {
-    type Target = [B::Ty];
+    type Target = [Ty<B>];
 
     fn deref(&self) -> &Self::Target {
         self.0.deref()
@@ -157,8 +157,8 @@ impl<B: TyBuilder> Deref for TyList<B> {
 }
 
 impl<'a, B: TyBuilder> IntoIterator for &'a TyList<B> {
-    type Item = &'a B::Ty;
-    type IntoIter = core::slice::Iter<'a, B::Ty>;
+    type Item = &'a Ty<B>;
+    type IntoIter = core::slice::Iter<'a, Ty<B>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -173,18 +173,18 @@ pub struct IdentList<B: TyBuilder>(B::IdentListHandle);
 impl<B: TyBuilder> IdentList<B> {
     pub fn from_iter(
         builder: &B,
-        iter: impl IntoIterator<Item = B::Ident, IntoIter: ExactSizeIterator>,
+        iter: impl IntoIterator<Item = Ident<B>, IntoIter: ExactSizeIterator>,
     ) -> Self {
         Self(builder.alloc_ident_list(iter))
     }
 
-    pub fn iter(&self) -> core::slice::Iter<'_, B::Ident> {
+    pub fn iter(&self) -> core::slice::Iter<'_, Ident<B>> {
         self.0.iter()
     }
 }
 
 impl<B: TyBuilder> Deref for IdentList<B> {
-    type Target = [B::Ident];
+    type Target = [Ident<B>];
 
     fn deref(&self) -> &Self::Target {
         self.0.deref()
@@ -192,8 +192,8 @@ impl<B: TyBuilder> Deref for IdentList<B> {
 }
 
 impl<'a, B: TyBuilder> IntoIterator for &'a IdentList<B> {
-    type Item = &'a B::Ident;
-    type IntoIter = core::slice::Iter<'a, B::Ident>;
+    type Item = &'a Ident<B>;
+    type IntoIter = core::slice::Iter<'a, Ident<B>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -208,18 +208,18 @@ pub struct FieldList<B: TyBuilder>(B::FieldListHandle);
 impl<B: TyBuilder> FieldList<B> {
     pub fn from_iter(
         builder: &B,
-        iter: impl IntoIterator<Item = (B::Ident, B::Ty), IntoIter: ExactSizeIterator>,
+        iter: impl IntoIterator<Item = (Ident<B>, Ty<B>), IntoIter: ExactSizeIterator>,
     ) -> Self {
         Self(builder.alloc_field_list(iter))
     }
 
-    pub fn iter(&self) -> core::slice::Iter<'_, (B::Ident, B::Ty)> {
+    pub fn iter(&self) -> core::slice::Iter<'_, (Ident<B>, Ty<B>)> {
         self.0.iter()
     }
 }
 
 impl<B: TyBuilder> Deref for FieldList<B> {
-    type Target = [(B::Ident, B::Ty)];
+    type Target = [(Ident<B>, Ty<B>)];
 
     fn deref(&self) -> &Self::Target {
         self.0.deref()
@@ -227,8 +227,8 @@ impl<B: TyBuilder> Deref for FieldList<B> {
 }
 
 impl<'a, B: TyBuilder> IntoIterator for &'a FieldList<B> {
-    type Item = &'a (B::Ident, B::Ty);
-    type IntoIter = core::slice::Iter<'a, (B::Ident, B::Ty)>;
+    type Item = &'a (Ident<B>, Ty<B>);
+    type IntoIter = core::slice::Iter<'a, (Ident<B>, Ty<B>)>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()

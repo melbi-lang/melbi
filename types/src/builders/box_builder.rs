@@ -1,4 +1,4 @@
-use crate::core::{FieldList, Ident, IdentList, Ty, TyBuilder, TyKind, TyList, TyNode};
+use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use string_cache::DefaultAtom;
@@ -40,12 +40,6 @@ impl Default for BoxBuilder {
 }
 
 impl TyBuilder for BoxBuilder {
-    type Ty = Ty<Self>;
-    type Ident = Ident<Self>;
-    type TyList = TyList<Self>;
-    type IdentList = IdentList<Self>;
-    type FieldList = FieldList<Self>;
-
     type TyHandle = Rc<TyNode<Self>>;
     type IdentHandle = DefaultAtom;
     type TyListHandle = Vec<Ty<Self>>;
@@ -81,7 +75,7 @@ impl TyBuilder for BoxBuilder {
         iter.into_iter().collect()
     }
 
-    fn resolve_ty_node(ty: &Self::Ty) -> &TyNode<Self> {
+    fn resolve_ty_node(ty: &Ty<Self>) -> &TyNode<Self> {
         ty.node()
     }
 }
