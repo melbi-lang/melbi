@@ -109,51 +109,61 @@ where
 }
 
 /// Simplified fold for `Ty<B> -> Ty<B>` transformations.
-pub trait TypeFolder<B: TyBuilder> {
+pub trait TypeFolder<In: TyBuilder, Out: TyBuilder = In> {
     /// Return `Some(ty)` to replace and continue into `ty`, or `None` to recurse.
-    fn fold_ty(&mut self, builder: &B, ty: &Ty<B>) -> FoldStep<B, Ty<B>>;
+    fn fold_ty(&mut self, builder_in: &In, builder_out: &Out, ty: &Ty<In>)
+    -> FoldStep<In, Ty<Out>>;
 }
 
-struct TypeFolderAdapter<'a, B: TyBuilder, F: TypeFolder<B>> {
+struct TypeFolderAdapter<'a, In: TyBuilder, Out: TyBuilder, F: TypeFolder<In, Out>> {
     folder: &'a mut F,
-    _marker: core::marker::PhantomData<B>,
+    builder_out: &'a Out,
+    _marker: core::marker::PhantomData<(In, Out)>,
 }
 
-impl<'a, B, F> Fold<B> for TypeFolderAdapter<'a, B, F>
+impl<'a, In, Out, F> Fold<In> for TypeFolderAdapter<'a, In, Out, F>
 where
-    B: TyBuilder,
-    F: TypeFolder<B>,
+    In: TyBuilder,
+    Out: TyBuilder,
+    F: TypeFolder<In, Out>,
 {
-    type Output = Ty<B>;
+    type Output = Ty<Out>;
     type Error = ();
 
-    fn visit(&mut self, builder: &B, ty: &Ty<B>) -> Result<FoldStep<B, Ty<B>>, ()> {
-        Ok(self.folder.fold_ty(builder, ty))
+    fn visit(&mut self, builder: &In, ty: &Ty<In>) -> Result<FoldStep<In, Ty<Out>>, ()> {
+        Ok(self.folder.fold_ty(builder, self.builder_out, ty))
     }
 
     fn combine(
         &mut self,
-        builder: &B,
-        ty: &Ty<B>,
-        children: impl ExactSizeIterator<Item = Ty<B>> + DoubleEndedIterator,
-    ) -> Result<Ty<B>, ()> {
+        _builder: &In,
+        ty: &Ty<In>,
+        children: impl ExactSizeIterator<Item = Ty<Out>> + DoubleEndedIterator,
+    ) -> Result<Ty<Out>, ()> {
         let new_ty = ty
             .kind()
-            .from_iter_children(builder, children)
-            .alloc(builder);
+            .from_iter_children::<Out>(self.builder_out, children)
+            .alloc(self.builder_out);
         Ok(new_ty)
     }
 }
 
 /// Fold a type using a `TypeFolder`.
-pub fn fold_type<B, F>(builder: &B, root: Ty<B>, folder: &mut F) -> Ty<B>
+pub fn fold_type<F, In, Out>(
+    builder_in: &In,
+    builder_out: &Out,
+    root: Ty<In>,
+    folder: &mut F,
+) -> Ty<Out>
 where
-    B: TyBuilder,
-    F: TypeFolder<B>,
+    In: TyBuilder,
+    Out: TyBuilder,
+    F: TypeFolder<In, Out>,
 {
     let adapter = TypeFolderAdapter {
         folder,
+        builder_out,
         _marker: core::marker::PhantomData,
     };
-    drive_fold(builder, root, adapter).expect("shouldn't fail")
+    drive_fold(builder_in, root, adapter).expect("shouldn't fail")
 }
