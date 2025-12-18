@@ -57,6 +57,25 @@ pub trait Fold<B: TyBuilder> {
     ) -> Result<Self::Output, Self::Error>;
 }
 
+// Blanket impl so `drive_fold(b, ty, &mut folder)` works when you need to inspect state after.
+impl<B: TyBuilder, F: Fold<B>> Fold<B> for &mut F {
+    type Output = F::Output;
+    type Error = F::Error;
+
+    fn visit(&mut self, builder: &B, ty: &Ty<B>) -> Result<FoldStep<B, Self::Output>, Self::Error> {
+        (**self).visit(builder, ty)
+    }
+
+    fn combine(
+        &mut self,
+        builder: &B,
+        ty: &Ty<B>,
+        children: impl ExactSizeIterator<Item = Self::Output> + DoubleEndedIterator,
+    ) -> Result<Self::Output, Self::Error> {
+        (**self).combine(builder, ty, children)
+    }
+}
+
 enum Task<B: TyBuilder> {
     Visit(Ty<B>),
     Combine(usize, Ty<B>),
@@ -108,11 +127,56 @@ where
     Ok(results.pop().expect("empty result stack"))
 }
 
-/// Simplified fold for `Ty<B> -> Ty<B>` transformations.
+/// Simplified fold for type-to-type transformations.
+///
+/// This convenience trait handles the common case where you're transforming
+/// types to types (rather than computing arbitrary values). It can be used for:
+///
+/// - **Same-builder transforms** (`In = Out`): Type substitution, normalization
+/// - **Cross-builder conversion** (`In ≠ Out`): Migrating types between builders
+///   (e.g., `BoxBuilder` → `ArenaBuilder`)
+///
+/// The default `Out = In` means same-builder transforms work without extra type params.
+///
+/// # Example: Same-builder substitution
+/// ```ignore
+/// impl TypeFolder<ArenaBuilder<'_>> for Subst<'_> {
+///     fn fold_ty(&mut self, b_in: &ArenaBuilder, b_out: &ArenaBuilder, ty: &Ty<ArenaBuilder>)
+///         -> FoldStep<ArenaBuilder, Ty<ArenaBuilder>>
+///     {
+///         if let TyKind::TypeVar(id) = ty.kind() {
+///             if let Some(repl) = self.mapping.get(id) {
+///                 return FoldStep::Replace(repl.clone());
+///             }
+///         }
+///         FoldStep::Recurse
+///     }
+/// }
+/// ```
+///
+/// # Example: Cross-builder conversion
+/// ```ignore
+/// impl TypeFolder<BoxBuilder, ArenaBuilder<'_>> for ArenaMigrator<'_> {
+///     fn fold_ty(&mut self, _b_in: &BoxBuilder, _b_out: &ArenaBuilder, _ty: &Ty<BoxBuilder>)
+///         -> FoldStep<BoxBuilder, Ty<ArenaBuilder>>
+///     {
+///         FoldStep::Recurse  // Just recurse; combine rebuilds in the output builder
+///     }
+/// }
+/// ```
 pub trait TypeFolder<In: TyBuilder, Out: TyBuilder = In> {
-    /// Return `Some(ty)` to replace and continue into `ty`, or `None` to recurse.
-    fn fold_ty(&mut self, builder_in: &In, builder_out: &Out, ty: &Ty<In>)
-    -> FoldStep<In, Ty<Out>>;
+    /// Transform a type node.
+    ///
+    /// Return:
+    /// - `FoldStep::Recurse` to process children and rebuild in the output builder
+    /// - `FoldStep::Done(ty)` to skip children and use `ty` as the result
+    /// - `FoldStep::Replace(ty)` to visit `ty` instead (for chained substitution)
+    fn fold_ty(
+        &mut self,
+        builder_in: &In,
+        builder_out: &Out,
+        ty: &Ty<In>,
+    ) -> FoldStep<In, Ty<Out>>;
 }
 
 struct TypeFolderAdapter<'a, In: TyBuilder, Out: TyBuilder, F: TypeFolder<In, Out>> {
