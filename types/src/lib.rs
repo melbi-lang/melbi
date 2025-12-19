@@ -26,4 +26,6 @@ mod macros;
 
 // Re-export commonly used types for convenience
 pub use builders::{ArenaBuilder, BoxBuilder};
-pub use core::{FieldList, Ident, Scalar, Ty, TyBuilder, TyKind, TyList, TyNode};
+pub use core::{
+    FieldList, Ident, IdentList, Scalar, Ty, TyBuilder, TyFlags, TyKind, TyList, TyNode,
+};

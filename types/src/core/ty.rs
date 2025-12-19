@@ -5,10 +5,31 @@ use super::builder::TyBuilder;
 use super::flags::TyFlags;
 use super::kind::TyKind;
 
-/// Lightweight wrapper around the builder's representation.
+/// Lightweight wrapper around the builder's type representation.
 ///
-/// Equality and hashing delegate to `TyBuilder::ty_eq` and `TyBuilder::ty_hash`,
+/// `Ty<B>` is the primary type handle used throughout the type system. It wraps
+/// a builder-specific handle (`B::TyHandle`) and provides access to the underlying
+/// [`TyNode`] containing the type's [`TyKind`] and [`TyFlags`].
+///
+/// Equality and hashing delegate to [`TyBuilder::ty_eq`] and [`TyBuilder::ty_hash`],
 /// allowing builders to customize behavior (e.g., pointer-based for interning).
+///
+/// # Examples
+///
+/// ```
+/// use melbi_types::builders::BoxBuilder;
+/// use melbi_types::{Ty, TyKind, Scalar};
+///
+/// let builder = BoxBuilder::new();
+///
+/// // Create a scalar type
+/// let int_ty = Ty::new(&builder, TyKind::Scalar(Scalar::Int));
+/// assert!(matches!(int_ty.kind(), TyKind::Scalar(Scalar::Int)));
+///
+/// // Create an array type
+/// let array_ty = Ty::new(&builder, TyKind::Array(int_ty.clone()));
+/// assert!(matches!(array_ty.kind(), TyKind::Array(_)));
+/// ```
 #[derive(Clone, Debug)]
 pub struct Ty<B: TyBuilder>(B::TyHandle);
 
@@ -61,9 +82,7 @@ impl<B: TyBuilder> TyNode<B> {
         let flags = kind.compute_flags();
         Self(flags, kind)
     }
-}
 
-impl<B: TyBuilder> TyNode<B> {
     pub fn flags(&self) -> TyFlags {
         self.0
     }
@@ -132,10 +151,60 @@ impl<B: TyBuilder> Deref for Ident<B> {
 
 // === TyList ===
 
+/// An owned list of types, backed by the builder's storage.
+///
+/// `TyList<B>` is a thin wrapper around the builder's [`TyBuilder::TyListHandle`],
+/// representing a sequence of [`Ty<B>`] values. It is used for storing function
+/// parameter types and other ordered collections of types.
+///
+/// # Construction
+///
+/// Create a `TyList` using [`TyList::from_iter`], which takes a builder reference
+/// and an iterator of [`Ty<B>`] values:
+///
+/// ```
+/// use melbi_types::builders::BoxBuilder;
+/// use melbi_types::{Ty, TyList, TyKind, Scalar};
+///
+/// let builder = BoxBuilder::new();
+/// let int_ty = Ty::new(&builder, TyKind::Scalar(Scalar::Int));
+/// let str_ty = Ty::new(&builder, TyKind::Scalar(Scalar::Str));
+///
+/// let params = TyList::from_iter(&builder, [int_ty, str_ty]);
+/// assert_eq!(params.len(), 2);
+/// ```
+///
+/// # Iteration and Access
+///
+/// `TyList` implements [`Deref`] to `[Ty<B>]`, providing slice-like access:
+///
+/// ```
+/// use melbi_types::builders::BoxBuilder;
+/// use melbi_types::{Ty, TyList, TyKind, Scalar};
+///
+/// let builder = BoxBuilder::new();
+/// let int_ty = Ty::new(&builder, TyKind::Scalar(Scalar::Int));
+/// let params = TyList::from_iter(&builder, [int_ty]);
+///
+/// // Use iter() for explicit iteration
+/// for ty in params.iter() {
+///     println!("{:?}", ty.kind());
+/// }
+///
+/// // Or use slice methods via Deref
+/// assert_eq!(params.len(), 1);
+/// assert!(!params.is_empty());
+/// ```
+///
+/// [`Deref`]: core::ops::Deref
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TyList<B: TyBuilder>(B::TyListHandle);
 
 impl<B: TyBuilder> TyList<B> {
+    /// Creates a new `TyList` from an iterator of types.
+    ///
+    /// The iterator must implement [`ExactSizeIterator`] to allow efficient
+    /// pre-allocation of storage.
     pub fn from_iter(
         builder: &B,
         iter: impl IntoIterator<Item = Ty<B>, IntoIter: ExactSizeIterator>,
@@ -143,6 +212,7 @@ impl<B: TyBuilder> TyList<B> {
         Self(builder.alloc_ty_list(iter))
     }
 
+    /// Returns an iterator over the types in this list.
     pub fn iter(&self) -> core::slice::Iter<'_, Ty<B>> {
         self.0.iter()
     }
@@ -167,10 +237,60 @@ impl<'a, B: TyBuilder> IntoIterator for &'a TyList<B> {
 
 // === IdentList ===
 
+/// An owned list of identifiers, backed by the builder's storage.
+///
+/// `IdentList<B>` is a thin wrapper around the builder's [`TyBuilder::IdentListHandle`],
+/// representing a sequence of [`Ident<B>`] values. It is used for storing symbol
+/// variants in [`TyKind::Symbol`].
+///
+/// # Construction
+///
+/// Create an `IdentList` using [`IdentList::from_iter`], which takes a builder
+/// reference and an iterator of [`Ident<B>`] values:
+///
+/// ```
+/// use melbi_types::builders::BoxBuilder;
+/// use melbi_types::{Ident, IdentList};
+///
+/// let builder = BoxBuilder::new();
+/// let ok = Ident::new(&builder, "ok");
+/// let error = Ident::new(&builder, "error");
+///
+/// let symbols = IdentList::from_iter(&builder, [ok, error]);
+/// assert_eq!(symbols.len(), 2);
+/// ```
+///
+/// # Iteration and Access
+///
+/// `IdentList` implements [`Deref`] to `[Ident<B>]`, providing slice-like access:
+///
+/// ```
+/// use melbi_types::builders::BoxBuilder;
+/// use melbi_types::{Ident, IdentList};
+///
+/// let builder = BoxBuilder::new();
+/// let pending = Ident::new(&builder, "pending");
+/// let symbols = IdentList::from_iter(&builder, [pending]);
+///
+/// // Use iter() for explicit iteration
+/// for ident in symbols.iter() {
+///     println!("{}", ident.as_str());
+/// }
+///
+/// // Or use slice methods via Deref
+/// assert_eq!(symbols.len(), 1);
+/// ```
+///
+/// [`TyKind::Symbol`]: super::TyKind::Symbol
+/// [`Deref`]: core::ops::Deref
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IdentList<B: TyBuilder>(B::IdentListHandle);
 
 impl<B: TyBuilder> IdentList<B> {
+    /// Creates a new `IdentList` from an iterator of identifiers.
+    ///
+    /// The iterator must implement [`ExactSizeIterator`] to allow efficient
+    /// pre-allocation of storage.
     pub fn from_iter(
         builder: &B,
         iter: impl IntoIterator<Item = Ident<B>, IntoIter: ExactSizeIterator>,
@@ -178,6 +298,7 @@ impl<B: TyBuilder> IdentList<B> {
         Self(builder.alloc_ident_list(iter))
     }
 
+    /// Returns an iterator over the identifiers in this list.
     pub fn iter(&self) -> core::slice::Iter<'_, Ident<B>> {
         self.0.iter()
     }

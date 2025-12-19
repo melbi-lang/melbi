@@ -70,19 +70,20 @@ impl<B: TyBuilder> TyKind<B> {
         &self,
     ) -> impl ExactSizeIterator<Item = &Ty<B>> + DoubleEndedIterator + '_ {
         // TODO: Consider using a custom iterator to avoid copying a few references?
+        type VecType<'a, T> = SmallVec<[&'a Ty<T>; 6]>;
         match self {
             TyKind::TypeVar(_) | TyKind::Scalar(_) | TyKind::Symbol(_) => {
-                SmallVec::<[_; 8]>::from_slice(&[]).into_iter()
+                VecType::new().into_iter()
             }
-            TyKind::Array(e) => SmallVec::from_slice(&[e]).into_iter(),
-            TyKind::Map(k, v) => SmallVec::from_slice(&[k, v]).into_iter(),
+            TyKind::Array(e) => VecType::from_slice(&[e]).into_iter(),
+            TyKind::Map(k, v) => VecType::from_slice(&[k, v]).into_iter(),
             TyKind::Record(fields) => fields
                 .iter()
                 .map(|(_, ty)| ty)
-                .collect::<SmallVec<[_; 8]>>()
+                .collect::<VecType<_>>()
                 .into_iter(),
             TyKind::Function { params, ret } => {
-                let mut v = params.iter().collect::<SmallVec<[_; 8]>>();
+                let mut v = params.iter().collect::<VecType<_>>();
                 v.push(ret);
                 v.into_iter()
             }
@@ -124,9 +125,17 @@ impl<B: TyBuilder> TyKind<B> {
                 TyKind::Record(FieldList::from_iter(builder, new_fields))
             }
 
-            TyKind::Function { .. } => {
+            TyKind::Function { params, .. } => {
+                // Invariant: `iter_children` yields params first, then ret last.
+                // We use `next_back()` to pop the return type before consuming params.
+                debug_assert!(
+                    children.len() >= 1 && children.len() == params.len() + 1,
+                    "Function children count mismatch: expected {} params + 1 ret, got {}",
+                    params.len(),
+                    children.len()
+                );
                 let new_ret = children.next_back().unwrap();
-            
+
                 TyKind::Function {
                     params: TyList::from_iter(builder, children),
                     ret: new_ret,

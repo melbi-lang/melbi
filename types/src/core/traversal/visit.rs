@@ -1,12 +1,16 @@
 use crate::core::{builder::TyBuilder, kind::TyKind, ty::Ty};
 
-/// A generic trait for traversing a type and producing a result.
+/// A generic trait for traversing a type while modifying a context.
+/// This is supposed to be implemented on TyKind<B>.
 pub trait Visit<B: TyBuilder, C> {
     /// Visit the node.
     /// The implementation on `Ty<B>` handles the data (flags) and forwards
     /// execution to the Kind.
     fn visit(&self, builder: &B, ctx: &mut C);
 
+    /// Walk over children nodes calling `visit` recursively.
+    /// This provides the default traversal behavior that implementations
+    /// can call to recurse into children after processing the current node.
     fn walk(&self, builder: &B, ctx: &mut C);
 }
 
@@ -15,12 +19,14 @@ where
     B: TyBuilder,
     TyKind<B>: Visit<B, C>,
 {
+    /// This implementation just forwards to TyKind for convenience.
     fn visit(&self, builder: &B, ctx: &mut C) {
         self.kind().visit(builder, ctx)
     }
 
+    /// This arbitrarily forwards the call to a visit on TyKind.
     fn walk(&self, builder: &B, ctx: &mut C) {
-        self.visit(builder, ctx);
+        self.kind().visit(builder, ctx);
     }
 }
 
@@ -45,26 +51,8 @@ mod tests {
         }
 
         fn walk(&self, builder: &BoxBuilder, ctx: &mut IntCounterCtx) {
-            match self {
-                TyKind::TypeVar(_) => {}
-                TyKind::Scalar(_) => {}
-                TyKind::Array(e) => e.visit(builder, ctx),
-                TyKind::Map(k, v) => {
-                    k.visit(builder, ctx);
-                    v.visit(builder, ctx);
-                }
-                TyKind::Record(fields) => {
-                    for (_, field_ty) in fields {
-                        field_ty.visit(builder, ctx);
-                    }
-                }
-                TyKind::Function { params, ret } => {
-                    for param in params {
-                        param.visit(builder, ctx);
-                    }
-                    ret.visit(builder, ctx);
-                }
-                TyKind::Symbol(_) => {}
+            for child in self.iter_children() {
+                child.visit(builder, ctx);
             }
         }
     }
