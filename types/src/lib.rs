@@ -5,34 +5,28 @@
 //!
 //! # Example
 //!
-//! ```ignore
-//! use melbi_types::{TypeBuilder, ArenaBuilder, Scalar};
+//! ```
+//! use melbi_types::{ArenaBuilder, TyBuilder, TyKind, Scalar};
 //! use bumpalo::Bump;
 //!
 //! let arena = Bump::new();
 //! let builder = ArenaBuilder::new(&arena);
 //!
-//! let int_ty = builder.int();
-//! let arr_ty = builder.array(int_ty);
+//! let int_ty = TyKind::Scalar(Scalar::Int).alloc(&builder);
+//! let arr_ty = TyKind::Array(int_ty).alloc(&builder);
 //! ```
 
 #![no_std]
+#![forbid(unsafe_code)]
 extern crate alloc;
 
-// Intermediate Representation - generic type system
-pub mod ir;
+pub mod algo;
+pub mod builders;
+pub mod core;
+mod macros;
 
-// Concrete builder implementations
-pub mod arena_builder;
-pub mod box_builder;
-
-// Re-export IR types for convenience
-pub use ir::{
-    ClosureVisitor, Scalar, Ty, TyData, TyDisplay, TypeBuilder, TypeChildren, TypeFolder,
-    TypeFormatter, TypeKind, TypeKindDisplay, TypeView, TypeVisitor, Zip, Zipper, convert_ty,
-    types_cmp, types_equal,
+// Re-export commonly used types for convenience
+pub use builders::{ArenaBuilder, BoxBuilder};
+pub use core::{
+    FieldList, Ident, IdentList, Scalar, Ty, TyBuilder, TyFlags, TyKind, TyList, TyNode,
 };
-
-// Re-export concrete builders
-pub use arena_builder::ArenaBuilder;
-pub use box_builder::BoxBuilder;
