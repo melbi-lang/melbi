@@ -43,7 +43,9 @@ pub enum TyKind<B: TyBuilder> {
 }
 
 impl<B: TyBuilder> TyKind<B> {
-    pub fn compute_flags(&self) -> TyFlags {
+    /// Internal: Do not call, this is called automatically when allocating a [`Ty`].
+    /// To access flags use the precomputed value [`Ty::flags`] instead.
+    pub(super) fn compute_flags(&self) -> TyFlags {
         match self {
             TyKind::TypeVar(_) => TyFlags::HAS_TYPE_VARS,
             TyKind::Scalar(_) => TyFlags::empty(),

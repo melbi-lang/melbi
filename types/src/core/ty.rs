@@ -72,8 +72,17 @@ impl<B: TyBuilder> Ty<B> {
 // Implement Copy when TyHandle is Copy (e.g., for ArenaBuilder)
 impl<B: TyBuilder> Copy for Ty<B> where B::TyHandle: Copy {}
 
-/// Note: `Hash` is implemented by each builder module to allow different
-/// hashing semantics (by-kind-only for interning, structural for others).
+/// Immutable node containing a type's [`TyKind`] and computed [`TyFlags`].
+///
+/// `TyNode<B>` is the underlying storage for types, wrapped by [`Ty<B>`].
+/// It computes flags once at construction time and provides access to the
+/// type's kind.
+///
+/// # Hashing
+///
+/// `Hash` is implemented to hash only the kind (not flags, since they are
+/// derived from the kind). This supports interning where structurally
+/// identical types should hash equally.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TyNode<B: TyBuilder>(TyFlags, TyKind<B>);
 
@@ -323,6 +332,11 @@ impl<'a, B: TyBuilder> IntoIterator for &'a IdentList<B> {
 
 // === FieldList ===
 
+/// An list of fields backed by the builder's storage.
+///
+/// `FieldList<B>` is a thin wrapper around the builder's [`TyBuilder::FieldListHandle`],
+/// containing a sequence of named fields as they are usually found in record-like
+/// structures where each field is represented by a `(Ident<B>, Ty<B>)` pair.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FieldList<B: TyBuilder>(B::FieldListHandle);
 
