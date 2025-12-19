@@ -337,6 +337,44 @@ impl<'a, B: TyBuilder> IntoIterator for &'a IdentList<B> {
 /// `FieldList<B>` is a thin wrapper around the builder's [`TyBuilder::FieldListHandle`],
 /// containing a sequence of named fields as they are usually found in record-like
 /// structures where each field is represented by a `(Ident<B>, Ty<B>)` pair.
+///
+/// # Construction
+///
+/// Create a `FieldList` using [`FieldList::from_iter`], which takes a builder
+/// reference and an iterator of `(Ident<B>, Ty<B>)` tuples:
+///
+/// ```
+/// use melbi_types::builders::BoxBuilder;
+/// use melbi_types::{Ident, Ty, FieldList, TyKind, Scalar};
+///
+/// let builder = BoxBuilder::new();
+/// let name = Ident::new(&builder, "count");
+/// let ty = Ty::new(&builder, TyKind::Scalar(Scalar::Int));
+///
+/// let fields = FieldList::from_iter(&builder, [(name, ty)]);
+/// assert_eq!(fields.len(), 1);
+/// ```
+///
+/// # Iteration and Access
+///
+/// `FieldList` implements [`Deref`] to `[(Ident<B>, Ty<B>)]`, providing slice-like access:
+///
+/// ```
+/// use melbi_types::builders::BoxBuilder;
+/// use melbi_types::{Ident, Ty, FieldList, TyKind, Scalar};
+///
+/// let builder = BoxBuilder::new();
+/// let fields = FieldList::from_iter(&builder, [
+///     (Ident::new(&builder, "x"), Ty::new(&builder, TyKind::Scalar(Scalar::Int))),
+/// ]);
+///
+/// for (name, ty) in fields.iter() {
+///     println!("{}: {:?}", name.as_str(), ty.kind());
+/// }
+/// ```
+///
+/// [`TyKind::Record`]: super::TyKind::Record
+/// [`Deref`]: core::ops::Deref
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FieldList<B: TyBuilder>(B::FieldListHandle);
 
