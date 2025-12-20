@@ -4,7 +4,7 @@ struct Cond<const B: bool>;
 trait StoragePolicy<T: Clone>: Clone {
     type Inner: Clone;
     fn from_value(value: T) -> Self::Inner;
-    fn as_ref(inner: &T) -> Option<T>;
+    fn as_ref(inner: &Self::Inner) -> Option<T>;
 }
 
 impl<T: Clone> StoragePolicy<T> for Cond<false> {
@@ -14,7 +14,7 @@ impl<T: Clone> StoragePolicy<T> for Cond<false> {
     fn from_value(_value: T) -> Self::Inner {}
 
     #[inline(always)]
-    fn as_ref(_inner: &T) -> Option<T> {
+    fn as_ref(_inner: &()) -> Option<T> {
         None
     }
 }
@@ -33,12 +33,18 @@ impl<T: Clone> StoragePolicy<T> for Cond<true> {
     }
 }
 
-//#[derive(Clone)]
-pub struct CompileTimeOption<const STORE: bool, T: Clone> {
+#[derive(Clone)]
+struct CompileTimeOption<const STORE: bool, T: Clone>
+where
+    Cond<STORE>: StoragePolicy<T>,
+{
     inner: <Cond<STORE> as StoragePolicy<T>>::Inner,
 }
 
-impl<const STORE: bool, T: Clone> CompileTimeOption<STORE, T> {
+impl<const STORE: bool, T: Clone> CompileTimeOption<STORE, T>
+where
+    Cond<STORE>: StoragePolicy<T>,
+{
     #[inline(always)]
     pub fn new(value: T) -> Self {
         Self {
@@ -49,5 +55,49 @@ impl<const STORE: bool, T: Clone> CompileTimeOption<STORE, T> {
     #[inline(always)]
     pub fn get(&self) -> Option<T> {
         <Cond<STORE> as StoragePolicy<T>>::as_ref(&self.inner)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::mem::size_of;
+
+    #[test]
+    fn enabled_stores_and_returns_value() {
+        let opt: CompileTimeOption<true, i32> = CompileTimeOption::new(42);
+        assert_eq!(opt.get(), Some(42));
+    }
+
+    #[test]
+    fn disabled_returns_none() {
+        let opt: CompileTimeOption<false, i32> = CompileTimeOption::new(42);
+        assert_eq!(opt.get(), None);
+    }
+
+    #[test]
+    fn disabled_is_zero_sized() {
+        assert_eq!(size_of::<CompileTimeOption<false, i32>>(), 0);
+        assert_eq!(size_of::<CompileTimeOption<false, String>>(), 0);
+    }
+
+    #[test]
+    fn enabled_has_same_size_as_inner() {
+        assert_eq!(size_of::<CompileTimeOption<true, i32>>(), size_of::<i32>());
+        assert_eq!(
+            size_of::<CompileTimeOption<true, String>>(),
+            size_of::<String>()
+        );
+    }
+
+    #[test]
+    fn clone_works() {
+        let opt: CompileTimeOption<true, i32> = CompileTimeOption::new(42);
+        let cloned = opt.clone();
+        assert_eq!(cloned.get(), Some(42));
+
+        let opt: CompileTimeOption<false, i32> = CompileTimeOption::new(42);
+        let cloned = opt.clone();
+        assert_eq!(cloned.get(), None);
     }
 }
