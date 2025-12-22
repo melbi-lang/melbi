@@ -1,7 +1,74 @@
 //! Implementation of the `#[melbi_fn]` attribute macro
 //!
-//! Parses function signatures, validates them, and directly generates the wrapper struct
-//! and FFI glue code needed to bridge Rust functions into the Melbi runtime.
+//! Parses function signatures, validates them, and directly generates the wrapper
+//! struct and FFI glue code needed to bridge Rust functions into the Melbi runtime.
+//!
+//! We want to cover all kinds of polymorphism supported in Melbi, which are;
+//!
+//! 1. **No polymorphism:** All types are concrete types, so no polymorphism.
+//!
+//! 2. **Parametric polymorphism (Generics):** The same unaltered code works for
+//!    any types (e.g. a function that takes `Array[T]` and returns its length).
+//!    In this case T is opaque, you can't do much with it except pass it around.
+//!
+//! 3. **Constrained polymorphism:** For each generic argument, either Melbi
+//!    automatically infers a trait bound from the body of the lambda, like
+//!    `(x, y) => x + y` then `(T, T) => T where T: Numeric` is inferred. But
+//!    for functions defined via FFI, these bounds need to be explicitly declared.
+//!
+//! To support polymorphism in FFI functions we'll use a combination of certain
+//! strategies, depending on the type of parameter
+//!
+//! A. Unconstrained generic parameters:
+//!    - They need no monomorphization.
+//!    - The same identical code works for all types.
+//!    - **How to handle:** Instantiate the generic code with a unique opaque
+//!      type for each unique type variable. Example:
+//!
+//!       `get_or_default<K, V>(map: Map<K, V>, key: K, default: V) -> V`
+//!
+//!      which simply gets called as:
+//!
+//!       `get_or_default::<Any<0>, Any<1>>(map, key, default)`
+//!
+//! B. Constrained Generic Parameters:
+//!    - The generic parameters are constrained by a trait.
+//!    - The trait is implemented by a subset of types.
+//!    - And similarly to Rust, there can be associated types.
+//!    - These are split into two cases:
+//!
+//! B1. Expansion is both finite and small cardinality:
+//!    - **How to handle:** In this case, we first expand the generic call
+//!      using the types that implement the trait.
+//!    - Example:
+//!
+//!      `index<C: Indexable<Index=I, Output=O>, I, O>(container: C, index: I) -> O`
+//!
+//!      And since we know only Array and Map implement Indexable, that expands into:
+//!
+//!      `index<E>(container: Array<E>, index: i64) -> E`
+//!
+//!      and
+//!
+//!      `index<K, V>(container: Map<K, V>, index: K) -> V`
+//!
+//!      and, then we can apply method A.
+//!
+//! B2. Expansion is infinite or there are too many cases to expand to.
+//!     - The expansion is infinite when you can keep expanding and you'll never
+//!       reach an unconstrained generic parameter. For instance, `T = Array[E]`
+//!       satisfies `T: Hashable` when `E: Hashable`.
+//!     - Traits implemented for a number of types or functions taking more than
+//!       one trait, could have a very large number of instances when expanded.
+//!       For instance:
+//!
+//!       `mix<T1: Ord, T2: Ord>(a: T1, b: T2, c: T2, d: T2) -> Bytes`
+//!
+//!       `Ord` is implemented for 4 types, so this would expand to 16 instantiations.
+//!
+//!     - **How to handle:** In this case, we use dynamic dispatch. Similar to
+//!       approach A, but instead of `Any<0>` we use a similarly named type that
+//!       contains its runtime type information.
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
@@ -71,7 +138,6 @@ struct ParsedParam {
 /// Parsed type parameter with its trait bound.
 struct ParsedGenericParam {
     ident: syn::Ident,
-    #[allow(dead_code)] // Will be used when we support more traits
     trait_name: String, // e.g., "Numeric"
 }
 
@@ -82,7 +148,6 @@ enum TypeShape {
     Concrete,
     /// Bare type variable (e.g., T where T: Numeric)
     TypeVar(syn::Ident),
-    // Future: Container(ContainerKind, Box<TypeShape>) for Array<T>, etc.
 }
 
 // ============================================================================
@@ -251,10 +316,11 @@ fn parse_generics(
 
 /// Parse a type parameter and validate its trait bounds.
 ///
-/// For compound bounds like `T: Melbi + Numeric`, we use the most restrictive
-/// recognized bound for dispatch (Numeric > Melbi since Numeric: Melbi).
+/// We only accept one trait, except for the `Melbi` trait, which doesn't impose
+/// any constraints on the type, so we ignore it. For compound bounds like
+/// `T: Numeric + Ord, for instance, we'll return an error.
 fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericParam> {
-    let mut trait_found: Option<&str> = None;
+    let mut traits = Vec::new();
 
     // Collect all recognized trait bounds, keeping the most restrictive
     for bound in &type_param.bounds {
@@ -263,8 +329,9 @@ fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericPar
                 let trait_name = last_seg.ident.to_string();
                 match trait_name.as_str() {
                     // Type must be a number.
-                    "Numeric" => trait_found = Some("Numeric"),
+                    "Numeric" => traits.push("Numeric"),
                     // Type doesn't have any special constraints.
+                    // So we don't even care about adding it.
                     "Melbi" => {}
                     other => {
                         return Err(syn::Error::new_spanned(
@@ -281,14 +348,18 @@ fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericPar
         }
     }
 
-    match trait_found {
-        Some(trait_name) => Ok(ParsedGenericParam {
+    match traits.as_slice() {
+        &[] => Err(syn::Error::new_spanned(
+            type_param,
+            "[melbi] generic type parameter must have a trait bound (e.g., T: Melbi or T: Numeric)",
+        )),
+        &[trait_name] => Ok(ParsedGenericParam {
             ident: type_param.ident.clone(),
             trait_name: trait_name.to_string(),
         }),
-        None => Err(syn::Error::new_spanned(
+        &[..] => Err(syn::Error::new_spanned(
             type_param,
-            "[melbi] generic type parameter must have a trait bound (e.g., T: Melbi or T: Numeric)",
+            "[melbi] multiple traits are not supported",
         )),
     }
 }
@@ -390,7 +461,8 @@ fn classify_type(ty: &Type, type_params: &[ParsedGenericParam]) -> syn::Result<T
             }
         }
 
-        // Check for containers with type vars inside (e.g., Array<T>) - reject for Phase 1
+        // For Phase 1, we only check immediate type arguments.
+        // TODO(generic-ffi-phase2): Use recursive checking for nested containers.
         for seg in &type_path.path.segments {
             if let PathArguments::AngleBracketed(args) = &seg.arguments {
                 for arg in &args.args {
@@ -398,8 +470,7 @@ fn classify_type(ty: &Type, type_params: &[ParsedGenericParam]) -> syn::Result<T
                         if contains_type_var(inner_ty, type_params) {
                             return Err(syn::Error::new_spanned(
                                 ty,
-                                "[melbi] type variables inside containers (e.g., Array<T>) \
-                                 not yet supported",
+                                "[melbi] type variables inside containers (e.g., Array<T>) not yet supported",
                             ));
                         }
                     }

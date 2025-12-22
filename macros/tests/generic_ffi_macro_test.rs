@@ -2,31 +2,31 @@
 //!
 //! # Function Signatures to Support
 //!
-//! ## Phase 1: Single type parameter, bare usage only [x] DONE
+//! ## Phase 1: Expand single top-level parameter, bare usage only [x] DONE
 //!
 //! - `fn square<T: Numeric>(x: T) -> T`
 //! - `fn add<T: Numeric>(a: T, b: T) -> T`
 //! - `fn is_positive<T: Numeric>(x: T) -> bool` (generic input, concrete output)
 //!
-//! ## Phase 2: Single type parameter in containers [ ] TODO(generic-ffi-phase2)
+//! ## Phase 2: Expand single parameter (general case) [ ] TODO(generic-ffi-phase2)
 //!
 //! - `fn sum<T: Numeric>(arr: Array<T>) -> T`
 //! - `fn first_numeric<T: Numeric>(arr: Array<T>) -> Optional<T>`
 //! - `fn scale<T: Numeric>(arr: Array<T>, factor: T) -> Array<T>` (mixed bare + container)
 //! - `fn get_value<T: Numeric>(m: Map<Str, T>, key: Str) -> Optional<T>`
 //!
-//! ## Phase 3: Multiple type parameters (same trait) [ ] TODO(generic-ffi-phase3)
+//! ## Phase 3: Expand multiple generic parameters (same trait) [ ] TODO(generic-ffi-phase3)
 //!
 //! - `fn convert<T: Numeric, U: Numeric>(x: T) -> U` (cross-product: 2x2 = 4 cases)
 //! - `fn zip_numeric<T: Numeric, U: Numeric>(a: Array<T>, b: Array<U>) -> Array<Record<{a: T, b: U}>>`
 //!
-//! ## Phase 4: Structural expansion (unconstrained / Indexable) [ ] TODO(generic-ffi-phase4)
+//! ## Phase 4: Yet another phase (unconstrained / Indexable) [ ] TODO(generic-ffi-phase4)
 //!
 //! - `fn first<T: Melbi>(arr: Array<T>) -> Optional<T>` (T unconstrained, uses Any<0>)
 //! - `fn len<T: Indexable>(container: T) -> Int`
 //! - `fn get<T: Indexable>(container: T, index: Int) -> Optional<T::Element>`
 //!
-//! ## Phase 5: Other closed traits [ ] TODO(generic-ffi-phase5)
+//! ## Phase 5: Other traits [ ] TODO(generic-ffi-phase5)
 //!
 //! - `fn max<T: Ord>(a: T, b: T) -> T`
 //! - `fn sort<T: Ord>(arr: Array<T>) -> Array<T>`
@@ -172,13 +172,13 @@ fn test_square_type_mismatch() {
     );
 }
 
-// TODO: uncomment after supporting full parametric polymorphism.
+// TODO: uncomment after supporting parametric polymorphism.
 // Test with Melbi bound (base trait)
 // #[melbi_fn]
 // fn identity<T: Melbi>(x: T) -> T {
 //     x
 // }
-
+//
 // #[test]
 // fn test_identity_int() {
 //     let arena = Bump::new();
@@ -187,7 +187,7 @@ fn test_square_type_mismatch() {
 //     let result = ctx.call_ok(&identity_fn, &[ctx.int(42)]);
 //     assert_eq!(result.as_int().unwrap(), 42);
 // }
-
+//
 // #[test]
 // fn test_identity_float() {
 //     let arena = Bump::new();
