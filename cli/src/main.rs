@@ -10,7 +10,7 @@ use melbi_core::{
     parser::{self, ExpressionParser, Rule},
     stdlib::register_stdlib,
     types::{Type, manager::TypeManager},
-    values::{builder::Binder, dynamic::Value},
+    values::{binder::Binder, dynamic::Value},
     vm::VM,
 };
 use miette::Result;
@@ -355,8 +355,8 @@ fn build_stdlib<'arena>(
     &'arena [(&'arena str, Value<'arena, 'arena>)],
 ) {
     let env_builder = EnvironmentBuilder::new(arena);
-    let env_builder =
-        register_stdlib(arena, type_manager, env_builder).expect("stdlib registration should succeed");
+    let env_builder = register_stdlib(arena, type_manager, env_builder)
+        .expect("stdlib registration should succeed");
     let globals_values = env_builder
         .build(arena)
         .expect("Environment build should succeed");

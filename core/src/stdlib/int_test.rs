@@ -4,7 +4,7 @@ use super::build_int_package;
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager,
-    values::{builder::Binder, dynamic::Value},
+    values::{binder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 
@@ -293,14 +293,7 @@ fn test_euclidean_division_invariant() {
 /// Verify that Int.Mod always returns non-negative values
 #[test]
 fn test_mod_always_non_negative() {
-    let test_cases: [(i64, i64); 6] = [
-        (-7, 3),
-        (-7, -3),
-        (-100, 7),
-        (-1, 5),
-        (-999, 13),
-        (7, -3),
-    ];
+    let test_cases: [(i64, i64); 6] = [(-7, 3), (-7, -3), (-100, 7), (-1, 5), (-999, 13), (7, -3)];
 
     for (a, b) in test_cases {
         let source = format!("Int.Mod({a}, {b})");
@@ -435,7 +428,7 @@ fn test_int_expr_expects_error(source: &str, expected_error_substring: &str) {
 /// Returns true if the expression panics, false if it succeeds or returns an error.
 #[allow(dead_code)]
 fn test_int_expr_panics(source: &str) -> bool {
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
 
     catch_unwind(AssertUnwindSafe(|| {
         use crate::api::{CompileOptionsOverride, Engine, EngineOptions};
@@ -875,15 +868,21 @@ fn test_powers_of_two_divisors() {
     // Powers of two are common divisors and can trigger off-by-one bugs
 
     // 2^62 as divisor (largest power of 2 that fits cleanly)
-    test_int_expr("Int.Quot(9223372036854775807, 4611686018427387904)", |r: Value| {
-        // i64::MAX / 2^62 = 1 (truncated)
-        assert_eq!(r.as_int().unwrap(), 1);
-    });
+    test_int_expr(
+        "Int.Quot(9223372036854775807, 4611686018427387904)",
+        |r: Value| {
+            // i64::MAX / 2^62 = 1 (truncated)
+            assert_eq!(r.as_int().unwrap(), 1);
+        },
+    );
 
-    test_int_expr("Int.Rem(9223372036854775807, 4611686018427387904)", |r: Value| {
-        // i64::MAX % 2^62 = i64::MAX - 2^62 = 4611686018427387903
-        assert_eq!(r.as_int().unwrap(), 4611686018427387903);
-    });
+    test_int_expr(
+        "Int.Rem(9223372036854775807, 4611686018427387904)",
+        |r: Value| {
+            // i64::MAX % 2^62 = i64::MAX - 2^62 = 4611686018427387903
+            assert_eq!(r.as_int().unwrap(), 4611686018427387903);
+        },
+    );
 }
 
 #[test]

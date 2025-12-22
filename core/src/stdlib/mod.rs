@@ -11,10 +11,9 @@
 //! Packages are built using native Rust functions (FFI) and registered in the
 //! global environment before user code executes.
 
-use crate::api::{EnvironmentBuilder, Error};
 use crate::types::manager::TypeManager;
-use crate::values::builder;
-use crate::values::{builder::Binder, dynamic::Value};
+use crate::values::binder;
+use crate::values::{binder::Binder, dynamic::Value};
 use bumpalo::Bump;
 
 pub mod array;
@@ -44,32 +43,35 @@ pub use string::build_string_package;
 ///
 /// If you want more control over which packages to include, you can register
 /// them individually using `build_math_package()`, `build_string_package()`, etc.
-pub fn register_stdlib<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-    mut env: EnvironmentBuilder<'arena>,
-) -> Result<EnvironmentBuilder<'arena>, builder::Error> {
+pub fn register_stdlib<'a, B>(
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
+    mut env: B,
+) -> Result<B, binder::Error>
+where
+    B: Binder<'a, 'a>,
+{
     // Register Math package
     let math_builder = Value::record_builder(arena, type_mgr);
-    let math_builder = build_math_package(arena, type_mgr, math_builder)?;
+    let math_builder = build_math_package(arena, type_mgr, math_builder);
     let math = math_builder.build()?;
     env = env.bind("Math", math);
 
     // Register String package
     let string_builder = Value::record_builder(arena, type_mgr);
-    let string_builder = build_string_package(arena, type_mgr, string_builder)?;
+    let string_builder = build_string_package(arena, type_mgr, string_builder);
     let string = string_builder.build()?;
     env = env.bind("String", string);
 
     // Register Array package
     let array_builder = Value::record_builder(arena, type_mgr);
-    let array_builder = build_array_package(arena, type_mgr, array_builder)?;
+    let array_builder = build_array_package(arena, type_mgr, array_builder);
     let array = array_builder.build()?;
     env = env.bind("Array", array);
 
     // Register Int package
     let int_builder = Value::record_builder(arena, type_mgr);
-    let int_builder = build_int_package(arena, type_mgr, int_builder)?;
+    let int_builder = build_int_package(arena, type_mgr, int_builder);
     let int_pkg = int_builder.build()?;
     env = env.bind("Int", int_pkg);
 

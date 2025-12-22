@@ -7,7 +7,7 @@ use crate::{
         traits::{TypeKind, TypeView},
     },
     values::{
-        builder::{self, Binder},
+        binder::Binder,
         dynamic::Value,
         function::{AnnotatedFunction, FfiContext, Function},
     },

@@ -4,7 +4,7 @@
 
 use crate::{
     types::manager::TypeManager,
-    values::{builder::Binder, dynamic::Value},
+    values::{binder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 

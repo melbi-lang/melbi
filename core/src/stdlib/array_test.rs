@@ -5,7 +5,7 @@ use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions, Error},
     stdlib::{build_math_package, build_string_package},
     types::manager::TypeManager,
-    values::{builder::Binder, dynamic::Value},
+    values::{binder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 

@@ -4,7 +4,7 @@ use melbi_core::{
     types::manager::TypeManager,
     values::{
         FfiContext,
-        builder::Binder,
+        binder::Binder,
         dynamic::Value,
         function::{AnnotatedFunction, Function},
         typed::{Array, Optional, RawConvertible, Str},

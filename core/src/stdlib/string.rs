@@ -9,14 +9,11 @@
 //! - Format strings (f"...") are built into the language, not library functions
 
 use crate::{
-    api::Error,
     Vec,
     types::manager::TypeManager,
     values::{
         FfiContext,
-        builder::Binder,
-        dynamic::Value,
-        from_raw::TypeError,
+        binder::Binder,
         typed::{Array, Optional, Str},
     },
 };
@@ -259,44 +256,44 @@ fn string_to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64
 /// let string = build_string_package(ctx.arena(), type_mgr)?;
 /// env.register("String", string)?;
 /// ```
-pub fn build_string_package<'ty_arena, 'val_arena, B>(
-    arena: &'val_arena Bump,
-    type_mgr: &'ty_arena TypeManager<'ty_arena>,
+pub fn build_string_package<'a, B>(
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
     mut builder: B,
-) -> Result<B, Error>
+) -> B
 where
-    B: Binder<'ty_arena, 'val_arena, Error = Error>,
+    B: Binder<'a, 'a>,
 {
     use crate::values::function::AnnotatedFunction;
 
     // Inspection
-    builder = Len::new(type_mgr).register(arena, builder)?;
-    builder = IsEmpty::new(type_mgr).register(arena, builder)?;
-    builder = Contains::new(type_mgr).register(arena, builder)?;
-    builder = StartsWith::new(type_mgr).register(arena, builder)?;
-    builder = EndsWith::new(type_mgr).register(arena, builder)?;
+    builder = Len::new(type_mgr).register(arena, builder);
+    builder = IsEmpty::new(type_mgr).register(arena, builder);
+    builder = Contains::new(type_mgr).register(arena, builder);
+    builder = StartsWith::new(type_mgr).register(arena, builder);
+    builder = EndsWith::new(type_mgr).register(arena, builder);
 
     // Transformation
-    builder = Upper::new(type_mgr).register(arena, builder)?;
-    builder = Lower::new(type_mgr).register(arena, builder)?;
-    builder = Trim::new(type_mgr).register(arena, builder)?;
-    builder = TrimStart::new(type_mgr).register(arena, builder)?;
-    builder = TrimEnd::new(type_mgr).register(arena, builder)?;
-    builder = Replace::new(type_mgr).register(arena, builder)?;
-    builder = ReplaceN::new(type_mgr).register(arena, builder)?;
+    builder = Upper::new(type_mgr).register(arena, builder);
+    builder = Lower::new(type_mgr).register(arena, builder);
+    builder = Trim::new(type_mgr).register(arena, builder);
+    builder = TrimStart::new(type_mgr).register(arena, builder);
+    builder = TrimEnd::new(type_mgr).register(arena, builder);
+    builder = Replace::new(type_mgr).register(arena, builder);
+    builder = ReplaceN::new(type_mgr).register(arena, builder);
 
     // Splitting and Joining
-    builder = Split::new(type_mgr).register(arena, builder)?;
-    builder = Join::new(type_mgr).register(arena, builder)?;
+    builder = Split::new(type_mgr).register(arena, builder);
+    builder = Join::new(type_mgr).register(arena, builder);
 
     // Extraction
-    builder = Substring::new(type_mgr).register(arena, builder)?;
+    builder = Substring::new(type_mgr).register(arena, builder);
 
     // Parsing
-    builder = ToInt::new(type_mgr).register(arena, builder)?;
-    builder = ToFloat::new(type_mgr).register(arena, builder)?;
+    builder = ToInt::new(type_mgr).register(arena, builder);
+    builder = ToFloat::new(type_mgr).register(arena, builder);
 
-    Ok(builder)
+    builder
 }
 
 #[cfg(test)]

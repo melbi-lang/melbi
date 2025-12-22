@@ -2,7 +2,7 @@
 
 use crate::{
     String, ToString, Vec,
-    values::builder::{Binder, Error},
+    values::binder::{Binder, Error},
     values::dynamic::Value,
 };
 

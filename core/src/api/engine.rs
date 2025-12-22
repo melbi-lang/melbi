@@ -2,7 +2,7 @@
 
 use super::{CompileOptionsOverride, CompiledExpression, EngineOptions, EnvironmentBuilder, Error};
 use crate::types::{Type, manager::TypeManager};
-use crate::values::builder::Binder;
+use crate::values::binder::Binder;
 use crate::values::dynamic::Value;
 use crate::{Vec, analyzer, parser};
 use bumpalo::Bump;

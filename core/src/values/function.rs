@@ -6,7 +6,7 @@
 use super::dynamic::Value;
 use crate::evaluator::ExecutionError;
 use crate::types::{Type, manager::TypeManager};
-use crate::values::builder::Binder;
+use crate::values::binder::Binder;
 use bumpalo::Bump;
 
 // ============================================================================

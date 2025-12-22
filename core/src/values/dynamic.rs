@@ -8,7 +8,7 @@ use crate::{
     },
     types::{Type, manager::TypeManager, traits::TypeView},
     values::{
-        builder::{self, Binder},
+        binder::{self, Binder},
         from_raw::TypeError,
         function::Function,
         raw::{ArrayData, MapData, MapEntry, RawValue, RecordData, Slice},
@@ -1400,7 +1400,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Binder<'ty_arena, 'value_arena>
         self
     }
 
-    fn build(self) -> Result<Self::Output, builder::Error> {
+    fn build(self) -> Result<Self::Output, binder::Error> {
         // Build the type from field names and types
         // The record() method will intern field names
         let field_types: Vec<(&str, &'ty_arena Type<'ty_arena>)> = self

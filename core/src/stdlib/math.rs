@@ -8,10 +8,7 @@
 
 use crate::{
     types::manager::TypeManager,
-    values::{
-        builder::{self, Binder},
-        dynamic::Value,
-    },
+    values::{binder::Binder, dynamic::Value, function::AnnotatedFunction},
 };
 use bumpalo::Bump;
 use melbi_macros::melbi_fn;
@@ -175,12 +172,10 @@ pub fn build_math_package<'a, B>(
     arena: &'a Bump,
     type_mgr: &'a TypeManager<'a>,
     mut builder: B,
-) -> Result<B, builder::Error>
+) -> B
 where
     B: Binder<'a, 'a>,
 {
-    use crate::values::function::AnnotatedFunction;
-
     // Constants
     builder = builder.bind("PI", Value::float(type_mgr, core::f64::consts::PI));
     builder = builder.bind("E", Value::float(type_mgr, core::f64::consts::E));
@@ -217,7 +212,7 @@ where
     builder = Log10::new(type_mgr).register(arena, builder);
     builder = Exp::new(type_mgr).register(arena, builder);
 
-    Ok(builder)
+    builder
 }
 
 #[cfg(test)]

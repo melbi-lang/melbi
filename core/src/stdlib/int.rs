@@ -9,10 +9,7 @@
 //! - `Mod(a, b)`: Euclidean modulus (always non-negative)
 
 use crate::{
-    api::Error,
-    evaluator::RuntimeError,
-    types::manager::TypeManager,
-    values::{builder::Binder, dynamic::Value, from_raw::TypeError},
+    api::Error, evaluator::RuntimeError, types::manager::TypeManager, values::binder::Binder,
 };
 use bumpalo::Bump;
 use melbi_macros::melbi_fn;
@@ -154,13 +151,9 @@ fn int_mod(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// let int_pkg = build_int_package(arena, type_mgr)?;
 /// env.register("Int", int_pkg)?;
 /// ```
-pub fn build_int_package<'ty_arena, 'val_arena, B>(
-    arena: &'val_arena Bump,
-    type_mgr: &'ty_arena TypeManager<'ty_arena>,
-    mut builder: B,
-) -> Result<B, Error>
+pub fn build_int_package<'a, B>(arena: &'a Bump, type_mgr: &'a TypeManager<'a>, mut builder: B) -> B
 where
-    B: Binder<'ty_arena, 'val_arena, Error = Error>,
+    B: Binder<'a, 'a>,
 {
     use crate::values::function::AnnotatedFunction;
 
@@ -172,7 +165,7 @@ where
     builder = Div::new(type_mgr).register(arena, builder);
     builder = Mod::new(type_mgr).register(arena, builder);
 
-    Ok(builder)
+    builder
 }
 
 #[cfg(test)]

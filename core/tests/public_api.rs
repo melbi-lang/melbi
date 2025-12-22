@@ -4,9 +4,11 @@
 //! parsing, type checking, and evaluation.
 
 use bumpalo::Bump;
-use melbi_core::api::{CompileOptions, CompileOptionsOverride, Engine, EngineOptions, EnvironmentBuilder};
+use melbi_core::api::{
+    CompileOptions, CompileOptionsOverride, Engine, EngineOptions, EnvironmentBuilder,
+};
 use melbi_core::evaluator::ExecutionError;
-use melbi_core::values::builder::Binder;
+use melbi_core::values::binder::Binder;
 use melbi_core::values::dynamic::Value;
 use melbi_core::values::{FfiContext, NativeFunction};
 
@@ -352,7 +354,10 @@ fn test_error_duplicate_registration() {
 
     let result = builder.build(&arena);
 
-    assert!(result.is_err(), "Duplicate registration should return an error");
+    assert!(
+        result.is_err(),
+        "Duplicate registration should return an error"
+    );
     let msg = format!("{}", result.unwrap_err());
     assert!(
         msg.contains("Duplicate registration"),

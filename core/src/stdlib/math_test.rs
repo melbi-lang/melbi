@@ -4,7 +4,7 @@ use super::build_math_package;
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager, // This import is necessary for test helpers
-    values::{builder::Binder, dynamic::Value},
+    values::{binder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 
