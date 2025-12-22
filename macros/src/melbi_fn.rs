@@ -2,73 +2,74 @@
 //!
 //! Parses function signatures, validates them, and directly generates the wrapper
 //! struct and FFI glue code needed to bridge Rust functions into the Melbi runtime.
-//!
-//! We want to cover all kinds of polymorphism supported in Melbi, which are;
-//!
-//! 1. **No polymorphism:** All types are concrete types, so no polymorphism.
-//!
-//! 2. **Parametric polymorphism (Generics):** The same unaltered code works for
-//!    any types (e.g. a function that takes `Array[T]` and returns its length).
-//!    In this case T is opaque, you can't do much with it except pass it around.
-//!
-//! 3. **Constrained polymorphism:** For each generic argument, either Melbi
-//!    automatically infers a trait bound from the body of the lambda, like
-//!    `(x, y) => x + y` then `(T, T) => T where T: Numeric` is inferred. But
-//!    for functions defined via FFI, these bounds need to be explicitly declared.
-//!
-//! To support polymorphism in FFI functions we'll use a combination of certain
-//! strategies, depending on the type of parameter
-//!
-//! A. Unconstrained generic parameters:
-//!    - They need no monomorphization.
-//!    - The same identical code works for all types.
-//!    - **How to handle:** Instantiate the generic code with a unique opaque
-//!      type for each unique type variable. Example:
-//!
-//!       `get_or_default<K, V>(map: Map<K, V>, key: K, default: V) -> V`
-//!
-//!      which simply gets called as:
-//!
-//!       `get_or_default::<Any<0>, Any<1>>(map, key, default)`
-//!
-//! B. Constrained Generic Parameters:
-//!    - The generic parameters are constrained by a trait.
-//!    - The trait is implemented by a subset of types.
-//!    - And similarly to Rust, there can be associated types.
-//!    - These are split into two cases:
-//!
-//! B1. Expansion is both finite and small cardinality:
-//!    - **How to handle:** In this case, we first expand the generic call
-//!      using the types that implement the trait.
-//!    - Example:
-//!
-//!      `index<C: Indexable<Index=I, Output=O>, I, O>(container: C, index: I) -> O`
-//!
-//!      And since we know only Array and Map implement Indexable, that expands into:
-//!
-//!      `index<E>(container: Array<E>, index: i64) -> E`
-//!
-//!      and
-//!
-//!      `index<K, V>(container: Map<K, V>, index: K) -> V`
-//!
-//!      and, then we can apply method A.
-//!
-//! B2. Expansion is infinite or there are too many cases to expand to.
-//!     - The expansion is infinite when you can keep expanding and you'll never
-//!       reach an unconstrained generic parameter. For instance, `T = Array[E]`
-//!       satisfies `T: Hashable` when `E: Hashable`.
-//!     - Traits implemented for a number of types or functions taking more than
-//!       one trait, could have a very large number of instances when expanded.
-//!       For instance:
-//!
-//!       `mix<T1: Ord, T2: Ord>(a: T1, b: T2, c: T2, d: T2) -> Bytes`
-//!
-//!       `Ord` is implemented for 4 types, so this would expand to 16 instantiations.
-//!
-//!     - **How to handle:** In this case, we use dynamic dispatch. Similar to
-//!       approach A, but instead of `Any<0>` we use a similarly named type that
-//!       contains its runtime type information.
+
+//
+// We want to cover all kinds of polymorphism supported in Melbi, which are;
+//
+// 1. **No polymorphism:** All types are concrete types, so no polymorphism.
+//
+// 2. **Parametric polymorphism (Generics):** The same unaltered code works for
+//    any types (e.g. a function that takes Array[T] and returns its length).
+//    In this case T is opaque, you can't do much with it except pass it around.
+//
+// 3. **Constrained polymorphism:** For each generic argument, either Melbi
+//    automatically infers a trait bound from the body of the lambda, like
+//    (x, y) => x + y then (T, T) => T where T: Numeric is inferred. But
+//    for functions defined via FFI, these bounds need to be explicitly declared.
+//
+// To support polymorphism in FFI functions we'll use a combination of certain
+// strategies, depending on the type of parameter
+//
+// A. Unconstrained generic parameters:
+//    - They need no monomorphization.
+//    - The same identical code works for all types.
+//    - **How to handle:** Instantiate the generic code with a unique opaque
+//      type for each unique type variable. Example:
+//
+//      fn get_or_default<K, V>(map: Map<K, V>, key: K, default: V) -> V
+//
+//      which simply gets called as:
+//
+//      get_or_default::<Any<0>, Any<1>>(map, key, default)
+//
+// B. Constrained Generic Parameters:
+//    - The generic parameters are constrained by a trait.
+//    - The trait is implemented by a subset of types.
+//    - And similarly to Rust, there can be associated types.
+//    - These are split into two cases:
+//
+// B1. Expansion is both finite and small cardinality:
+//    - **How to handle:** In this case, we first expand the generic call
+//      using the types that implement the trait.
+//    - Example:
+//
+//      fn index<C: Indexable<Index=I, Output=O>, I, O>(container: C, index: I) -> O
+//
+//      And since we know only Array and Map implement Indexable, that expands into:
+//
+//      fn index<E>(container: Array<E>, index: i64) -> E
+//
+//      and
+//
+//      fn index<K, V>(container: Map<K, V>, index: K) -> V
+//
+//      and, then we can apply method A.
+//
+// B2. Expansion is infinite or there are too many cases to expand to.
+//     - The expansion is infinite when you can keep expanding and you'll never
+//       reach an unconstrained generic parameter. For instance, T = Array[E]
+//       satisfies T: Hashable when E: Hashable.
+//     - Traits implemented for a number of types or functions taking more than
+//       one trait, could have a very large number of instances when expanded.
+//       For instance:
+//
+//       fn mix<T1: Ord, T2: Ord>(a: T1, b: T2, c: T2, d: T2) -> Bytes
+//
+//       `Ord` is implemented for 4 types, so this would expand to 16 instantiations.
+//
+//     - **How to handle:** In this case, we use dynamic dispatch. Similar to
+//       approach A, but instead of Any<0> we use a similarly named type that
+//       contains its runtime type information.
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
