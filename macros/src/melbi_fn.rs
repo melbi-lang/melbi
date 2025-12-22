@@ -176,6 +176,24 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
     // Detect context and extract business parameters
     let (has_context, params) = parse_params(&func.sig, &type_params)?;
 
+    // Validate: each type parameter must be used in at least one input parameter
+    // (needed for runtime dispatch)
+    for tp in &type_params {
+        let used_in_param = params
+            .iter()
+            .any(|p| matches!(&p.shape, TypeShape::TypeVar(id) if *id == tp.ident));
+        if !used_in_param {
+            return Err(syn::Error::new_spanned(
+                &tp.ident,
+                format!(
+                    "[melbi] type parameter '{}' must be used in at least one input parameter \
+                     for runtime dispatch",
+                    tp.ident
+                ),
+            ));
+        }
+    }
+
     Ok(ParsedSignature {
         fn_name,
         lifetime,
@@ -232,25 +250,28 @@ fn parse_generics(
 }
 
 /// Parse a type parameter and validate its trait bounds.
+///
+/// For compound bounds like `T: Melbi + Numeric`, we use the most restrictive
+/// recognized bound for dispatch (Numeric > Melbi since Numeric: Melbi).
 fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericParam> {
-    // Look for a recognized trait bound
+    let mut trait_found: Option<&str> = None;
+
+    // Collect all recognized trait bounds, keeping the most restrictive
     for bound in &type_param.bounds {
         if let syn::TypeParamBound::Trait(trait_bound) = bound {
             if let Some(last_seg) = trait_bound.path.segments.last() {
                 let trait_name = last_seg.ident.to_string();
                 match trait_name.as_str() {
-                    "Numeric" => {
-                        return Ok(ParsedGenericParam {
-                            ident: type_param.ident.clone(),
-                            trait_name,
-                        });
-                    }
+                    // Type must be a number.
+                    "Numeric" => trait_found = Some("Numeric"),
+                    // Type doesn't have any special constraints.
+                    "Melbi" => {}
                     other => {
                         return Err(syn::Error::new_spanned(
                             &trait_bound.path,
                             format!(
                                 "[melbi] trait bound '{}' is not supported. \
-                                 Supported: Numeric",
+                                 Supported: Melbi, Numeric",
                                 other
                             ),
                         ));
@@ -260,10 +281,16 @@ fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericPar
         }
     }
 
-    Err(syn::Error::new_spanned(
-        type_param,
-        "[melbi] generic type parameter must have a trait bound (e.g., T: Numeric)",
-    ))
+    match trait_found {
+        Some(trait_name) => Ok(ParsedGenericParam {
+            ident: type_param.ident.clone(),
+            trait_name: trait_name.to_string(),
+        }),
+        None => Err(syn::Error::new_spanned(
+            type_param,
+            "[melbi] generic type parameter must have a trait bound (e.g., T: Melbi or T: Numeric)",
+        )),
+    }
 }
 
 /// Extract the return type from the function signature.
@@ -633,10 +660,8 @@ fn generate_polymorphic_call(sig: &ParsedSignature) -> TokenStream2 {
         .position(|p| matches!(&p.shape, TypeShape::TypeVar(id) if *id == type_param.ident))
         .expect("Type parameter must be used by at least one parameter");
 
-    // Generate match arms for Numeric expansion
-    let match_arms = generate_numeric_dispatch_arms(sig, &type_param.ident);
-
-    let trait_name = "Numeric (Int or Float)";
+    // Generate match arms based on trait bound
+    let (match_arms, trait_display) = generate_dispatch_arms_for_trait(sig, type_param);
 
     quote! {
         match __args[#rep_idx].ty {
@@ -647,7 +672,7 @@ fn generate_polymorphic_call(sig: &ParsedSignature) -> TokenStream2 {
                         ::melbi_core::evaluator::RuntimeError::CastError {
                             message: alloc::format!(
                                 "expected {}, got {}",
-                                #trait_name,
+                                #trait_display,
                                 __args[#rep_idx].ty
                             ),
                         }
@@ -657,6 +682,21 @@ fn generate_polymorphic_call(sig: &ParsedSignature) -> TokenStream2 {
                 })
             }
         }
+    }
+}
+
+/// Generate dispatch arms for a specific trait bound.
+/// Returns (match_arms, trait_display_name).
+fn generate_dispatch_arms_for_trait(
+    sig: &ParsedSignature,
+    type_param: &ParsedGenericParam,
+) -> (TokenStream2, &'static str) {
+    match type_param.trait_name.as_str() {
+        "Numeric" => (
+            generate_numeric_dispatch_arms(sig, &type_param.ident),
+            "Numeric (Int or Float)",
+        ),
+        other => panic!("Unsupported trait: {}", other),
     }
 }
 

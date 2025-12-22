@@ -12,7 +12,6 @@ pub use function::{FfiContext, Function, NativeFn, NativeFunction};
 pub use lambda::EvalLambda;
 pub use raw::{ArrayData, MapData, RawValue, RecordData};
 pub use type_class_traits::{Melbi, Numeric};
-pub use typed::{Array, Optional, Str};
 
 #[cfg(test)]
 mod display_test;

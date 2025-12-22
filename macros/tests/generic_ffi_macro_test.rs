@@ -51,11 +51,7 @@ use bumpalo::Bump;
 use melbi_core::{
     evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError},
     types::manager::TypeManager,
-    values::{
-        FfiContext,
-        dynamic::Value,
-        function::Function,
-    },
+    values::{FfiContext, dynamic::Value, function::Function},
 };
 use melbi_macros::melbi_fn;
 
@@ -100,7 +96,7 @@ impl<'a> TestCtx<'a> {
 // Phase 1 Tests: Single type parameter, bare usage
 // ============================================================================
 
-use melbi_core::values::Numeric;
+use melbi_core::values::{Melbi, Numeric};
 
 #[melbi_fn]
 fn square<T: Numeric>(x: T) -> T {
@@ -167,8 +163,60 @@ fn test_square_type_mismatch() {
     let bool_val = Value::bool(ctx.type_mgr, true);
     let err = ctx.call(&square_fn, &[bool_val]).unwrap_err();
     assert!(
-        matches!(err.kind, ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })),
+        matches!(
+            err.kind,
+            ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
+        ),
         "Expected CastError, got {:?}",
         err
     );
+}
+
+// TODO: uncomment after supporting full parametric polymorphism.
+// Test with Melbi bound (base trait)
+// #[melbi_fn]
+// fn identity<T: Melbi>(x: T) -> T {
+//     x
+// }
+
+// #[test]
+// fn test_identity_int() {
+//     let arena = Bump::new();
+//     let ctx = TestCtx::new(&arena);
+//     let identity_fn = Identity::new(ctx.type_mgr);
+//     let result = ctx.call_ok(&identity_fn, &[ctx.int(42)]);
+//     assert_eq!(result.as_int().unwrap(), 42);
+// }
+
+// #[test]
+// fn test_identity_float() {
+//     let arena = Bump::new();
+//     let ctx = TestCtx::new(&arena);
+//     let identity_fn = Identity::new(ctx.type_mgr);
+//     let result = ctx.call_ok(&identity_fn, &[ctx.float(3.14)]);
+//     assert_eq!(result.as_float().unwrap(), 3.14);
+// }
+
+// Test with compound bounds (Melbi + Numeric uses Numeric for dispatch)
+#[melbi_fn]
+fn double<T: Melbi + Numeric>(x: T) -> T {
+    x + x
+}
+
+#[test]
+fn test_double_int() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+    let double_fn = Double::new(ctx.type_mgr);
+    let result = ctx.call_ok(&double_fn, &[ctx.int(21)]);
+    assert_eq!(result.as_int().unwrap(), 42);
+}
+
+#[test]
+fn test_double_float() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+    let double_fn = Double::new(ctx.type_mgr);
+    let result = ctx.call_ok(&double_fn, &[ctx.float(1.5)]);
+    assert_eq!(result.as_float().unwrap(), 3.0);
 }

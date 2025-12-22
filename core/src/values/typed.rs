@@ -17,10 +17,7 @@ use crate::{
     values::raw::{ArrayData, MapData, MapEntry, RawValue, Slice},
 };
 
-trait Sealed {}
-impl<T> Sealed for T where T: RawConvertible {}
-
-pub trait RawConvertible: Sealed + Sized {
+pub trait RawConvertible: Sized {
     fn to_raw_value(arena: &Bump, value: Self) -> RawValue;
     unsafe fn from_raw_value(raw: RawValue) -> Self;
 }
