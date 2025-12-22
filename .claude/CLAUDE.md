@@ -38,6 +38,10 @@
   - If a test fails, do not remove or modify it.
   - Your job is to find failing tests and bugs, and not hide them!
   - Ask the user for help if you think you found a bug or if the test had wrong assumptions.
+- When adding tests, add the full suite of tests for the feature being implemented.
+  - Even if you're not implementing everything immediately, test for all cases.
+  - If the tests compile successfully but fail when running then annotate the with #[ignore = "reason"]
+  - If they don't even compile, then comment them out. Be sure to leave a `TODO:` for each test.
 
 # LOGGING / DEBUGGING
 - Use crate `tracing` for logging key aspects.
