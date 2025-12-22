@@ -184,8 +184,8 @@ impl<'a, const N: usize> Any<'a, N> {
 }
 
 // RawConvertible impl for Any<N>
-impl<'a, const N: usize> RawConvertible<'a> for Any<'a, N> {
-    fn to_raw_value(_arena: &'a Bump, value: Self) -> RawValue {
+impl<'a, const N: usize> RawConvertible for Any<'a, N> {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         value.raw
     }
 
@@ -200,10 +200,10 @@ impl<'a, const N: usize> RawConvertible<'a> for Any<'a, N> {
 }
 
 // Bridge impl for Any<N> - needed for Array<Any<N>>, Optional<Any<N>>, etc.
-impl<'a, const N: usize> Bridge<'a> for Any<'a, N> {
+impl<'a, const N: usize> Bridge for Any<'a, N> {
     type Raw = RawValue;
 
-    fn type_from(_type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(_type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         // This is never called in practice for parametric polymorphism.
         // The dispatch code provides the actual type when converting back to Value.
         panic!("Any<N>::type_from should not be called - dispatch handles types")
@@ -224,7 +224,7 @@ impl<'a, const N: usize> Bridge<'a> for Any<'a, N> {
 ///
 /// This is EXACTLY what the user writes. Copy is needed for array.get().
 /// The macro will call it with T = Any<0>.
-fn first_element<'a, T: Bridge<'a> + Copy>(
+fn first_element<'a, T: Bridge + Copy>(
     ctx: &FfiContext<'a, 'a>,
     array: Array<'a, T>,
 ) -> Optional<'a, T> {

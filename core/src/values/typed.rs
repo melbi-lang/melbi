@@ -17,14 +17,14 @@ use crate::{
     values::raw::{ArrayData, MapData, MapEntry, RawValue, Slice},
 };
 
-pub trait RawConvertible<'arena>: Sized {
-    fn to_raw_value(arena: &'arena Bump, value: Self) -> RawValue;
+pub trait RawConvertible: Sized {
+    fn to_raw_value(arena: &Bump, value: Self) -> RawValue;
     unsafe fn from_raw_value(raw: RawValue) -> Self;
 }
 
-pub trait Bridge<'a>: RawConvertible<'a> {
+pub trait Bridge: RawConvertible {
     type Raw: Sized;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a>;
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b>;
 }
 
 /// Typed wrapper around a string slice stored in the arena.
@@ -154,8 +154,8 @@ impl<'a> PartialEq<&str> for Str<'a> {
 
 impl<'a> Eq for Str<'a> {}
 
-impl<'arena> RawConvertible<'arena> for i64 {
-    fn to_raw_value(_arena: &'arena Bump, value: Self) -> RawValue {
+impl RawConvertible for i64 {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue::make_int(value)
     }
 
@@ -164,15 +164,15 @@ impl<'arena> RawConvertible<'arena> for i64 {
     }
 }
 
-impl<'a> Bridge<'a> for i64 {
+impl Bridge for i64 {
     type Raw = i64;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.int()
     }
 }
 
-impl<'arena> RawConvertible<'arena> for f64 {
-    fn to_raw_value(_arena: &'arena Bump, value: Self) -> RawValue {
+impl RawConvertible for f64 {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue::make_float(value)
     }
 
@@ -181,15 +181,15 @@ impl<'arena> RawConvertible<'arena> for f64 {
     }
 }
 
-impl<'a> Bridge<'a> for f64 {
+impl Bridge for f64 {
     type Raw = f64;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.float()
     }
 }
 
-impl<'arena> RawConvertible<'arena> for bool {
-    fn to_raw_value(_arena: &'arena Bump, value: Self) -> RawValue {
+impl RawConvertible for bool {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue::make_bool(value)
     }
 
@@ -198,15 +198,15 @@ impl<'arena> RawConvertible<'arena> for bool {
     }
 }
 
-impl<'a> Bridge<'a> for bool {
+impl Bridge for bool {
     type Raw = bool;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.bool()
     }
 }
 
-impl<'a> RawConvertible<'a> for Str<'a> {
-    fn to_raw_value(_arena: &'a Bump, value: Self) -> RawValue {
+impl<'a> RawConvertible for Str<'a> {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue { slice: value.slice }
     }
 
@@ -218,15 +218,15 @@ impl<'a> RawConvertible<'a> for Str<'a> {
     }
 }
 
-impl<'a> Bridge<'a> for Str<'a> {
+impl<'a> Bridge for Str<'a> {
     type Raw = *const Slice;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.str()
     }
 }
 
-impl<'a> RawConvertible<'a> for &'a [u8] {
-    fn to_raw_value(arena: &'a Bump, value: Self) -> RawValue {
+impl<'a> RawConvertible for &'a [u8] {
+    fn to_raw_value(arena: &Bump, value: Self) -> RawValue {
         let slice = Slice::new(arena, value);
         slice.as_raw_value()
     }
@@ -237,9 +237,9 @@ impl<'a> RawConvertible<'a> for &'a [u8] {
     }
 }
 
-impl<'a> Bridge<'a> for &'a [u8] {
+impl<'a> Bridge for &'a [u8] {
     type Raw = &'a [u8];
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.bytes()
     }
 }
@@ -266,20 +266,20 @@ impl<'a> Bridge<'a> for &'a [u8] {
 /// ```
 #[repr(transparent)]
 #[derive(Debug)]
-pub struct Optional<'a, T: Bridge<'a>> {
+pub struct Optional<'a, T: Bridge> {
     // Pointer to boxed RawValue (null for None, valid pointer for Some)
     ptr: *const RawValue,
     _phantom: PhantomData<(&'a (), T)>,
 }
 
-impl<'a, T: Bridge<'a>> Copy for Optional<'a, T> {}
-impl<'a, T: Bridge<'a>> Clone for Optional<'a, T> {
+impl<'a, T: Bridge> Copy for Optional<'a, T> {}
+impl<'a, T: Bridge> Clone for Optional<'a, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, T: Bridge<'a>> Optional<'a, T> {
+impl<'a, T: Bridge> Optional<'a, T> {
     /// Create None value (null pointer optimization)
     pub const fn none() -> Self {
         Self {
@@ -327,7 +327,7 @@ impl<'a, T: Bridge<'a>> Optional<'a, T> {
     }
 
     /// Map the value with a function, returning a new Optional
-    pub fn map<U: Bridge<'a>>(self, arena: &'a Bump, f: impl FnOnce(T) -> U) -> Optional<'a, U> {
+    pub fn map<U: Bridge>(self, arena: &'a Bump, f: impl FnOnce(T) -> U) -> Optional<'a, U> {
         if self.is_none() {
             Optional::none()
         } else {
@@ -337,8 +337,8 @@ impl<'a, T: Bridge<'a>> Optional<'a, T> {
     }
 }
 
-impl<'a, T: Bridge<'a>> RawConvertible<'a> for Optional<'a, T> {
-    fn to_raw_value(_arena: &'a Bump, value: Self) -> RawValue {
+impl<'a, T: Bridge> RawConvertible for Optional<'a, T> {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue { boxed: value.ptr }
     }
 
@@ -350,17 +350,17 @@ impl<'a, T: Bridge<'a>> RawConvertible<'a> for Optional<'a, T> {
     }
 }
 
-impl<'a, T: Bridge<'a>> Bridge<'a> for Optional<'a, T> {
+impl<'a, T: Bridge> Bridge for Optional<'a, T> {
     type Raw = *const RawValue;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         let inner_ty = T::type_from(type_mgr);
         type_mgr.option(inner_ty)
     }
 }
 
-impl<'a, E: Bridge<'a>> Bridge<'a> for Array<'a, E> {
+impl<'a, E: Bridge> Bridge for Array<'a, E> {
     type Raw = ArrayData<'a>;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         let elem_ty = E::type_from(type_mgr);
         type_mgr.array(elem_ty)
     }
@@ -383,14 +383,14 @@ impl<'a, E: Bridge<'a>> Bridge<'a> for Array<'a, E> {
 /// };
 /// ```
 #[repr(transparent)]
-pub struct Array<'a, T: Bridge<'a>> {
+pub struct Array<'a, T: Bridge> {
     array_data: ArrayData<'a>,
     _phantom: PhantomData<(&'a (), T)>,
 }
 
 // Array<T> - Same size as pointer
-impl<'a, T: Bridge<'a>> RawConvertible<'a> for Array<'a, T> {
-    fn to_raw_value(_arena: &'a Bump, value: Self) -> RawValue {
+impl<'a, T: Bridge> RawConvertible for Array<'a, T> {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         value.as_raw_value()
     }
 
@@ -402,7 +402,7 @@ impl<'a, T: Bridge<'a>> RawConvertible<'a> for Array<'a, T> {
     }
 }
 
-impl<'a, T: Bridge<'a>> Array<'a, T> {
+impl<'a, T: Bridge> Array<'a, T> {
     /// Create a new array from a slice of values.
     ///
     /// This is the primary user-facing constructor for creating typed arrays.
@@ -478,7 +478,7 @@ impl<'a> Array<'a, Str<'a>> {
     }
 }
 
-impl<'a, T: Bridge<'a>> Array<'a, T> {
+impl<'a, T: Bridge> Array<'a, T> {
     /// Get the element at the specified index.
     ///
     /// Returns `None` if the index is out of bounds.
@@ -577,24 +577,24 @@ impl<'a, T: Bridge<'a>> Array<'a, T> {
     }
 }
 
-impl<'a, T: Bridge<'a>> Clone for Array<'a, T> {
+impl<'a, T: Bridge> Clone for Array<'a, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, T: Bridge<'a>> Copy for Array<'a, T> {}
+impl<'a, T: Bridge> Copy for Array<'a, T> {}
 
 /// Iterator over typed Array elements.
 ///
 /// Uses start/end pointer strategy for efficient iteration without bounds checks.
-pub struct ArrayIter<'a, T: Bridge<'a>> {
+pub struct ArrayIter<'a, T: Bridge> {
     current: *const RawValue,
     end: *const RawValue,
     _phantom: PhantomData<(&'a (), T)>,
 }
 
-impl<'a, T: Bridge<'a>> Iterator for ArrayIter<'a, T> {
+impl<'a, T: Bridge> Iterator for ArrayIter<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -614,13 +614,13 @@ impl<'a, T: Bridge<'a>> Iterator for ArrayIter<'a, T> {
     }
 }
 
-impl<'a, T: Bridge<'a>> ExactSizeIterator for ArrayIter<'a, T> {
+impl<'a, T: Bridge> ExactSizeIterator for ArrayIter<'a, T> {
     fn len(&self) -> usize {
         unsafe { self.end.offset_from(self.current) as usize }
     }
 }
 
-impl<'a, T: Bridge<'a>> IntoIterator for Array<'a, T> {
+impl<'a, T: Bridge> IntoIterator for Array<'a, T> {
     type Item = T;
     type IntoIter = ArrayIter<'a, T>;
 
@@ -629,7 +629,7 @@ impl<'a, T: Bridge<'a>> IntoIterator for Array<'a, T> {
     }
 }
 
-impl<'a, T: Bridge<'a>> IntoIterator for &'a Array<'a, T> {
+impl<'a, T: Bridge> IntoIterator for &'a Array<'a, T> {
     type Item = T;
     type IntoIter = ArrayIter<'a, T>;
 
@@ -642,9 +642,9 @@ impl<'a, T: Bridge<'a>> IntoIterator for &'a Array<'a, T> {
 // Map - Compile-time typed immutable key-value mapping
 // ============================================================================
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> Bridge<'a> for Map<'a, K, V> {
+impl<'a, K: Bridge, V: Bridge> Bridge for Map<'a, K, V> {
     type Raw = MapData<'a>;
-    fn type_from(type_mgr: &'a TypeManager<'a>) -> &'a Type<'a> {
+    fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         let key_ty = K::type_from(type_mgr);
         let value_ty = V::type_from(type_mgr);
         type_mgr.map(key_ty, value_ty)
@@ -656,13 +656,13 @@ impl<'a, K: Bridge<'a>, V: Bridge<'a>> Bridge<'a> for Map<'a, K, V> {
 /// Maps store key-value pairs in sorted order for efficient binary search.
 /// All operations are type-safe at compile time with zero runtime overhead.
 #[repr(transparent)]
-pub struct Map<'a, K: Bridge<'a>, V: Bridge<'a>> {
+pub struct Map<'a, K: Bridge, V: Bridge> {
     map_data: MapData<'a>,
     _phantom: PhantomData<(&'a (), K, V)>,
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> RawConvertible<'a> for Map<'a, K, V> {
-    fn to_raw_value(_arena: &'a Bump, value: Self) -> RawValue {
+impl<'a, K: Bridge, V: Bridge> RawConvertible for Map<'a, K, V> {
+    fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         const {
             assert!(core::mem::size_of::<Self>() == core::mem::size_of::<RawValue>());
         }
@@ -680,7 +680,7 @@ impl<'a, K: Bridge<'a>, V: Bridge<'a>> RawConvertible<'a> for Map<'a, K, V> {
     }
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> Map<'a, K, V> {
+impl<'a, K: Bridge, V: Bridge> Map<'a, K, V> {
     /// Returns the number of key-value pairs in the map.
     pub fn len(&self) -> usize {
         self.map_data.length()
@@ -731,7 +731,7 @@ impl<'a, K: Bridge<'a>, V: Bridge<'a>> Map<'a, K, V> {
     }
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> Map<'a, K, V>
+impl<'a, K: Bridge, V: Bridge> Map<'a, K, V>
 where
     K: Copy + Ord,
     V: Copy,
@@ -827,22 +827,22 @@ where
     }
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> Clone for Map<'a, K, V> {
+impl<'a, K: Bridge, V: Bridge> Clone for Map<'a, K, V> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> Copy for Map<'a, K, V> {}
+impl<'a, K: Bridge, V: Bridge> Copy for Map<'a, K, V> {}
 
 /// Iterator over typed Map key-value pairs.
-pub struct MapIter<'a, K: Bridge<'a>, V: Bridge<'a>> {
+pub struct MapIter<'a, K: Bridge, V: Bridge> {
     map_data: MapData<'a>,
     index: usize,
     _phantom: PhantomData<(&'a (), K, V)>,
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> Iterator for MapIter<'a, K, V> {
+impl<'a, K: Bridge, V: Bridge> Iterator for MapIter<'a, K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -865,13 +865,13 @@ impl<'a, K: Bridge<'a>, V: Bridge<'a>> Iterator for MapIter<'a, K, V> {
     }
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> ExactSizeIterator for MapIter<'a, K, V> {
+impl<'a, K: Bridge, V: Bridge> ExactSizeIterator for MapIter<'a, K, V> {
     fn len(&self) -> usize {
         self.map_data.length() - self.index
     }
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> IntoIterator for Map<'a, K, V> {
+impl<'a, K: Bridge, V: Bridge> IntoIterator for Map<'a, K, V> {
     type Item = (K, V);
     type IntoIter = MapIter<'a, K, V>;
 
@@ -880,7 +880,7 @@ impl<'a, K: Bridge<'a>, V: Bridge<'a>> IntoIterator for Map<'a, K, V> {
     }
 }
 
-impl<'a, K: Bridge<'a>, V: Bridge<'a>> IntoIterator for &'a Map<'a, K, V> {
+impl<'a, K: Bridge, V: Bridge> IntoIterator for &'a Map<'a, K, V> {
     type Item = (K, V);
     type IntoIter = MapIter<'a, K, V>;
 
