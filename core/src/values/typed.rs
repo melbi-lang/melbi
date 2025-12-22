@@ -1,4 +1,4 @@
-#![allow(unsafe_code)]
+#![allow(unsafe_code, private_bounds)]
 //! Tier 1: Statically-typed, compile-time safe value API
 //!
 //! This module provides zero-overhead, compile-time type-safe wrappers around
@@ -17,7 +17,10 @@ use crate::{
     values::raw::{ArrayData, MapData, MapEntry, RawValue, Slice},
 };
 
-pub trait RawConvertible: Sized {
+trait Sealed {}
+impl<T> Sealed for T where T: RawConvertible {}
+
+pub trait RawConvertible: Sealed + Sized {
     fn to_raw_value(arena: &Bump, value: Self) -> RawValue;
     unsafe fn from_raw_value(raw: RawValue) -> Self;
 }
