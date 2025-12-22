@@ -2,6 +2,7 @@
 
 use super::{CompileOptionsOverride, CompiledExpression, EngineOptions, EnvironmentBuilder, Error};
 use crate::types::{Type, manager::TypeManager};
+use crate::values::builder::Binder;
 use crate::values::dynamic::Value;
 use crate::{Vec, analyzer, parser};
 use bumpalo::Bump;
@@ -23,6 +24,7 @@ use bumpalo::Bump;
 /// ```
 /// use melbi_core::api::{Engine, EngineOptions};
 /// use melbi_core::values::dynamic::Value;
+/// use melbi_core::values::builder::Binder;
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
@@ -30,12 +32,11 @@ use bumpalo::Bump;
 ///
 /// let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
 ///     // Register a constant
-///     env.register("pi", Value::float(type_mgr, std::f64::consts::PI))
-///         .expect("registration should succeed");
+///     env.bind("PI", Value::float(type_mgr, std::f64::consts::PI))
 /// });
 ///
 /// // Compile an expression
-/// let expr = engine.compile(Default::default(), "pi * 2.0", &[]).unwrap();
+/// let expr = engine.compile(Default::default(), "PI * 2.0", &[]).unwrap();
 ///
 /// // Execute
 /// let val_arena = Bump::new();
@@ -60,32 +61,40 @@ impl<'arena> Engine<'arena> {
     /// - `type_mgr`: The type builder for creating types
     /// - `env`: The environment builder for registering globals
     ///
+    /// The closure must return the modified environment builder.
+    ///
     /// # Example
     ///
     /// ```
     /// use melbi_core::api::{Engine, EngineOptions};
     /// use melbi_core::values::dynamic::Value;
+    /// use melbi_core::values::builder::Binder;
     /// use bumpalo::Bump;
     ///
     /// let arena = Bump::new();
     /// let options = EngineOptions::default();
     /// let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
-    ///     env.register("pi", Value::float(type_mgr, std::f64::consts::PI))
-    ///         .expect("registration should succeed");
+    ///     env.bind("pi", Value::float(type_mgr, std::f64::consts::PI))
     /// });
     /// ```
     pub fn new(
         options: EngineOptions,
         arena: &'arena Bump,
-        init: impl FnOnce(&'arena Bump, &'arena TypeManager<'arena>, &mut EnvironmentBuilder<'arena>),
+        init: impl FnOnce(
+            &'arena Bump,
+            &'arena TypeManager<'arena>,
+            EnvironmentBuilder<'arena>,
+        ) -> EnvironmentBuilder<'arena>,
     ) -> Self {
         // Create type manager
         let type_manager = TypeManager::new(arena);
 
         // Build environment using the initialization closure
-        let mut env_builder = EnvironmentBuilder::new(arena);
-        init(arena, type_manager, &mut env_builder);
-        let environment = env_builder.build(arena);
+        let env_builder = EnvironmentBuilder::new(arena);
+        let env_builder = init(arena, type_manager, env_builder);
+        let environment = env_builder
+            .build()
+            .expect("Environment should build successfully");
 
         // Precompute globals for analyzer (convert Value to Type)
         // TODO: Switch to TypeScheme when generic functions are supported
@@ -143,7 +152,7 @@ impl<'arena> Engine<'arena> {
     /// use bumpalo::Bump;
     ///
     /// let arena = Bump::new();
-    /// let engine = Engine::new(EngineOptions::default(), &arena, |_,_,_| {});
+    /// let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
     ///
     /// // Compile a parameterized expression
     /// let type_mgr = engine.type_manager();

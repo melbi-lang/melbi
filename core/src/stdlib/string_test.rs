@@ -3,8 +3,8 @@
 use super::build_string_package;
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
-    types::manager::TypeManager,
-    values::dynamic::Value,
+    types::manager::TypeManager, // This import is necessary for test helpers
+    values::{builder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 
@@ -30,7 +30,7 @@ where
 
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
         let string = build_string_package(arena, type_mgr).unwrap();
-        env.register("String", string).unwrap();
+        env.bind("String", string)
     });
 
     let compile_opts = CompileOptionsOverride::default();

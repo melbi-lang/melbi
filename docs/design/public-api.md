@@ -240,14 +240,20 @@ impl<'arena> Engine<'arena> {
     pub fn new(
         arena: &'arena Bump,
         options: EngineOptions,
-        init: impl FnOnce(&'arena Bump, &TypeManager<'arena>, &mut EnvironmentBuilder<'arena>)
+        init: impl FnOnce(
+            &'arena Bump,
+            &'arena TypeManager<'arena>,
+            EnvironmentBuilder<'arena>,
+        ) -> EnvironmentBuilder<'arena>,
     ) -> Self {
         let type_manager = TypeManager::new(arena);
-        let mut env_builder = EnvironmentBuilder::new(arena);
+        let env_builder = EnvironmentBuilder::new(arena);
+        let env_builder = init(arena, &type_manager, env_builder);
 
-        init(arena, &type_manager, &mut env_builder);
+        let environment = env_builder
+            .build(arena)
+            .expect("Environment initialization failed");
 
-        let environment = env_builder.build(arena); // sorted &[(&str, Value)]
         Self { arena, type_manager, environment, options }
     }
 
@@ -267,28 +273,23 @@ impl<'arena> Engine<'arena> {
     }
 }
 
-impl<'arena> EnvironmentBuilder<'arena> {
-    /// Create a new environment builder
-    pub fn new(arena: &'arena Bump) -> Self {
-        Self {
-            arena,
-            entries: Vec::new(),
-        }
+impl<'arena> Binder<'arena, 'arena> for EnvironmentBuilder<'arena> {
+    type Output = &'arena [(&'arena str, Value<'arena, 'arena>)];
+    type Error = melbi_core::api::Error;
+
+    /// Binds a name to a value in the builder.
+    fn bind(mut self, name: &str, value: Value<'arena, 'arena>) -> Self {
+        // ... implementation with deferred error handling ...
+        self
     }
 
-    /// Register a global value (constant, function, or package)
-    pub fn register(&mut self, name: &str, value: Value<'arena, 'arena>) {
-        let name = self.arena.alloc_str(name);
-        self.entries.push((name, value));
-    }
-
-    /// Build the final sorted environment slice
-    pub fn build(mut self, arena: &'arena Bump) -> &'arena [(&'arena str, Value<'arena, 'arena>)] {
-        // Sort by name for efficient binary search during lookup
-        self.entries.sort_by_key(|(name, _)| *name);
-        arena.alloc_slice_copy(&self.entries)
+    /// Build the final sorted environment slice.
+    fn build(self, arena: &'arena Bump) -> Result<Self::Output, Self::Error> {
+        // ... implementation that checks for errors and builds ...
     }
 }
+
+// Note: EnvironmentBuilder also has an inherent `new` method.
 ```
 
 #### Dynamic Expression API
@@ -419,7 +420,7 @@ type RawMelbiFunction = fn(
     args: &[Value],
 ) -> Result<Value, RuntimeError>;
 
-env_builder.register("add", Value::function(type_mgr, add_type, raw_add_wrapper));
+env_builder.bind("add", Value::function(type_mgr, add_type, raw_add_wrapper));
 
 // 2. Dynamic Safe FFI (runtime validation, generic parameters)
 engine.register_generic_function(

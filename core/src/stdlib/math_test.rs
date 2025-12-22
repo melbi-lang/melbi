@@ -3,8 +3,8 @@
 use super::build_math_package;
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
-    types::manager::TypeManager,
-    values::dynamic::Value,
+    types::manager::TypeManager, // This import is necessary for test helpers
+    values::{builder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 
@@ -60,7 +60,7 @@ where
 
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
         let math = build_math_package(arena, type_mgr).unwrap();
-        env.register("Math", math).unwrap();
+        env.bind("Math", math)
     });
 
     let compile_opts = CompileOptionsOverride::default();

@@ -9,9 +9,10 @@
 //! - `Mod(a, b)`: Euclidean modulus (always non-negative)
 
 use crate::{
+    api::Error,
     evaluator::RuntimeError,
     types::manager::TypeManager,
-    values::{dynamic::Value, from_raw::TypeError},
+    values::{builder::Binder, dynamic::Value, from_raw::TypeError},
 };
 use bumpalo::Bump;
 use melbi_macros::melbi_fn;
@@ -153,23 +154,25 @@ fn int_mod(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// let int_pkg = build_int_package(arena, type_mgr)?;
 /// env.register("Int", int_pkg)?;
 /// ```
-pub fn build_int_package<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-) -> Result<Value<'arena, 'arena>, TypeError> {
+pub fn build_int_package<'ty_arena, 'val_arena, B>(
+    arena: &'val_arena Bump,
+    type_mgr: &'ty_arena TypeManager<'ty_arena>,
+    mut builder: B,
+) -> Result<B, Error>
+where
+    B: Binder<'ty_arena, 'val_arena, Error = Error>,
+{
     use crate::values::function::AnnotatedFunction;
 
-    let mut builder = Value::record_builder(type_mgr);
-
     // Truncated division (C-style)
-    builder = Quot::new(type_mgr).register(arena, builder)?;
-    builder = Rem::new(type_mgr).register(arena, builder)?;
+    builder = Quot::new(type_mgr).register(arena, builder);
+    builder = Rem::new(type_mgr).register(arena, builder);
 
     // Euclidean division
-    builder = Div::new(type_mgr).register(arena, builder)?;
-    builder = Mod::new(type_mgr).register(arena, builder)?;
+    builder = Div::new(type_mgr).register(arena, builder);
+    builder = Mod::new(type_mgr).register(arena, builder);
 
-    builder.build(arena)
+    Ok(builder)
 }
 
 #[cfg(test)]

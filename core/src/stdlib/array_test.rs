@@ -5,7 +5,7 @@ use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions, Error},
     stdlib::{build_math_package, build_string_package},
     types::manager::TypeManager,
-    values::dynamic::Value,
+    values::{builder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 
@@ -34,12 +34,12 @@ fn eval<'a>(arena: &'a Bump, source: &'a str) -> Result<Value<'a, 'a>, Error> {
     let options = EngineOptions::default();
 
     let engine = Engine::new(options, arena, |arena, type_mgr, env| {
-        let array = build_array_package(arena, type_mgr).unwrap();
-        env.register("Array", array).unwrap();
+        let array = build_array_package(arena, type_mgr, env);
+        let env = env.bind("Array", array);
         let math = build_math_package(arena, type_mgr).unwrap();
-        env.register("Math", math).unwrap();
+        let env = env.bind("Math", math);
         let string = build_string_package(arena, type_mgr).unwrap();
-        env.register("String", string).unwrap();
+        env.bind("String", string)
     });
 
     let compile_opts = CompileOptionsOverride::default();

@@ -2,7 +2,10 @@
 //!
 //! This tests the new dynamic API that doesn't require compile-time type knowledge.
 
-use crate::{types::manager::TypeManager, values::dynamic::Value};
+use crate::{
+    types::manager::TypeManager,
+    values::{builder::Binder, dynamic::Value},
+};
 use bumpalo::Bump;
 
 #[test]
@@ -1353,7 +1356,7 @@ fn test_record_builder_empty() {
     let type_mgr = TypeManager::new(&arena);
 
     // Build empty record
-    let rec = Value::record_builder(type_mgr).build(&arena).unwrap();
+    let rec = Value::record_builder(&arena, type_mgr).build().unwrap();
 
     let record = rec.as_record().unwrap();
     assert_eq!(record.len(), 0);
@@ -1366,10 +1369,10 @@ fn test_record_builder_basic() {
     let type_mgr = TypeManager::new(&arena);
 
     // Build record with fields in any order
-    let rec = Value::record_builder(type_mgr)
-        .field("x", Value::int(type_mgr, 42))
-        .field("y", Value::float(type_mgr, 3.14))
-        .build(&arena)
+    let rec = Value::record_builder(&arena, type_mgr)
+        .bind("x", Value::int(type_mgr, 42))
+        .bind("y", Value::float(type_mgr, 3.14))
+        .build()
         .unwrap();
 
     let record = rec.as_record().unwrap();
@@ -1384,11 +1387,11 @@ fn test_record_builder_auto_sorting() {
     let type_mgr = TypeManager::new(&arena);
 
     // Add fields in reverse alphabetical order
-    let rec = Value::record_builder(type_mgr)
-        .field("z", Value::int(type_mgr, 3))
-        .field("y", Value::int(type_mgr, 2))
-        .field("x", Value::int(type_mgr, 1))
-        .build(&arena)
+    let rec = Value::record_builder(&arena, type_mgr)
+        .bind("z", Value::int(type_mgr, 3))
+        .bind("y", Value::int(type_mgr, 2))
+        .bind("x", Value::int(type_mgr, 1))
+        .build()
         .unwrap();
 
     // Fields should be automatically sorted: x, y, z
@@ -1410,10 +1413,10 @@ fn test_record_builder_duplicate_fields() {
     let type_mgr = TypeManager::new(&arena);
 
     // Add same field twice - last value wins
-    let rec = Value::record_builder(type_mgr)
-        .field("x", Value::int(type_mgr, 42))
-        .field("x", Value::int(type_mgr, 100))
-        .build(&arena)
+    let rec = Value::record_builder(&arena, type_mgr)
+        .bind("x", Value::int(type_mgr, 42))
+        .bind("x", Value::int(type_mgr, 100))
+        .build()
         .unwrap();
 
     let record = rec.as_record().unwrap();
@@ -1427,17 +1430,17 @@ fn test_record_builder_nested() {
     let type_mgr = TypeManager::new(&arena);
 
     // Build inner record
-    let inner = Value::record_builder(type_mgr)
-        .field("x", Value::int(type_mgr, 10))
-        .field("y", Value::int(type_mgr, 20))
-        .build(&arena)
+    let inner = Value::record_builder(&arena, type_mgr)
+        .bind("x", Value::int(type_mgr, 10))
+        .bind("y", Value::int(type_mgr, 20))
+        .build()
         .unwrap();
 
     // Build outer record containing inner
-    let outer = Value::record_builder(type_mgr)
-        .field("name", Value::str(&arena, type_mgr.str(), "point"))
-        .field("point", inner)
-        .build(&arena)
+    let outer = Value::record_builder(&arena, type_mgr)
+        .bind("name", Value::str(&arena, type_mgr.str(), "point"))
+        .bind("point", inner)
+        .build()
         .unwrap();
 
     let outer_rec = outer.as_record().unwrap();
@@ -1458,12 +1461,12 @@ fn test_record_builder_mixed_types() {
     let type_mgr = TypeManager::new(&arena);
 
     // Build record with different value types
-    let rec = Value::record_builder(type_mgr)
-        .field("int_field", Value::int(type_mgr, 42))
-        .field("float_field", Value::float(type_mgr, 3.14))
-        .field("bool_field", Value::bool(type_mgr, true))
-        .field("str_field", Value::str(&arena, type_mgr.str(), "hello"))
-        .build(&arena)
+    let rec = Value::record_builder(&arena, type_mgr)
+        .bind("int_field", Value::int(type_mgr, 42))
+        .bind("float_field", Value::float(type_mgr, 3.14))
+        .bind("bool_field", Value::bool(type_mgr, true))
+        .bind("str_field", Value::str(&arena, type_mgr.str(), "hello"))
+        .build()
         .unwrap();
 
     let record = rec.as_record().unwrap();
@@ -1490,10 +1493,10 @@ fn test_record_builder_with_array() {
     )
     .unwrap();
 
-    let rec = Value::record_builder(type_mgr)
-        .field("numbers", arr)
-        .field("name", Value::str(&arena, type_mgr.str(), "test"))
-        .build(&arena)
+    let rec = Value::record_builder(&arena, type_mgr)
+        .bind("numbers", arr)
+        .bind("name", Value::str(&arena, type_mgr.str(), "test"))
+        .build()
         .unwrap();
 
     let record = rec.as_record().unwrap();
@@ -1511,16 +1514,16 @@ fn test_record_builder_equality() {
     let type_mgr = TypeManager::new(&arena);
 
     // Build two identical records
-    let rec1 = Value::record_builder(type_mgr)
-        .field("x", Value::int(type_mgr, 42))
-        .field("y", Value::float(type_mgr, 3.14))
-        .build(&arena)
+    let rec1 = Value::record_builder(&arena, type_mgr)
+        .bind("x", Value::int(type_mgr, 42))
+        .bind("y", Value::float(type_mgr, 3.14))
+        .build()
         .unwrap();
 
-    let rec2 = Value::record_builder(type_mgr)
-        .field("y", Value::float(type_mgr, 3.14)) // Different order
-        .field("x", Value::int(type_mgr, 42))
-        .build(&arena)
+    let rec2 = Value::record_builder(&arena, type_mgr)
+        .bind("y", Value::float(type_mgr, 3.14)) // Different order
+        .bind("x", Value::int(type_mgr, 42))
+        .build()
         .unwrap();
 
     // Should be equal despite different construction order
@@ -1533,10 +1536,10 @@ fn test_record_builder_vs_manual() {
     let type_mgr = TypeManager::new(&arena);
 
     // Build with RecordBuilder
-    let with_builder = Value::record_builder(type_mgr)
-        .field("x", Value::int(type_mgr, 42))
-        .field("y", Value::float(type_mgr, 3.14))
-        .build(&arena)
+    let with_builder = Value::record_builder(&arena, type_mgr)
+        .bind("x", Value::int(type_mgr, 42))
+        .bind("y", Value::float(type_mgr, 3.14))
+        .build()
         .unwrap();
 
     // Build manually (fields must be pre-sorted)

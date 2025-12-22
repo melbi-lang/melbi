@@ -4,7 +4,7 @@ use super::build_int_package;
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager,
-    values::dynamic::Value,
+    values::{builder::Binder, dynamic::Value},
 };
 use bumpalo::Bump;
 
@@ -34,7 +34,7 @@ where
 
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
         let int_pkg = build_int_package(arena, type_mgr).unwrap();
-        env.register("Int", int_pkg).unwrap();
+        env.bind("Int", int_pkg)
     });
 
     let compile_opts = CompileOptionsOverride::default();
@@ -401,7 +401,7 @@ fn test_int_expr_expects_error(source: &str, expected_error_substring: &str) {
 
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
         let int_pkg = build_int_package(arena, type_mgr).unwrap();
-        env.register("Int", int_pkg).unwrap();
+        env.bind("Int", int_pkg)
     });
 
     let compile_opts = CompileOptionsOverride::default();
@@ -445,7 +445,7 @@ fn test_int_expr_panics(source: &str) -> bool {
 
         let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
             let int_pkg = build_int_package(arena, type_mgr).unwrap();
-            env.register("Int", int_pkg).unwrap();
+            env.bind("Int", int_pkg)
         });
 
         let compile_opts = CompileOptionsOverride::default();

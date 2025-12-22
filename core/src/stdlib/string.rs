@@ -9,10 +9,12 @@
 //! - Format strings (f"...") are built into the language, not library functions
 
 use crate::{
+    api::Error,
     Vec,
     types::manager::TypeManager,
     values::{
         FfiContext,
+        builder::Binder,
         dynamic::Value,
         from_raw::TypeError,
         typed::{Array, Optional, Str},
@@ -257,13 +259,15 @@ fn string_to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64
 /// let string = build_string_package(ctx.arena(), type_mgr)?;
 /// env.register("String", string)?;
 /// ```
-pub fn build_string_package<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-) -> Result<Value<'arena, 'arena>, TypeError> {
+pub fn build_string_package<'ty_arena, 'val_arena, B>(
+    arena: &'val_arena Bump,
+    type_mgr: &'ty_arena TypeManager<'ty_arena>,
+    mut builder: B,
+) -> Result<B, Error>
+where
+    B: Binder<'ty_arena, 'val_arena, Error = Error>,
+{
     use crate::values::function::AnnotatedFunction;
-
-    let mut builder = Value::record_builder(type_mgr);
 
     // Inspection
     builder = Len::new(type_mgr).register(arena, builder)?;
@@ -292,7 +296,7 @@ pub fn build_string_package<'arena>(
     builder = ToInt::new(type_mgr).register(arena, builder)?;
     builder = ToFloat::new(type_mgr).register(arena, builder)?;
 
-    builder.build(arena)
+    Ok(builder)
 }
 
 #[cfg(test)]

@@ -14,7 +14,7 @@
 //!
 //! ```
 //! use melbi::{Engine, EngineOptions};
-//! use melbi::values::dynamic::Value;
+//! use melbi::values::{Binder, dynamic::Value};
 //! use bumpalo::Bump;
 //!
 //! // Create an arena for type and environment data
@@ -24,8 +24,7 @@
 //! // Create an engine with a global environment
 //! let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
 //!     // Register a constant
-//!     env.register("PI", Value::float(type_mgr, std::f64::consts::PI))
-//!         .expect("registration should succeed");
+//!     env.bind("PI", Value::float(type_mgr, std::f64::consts::PI))
 //! });
 //!
 //! // Compile an expression
@@ -51,7 +50,7 @@
 //!
 //! ```
 //! use melbi::{Engine, EngineOptions, ExecutionError};
-//! use melbi::values::{FfiContext, NativeFunction, dynamic::Value};
+//! use melbi::values::{Binder, FfiContext, NativeFunction, dynamic::Value};
 //! use bumpalo::Bump;
 //!
 //! fn add<'types, 'arena>(
@@ -68,8 +67,7 @@
 //! let options = EngineOptions::default();
 //! let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
 //!     let add_ty = type_mgr.function(&[type_mgr.int(), type_mgr.int()], type_mgr.int());
-//!     env.register("add", Value::function(arena, NativeFunction::new(add_ty, add)).unwrap())
-//!         .expect("registration should succeed");
+//!     env.bind("add", Value::function(arena, NativeFunction::new(add_ty, add)).unwrap())
 //! });
 //!
 //! // Use the function

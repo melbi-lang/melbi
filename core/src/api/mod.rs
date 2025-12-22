@@ -11,7 +11,7 @@
 //!
 //! ```
 //! use melbi_core::api::{CompileOptionsOverride, Engine, EngineOptions, RunOptionsOverride};
-//! use melbi_core::values::dynamic::Value;
+//! use melbi_core::values::{dynamic::Value, builder::Binder};
 //! use bumpalo::Bump;
 //!
 //! let arena = Bump::new();
@@ -19,8 +19,7 @@
 //!
 //! let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
 //!     // Register constants
-//!     env.register("PI", Value::float(type_mgr, std::f64::consts::PI))
-//!         .expect("registration should succeed");
+//!     env.bind("PI", Value::float(type_mgr, std::f64::consts::PI))
 //! });
 //!
 //! // Compile expression

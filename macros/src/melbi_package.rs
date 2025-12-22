@@ -108,7 +108,7 @@ fn generate_builder_function(
             let melbi_name = &c.melbi_name;
             let rust_fn = &c.rust_fn_name;
             quote! {
-                builder = builder.field(stringify!(#melbi_name), #rust_fn(arena, type_mgr));
+                builder = builder.bind(stringify!(#melbi_name), #rust_fn(arena, type_mgr));
             }
         })
         .collect();
@@ -132,6 +132,7 @@ fn generate_builder_function(
             ::melbi_core::values::dynamic::Value<'arena, 'arena>,
             ::melbi_core::values::from_raw::TypeError,
         > {
+            use ::melbi_core::values::builder::Binder;
             use ::melbi_core::values::function::AnnotatedFunction;
 
             let mut builder = ::melbi_core::values::dynamic::Value::record_builder(type_mgr);

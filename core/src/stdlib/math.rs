@@ -8,7 +8,10 @@
 
 use crate::{
     types::manager::TypeManager,
-    values::{dynamic::Value, from_raw::TypeError},
+    values::{
+        builder::{self, Binder},
+        dynamic::Value,
+    },
 };
 use bumpalo::Bump;
 use melbi_macros::melbi_fn;
@@ -168,51 +171,53 @@ fn math_exp(value: f64) -> f64 {
 /// let math = build_math_package(arena, type_mgr)?;
 /// env.register("Math", math)?;
 /// ```
-pub fn build_math_package<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-) -> Result<Value<'arena, 'arena>, TypeError> {
+pub fn build_math_package<'a, B>(
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
+    mut builder: B,
+) -> Result<B, builder::Error>
+where
+    B: Binder<'a, 'a>,
+{
     use crate::values::function::AnnotatedFunction;
 
-    let mut builder = Value::record_builder(type_mgr);
-
     // Constants
-    builder = builder.field("PI", Value::float(type_mgr, core::f64::consts::PI));
-    builder = builder.field("E", Value::float(type_mgr, core::f64::consts::E));
-    builder = builder.field("TAU", Value::float(type_mgr, core::f64::consts::TAU));
-    builder = builder.field("INFINITY", Value::float(type_mgr, f64::INFINITY));
-    builder = builder.field("NAN", Value::float(type_mgr, f64::NAN));
+    builder = builder.bind("PI", Value::float(type_mgr, core::f64::consts::PI));
+    builder = builder.bind("E", Value::float(type_mgr, core::f64::consts::E));
+    builder = builder.bind("TAU", Value::float(type_mgr, core::f64::consts::TAU));
+    builder = builder.bind("INFINITY", Value::float(type_mgr, f64::INFINITY));
+    builder = builder.bind("NAN", Value::float(type_mgr, f64::NAN));
 
     // Basic operations
-    builder = Abs::new(type_mgr).register(arena, builder)?;
-    builder = Min::new(type_mgr).register(arena, builder)?;
-    builder = Max::new(type_mgr).register(arena, builder)?;
-    builder = Clamp::new(type_mgr).register(arena, builder)?;
+    builder = Abs::new(type_mgr).register(arena, builder);
+    builder = Min::new(type_mgr).register(arena, builder);
+    builder = Max::new(type_mgr).register(arena, builder);
+    builder = Clamp::new(type_mgr).register(arena, builder);
 
     // Rounding functions
-    builder = Floor::new(type_mgr).register(arena, builder)?;
-    builder = Ceil::new(type_mgr).register(arena, builder)?;
-    builder = Round::new(type_mgr).register(arena, builder)?;
+    builder = Floor::new(type_mgr).register(arena, builder);
+    builder = Ceil::new(type_mgr).register(arena, builder);
+    builder = Round::new(type_mgr).register(arena, builder);
 
     // Exponentiation
-    builder = Sqrt::new(type_mgr).register(arena, builder)?;
-    builder = Pow::new(type_mgr).register(arena, builder)?;
+    builder = Sqrt::new(type_mgr).register(arena, builder);
+    builder = Pow::new(type_mgr).register(arena, builder);
 
     // Trigonometry
-    builder = Sin::new(type_mgr).register(arena, builder)?;
-    builder = Cos::new(type_mgr).register(arena, builder)?;
-    builder = Tan::new(type_mgr).register(arena, builder)?;
-    builder = Asin::new(type_mgr).register(arena, builder)?;
-    builder = Acos::new(type_mgr).register(arena, builder)?;
-    builder = Atan::new(type_mgr).register(arena, builder)?;
-    builder = Atan2::new(type_mgr).register(arena, builder)?;
+    builder = Sin::new(type_mgr).register(arena, builder);
+    builder = Cos::new(type_mgr).register(arena, builder);
+    builder = Tan::new(type_mgr).register(arena, builder);
+    builder = Asin::new(type_mgr).register(arena, builder);
+    builder = Acos::new(type_mgr).register(arena, builder);
+    builder = Atan::new(type_mgr).register(arena, builder);
+    builder = Atan2::new(type_mgr).register(arena, builder);
 
     // Logarithms
-    builder = Log::new(type_mgr).register(arena, builder)?;
-    builder = Log10::new(type_mgr).register(arena, builder)?;
-    builder = Exp::new(type_mgr).register(arena, builder)?;
+    builder = Log::new(type_mgr).register(arena, builder);
+    builder = Log10::new(type_mgr).register(arena, builder);
+    builder = Exp::new(type_mgr).register(arena, builder);
 
-    builder.build(arena)
+    Ok(builder)
 }
 
 #[cfg(test)]

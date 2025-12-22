@@ -17,11 +17,11 @@ use bumpalo::Bump;
 ///
 /// ```
 /// use melbi_core::api::{Engine, EngineOptions};
-/// use melbi_core::values::dynamic::Value;
+/// use melbi_core::values::{builder::Binder, dynamic::Value};
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
-/// let engine = Engine::new(EngineOptions::default(), &arena, |_,_,_| {});
+/// let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
 /// let type_mgr = engine.type_manager();
 /// let int_ty = type_mgr.int();
 /// let expr = engine.compile(
@@ -107,11 +107,11 @@ impl<'arena> CompiledExpression<'arena> {
     ///
     /// ```
     /// use melbi_core::api::{Engine, EngineOptions, RunOptionsOverride};
-    /// use melbi_core::values::dynamic::Value;
+    /// use melbi_core::values::{builder::Binder, dynamic::Value};
     /// use bumpalo::Bump;
     ///
     /// let arena = Bump::new();
-    /// let engine = Engine::new(EngineOptions::default(), &arena, |_,_,_| {});
+    /// let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
     /// let type_mgr = engine.type_manager();
     /// let int_ty = type_mgr.int();
     /// let expr = engine.compile(
@@ -204,7 +204,7 @@ impl<'arena> CompiledExpression<'arena> {
     /// use bumpalo::Bump;
     ///
     /// let arena = Bump::new();
-    /// let engine = Engine::new(EngineOptions::default(), &arena, |_,_,_| {});
+    /// let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
     /// let type_mgr = engine.type_manager();
     /// let int_ty = type_mgr.int();
     /// let expr = engine.compile(
