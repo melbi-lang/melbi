@@ -7,13 +7,11 @@ pub mod lambda;
 pub mod raw;
 pub mod typed;
 
-pub use binder::Binder;
 pub use bytecode_lambda::{BytecodeLambda, LambdaInstantiation};
 pub use from_raw::TypeError;
 pub use function::{FfiContext, Function, NativeFn, NativeFunction};
 pub use lambda::EvalLambda;
-pub use raw::{ArrayData, MapData, RawValue, RecordData};
-pub use typed::{Array, Bridge, Optional, RawConvertible, Str};
+pub(crate) use raw::{ArrayData, MapData, RawValue, RecordData};
 
 #[cfg(test)]
 mod display_test;
