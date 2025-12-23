@@ -20,6 +20,13 @@ use bumpalo::Bump;
 // ============================================================================
 
 /// Get the length of an array
+///
+/// Polymorphic - works with arrays of any element type.
+///
+/// # Examples
+/// - `Array.Len([1, 2, 3])` → `3`
+/// - `Array.Len(["a", "b"])` → `2`
+/// - `Array.Len([])` → `0`
 fn array_len<'types, 'arena>(
     ctx: &FfiContext<'types, 'arena>,
     args: &[Value<'types, 'arena>],
@@ -30,6 +37,12 @@ fn array_len<'types, 'arena>(
 }
 
 /// Check if an array is empty
+///
+/// Polymorphic - works with arrays of any element type.
+///
+/// # Examples
+/// - `Array.IsEmpty([])` → `true`
+/// - `Array.IsEmpty([1])` → `false`
 fn array_is_empty<'types, 'arena>(
     ctx: &FfiContext<'types, 'arena>,
     args: &[Value<'types, 'arena>],
@@ -44,6 +57,20 @@ fn array_is_empty<'types, 'arena>(
 // ============================================================================
 
 /// Extract a slice of an array
+///
+/// Polymorphic - works with arrays of any element type.
+///
+/// # Edge Cases
+///
+/// - If `start >= end`, returns an empty array
+/// - If `start` is beyond the array length, returns an empty array
+/// - If `end` is beyond the array length, it's clamped to the array length
+/// - Negative indices are not supported (yet)
+///
+/// # Examples
+/// - `Array.Slice([1,2,3,4,5], 1, 4)` → `[2, 3, 4]`
+/// - `Array.Slice([1,2,3], 3, 1)` → `[]` (start > end)
+/// - `Array.Slice([1,2,3], 1, 100)` → `[2, 3]` (end clamped)
 fn array_slice<'types, 'arena>(
     ctx: &FfiContext<'types, 'arena>,
     args: &[Value<'types, 'arena>],
@@ -57,6 +84,7 @@ fn array_slice<'types, 'arena>(
     let start_idx = start.min(len);
     let end_idx = end.min(len);
 
+    // Get element type from the array's type
     let elem_ty = match args[0].ty.view() {
         TypeKind::Array(elem_ty) => elem_ty,
         _ => panic!("Expected array type"),
@@ -85,6 +113,17 @@ fn array_slice<'types, 'arena>(
 // ============================================================================
 
 /// Concatenate two arrays
+///
+/// Polymorphic - works with arrays of any element type (but both arrays must have the same element type).
+///
+/// # Edge Cases
+///
+/// - Works with empty arrays: `Array.Concat([], [1,2])` → `[1, 2]`
+/// - Both empty: `Array.Concat([], [])` → `[]`
+///
+/// # Examples
+/// - `Array.Concat([1,2], [3,4])` → `[1, 2, 3, 4]`
+/// - `Array.Concat(["a"], ["b","c"])` → `["a", "b", "c"]`
 fn array_concat<'types, 'arena>(
     ctx: &FfiContext<'types, 'arena>,
     args: &[Value<'types, 'arena>],
@@ -97,6 +136,7 @@ fn array_concat<'types, 'arena>(
     result.extend(arr1.iter());
     result.extend(arr2.iter());
 
+    // Get element type from the first array's type
     let elem_ty = match args[0].ty.view() {
         TypeKind::Array(elem_ty) => elem_ty,
         _ => panic!("Expected array type"),
@@ -122,10 +162,14 @@ fn array_flatten<'types, 'arena>(
         result.extend(inner_arr.iter());
     }
 
+    // Extract inner element type from type: Array<Array<T>> -> T
     let inner_elem_ty = match args[0].ty.view() {
         TypeKind::Array(arr_ty) => match arr_ty.view() {
             TypeKind::Array(elem_ty) => elem_ty,
-            TypeKind::TypeVar(_) => ctx.type_mgr().fresh_type_var(),
+            TypeKind::TypeVar(_) => {
+                // Empty array with type variable - use fresh type var for inner type
+                ctx.type_mgr().fresh_type_var()
+            }
             _ => panic!("Expected array of arrays, got {:?}", arr_ty),
         },
         _ => panic!("Expected array type"),
@@ -138,6 +182,23 @@ fn array_flatten<'types, 'arena>(
 }
 
 /// Zip two arrays into an array of tuples (records with fields "first" and "second")
+///
+/// Polymorphic - the two arrays can have different element types.
+///
+/// # Edge Cases
+///
+/// - **Stops at the shorter array length**: `Array.Zip([1,2], [3,4,5,6])` → `[{first: 1, second: 3}, {first: 2, second: 4}]`
+/// - Empty arrays: `Array.Zip([], [1,2])` → `[]`
+/// - Both empty: `Array.Zip([], [])` → `[]`
+///
+/// # Examples
+/// - `Array.Zip([1,2], [3,4])` → `[{first: 1, second: 3}, {first: 2, second: 4}]`
+/// - `Array.Zip([1,2], ["a","b"])` → `[{first: 1, second: "a"}, {first: 2, second: "b"}]`
+///
+/// # Tuple Structure
+///
+/// Tuples are represented as records with fields "first" (first element) and "second" (second element).
+/// Access with: `Array.Zip([1,2], [3,4])[0].first` → `1`
 fn array_zip<'types, 'arena>(
     ctx: &FfiContext<'types, 'arena>,
     args: &[Value<'types, 'arena>],
@@ -146,6 +207,7 @@ fn array_zip<'types, 'arena>(
     let arr1 = args[0].as_array().expect("Expected array");
     let arr2 = args[1].as_array().expect("Expected array");
 
+    // Get element types
     let elem_ty1 = match args[0].ty.view() {
         TypeKind::Array(elem_ty) => elem_ty,
         _ => panic!("Expected array type"),
@@ -157,6 +219,7 @@ fn array_zip<'types, 'arena>(
 
     let mut result = Vec::new();
     for (val1, val2) in arr1.iter().zip(arr2.iter()) {
+        // Create a tuple as a record with fields "first" and "second"
         let tuple = Value::record_builder(ctx.arena(), ctx.type_mgr())
             .bind("first", val1)
             .bind("second", val2)
@@ -165,6 +228,7 @@ fn array_zip<'types, 'arena>(
         result.push(tuple);
     }
 
+    // Build tuple type: {first: T1, second: T2}
     let tuple_ty = ctx
         .type_mgr()
         .record(vec![("first", elem_ty1), ("second", elem_ty2)]);
@@ -180,6 +244,17 @@ fn array_zip<'types, 'arena>(
 // ============================================================================
 
 /// Reverse an array
+///
+/// Polymorphic - works with arrays of any element type.
+///
+/// # Edge Cases
+///
+/// - Empty array: `Array.Reverse([])` → `[]`
+/// - Single element: `Array.Reverse([1])` → `[1]`
+///
+/// # Examples
+/// - `Array.Reverse([1,2,3])` → `[3, 2, 1]`
+/// - `Array.Reverse(["a","b","c"])` → `["c", "b", "a"]`
 fn array_reverse<'types, 'arena>(
     ctx: &FfiContext<'types, 'arena>,
     args: &[Value<'types, 'arena>],
@@ -190,6 +265,7 @@ fn array_reverse<'types, 'arena>(
     let mut result: Vec<Value<'types, 'arena>> = arr.iter().collect();
     result.reverse();
 
+    // Get element type from the array's type
     let elem_ty = match args[0].ty.view() {
         TypeKind::Array(elem_ty) => elem_ty,
         _ => panic!("Expected array type"),
@@ -206,6 +282,13 @@ fn array_reverse<'types, 'arena>(
 // ============================================================================
 
 /// Map a function over an array
+///
+/// Polymorphic - transforms Array[T] to Array[U] using a function (T) => U.
+///
+/// # Examples
+/// - `Array.Map([1, 2, 3], (x) => x * 2)` → `[2, 4, 6]`
+/// - `Array.Map(["a", "bb"], (s) => String.Len(s))` → `[1, 2]`
+/// - `Array.Map([], (x) => x)` → `[]`
 fn array_map<'types, 'arena>(
     ctx: &FfiContext<'types, 'arena>,
     args: &[Value<'types, 'arena>],
@@ -220,6 +303,7 @@ fn array_map<'types, 'arena>(
         results.push(result);
     }
 
+    // Get result element type from function's return type
     let result_elem_ty = match args[1].ty.view() {
         TypeKind::Function { ret, .. } => ret,
         _ => panic!("Expected function type"),
@@ -287,6 +371,8 @@ pub fn build_array_package<'a, B>(
 where
     B: Binder<'a, 'a>,
 {
+    // Create polymorphic types using type variables
+    // Len: forall T. Array<T> -> Int
     let t = type_mgr.fresh_type_var();
     builder = NativeFunction {
         name: "Len",
@@ -295,6 +381,7 @@ where
     }
     .register(arena, builder);
 
+    // IsEmpty: forall T. Array<T> -> Bool
     let t = type_mgr.fresh_type_var();
     builder = NativeFunction {
         name: "IsEmpty",
@@ -303,6 +390,7 @@ where
     }
     .register(arena, builder);
 
+    // Slice: forall T. (Array<T>, Int, Int) -> Array<T>
     let t = type_mgr.fresh_type_var();
     builder = NativeFunction {
         name: "Slice",
@@ -314,6 +402,7 @@ where
     }
     .register(arena, builder);
 
+    // Concat: forall T. (Array<T>, Array<T>) -> Array<T>
     let t = type_mgr.fresh_type_var();
     builder = NativeFunction {
         name: "Concat",
@@ -322,6 +411,7 @@ where
     }
     .register(arena, builder);
 
+    // Flatten: forall T. Array<Array<T>> -> Array<T>
     let t = type_mgr.fresh_type_var();
     builder = NativeFunction {
         name: "Flatten",
@@ -330,6 +420,7 @@ where
     }
     .register(arena, builder);
 
+    // Zip: forall A, B. (Array<A>, Array<B>) -> Array<{first: A, second: B}>
     let a = type_mgr.fresh_type_var();
     let b = type_mgr.fresh_type_var();
     let tuple_ty = type_mgr.record(vec![("first", a), ("second", b)]);
@@ -343,6 +434,7 @@ where
     }
     .register(arena, builder);
 
+    // Reverse: forall T. Array<T> -> Array<T>
     let t = type_mgr.fresh_type_var();
     builder = NativeFunction {
         name: "Reverse",
@@ -351,6 +443,7 @@ where
     }
     .register(arena, builder);
 
+    // Map: forall T, U. (Array<T>, (T) => U) -> Array<U>
     let t = type_mgr.fresh_type_var();
     let u = type_mgr.fresh_type_var();
     let fn_ty = type_mgr.function(&[t], u);
