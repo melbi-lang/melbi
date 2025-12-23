@@ -11,7 +11,7 @@
 //!
 //! ```
 //! use melbi_core::api::{CompileOptionsOverride, Engine, EngineOptions, RunOptionsOverride};
-//! use melbi_core::values::{dynamic::Value, builder::Binder};
+//! use melbi_core::values::{dynamic::Value, binder::Binder};
 //! use bumpalo::Bump;
 //!
 //! let arena = Bump::new();

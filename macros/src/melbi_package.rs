@@ -119,7 +119,7 @@ fn generate_builder_function(
         .map(|f| {
             let struct_name = &f.melbi_name;
             quote! {
-                builder = #struct_name::new(type_mgr).register(arena, builder)?;
+                builder = #struct_name::new(type_mgr).register(arena, builder);
             }
         })
         .collect();
@@ -130,18 +130,18 @@ fn generate_builder_function(
             type_mgr: &'arena ::melbi_core::types::manager::TypeManager<'arena>,
         ) -> ::core::result::Result<
             ::melbi_core::values::dynamic::Value<'arena, 'arena>,
-            ::melbi_core::values::from_raw::TypeError,
+            ::melbi_core::values::binder::Error,
         > {
-            use ::melbi_core::values::builder::Binder;
+            use ::melbi_core::values::binder::Binder;
             use ::melbi_core::values::function::AnnotatedFunction;
 
-            let mut builder = ::melbi_core::values::dynamic::Value::record_builder(type_mgr);
+            let mut builder = ::melbi_core::values::dynamic::Value::record_builder(arena, type_mgr);
 
             #(#const_registrations)*
 
             #(#fn_registrations)*
 
-            builder.build(arena)
+            builder.build()
         }
     }
 }

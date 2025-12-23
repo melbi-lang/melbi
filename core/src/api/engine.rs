@@ -24,7 +24,7 @@ use bumpalo::Bump;
 /// ```
 /// use melbi_core::api::{Engine, EngineOptions};
 /// use melbi_core::values::dynamic::Value;
-/// use melbi_core::values::builder::Binder;
+/// use melbi_core::values::binder::Binder;
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
@@ -68,7 +68,7 @@ impl<'arena> Engine<'arena> {
     /// ```
     /// use melbi_core::api::{Engine, EngineOptions};
     /// use melbi_core::values::dynamic::Value;
-    /// use melbi_core::values::builder::Binder;
+    /// use melbi_core::values::binder::Binder;
     /// use bumpalo::Bump;
     ///
     /// let arena = Bump::new();

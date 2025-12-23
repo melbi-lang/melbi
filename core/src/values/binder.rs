@@ -1,8 +1,26 @@
 use crate::{String, Vec, values::dynamic::Value};
+use core::fmt;
 
 #[derive(Debug)]
 pub enum Error {
     DuplicateBinding(Vec<String>),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::DuplicateBinding(names) => {
+                write!(f, "Duplicate registration for ")?;
+                for (i, name) in names.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "'{}'", name)?;
+                }
+                Ok(())
+            }
+        }
+    }
 }
 
 /// A trait for types that can be built by binding names to values.

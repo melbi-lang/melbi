@@ -352,7 +352,7 @@ fn test_error_duplicate_registration() {
         .bind("x", Value::int(type_mgr, 10))
         .bind("x", Value::int(type_mgr, 20));
 
-    let result = builder.build(&arena);
+    let result = builder.build();
 
     assert!(
         result.is_err(),

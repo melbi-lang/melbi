@@ -4,7 +4,7 @@ use super::build_int_package;
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager,
-    values::{binder::Binder, dynamic::Value},
+    values::{binder::Binder, dynamic::{RecordBuilder, Value}},
 };
 use bumpalo::Bump;
 
@@ -13,7 +13,7 @@ fn test_int_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let int_pkg = build_int_package(&arena, type_mgr).unwrap();
+    let int_pkg = build_int_package(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
     let record = int_pkg.as_record().unwrap();
 
     // Should have all functions
@@ -33,7 +33,7 @@ where
     let arena = Bump::new();
 
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-        let int_pkg = build_int_package(arena, type_mgr).unwrap();
+        let int_pkg = build_int_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
         env.bind("Int", int_pkg)
     });
 
@@ -393,7 +393,7 @@ fn test_int_expr_expects_error(source: &str, expected_error_substring: &str) {
     let arena = Bump::new();
 
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-        let int_pkg = build_int_package(arena, type_mgr).unwrap();
+        let int_pkg = build_int_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
         env.bind("Int", int_pkg)
     });
 
@@ -437,7 +437,7 @@ fn test_int_expr_panics(source: &str) -> bool {
         let arena = Bump::new();
 
         let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-            let int_pkg = build_int_package(arena, type_mgr).unwrap();
+            let int_pkg = build_int_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
             env.bind("Int", int_pkg)
         });
 

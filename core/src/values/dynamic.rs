@@ -1363,7 +1363,7 @@ impl<'a, 'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
 /// # Example
 ///
 /// ```ignore
-/// use melbi_core::values::builder::Binder;
+/// use melbi_core::values::binder::Binder;
 ///
 /// let rec = RecordBuilder::new(type_mgr)
 ///     .bind("y", Value::float(type_mgr, 3.14))
@@ -1434,7 +1434,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     /// # Example
     ///
     /// ```ignore
-    /// use melbi_core::values::builder::Binder;
+    /// use melbi_core::values::binder::Binder;
     ///
     /// let rec = Value::record_builder(type_mgr)
     ///     .bind("y", Value::float(type_mgr, 3.14))

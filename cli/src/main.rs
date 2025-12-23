@@ -358,7 +358,7 @@ fn build_stdlib<'arena>(
     let env_builder = register_stdlib(arena, type_manager, env_builder)
         .expect("stdlib registration should succeed");
     let globals_values = env_builder
-        .build(arena)
+        .build()
         .expect("Environment build should succeed");
 
     // Convert to types for analyzer

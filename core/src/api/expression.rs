@@ -17,7 +17,7 @@ use bumpalo::Bump;
 ///
 /// ```
 /// use melbi_core::api::{Engine, EngineOptions};
-/// use melbi_core::values::{builder::Binder, dynamic::Value};
+/// use melbi_core::values::{binder::Binder, dynamic::Value};
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
@@ -107,7 +107,7 @@ impl<'arena> CompiledExpression<'arena> {
     ///
     /// ```
     /// use melbi_core::api::{Engine, EngineOptions, RunOptionsOverride};
-    /// use melbi_core::values::{builder::Binder, dynamic::Value};
+    /// use melbi_core::values::{binder::Binder, dynamic::Value};
     /// use bumpalo::Bump;
     ///
     /// let arena = Bump::new();

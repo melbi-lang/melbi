@@ -9,7 +9,7 @@
 //! - `Mod(a, b)`: Euclidean modulus (always non-negative)
 
 use crate::{
-    api::Error, evaluator::RuntimeError, types::manager::TypeManager, values::binder::Binder,
+    evaluator::RuntimeError, types::manager::TypeManager, values::binder::Binder,
 };
 use bumpalo::Bump;
 use melbi_macros::melbi_fn;

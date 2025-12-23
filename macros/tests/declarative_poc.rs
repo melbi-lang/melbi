@@ -410,10 +410,10 @@ fn test_annotated_function_register() {
     let ctx = TestCtx::new(&arena);
 
     let add_fn = DeclAdd::new(ctx.type_mgr);
-    let builder = Value::record_builder(ctx.type_mgr);
-    let builder = add_fn.register(ctx.arena, builder).unwrap();
+    let builder = Value::record_builder(ctx.arena, ctx.type_mgr);
+    let builder = add_fn.register(ctx.arena, builder);
 
-    let record = builder.build(ctx.arena).unwrap();
+    let record = builder.build().unwrap();
     assert!(record.as_record().is_ok());
 }
 
