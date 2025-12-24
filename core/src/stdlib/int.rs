@@ -8,9 +8,7 @@
 //! - `Div(a, b)`: Euclidean division (remainder always non-negative)
 //! - `Mod(a, b)`: Euclidean modulus (always non-negative)
 
-use crate::{
-    evaluator::RuntimeError, types::manager::TypeManager, values::binder::Binder,
-};
+use crate::{evaluator::RuntimeError, types::manager::TypeManager, values::binder::Binder};
 use bumpalo::Bump;
 use melbi_macros::melbi_fn;
 
@@ -144,13 +142,6 @@ fn int_mod(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// The package includes:
 /// - Truncated division: Quot, Rem
 /// - Euclidean division: Div, Mod
-///
-/// # Example
-///
-/// ```ignore
-/// let int_pkg = build_int_package(arena, type_mgr)?;
-/// env.register("Int", int_pkg)?;
-/// ```
 pub fn build_int_package<'a, B>(arena: &'a Bump, type_mgr: &'a TypeManager<'a>, mut builder: B) -> B
 where
     B: Binder<'a, 'a>,

@@ -31,7 +31,7 @@ impl RenderConfig {
 /// # Example
 /// ```no_run
 /// use melbi::{Engine, EngineOptions, render_error};
-/// use melbi_core::values::Binder;
+/// use melbi_core::values::binder::Binder;
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
@@ -55,7 +55,7 @@ pub fn render_error(error: &Error) {
 /// # Example
 /// ```no_run
 /// use melbi::{Engine, EngineOptions, render_error_to, RenderConfig};
-/// use melbi_core::values::Binder;
+/// use melbi_core::values::binder::Binder;
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();

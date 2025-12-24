@@ -1,7 +1,7 @@
 use crate::{String, Vec, values::dynamic::Value};
 use core::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     DuplicateBinding(Vec<String>),
 }

@@ -8,7 +8,7 @@ use melbi_core::api::{
     CompileOptions, CompileOptionsOverride, Engine, EngineOptions, EnvironmentBuilder,
 };
 use melbi_core::evaluator::ExecutionError;
-use melbi_core::values::binder::Binder;
+use melbi_core::values::binder::{self, Binder};
 use melbi_core::values::dynamic::Value;
 use melbi_core::values::{FfiContext, NativeFunction};
 
@@ -358,16 +358,9 @@ fn test_error_duplicate_registration() {
         result.is_err(),
         "Duplicate registration should return an error"
     );
-    let msg = format!("{}", result.unwrap_err());
-    assert!(
-        msg.contains("Duplicate registration"),
-        "Error message should mention duplicate: {}",
-        msg
-    );
-    assert!(
-        msg.contains("'x'"),
-        "Error message should mention the name: {}",
-        msg
+    assert_eq!(
+        result.unwrap_err(),
+        binder::Error::DuplicateBinding(vec!["x".to_string()])
     );
 }
 

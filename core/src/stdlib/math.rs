@@ -161,13 +161,6 @@ fn math_exp(value: f64) -> f64 {
 /// - Exponentiation: Sqrt, Pow
 /// - Trigonometry: Sin, Cos, Tan, Asin, Acos, Atan, Atan2
 /// - Logarithms: Log, Log10, Exp
-///
-/// # Example
-///
-/// ```ignore
-/// let math = build_math_package(arena, type_mgr)?;
-/// env.register("Math", math)?;
-/// ```
 pub fn build_math_package<'a, B>(
     arena: &'a Bump,
     type_mgr: &'a TypeManager<'a>,

@@ -1374,6 +1374,7 @@ pub struct RecordBuilder<'ty_arena: 'value_arena, 'value_arena> {
     arena: &'value_arena Bump,
     type_mgr: &'ty_arena TypeManager<'ty_arena>,
     fields: BTreeMap<String, Value<'ty_arena, 'value_arena>>,
+    duplicates: Vec<String>,
 }
 
 impl<'ty_arena: 'value_arena, 'value_arena> RecordBuilder<'ty_arena, 'value_arena> {
@@ -1383,6 +1384,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> RecordBuilder<'ty_arena, 'value_aren
             arena,
             type_mgr,
             fields: BTreeMap::new(),
+            duplicates: Vec::new(),
         }
     }
 }
@@ -1396,11 +1398,19 @@ impl<'ty_arena: 'value_arena, 'value_arena> Binder<'ty_arena, 'value_arena>
         // TODO: Actually error if there is a duplicate key.
         // We could allocate `name` on the arena instead, but creating a record type
         // will already do that, so we store it as a owned String for now.
-        self.fields.insert(name.to_string(), value); // If it already existed, then keeps the last value set.
+        if self.fields.insert(name.to_string(), value).is_some() {
+            self.duplicates.push(name.to_string());
+        }
         self
     }
 
-    fn build(self) -> Result<Self::Output, binder::Error> {
+    fn build(mut self) -> Result<Self::Output, binder::Error> {
+        if !self.duplicates.is_empty() {
+            return Err(binder::Error::DuplicateBinding(core::mem::take(
+                &mut self.duplicates,
+            )));
+        }
+
         // Build the type from field names and types
         // The record() method will intern field names
         let field_types: Vec<(&str, &'ty_arena Type<'ty_arena>)> = self

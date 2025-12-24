@@ -4,7 +4,10 @@
 
 use crate::{
     types::manager::TypeManager,
-    values::{binder::Binder, dynamic::Value},
+    values::{
+        binder::{Binder, Error as BindError},
+        dynamic::Value,
+    },
 };
 use bumpalo::Bump;
 
@@ -1412,16 +1415,16 @@ fn test_record_builder_duplicate_fields() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    // Add same field twice - last value wins
-    let rec = Value::record_builder(&arena, type_mgr)
+    let result = Value::record_builder(&arena, type_mgr)
         .bind("x", Value::int(type_mgr, 42))
         .bind("x", Value::int(type_mgr, 100))
-        .build()
-        .unwrap();
+        .build();
 
-    let record = rec.as_record().unwrap();
-    assert_eq!(record.len(), 1);
-    assert_eq!(record.get("x").unwrap().as_int().unwrap(), 100);
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        BindError::DuplicateBinding(vec!["x".to_string()])
+    );
 }
 
 #[test]

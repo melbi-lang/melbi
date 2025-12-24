@@ -14,7 +14,7 @@
 //!
 //! ```
 //! use melbi::{Engine, EngineOptions};
-//! use melbi::values::{Binder, dynamic::Value};
+//! use melbi::values::{binder::Binder, dynamic::Value};
 //! use bumpalo::Bump;
 //!
 //! // Create an arena for type and environment data
@@ -50,7 +50,7 @@
 //!
 //! ```
 //! use melbi::{Engine, EngineOptions, ExecutionError};
-//! use melbi::values::{Binder, FfiContext, NativeFunction, dynamic::Value};
+//! use melbi::values::{binder::Binder, FfiContext, NativeFunction, dynamic::Value};
 //! use bumpalo::Bump;
 //!
 //! fn add<'types, 'arena>(

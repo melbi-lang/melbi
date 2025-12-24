@@ -249,13 +249,6 @@ fn string_to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64
 /// - Splitting/Joining: Split, Join
 /// - Extraction: Substring
 /// - Parsing: ToInt, ToFloat
-///
-/// # Example
-///
-/// ```ignore
-/// let string = build_string_package(ctx.arena(), type_mgr)?;
-/// env.register("String", string)?;
-/// ```
 pub fn build_string_package<'a, B>(
     arena: &'a Bump,
     type_mgr: &'a TypeManager<'a>,
