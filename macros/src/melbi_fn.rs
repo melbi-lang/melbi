@@ -546,7 +546,7 @@ fn generate_type_signature(sig: &ParsedSignature) -> TokenStream2 {
         // Generic: use fresh_type_var for type params
         let type_param = &sig.generic_params[0]; // Phase 1: single type param
         let type_var_name = syn::Ident::new(
-            &format!("__typevar_{}", type_param.ident.to_string().to_lowercase()),
+            &format!("__type_var_{}", type_param.ident.to_string().to_lowercase()),
             type_param.ident.span(),
         );
 
