@@ -1394,7 +1394,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Binder<'ty_arena, 'value_arena>
 
     fn bind(mut self, name: &str, value: Value<'ty_arena, 'value_arena>) -> Self {
         // TODO: Actually error if there is a duplicate key.
-        // We cold allocate `name` on the arena instead, but creating a record type
+        // We could allocate `name` on the arena instead, but creating a record type
         // will already do that, so we store it as a owned String for now.
         self.fields.insert(name.to_string(), value); // If it already existed, then keeps the last value set.
         self

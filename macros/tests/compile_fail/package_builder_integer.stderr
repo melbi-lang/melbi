@@ -1,5 +1,5 @@
 error: [melbi] builder must be an identifier
- --> tests/compile_fail/package_builder_not_string.rs:5:27
+ --> tests/compile_fail/package_builder_integer.rs:5:27
   |
 5 | #[melbi_package(builder = 123)]
   |                           ^^^
