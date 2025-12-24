@@ -39,7 +39,6 @@ pub enum TypeClassId {
 
     /// Ordering operations: <, >, <=, >=
     /// Instances: Int, Float, Str, Bytes
-    /// (Optional for MVP - enables sorting)
     Ord,
 
     /// Containment operations: in, not in
