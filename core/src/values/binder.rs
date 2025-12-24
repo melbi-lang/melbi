@@ -10,7 +10,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::DuplicateBinding(names) => {
-                write!(f, "Duplicate registration for ")?;
+                write!(f, "Duplicate binding for ")?;
                 for (i, name) in names.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;

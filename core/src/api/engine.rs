@@ -74,7 +74,7 @@ impl<'arena> Engine<'arena> {
     /// let arena = Bump::new();
     /// let options = EngineOptions::default();
     /// let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
-    ///     env.bind("pi", Value::float(type_mgr, std::f64::consts::PI))
+    ///     env.bind("PI", Value::float(type_mgr, std::f64::consts::PI))
     /// });
     /// ```
     pub fn new(

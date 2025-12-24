@@ -70,13 +70,13 @@ fn test_environment_registration_constant() {
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
         // Register a constant
-        env.bind("pi", Value::float(type_mgr, std::f64::consts::PI))
+        env.bind("PI", Value::float(type_mgr, std::f64::consts::PI))
     });
 
     // Compile expression using the constant
     let compile_opts = CompileOptionsOverride::default();
     let expr = engine
-        .compile(compile_opts, "pi * 2.0", &[])
+        .compile(compile_opts, "PI * 2.0", &[])
         .expect("compilation should succeed");
 
     // Execute
