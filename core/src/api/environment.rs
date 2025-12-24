@@ -1,7 +1,12 @@
 //! Environment builder for registering global values.
 
-use super::Error;
-use crate::{Vec, format, values::dynamic::Value};
+use crate::{
+    String, ToString, Vec,
+    values::binder::{Binder, Error},
+    values::dynamic::Value,
+};
+
+use alloc::collections::BTreeMap;
 use bumpalo::Bump;
 
 /// Builder for constructing the global environment.
@@ -14,6 +19,7 @@ use bumpalo::Bump;
 /// ```
 /// use melbi_core::api::{Engine, EngineOptions};
 /// use melbi_core::values::dynamic::Value;
+/// use melbi_core::values::binder::Binder;
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
@@ -21,13 +27,13 @@ use bumpalo::Bump;
 /// // EnvironmentBuilder is used inside Engine::new
 /// let engine = Engine::new(EngineOptions::default(), &arena, |_arena, type_mgr, env| {
 ///     // Register constant
-///     env.register("PI", Value::float(type_mgr, std::f64::consts::PI))
-///         .expect("registration should succeed");
+///     env.bind("PI", Value::float(type_mgr, std::f64::consts::PI))
 /// });
 /// ```
 pub struct EnvironmentBuilder<'arena> {
     arena: &'arena Bump,
-    entries: Vec<(&'arena str, Value<'arena, 'arena>)>,
+    entries: BTreeMap<&'arena str, Value<'arena, 'arena>>,
+    duplicates: Vec<String>,
 }
 
 impl<'arena> EnvironmentBuilder<'arena> {
@@ -35,48 +41,32 @@ impl<'arena> EnvironmentBuilder<'arena> {
     pub fn new(arena: &'arena Bump) -> Self {
         Self {
             arena,
-            entries: Vec::new(),
+            entries: BTreeMap::new(),
+            duplicates: Vec::new(),
         }
     }
+}
+
+impl<'arena> Binder<'arena, 'arena> for EnvironmentBuilder<'arena> {
+    type Output = &'arena [(&'arena str, Value<'arena, 'arena>)];
 
     /// Register a global value (constant, function, or package).
     ///
     /// The name is interned in the arena. Values are sorted by name at build time
     /// for efficient binary search during compilation and evaluation.
     ///
-    /// # Errors
-    ///
-    /// Returns an error if a value with the same name has already been registered.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use melbi_core::api::{Engine, EngineOptions};
-    /// use melbi_core::values::dynamic::Value;
-    /// use bumpalo::Bump;
-    ///
-    /// let arena = Bump::new();
-    /// let engine = Engine::new(EngineOptions::default(), &arena, |_arena, type_mgr, env| {
-    ///     env.register("PI", Value::float(type_mgr, std::f64::consts::PI))
-    ///         .expect("registration should succeed");
-    /// });
-    /// ```
-    pub fn register(&mut self, name: &str, value: Value<'arena, 'arena>) -> Result<(), Error> {
+    /// Returns the builder for chaining. If a duplicate name is encountered,
+    /// an error is stored and returned when `build()` is called.
+    fn bind(mut self, name: &str, value: Value<'arena, 'arena>) -> Self {
         // Check if name already exists
-        if self
-            .entries
-            .iter()
-            .any(|(existing_name, _)| *existing_name == name)
-        {
-            return Err(Error::Api(format!(
-                "Duplicate registration: '{}' is already registered in the environment",
-                name
-            )));
+        if self.entries.contains_key(name) {
+            self.duplicates.push(name.to_string());
+            return self;
         }
 
         let name = self.arena.alloc_str(name);
-        self.entries.push((name, value));
-        Ok(())
+        self.entries.insert(name, value);
+        self
     }
 
     /// Build the final sorted environment slice.
@@ -84,14 +74,15 @@ impl<'arena> EnvironmentBuilder<'arena> {
     /// The resulting slice is sorted by name for efficient binary search
     /// during lookups.
     ///
-    /// This is useful when bypassing the `Engine` API and using `analyze`,
-    /// `Evaluator`, or `BytecodeCompiler` directly.
-    pub fn build(
-        mut self,
-        arena: &'arena Bump,
-    ) -> &'arena [(&'arena str, Value<'arena, 'arena>)] {
+    /// Returns an error if any registration failed (e.g. duplicates).
+    fn build(mut self) -> Result<&'arena [(&'arena str, Value<'arena, 'arena>)], Error> {
+        if !self.duplicates.is_empty() {
+            return Err(Error::DuplicateBinding(core::mem::take(
+                &mut self.duplicates,
+            )));
+        }
+
         // Sort by name for efficient binary search during lookup
-        self.entries.sort_by_key(|(name, _)| *name);
-        arena.alloc_slice_copy(&self.entries)
+        Ok(self.arena.alloc_slice_fill_iter(self.entries.into_iter()))
     }
 }

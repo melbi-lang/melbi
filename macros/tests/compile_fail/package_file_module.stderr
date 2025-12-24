@@ -1,0 +1,13 @@
+error[E0658]: non-inline modules in proc macro input are unstable
+ --> tests/compile_fail/package_file_module.rs:6:1
+  |
+6 | mod file_module;
+  | ^^^^^^^^^^^^^^^^
+  |
+  = note: see issue #54727 <https://github.com/rust-lang/rust/issues/54727> for more information
+
+error: [melbi] melbi_package requires a module with inline content (not a file module)
+ --> tests/compile_fail/package_file_module.rs:6:1
+  |
+6 | mod file_module;
+  | ^^^^^^^^^^^^^^^^

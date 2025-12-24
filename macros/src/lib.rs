@@ -1,13 +1,20 @@
 //! Procedural macros for Melbi FFI functions.
 //!
-//! This crate provides the `#[melbi_fn]` attribute macro for generating
-//! type-safe FFI bindings between Rust and Melbi.
+//! This crate provides attribute macros for generating type-safe FFI bindings
+//! between Rust and Melbi:
+//!
+//! - `#[melbi_fn]` - Generate a type-safe FFI function
+//! - `#[melbi_const]` - Mark a function as a package constant
+//! - `#[melbi_package]` - Generate a package builder from a module
 
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
 
+mod common;
+mod melbi_const;
 mod melbi_fn;
+mod melbi_package;
 
 /// Generate a type-safe FFI function for Melbi.
 ///
@@ -43,7 +50,7 @@ mod melbi_fn;
 /// You can override this with the `name` attribute:
 ///
 /// ```ignore
-/// #[melbi_fn(name = "Sum")]
+/// #[melbi_fn(name = Sum)]
 /// fn add_numbers(a: i64, b: i64) -> i64 {
 ///     a + b
 /// }
@@ -97,4 +104,81 @@ mod melbi_fn;
 #[proc_macro_attribute]
 pub fn melbi_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     melbi_fn::melbi_fn_impl(attr, item)
+}
+
+/// Mark a function as a package constant.
+///
+/// This attribute is a marker for `#[melbi_package]`. The function itself is not
+/// transformed, but `#[melbi_package]` will recognize it and include it as a
+/// constant in the generated package builder.
+///
+/// # Naming
+///
+/// By default, the constant name is derived from the function name in SCREAMING_SNAKE_CASE:
+/// - `fn pi` → `"PI"`
+/// - `fn euler_constant` → `"EULER_CONSTANT"`
+/// - `fn speed_of_light` → `"SPEED_OF_LIGHT"`
+///
+/// You can override with `name`:
+///
+/// ```ignore
+/// #[melbi_const(name = TAU)]
+/// fn two_pi<'a>(arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
+///     Value::float(type_mgr, core::f64::consts::TAU)
+/// }
+/// ```
+///
+/// # Function Signature
+///
+/// Constant functions receive `(arena, type_mgr)` and return a `Value`:
+///
+/// ```ignore
+/// #[melbi_const]
+/// fn pi<'a>(_arena: &'a Bump, type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
+///     Value::float(type_mgr, core::f64::consts::PI)
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn melbi_const(attr: TokenStream, item: TokenStream) -> TokenStream {
+    melbi_const::melbi_const_impl(attr, item)
+}
+
+/// Generate a package builder from a module.
+///
+/// This attribute macro transforms a module containing `#[melbi_fn]` and `#[melbi_const]`
+/// items into a package with an auto-generated builder function.
+///
+/// # Example
+///
+/// ```ignore
+/// #[melbi_package]
+/// mod math {
+///     use super::*;
+///
+///     #[melbi_const(name = PI)]
+///     fn pi<'a>(type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
+///         Value::float(type_mgr, core::f64::consts::PI)
+///     }
+///
+///     #[melbi_fn(name = Abs)]
+///     fn math_abs(value: f64) -> f64 {
+///         value.abs()
+///     }
+/// }
+///
+/// // Generated: pub fn build_math_package<'arena>(...) -> Result<Value, TypeError>
+/// ```
+///
+/// # Optional Attribute
+///
+/// - `builder`: Custom name for the builder function (default: `build_<mod>_package`)
+///
+/// ```ignore
+/// #[melbi_package(builder = create_math)]
+/// mod math { ... }
+/// // Generated: pub fn create_math<'arena>(...) -> Result<Value, TypeError>
+/// ```
+#[proc_macro_attribute]
+pub fn melbi_package(attr: TokenStream, item: TokenStream) -> TokenStream {
+    melbi_package::melbi_package_impl(attr, item)
 }

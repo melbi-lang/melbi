@@ -13,8 +13,7 @@ use crate::{
     types::manager::TypeManager,
     values::{
         FfiContext,
-        dynamic::Value,
-        from_raw::TypeError,
+        binder::Binder,
         typed::{Array, Optional, Str},
     },
 };
@@ -26,31 +25,31 @@ use melbi_macros::melbi_fn;
 // ============================================================================
 
 /// Get the length of a string (number of UTF-8 codepoints, not bytes)
-#[melbi_fn(name = "Len")]
+#[melbi_fn(name = Len)]
 fn string_len(s: Str) -> i64 {
     s.chars().count() as i64
 }
 
 /// Check if string is empty
-#[melbi_fn(name = "IsEmpty")]
+#[melbi_fn(name = IsEmpty)]
 fn string_is_empty(s: Str) -> bool {
     s.is_empty()
 }
 
 /// Check if haystack contains needle
-#[melbi_fn(name = "Contains")]
+#[melbi_fn(name = Contains)]
 fn string_contains(haystack: Str, needle: Str) -> bool {
     haystack.contains(needle.as_ref())
 }
 
 /// Check if string starts with prefix
-#[melbi_fn(name = "StartsWith")]
+#[melbi_fn(name = StartsWith)]
 fn string_starts_with(s: Str, prefix: Str) -> bool {
     s.starts_with(prefix.as_ref())
 }
 
 /// Check if string ends with suffix
-#[melbi_fn(name = "EndsWith")]
+#[melbi_fn(name = EndsWith)]
 fn string_ends_with(s: Str, suffix: Str) -> bool {
     s.ends_with(suffix.as_ref())
 }
@@ -60,49 +59,49 @@ fn string_ends_with(s: Str, suffix: Str) -> bool {
 // ============================================================================
 
 /// Convert string to uppercase (ASCII-only)
-#[melbi_fn(name = "Upper")]
+#[melbi_fn(name = Upper)]
 fn string_upper<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let upper = s.to_ascii_uppercase();
     Str::from_str(ctx.arena(), &upper)
 }
 
 /// Convert string to lowercase (ASCII-only)
-#[melbi_fn(name = "Lower")]
+#[melbi_fn(name = Lower)]
 fn string_lower<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let lower = s.to_ascii_lowercase();
     Str::from_str(ctx.arena(), &lower)
 }
 
 /// Trim whitespace from both ends
-#[melbi_fn(name = "Trim")]
+#[melbi_fn(name = Trim)]
 fn string_trim<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let trimmed = s.as_str().trim();
     Str::from_borrowed_str(ctx.arena(), trimmed)
 }
 
 /// Trim whitespace from start
-#[melbi_fn(name = "TrimStart")]
+#[melbi_fn(name = TrimStart)]
 fn string_trim_start<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let trimmed = s.as_str().trim_start();
     Str::from_borrowed_str(ctx.arena(), trimmed)
 }
 
 /// Trim whitespace from end
-#[melbi_fn(name = "TrimEnd")]
+#[melbi_fn(name = TrimEnd)]
 fn string_trim_end<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
     let trimmed = s.as_str().trim_end();
     Str::from_borrowed_str(ctx.arena(), trimmed)
 }
 
 /// Replace all occurrences of pattern with replacement
-#[melbi_fn(name = "Replace")]
+#[melbi_fn(name = Replace)]
 fn string_replace<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, from: Str<'a>, to: Str<'a>) -> Str<'a> {
     let replaced = s.replace(from.as_ref(), to.as_ref());
     Str::from_str(ctx.arena(), &replaced)
 }
 
 /// Replace first N occurrences of pattern with replacement
-#[melbi_fn(name = "ReplaceN")]
+#[melbi_fn(name = ReplaceN)]
 fn string_replace_n<'a>(
     ctx: &FfiContext<'_, 'a>,
     s: Str<'a>,
@@ -121,7 +120,7 @@ fn string_replace_n<'a>(
 /// Split string by delimiter
 ///
 /// Special case: empty delimiter splits into individual characters (codepoints)
-#[melbi_fn(name = "Split")]
+#[melbi_fn(name = Split)]
 fn string_split<'a>(
     ctx: &FfiContext<'_, 'a>,
     s: Str<'a>,
@@ -149,7 +148,7 @@ fn string_split<'a>(
 }
 
 /// Join array of strings with separator
-#[melbi_fn(name = "Join")]
+#[melbi_fn(name = Join)]
 fn string_join<'a>(
     ctx: &FfiContext<'_, 'a>,
     parts: Array<'a, Str<'a>>,
@@ -179,7 +178,7 @@ fn string_join<'a>(
 ///
 /// This operation is O(n) where n is the string length, as it must count UTF-8 codepoints
 /// to find byte positions. The resulting substring is zero-copy (shares the original string's data).
-#[melbi_fn(name = "Substring")]
+#[melbi_fn(name = Substring)]
 fn string_substring<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, start: i64, end: i64) -> Str<'a> {
     let start_idx = start as usize;
     let end_idx = end as usize;
@@ -221,7 +220,7 @@ fn string_substring<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, start: i64, end: i
 // ============================================================================
 
 /// Parse string to integer
-#[melbi_fn(name = "ToInt")]
+#[melbi_fn(name = ToInt)]
 fn string_to_int<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, i64> {
     match s.parse::<i64>() {
         Ok(value) => Optional::some(ctx.arena(), value),
@@ -230,7 +229,7 @@ fn string_to_int<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, i64> 
 }
 
 /// Parse string to float
-#[melbi_fn(name = "ToFloat")]
+#[melbi_fn(name = ToFloat)]
 fn string_to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64> {
     match s.parse::<f64>() {
         Ok(value) => Optional::some(ctx.arena(), value),
@@ -250,49 +249,44 @@ fn string_to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64
 /// - Splitting/Joining: Split, Join
 /// - Extraction: Substring
 /// - Parsing: ToInt, ToFloat
-///
-/// # Example
-///
-/// ```ignore
-/// let string = build_string_package(ctx.arena(), type_mgr)?;
-/// env.register("String", string)?;
-/// ```
-pub fn build_string_package<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-) -> Result<Value<'arena, 'arena>, TypeError> {
+pub fn build_string_package<'a, B>(
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
+    mut builder: B,
+) -> B
+where
+    B: Binder<'a, 'a>,
+{
     use crate::values::function::AnnotatedFunction;
 
-    let mut builder = Value::record_builder(type_mgr);
-
     // Inspection
-    builder = Len::new(type_mgr).register(arena, builder)?;
-    builder = IsEmpty::new(type_mgr).register(arena, builder)?;
-    builder = Contains::new(type_mgr).register(arena, builder)?;
-    builder = StartsWith::new(type_mgr).register(arena, builder)?;
-    builder = EndsWith::new(type_mgr).register(arena, builder)?;
+    builder = Len::new(type_mgr).register(arena, builder);
+    builder = IsEmpty::new(type_mgr).register(arena, builder);
+    builder = Contains::new(type_mgr).register(arena, builder);
+    builder = StartsWith::new(type_mgr).register(arena, builder);
+    builder = EndsWith::new(type_mgr).register(arena, builder);
 
     // Transformation
-    builder = Upper::new(type_mgr).register(arena, builder)?;
-    builder = Lower::new(type_mgr).register(arena, builder)?;
-    builder = Trim::new(type_mgr).register(arena, builder)?;
-    builder = TrimStart::new(type_mgr).register(arena, builder)?;
-    builder = TrimEnd::new(type_mgr).register(arena, builder)?;
-    builder = Replace::new(type_mgr).register(arena, builder)?;
-    builder = ReplaceN::new(type_mgr).register(arena, builder)?;
+    builder = Upper::new(type_mgr).register(arena, builder);
+    builder = Lower::new(type_mgr).register(arena, builder);
+    builder = Trim::new(type_mgr).register(arena, builder);
+    builder = TrimStart::new(type_mgr).register(arena, builder);
+    builder = TrimEnd::new(type_mgr).register(arena, builder);
+    builder = Replace::new(type_mgr).register(arena, builder);
+    builder = ReplaceN::new(type_mgr).register(arena, builder);
 
     // Splitting and Joining
-    builder = Split::new(type_mgr).register(arena, builder)?;
-    builder = Join::new(type_mgr).register(arena, builder)?;
+    builder = Split::new(type_mgr).register(arena, builder);
+    builder = Join::new(type_mgr).register(arena, builder);
 
     // Extraction
-    builder = Substring::new(type_mgr).register(arena, builder)?;
+    builder = Substring::new(type_mgr).register(arena, builder);
 
     // Parsing
-    builder = ToInt::new(type_mgr).register(arena, builder)?;
-    builder = ToFloat::new(type_mgr).register(arena, builder)?;
+    builder = ToInt::new(type_mgr).register(arena, builder);
+    builder = ToFloat::new(type_mgr).register(arena, builder);
 
-    builder.build(arena)
+    builder
 }
 
 #[cfg(test)]

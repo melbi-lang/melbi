@@ -4,17 +4,21 @@
 //! parsing, type checking, and evaluation.
 
 use bumpalo::Bump;
-use melbi_core::api::{CompileOptions, CompileOptionsOverride, Engine, EngineOptions};
+use melbi_core::api::{
+    CompileOptions, CompileOptionsOverride, Engine, EngineOptions, EnvironmentBuilder,
+};
 use melbi_core::evaluator::ExecutionError;
-use melbi_core::values::{FfiContext, NativeFunction};
+use melbi_core::values::binder::{self, Binder};
 use melbi_core::values::dynamic::Value;
+use melbi_core::values::{FfiContext, NativeFunction};
 
 #[test]
 fn test_basic_compilation_and_execution() {
     // Create engine with empty environment
     let arena = Bump::new();
-    let engine = Engine::new(Default::default(), &arena, |_arena, _type_mgr, _env| {
+    let engine = Engine::new(Default::default(), &arena, |_arena, _type_mgr, env| {
         // Empty environment
+        env
     });
 
     // Compile a simple arithmetic expression
@@ -37,7 +41,7 @@ fn test_basic_compilation_and_execution() {
 fn test_parameterized_expression() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Compile with parameters
     let int_ty = engine.type_manager().int();
@@ -66,14 +70,13 @@ fn test_environment_registration_constant() {
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
         // Register a constant
-        env.register("pi", Value::float(type_mgr, std::f64::consts::PI))
-            .expect("registration should succeed");
+        env.bind("PI", Value::float(type_mgr, std::f64::consts::PI))
     });
 
     // Compile expression using the constant
     let compile_opts = CompileOptionsOverride::default();
     let expr = engine
-        .compile(compile_opts, "pi * 2.0", &[])
+        .compile(compile_opts, "PI * 2.0", &[])
         .expect("compilation should succeed");
 
     // Execute
@@ -106,8 +109,7 @@ fn test_native_function_registration() {
         let int_ty = type_mgr.int();
         let add_ty = type_mgr.function(&[int_ty, int_ty], int_ty);
         let add_fn = NativeFunction::new(add_ty, add);
-        env.register("add", Value::function(arena, add_fn).unwrap())
-            .expect("registration should succeed");
+        env.bind("add", Value::function(arena, add_fn).unwrap())
     });
 
     // Compile expression calling the function
@@ -129,7 +131,7 @@ fn test_native_function_registration() {
 fn test_error_arg_count_mismatch() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Compile with 2 parameters
     let int_ty = engine.type_manager().int();
@@ -153,7 +155,7 @@ fn test_error_arg_count_mismatch() {
 fn test_error_type_mismatch() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Compile with int parameter
     let int_ty = engine.type_manager().int();
@@ -181,7 +183,7 @@ fn test_error_type_mismatch() {
 fn test_error_compilation_failure() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Try to compile invalid syntax
     let compile_opts = CompileOptionsOverride::default();
@@ -195,7 +197,7 @@ fn test_error_compilation_failure() {
 fn test_error_undefined_variable() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Try to compile expression with undefined variable
     let compile_opts = CompileOptionsOverride::default();
@@ -209,7 +211,7 @@ fn test_error_undefined_variable() {
 fn test_run_unchecked() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Compile with parameter
     let int_ty = engine.type_manager().int();
@@ -232,7 +234,7 @@ fn test_run_unchecked() {
 fn test_multiple_executions_same_expression() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Compile once
     let int_ty = engine.type_manager().int();
@@ -263,10 +265,8 @@ fn test_complex_expression_with_multiple_operations() {
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
         // Register some constants
-        env.register("a", Value::int(type_mgr, 10))
-            .expect("registration should succeed");
-        env.register("b", Value::int(type_mgr, 5))
-            .expect("registration should succeed");
+        env.bind("a", Value::int(type_mgr, 10))
+            .bind("b", Value::int(type_mgr, 5))
     });
 
     // Compile complex expression
@@ -326,8 +326,7 @@ fn test_engine_options_max_depth() {
         let int_ty = type_mgr.int();
         let factorial_ty = type_mgr.function(&[int_ty], int_ty);
         let factorial_fn = NativeFunction::new(factorial_ty, factorial);
-        env.register("factorial", Value::function(arena, factorial_fn).unwrap())
-            .expect("registration should succeed");
+        env.bind("factorial", Value::function(arena, factorial_fn).unwrap())
     });
 
     // This test validates that engine options are properly stored and used
@@ -346,34 +345,22 @@ fn test_engine_options_max_depth() {
 #[test]
 fn test_error_duplicate_registration() {
     let arena = Bump::new();
-    let options = EngineOptions::default();
+    let type_mgr = melbi_core::types::manager::TypeManager::new(&arena);
 
     // Test proper error handling for duplicate registration
-    let mut error_message = None;
-    let _engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
-        env.register("x", Value::int(type_mgr, 10))
-            .expect("first registration should succeed");
+    let builder = EnvironmentBuilder::new(&arena)
+        .bind("x", Value::int(type_mgr, 10))
+        .bind("x", Value::int(type_mgr, 20));
 
-        // Second registration with same name should return an error
-        if let Err(err) = env.register("x", Value::int(type_mgr, 20)) {
-            error_message = Some(format!("{}", err));
-        }
-    });
+    let result = builder.build();
 
     assert!(
-        error_message.is_some(),
+        result.is_err(),
         "Duplicate registration should return an error"
     );
-    let msg = error_message.unwrap();
-    assert!(
-        msg.contains("Duplicate registration"),
-        "Error message should mention duplicate: {}",
-        msg
-    );
-    assert!(
-        msg.contains("'x'"),
-        "Error message should mention the name: {}",
-        msg
+    assert_eq!(
+        result.unwrap_err(),
+        binder::Error::DuplicateBinding(vec!["x".to_string()])
     );
 }
 
@@ -381,7 +368,7 @@ fn test_error_duplicate_registration() {
 fn test_access_expression_metadata() {
     let arena = Bump::new();
     let options = EngineOptions::default();
-    let engine = Engine::new(options, &arena, |_arena, _type_mgr, _env| {});
+    let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
 
     // Compile expression
     let int_ty = engine.type_manager().int();

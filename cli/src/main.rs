@@ -10,7 +10,7 @@ use melbi_core::{
     parser::{self, ExpressionParser, Rule},
     stdlib::register_stdlib,
     types::{Type, manager::TypeManager},
-    values::dynamic::Value,
+    values::{binder::Binder, dynamic::Value},
     vm::VM,
 };
 use miette::Result;
@@ -354,10 +354,12 @@ fn build_stdlib<'arena>(
     &'arena [(&'arena str, &'arena Type<'arena>)],
     &'arena [(&'arena str, Value<'arena, 'arena>)],
 ) {
-    let mut env_builder = EnvironmentBuilder::new(arena);
-    register_stdlib(arena, type_manager, &mut env_builder)
+    let env_builder = EnvironmentBuilder::new(arena);
+    let env_builder = register_stdlib(arena, type_manager, env_builder)
         .expect("stdlib registration should succeed");
-    let globals_values = env_builder.build(arena);
+    let globals_values = env_builder
+        .build()
+        .expect("Environment build should succeed");
 
     // Convert to types for analyzer
     let globals_types: Vec<(&'arena str, &'arena Type<'arena>)> = globals_values

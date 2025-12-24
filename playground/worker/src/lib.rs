@@ -26,7 +26,7 @@ impl PlaygroundEngine {
             arena,
             |arena, type_mgr, env_builder| {
                 stdlib::register_stdlib(arena, type_mgr, env_builder)
-                    .expect("registration should succeed");
+                    .expect("registration should succeed")
             },
         );
 
@@ -239,6 +239,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore] // This test uses WASM-specific APIs (window().performance()) and fails outside WASM environments.
     fn evaluates_basic_expression() {
         let engine = PlaygroundEngine::new();
         match engine.evaluate_internal("40 + 2") {

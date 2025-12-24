@@ -11,8 +11,9 @@
 //! Packages are built using native Rust functions (FFI) and registered in the
 //! global environment before user code executes.
 
-use crate::api::{EnvironmentBuilder, Error};
 use crate::types::manager::TypeManager;
+use crate::values::binder;
+use crate::values::{binder::Binder, dynamic::Value};
 use bumpalo::Bump;
 
 pub mod array;
@@ -36,42 +37,49 @@ pub use string::build_string_package;
 ///
 /// ```ignore
 /// let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-///     register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed");
+///     register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed")
 /// });
 /// ```
 ///
 /// If you want more control over which packages to include, you can register
 /// them individually using `build_math_package()`, `build_string_package()`, etc.
-pub fn register_stdlib<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-    env: &mut EnvironmentBuilder<'arena>,
-) -> Result<(), Error> {
+pub fn register_stdlib<'a, B>(
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
+    mut env: B,
+) -> Result<B, binder::Error>
+where
+    B: Binder<'a, 'a>,
+{
     // Register Math package
-    let math = build_math_package(arena, type_mgr)
-        .map_err(|_| Error::Api("Failed to build Math package".into()))?;
-    env.register("Math", math)?;
+    let math_builder = Value::record_builder(arena, type_mgr);
+    let math_builder = build_math_package(arena, type_mgr, math_builder);
+    let math = math_builder.build()?;
+    env = env.bind("Math", math);
 
     // Register String package
-    let string = build_string_package(arena, type_mgr)
-        .map_err(|_| Error::Api("Failed to build String package".into()))?;
-    env.register("String", string)?;
+    let string_builder = Value::record_builder(arena, type_mgr);
+    let string_builder = build_string_package(arena, type_mgr, string_builder);
+    let string = string_builder.build()?;
+    env = env.bind("String", string);
 
     // Register Array package
-    let array = build_array_package(arena, type_mgr)
-        .map_err(|_| Error::Api("Failed to build Array package".into()))?;
-    env.register("Array", array)?;
+    let array_builder = Value::record_builder(arena, type_mgr);
+    let array_builder = build_array_package(arena, type_mgr, array_builder);
+    let array = array_builder.build()?;
+    env = env.bind("Array", array);
 
     // Register Int package
-    let int_pkg = build_int_package(arena, type_mgr)
-        .map_err(|_| Error::Api("Failed to build Int package".into()))?;
-    env.register("Int", int_pkg)?;
+    let int_builder = Value::record_builder(arena, type_mgr);
+    let int_builder = build_int_package(arena, type_mgr, int_builder);
+    let int_pkg = int_builder.build()?;
+    env = env.bind("Int", int_pkg);
 
     // Future packages will be added here:
     // - Option package
     // - etc.
 
-    Ok(())
+    Ok(env)
 }
 
 #[cfg(test)]
@@ -86,7 +94,7 @@ mod tests {
         let arena = Bump::new();
 
         let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-            register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed");
+            register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed")
         });
 
         let compile_opts = CompileOptionsOverride::default();
@@ -120,7 +128,7 @@ mod tests {
         let arena = Bump::new();
 
         let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-            register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed");
+            register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed")
         });
 
         let compile_opts = CompileOptionsOverride::default();

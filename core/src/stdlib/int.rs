@@ -8,11 +8,7 @@
 //! - `Div(a, b)`: Euclidean division (remainder always non-negative)
 //! - `Mod(a, b)`: Euclidean modulus (always non-negative)
 
-use crate::{
-    evaluator::RuntimeError,
-    types::manager::TypeManager,
-    values::{dynamic::Value, from_raw::TypeError},
-};
+use crate::{evaluator::RuntimeError, types::manager::TypeManager, values::binder::Binder};
 use bumpalo::Bump;
 use melbi_macros::melbi_fn;
 
@@ -59,7 +55,7 @@ fn check_overflow(a: i64, b: i64) -> Result<(), RuntimeError> {
 /// - `Int.Quot(-7, 3)  -> -2`
 /// - `Int.Quot(7, -3)  -> -2`
 /// - `Int.Quot(-7, -3) ->  2`
-#[melbi_fn(name = "Quot")]
+#[melbi_fn(name = Quot)]
 fn int_quot(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;
@@ -80,7 +76,7 @@ fn int_quot(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// - `Int.Rem(-7, 3)  -> -1`
 /// - `Int.Rem(7, -3)  ->  1`
 /// - `Int.Rem(-7, -3) -> -1`
-#[melbi_fn(name = "Rem")]
+#[melbi_fn(name = Rem)]
 fn int_rem(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;
@@ -109,7 +105,7 @@ fn int_rem(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// - `Int.Div(-7, 3)  -> -3`
 /// - `Int.Div(7, -3)  -> -2`
 /// - `Int.Div(-7, -3) ->  3`
-#[melbi_fn(name = "Div")]
+#[melbi_fn(name = Div)]
 fn int_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;
@@ -130,7 +126,7 @@ fn int_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// - `Int.Mod(-7, 3)  ->  2`
 /// - `Int.Mod(7, -3)  ->  1`
 /// - `Int.Mod(-7, -3) ->  2` (result is positive even if b is negative)
-#[melbi_fn(name = "Mod")]
+#[melbi_fn(name = Mod)]
 fn int_mod(a: i64, b: i64) -> Result<i64, RuntimeError> {
     check_division_by_zero(b)?;
     check_overflow(a, b)?;
@@ -146,30 +142,21 @@ fn int_mod(a: i64, b: i64) -> Result<i64, RuntimeError> {
 /// The package includes:
 /// - Truncated division: Quot, Rem
 /// - Euclidean division: Div, Mod
-///
-/// # Example
-///
-/// ```ignore
-/// let int_pkg = build_int_package(arena, type_mgr)?;
-/// env.register("Int", int_pkg)?;
-/// ```
-pub fn build_int_package<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-) -> Result<Value<'arena, 'arena>, TypeError> {
+pub fn build_int_package<'a, B>(arena: &'a Bump, type_mgr: &'a TypeManager<'a>, mut builder: B) -> B
+where
+    B: Binder<'a, 'a>,
+{
     use crate::values::function::AnnotatedFunction;
 
-    let mut builder = Value::record_builder(type_mgr);
-
     // Truncated division (C-style)
-    builder = Quot::new(type_mgr).register(arena, builder)?;
-    builder = Rem::new(type_mgr).register(arena, builder)?;
+    builder = Quot::new(type_mgr).register(arena, builder);
+    builder = Rem::new(type_mgr).register(arena, builder);
 
     // Euclidean division
-    builder = Div::new(type_mgr).register(arena, builder)?;
-    builder = Mod::new(type_mgr).register(arena, builder)?;
+    builder = Div::new(type_mgr).register(arena, builder);
+    builder = Mod::new(type_mgr).register(arena, builder);
 
-    builder.build(arena)
+    builder
 }
 
 #[cfg(test)]

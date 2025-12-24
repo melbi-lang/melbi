@@ -4,6 +4,7 @@ use melbi_core::{
     types::manager::TypeManager,
     values::{
         FfiContext,
+        binder::Binder,
         dynamic::Value,
         function::{AnnotatedFunction, Function},
         typed::{Array, Optional, RawConvertible, Str},
@@ -15,12 +16,12 @@ use melbi_macros::melbi_fn;
 // Test functions (what the user would write)
 // ============================================================================
 
-#[melbi_fn(name = "DeclAdd")]
+#[melbi_fn(name = DeclAdd)]
 fn add_impl(_ctx: &FfiContext, a: i64, b: i64) -> i64 {
     a + b
 }
 
-#[melbi_fn(name = "DeclSafeDiv")]
+#[melbi_fn(name = DeclSafeDiv)]
 fn safe_div_impl(_ctx: &FfiContext, a: i64, b: i64) -> Result<i64, RuntimeError> {
     if b == 0 {
         Err(RuntimeError::DivisionByZero {})
@@ -30,19 +31,19 @@ fn safe_div_impl(_ctx: &FfiContext, a: i64, b: i64) -> Result<i64, RuntimeError>
 }
 
 /// NoContext mode: no context
-#[melbi_fn(name = "DeclNoContextAdd")]
+#[melbi_fn(name = DeclNoContextAdd)]
 fn no_context_add_impl(a: i64, b: i64) -> i64 {
     a + b
 }
 
 /// NoContext mode with Result
-#[melbi_fn(name = "DeclNoContextCheckedAdd")]
+#[melbi_fn(name = DeclNoContextCheckedAdd)]
 fn no_context_checked_add_impl(a: i64, b: i64) -> Result<i64, RuntimeError> {
     a.checked_add(b).ok_or(RuntimeError::IntegerOverflow {})
 }
 
 /// Legacy mode with lifetimes (string handling)
-#[melbi_fn(name = "DeclUpper")]
+#[melbi_fn(name = DeclUpper)]
 fn string_upper_impl<'a>(ctx: &FfiContext<'a, 'a>, s: Str<'a>) -> Str<'a> {
     let upper = s.to_ascii_uppercase();
     Str::from_str(ctx.arena(), &upper)
@@ -242,10 +243,10 @@ fn test_annotated_function_register() {
     let ctx = TestCtx::new(&arena);
 
     let add_fn = DeclAdd::new(ctx.type_mgr);
-    let builder = Value::record_builder(ctx.type_mgr);
-    let builder = add_fn.register(ctx.arena, builder).unwrap();
+    let builder = Value::record_builder(ctx.arena, ctx.type_mgr);
+    let builder = add_fn.register(ctx.arena, builder);
 
-    let record = builder.build(ctx.arena).unwrap();
+    let record = builder.build().unwrap();
     assert!(record.as_record().is_ok());
 }
 
@@ -266,95 +267,95 @@ fn extract_optional_int(v: &Value) -> Option<i64> {
 // ----------------------------------------------------------------------------
 
 /// Zero-argument function (Legacy mode) - tests empty parameter list handling
-#[melbi_fn(name = "DeclZeroArgs")]
+#[melbi_fn(name = DeclZeroArgs)]
 fn zero_args_impl(_ctx: &FfiContext) -> i64 {
     42
 }
 
 /// Zero-argument function (NoContext mode)
-#[melbi_fn(name = "DeclNoContextZeroArgs")]
+#[melbi_fn(name = DeclNoContextZeroArgs)]
 fn no_context_zero_args_impl() -> i64 {
     42
 }
 
 /// Zero-argument function returning Result
-#[melbi_fn(name = "DeclZeroArgsResult")]
+#[melbi_fn(name = DeclZeroArgsResult)]
 fn zero_args_result_impl(_ctx: &FfiContext) -> Result<i64, RuntimeError> {
     Ok(42)
 }
 
 /// Many-argument function (5 parameters) - tests macro repetition patterns
-#[melbi_fn(name = "DeclManyArgs")]
+#[melbi_fn(name = DeclManyArgs)]
 fn many_args_impl(_ctx: &FfiContext, a: i64, b: i64, c: i64, d: i64, e: i64) -> i64 {
     a + b + c + d + e
 }
 
 /// Single-argument function - minimal case
-#[melbi_fn(name = "DeclSingleArg")]
+#[melbi_fn(name = DeclSingleArg)]
 fn single_arg_impl(_ctx: &FfiContext, x: i64) -> i64 {
     x * 2
 }
 
 /// Function returning bool - tests non-numeric Bridge type
-#[melbi_fn(name = "DeclReturnsBool")]
+#[melbi_fn(name = DeclReturnsBool)]
 fn returns_bool_impl(_ctx: &FfiContext, x: i64) -> bool {
     x > 0
 }
 
 /// Function returning f64 - tests floating point Bridge type
-#[melbi_fn(name = "DeclReturnsFloat")]
+#[melbi_fn(name = DeclReturnsFloat)]
 fn returns_float_impl(_ctx: &FfiContext, x: i64) -> f64 {
     x as f64 * 1.5
 }
 
 /// Function taking bool parameter
-#[melbi_fn(name = "DeclTakesBool")]
+#[melbi_fn(name = DeclTakesBool)]
 fn takes_bool_impl(_ctx: &FfiContext, flag: bool) -> i64 {
     if flag { 1 } else { 0 }
 }
 
 /// Function taking f64 parameter
-#[melbi_fn(name = "DeclTakesFloat")]
+#[melbi_fn(name = DeclTakesFloat)]
 fn takes_float_impl(_ctx: &FfiContext, x: f64) -> f64 {
     x * 2.0
 }
 
 /// Function taking mixed parameter types
-#[melbi_fn(name = "DeclMixedTypes")]
+#[melbi_fn(name = DeclMixedTypes)]
 fn mixed_types_impl(_ctx: &FfiContext, i: i64, f: f64, b: bool) -> f64 {
     let base = i as f64 + f;
     if b { base } else { -base }
 }
 
 /// Function with Array parameter - tests complex generic types
-#[melbi_fn(name = "DeclTakesArray")]
+#[melbi_fn(name = DeclTakesArray)]
 fn takes_array_impl<'a>(ctx: &FfiContext<'a, 'a>, arr: Array<'a, i64>) -> i64 {
     let _ = ctx;
     arr.iter().sum()
 }
 
 /// Function returning Array - tests complex generic return type
-#[melbi_fn(name = "DeclReturnsArray")]
+#[melbi_fn(name = DeclReturnsArray)]
 fn returns_array_impl<'a>(ctx: &FfiContext<'a, 'a>, x: i64) -> Array<'a, i64> {
     Array::new(ctx.arena(), &[x, x * 2, x * 3])
 }
 
 /// Function with nested generic type: Array<Str<'a>>
-#[melbi_fn(name = "DeclTakesStrArray")]
+#[melbi_fn(name = DeclTakesStrArray)]
 fn takes_str_array_impl<'a>(ctx: &FfiContext<'a, 'a>, arr: Array<'a, Str<'a>>) -> i64 {
     let _ = ctx;
     arr.len() as i64
 }
 
 /// Function with Optional parameter
-#[melbi_fn(name = "DeclTakesOptional")]
+#[melbi_fn(name = DeclTakesOptional)]
 fn takes_optional_impl<'a>(ctx: &FfiContext<'a, 'a>, opt: Optional<'a, i64>) -> i64 {
     let _ = ctx;
     opt.as_option().unwrap_or(0)
 }
 
 /// Function returning Optional
-#[melbi_fn(name = "DeclReturnsOptional")]
+#[melbi_fn(name = DeclReturnsOptional)]
 fn returns_optional_impl<'a>(ctx: &FfiContext<'a, 'a>, x: i64) -> Optional<'a, i64> {
     if x > 0 {
         Optional::some(ctx.arena(), x)
@@ -364,7 +365,7 @@ fn returns_optional_impl<'a>(ctx: &FfiContext<'a, 'a>, x: i64) -> Optional<'a, i
 }
 
 /// Function with Result<Str<'a>, E> - Result with lifetime in ok type
-#[melbi_fn(name = "DeclResultWithLifetime")]
+#[melbi_fn(name = DeclResultWithLifetime)]
 fn result_with_lifetime_impl<'a>(
     ctx: &FfiContext<'a, 'a>,
     s: Str<'a>,
@@ -379,7 +380,7 @@ fn result_with_lifetime_impl<'a>(
 }
 
 /// NoContext function with Result returning complex type
-#[melbi_fn(name = "DeclNoContextResultComplex")]
+#[melbi_fn(name = DeclNoContextResultComplex)]
 fn no_context_result_complex_impl(a: i64, b: i64) -> Result<f64, RuntimeError> {
     if b == 0 {
         Err(RuntimeError::DivisionByZero {})
@@ -389,7 +390,7 @@ fn no_context_result_complex_impl(a: i64, b: i64) -> Result<f64, RuntimeError> {
 }
 
 /// NoContext function with nested generics and Result<Str<'value>, E>
-#[melbi_fn(name = "DeclArrayFirst")]
+#[melbi_fn(name = DeclArrayFirst)]
 fn array_first<'value>(
     arr: Array<'value, Str<'value>>,
 ) -> Result<Str<'value>, melbi_core::evaluator::ExecutionErrorKind> {
@@ -998,4 +999,65 @@ fn test_array_first_empty_error() {
         err.kind,
         ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
     ));
+}
+
+// ============================================================================
+// 15. DERIVED NAMES (no explicit name attribute)
+// ============================================================================
+
+/// Test #[melbi_fn] without explicit name - derives PascalCase from function name
+#[melbi_fn]
+fn derived_add(a: i64, b: i64) -> i64 {
+    a + b
+}
+
+/// Test #[melbi_fn()] with empty parentheses - same as no parentheses
+#[melbi_fn()]
+fn empty_parens_mul(a: i64, b: i64) -> i64 {
+    a * b
+}
+
+/// Test derived name with underscores: get_first_item -> GetFirstItem
+#[melbi_fn]
+fn get_first_item(a: i64, _b: i64) -> i64 {
+    a
+}
+
+#[test]
+fn test_derived_name_no_parens() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+
+    // Should generate struct named DerivedAdd
+    let func = DerivedAdd::new(ctx.type_mgr);
+    assert_eq!(func.name(), "DerivedAdd");
+
+    let result = ctx.call_ok(func, &[ctx.int(3), ctx.int(4)]);
+    assert_eq!(result.as_int().unwrap(), 7);
+}
+
+#[test]
+fn test_derived_name_empty_parens() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+
+    // Should generate struct named EmptyParensMul
+    let func = EmptyParensMul::new(ctx.type_mgr);
+    assert_eq!(func.name(), "EmptyParensMul");
+
+    let result = ctx.call_ok(func, &[ctx.int(3), ctx.int(4)]);
+    assert_eq!(result.as_int().unwrap(), 12);
+}
+
+#[test]
+fn test_derived_name_with_underscores() {
+    let arena = Bump::new();
+    let ctx = TestCtx::new(&arena);
+
+    // Should generate struct named GetFirstItem (underscores removed, each word capitalized)
+    let func = GetFirstItem::new(ctx.type_mgr);
+    assert_eq!(func.name(), "GetFirstItem");
+
+    let result = ctx.call_ok(func, &[ctx.int(42), ctx.int(0)]);
+    assert_eq!(result.as_int().unwrap(), 42);
 }

@@ -5,7 +5,7 @@ use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions, Error},
     stdlib::{build_math_package, build_string_package},
     types::manager::TypeManager,
-    values::dynamic::Value,
+    values::{binder::Binder, dynamic::{RecordBuilder, Value}},
 };
 use bumpalo::Bump;
 
@@ -14,7 +14,7 @@ fn test_array_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let array = build_array_package(&arena, type_mgr).unwrap();
+    let array = build_array_package(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
     let record = array.as_record().unwrap();
 
     // Should have all functions
@@ -34,12 +34,12 @@ fn eval<'a>(arena: &'a Bump, source: &'a str) -> Result<Value<'a, 'a>, Error> {
     let options = EngineOptions::default();
 
     let engine = Engine::new(options, arena, |arena, type_mgr, env| {
-        let array = build_array_package(arena, type_mgr).unwrap();
-        env.register("Array", array).unwrap();
-        let math = build_math_package(arena, type_mgr).unwrap();
-        env.register("Math", math).unwrap();
-        let string = build_string_package(arena, type_mgr).unwrap();
-        env.register("String", string).unwrap();
+        let array = build_array_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
+        let env = env.bind("Array", array);
+        let math = build_math_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
+        let env = env.bind("Math", math);
+        let string = build_string_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
+        env.bind("String", string)
     });
 
     let compile_opts = CompileOptionsOverride::default();

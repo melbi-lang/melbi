@@ -1,3 +1,4 @@
+//! `Array` package for Melbi
 use crate::{
     evaluator::ExecutionError,
     types::{
@@ -6,8 +7,8 @@ use crate::{
         traits::{TypeKind, TypeView},
     },
     values::{
-        dynamic::{RecordBuilder, Value},
-        from_raw::TypeError,
+        binder::Binder,
+        dynamic::Value,
         function::{AnnotatedFunction, FfiContext, Function},
     },
 };
@@ -219,10 +220,10 @@ fn array_zip<'types, 'arena>(
     let mut result = Vec::new();
     for (val1, val2) in arr1.iter().zip(arr2.iter()) {
         // Create a tuple as a record with fields "first" and "second"
-        let tuple = Value::record_builder(ctx.type_mgr())
-            .field("first", val1)
-            .field("second", val2)
-            .build(ctx.arena())
+        let tuple = Value::record_builder(ctx.arena(), ctx.type_mgr())
+            .bind("first", val1)
+            .bind("second", val2)
+            .build()
             .expect("Type error in Array.Zip: record construction failed");
         result.push(tuple);
     }
@@ -343,11 +344,11 @@ impl<'types> Function<'types, 'types> for NativeFunction<'types> {
 }
 
 impl<'types> AnnotatedFunction<'types> for NativeFunction<'types> {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         self.name
     }
 
-    fn location(&self) -> (&str, &str, &str, u32, u32) {
+    fn location(&self) -> (&'static str, &'static str, &'static str, u32, u32) {
         (
             "melbi-core",
             env!("CARGO_PKG_VERSION"),
@@ -360,116 +361,100 @@ impl<'types> AnnotatedFunction<'types> for NativeFunction<'types> {
     fn doc(&self) -> Option<&str> {
         None
     }
-
-    fn register(
-        self,
-        arena: &'types Bump,
-        builder: RecordBuilder<'types, 'types>,
-    ) -> Result<RecordBuilder<'types, 'types>, TypeError> {
-        let name = self.name;
-        let fn_value = Value::function(arena, self)?;
-        Ok(builder.field(name, fn_value))
-    }
 }
 
-pub fn build_array_package<'arena>(
-    arena: &'arena Bump,
-    type_mgr: &'arena TypeManager<'arena>,
-) -> Result<Value<'arena, 'arena>, TypeError> {
-    let mut builder = Value::record_builder(type_mgr);
-
+pub fn build_array_package<'a, B>(
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
+    mut builder: B,
+) -> B
+where
+    B: Binder<'a, 'a>,
+{
     // Create polymorphic types using type variables
     // Len: forall T. Array<T> -> Int
     let t = type_mgr.fresh_type_var();
-    let len_ty = type_mgr.function(&[type_mgr.array(t)], type_mgr.int());
     builder = NativeFunction {
         name: "Len",
-        ty: len_ty,
+        ty: type_mgr.function(&[type_mgr.array(t)], type_mgr.int()),
         ptr: array_len,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
     // IsEmpty: forall T. Array<T> -> Bool
     let t = type_mgr.fresh_type_var();
-    let is_empty_ty = type_mgr.function(&[type_mgr.array(t)], type_mgr.bool());
     builder = NativeFunction {
         name: "IsEmpty",
-        ty: is_empty_ty,
+        ty: type_mgr.function(&[type_mgr.array(t)], type_mgr.bool()),
         ptr: array_is_empty,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
     // Slice: forall T. (Array<T>, Int, Int) -> Array<T>
     let t = type_mgr.fresh_type_var();
-    let slice_ty = type_mgr.function(
-        &[type_mgr.array(t), type_mgr.int(), type_mgr.int()],
-        type_mgr.array(t),
-    );
     builder = NativeFunction {
         name: "Slice",
-        ty: slice_ty,
+        ty: type_mgr.function(
+            &[type_mgr.array(t), type_mgr.int(), type_mgr.int()],
+            type_mgr.array(t),
+        ),
         ptr: array_slice,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
     // Concat: forall T. (Array<T>, Array<T>) -> Array<T>
     let t = type_mgr.fresh_type_var();
-    let concat_ty = type_mgr.function(&[type_mgr.array(t), type_mgr.array(t)], type_mgr.array(t));
     builder = NativeFunction {
         name: "Concat",
-        ty: concat_ty,
+        ty: type_mgr.function(&[type_mgr.array(t), type_mgr.array(t)], type_mgr.array(t)),
         ptr: array_concat,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
     // Flatten: forall T. Array<Array<T>> -> Array<T>
     let t = type_mgr.fresh_type_var();
-    let flatten_ty = type_mgr.function(&[type_mgr.array(type_mgr.array(t))], type_mgr.array(t));
     builder = NativeFunction {
         name: "Flatten",
-        ty: flatten_ty,
+        ty: type_mgr.function(&[type_mgr.array(type_mgr.array(t))], type_mgr.array(t)),
         ptr: array_flatten,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
     // Zip: forall A, B. (Array<A>, Array<B>) -> Array<{first: A, second: B}>
     let a = type_mgr.fresh_type_var();
     let b = type_mgr.fresh_type_var();
     let tuple_ty = type_mgr.record(vec![("first", a), ("second", b)]);
-    let zip_ty = type_mgr.function(
-        &[type_mgr.array(a), type_mgr.array(b)],
-        type_mgr.array(tuple_ty),
-    );
     builder = NativeFunction {
         name: "Zip",
-        ty: zip_ty,
+        ty: type_mgr.function(
+            &[type_mgr.array(a), type_mgr.array(b)],
+            type_mgr.array(tuple_ty),
+        ),
         ptr: array_zip,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
     // Reverse: forall T. Array<T> -> Array<T>
     let t = type_mgr.fresh_type_var();
-    let reverse_ty = type_mgr.function(&[type_mgr.array(t)], type_mgr.array(t));
     builder = NativeFunction {
         name: "Reverse",
-        ty: reverse_ty,
+        ty: type_mgr.function(&[type_mgr.array(t)], type_mgr.array(t)),
         ptr: array_reverse,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
     // Map: forall T, U. (Array<T>, (T) => U) -> Array<U>
     let t = type_mgr.fresh_type_var();
     let u = type_mgr.fresh_type_var();
     let fn_ty = type_mgr.function(&[t], u);
-    let map_ty = type_mgr.function(&[type_mgr.array(t), fn_ty], type_mgr.array(u));
     builder = NativeFunction {
         name: "Map",
-        ty: map_ty,
+        ty: type_mgr.function(&[type_mgr.array(t), fn_ty], type_mgr.array(u)),
         ptr: array_map,
     }
-    .register(arena, builder)?;
+    .register(arena, builder);
 
-    builder.build(arena)
+    builder
 }
 
 #[cfg(test)]

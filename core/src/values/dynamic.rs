@@ -1,22 +1,22 @@
 #![allow(unsafe_code)] // TODO: Disallow unsafe code.
 
-use alloc::string::ToString;
-
 use crate::{
-    Vec,
+    String, ToString, Vec,
     syntax::{
         bytes_literal::{QuoteStyle as BytesQuoteStyle, escape_bytes},
         string_literal::{QuoteStyle, escape_string},
     },
-    types::Type,
-    types::manager::TypeManager,
-    types::traits::TypeView,
+    types::{Type, manager::TypeManager, traits::TypeView},
     values::{
+        binder::{self, Binder},
         from_raw::TypeError,
         function::Function,
         raw::{ArrayData, MapData, MapEntry, RawValue, RecordData, Slice},
     },
 };
+
+use alloc::collections::BTreeMap;
+use bumpalo::Bump;
 
 #[derive(Clone, Copy)]
 pub struct Value<'ty_arena: 'value_arena, 'value_arena> {
@@ -1363,56 +1363,53 @@ impl<'a, 'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
 /// # Example
 ///
 /// ```ignore
+/// use melbi_core::values::binder::Binder;
+///
 /// let rec = RecordBuilder::new(type_mgr)
-///     .field("y", Value::float(type_mgr, 3.14))
-///     .field("x", Value::int(type_mgr, 42))  // Order doesn't matter
+///     .bind("y", Value::float(type_mgr, 3.14))
+///     .bind("x", Value::int(type_mgr, 42))  // Order doesn't matter
 ///     .build(&arena)?;  // Fields automatically sorted: x, y
 /// ```
 pub struct RecordBuilder<'ty_arena: 'value_arena, 'value_arena> {
+    arena: &'value_arena Bump,
     type_mgr: &'ty_arena TypeManager<'ty_arena>,
-    fields: Vec<(alloc::string::String, Value<'ty_arena, 'value_arena>)>,
+    fields: BTreeMap<String, Value<'ty_arena, 'value_arena>>,
+    duplicates: Vec<String>,
 }
 
 impl<'ty_arena: 'value_arena, 'value_arena> RecordBuilder<'ty_arena, 'value_arena> {
     /// Create a new RecordBuilder.
-    pub fn new(type_mgr: &'ty_arena TypeManager<'ty_arena>) -> Self {
+    pub fn new(arena: &'value_arena Bump, type_mgr: &'ty_arena TypeManager<'ty_arena>) -> Self {
         Self {
+            arena,
             type_mgr,
-            fields: Vec::new(),
+            fields: BTreeMap::new(),
+            duplicates: Vec::new(),
         }
     }
+}
 
-    /// Add a field to the record.
-    ///
-    /// Fields can be added in any order; they will be sorted when build() is called.
-    ///
-    /// Note: If the same field name is added multiple times, only the last value
-    /// will be retained (after sorting).
-    pub fn field(mut self, name: &str, value: Value<'ty_arena, 'value_arena>) -> Self {
-        self.fields.push((name.to_string(), value));
+impl<'ty_arena: 'value_arena, 'value_arena> Binder<'ty_arena, 'value_arena>
+    for RecordBuilder<'ty_arena, 'value_arena>
+{
+    type Output = Value<'ty_arena, 'value_arena>;
+
+    fn bind(mut self, name: &str, value: Value<'ty_arena, 'value_arena>) -> Self {
+        // TODO: Actually error if there is a duplicate key.
+        // We could allocate `name` on the arena instead, but creating a record type
+        // will already do that, so we store it as a owned String for now.
+        if self.fields.insert(name.to_string(), value).is_some() {
+            self.duplicates.push(name.to_string());
+        }
         self
     }
 
-    /// Build the record, automatically sorting fields and inferring the type.
-    ///
-    /// Fields are sorted alphabetically by name, and the record type is
-    /// constructed from the field names and types. Field names are interned
-    /// in the type arena during type construction.
-    ///
-    /// Returns TypeError::Mismatch if validation fails (should not happen
-    /// unless there's an internal error).
-    pub fn build(
-        mut self,
-        arena: &'value_arena bumpalo::Bump,
-    ) -> Result<Value<'ty_arena, 'value_arena>, TypeError> {
-        // Sort fields by name
-        self.fields.sort_by(|(a, _), (b, _)| a.cmp(b));
-
-        // Remove duplicate field names, keeping the last value for each
-        // dedup_by keeps the first occurrence, so we reverse, dedup, and reverse back
-        self.fields.reverse();
-        self.fields.dedup_by(|(a, _), (b, _)| a == b);
-        self.fields.reverse();
+    fn build(mut self) -> Result<Self::Output, binder::Error> {
+        if !self.duplicates.is_empty() {
+            return Err(binder::Error::DuplicateBinding(core::mem::take(
+                &mut self.duplicates,
+            )));
+        }
 
         // Build the type from field names and types
         // The record() method will intern field names
@@ -1426,7 +1423,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> RecordBuilder<'ty_arena, 'value_aren
 
         // Extract the interned field names from the type to use in Value::record
         let Type::Record(interned_fields) = record_ty else {
-            return Err(TypeError::Mismatch);
+            panic!("Created a Record that is not a Record: {:?}", record_ty)
         };
 
         // Build field values array using interned names from the type
@@ -1437,7 +1434,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> RecordBuilder<'ty_arena, 'value_aren
             .collect();
 
         // Create the record value
-        Value::record(arena, record_ty, &field_values)
+        Ok(Value::record(self.arena, record_ty, &field_values).expect("Record should be valid"))
     }
 }
 
@@ -1447,14 +1444,17 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     /// # Example
     ///
     /// ```ignore
+    /// use melbi_core::values::binder::Binder;
+    ///
     /// let rec = Value::record_builder(type_mgr)
-    ///     .field("y", Value::float(type_mgr, 3.14))
-    ///     .field("x", Value::int(type_mgr, 42))
+    ///     .bind("y", Value::float(type_mgr, 3.14))
+    ///     .bind("x", Value::int(type_mgr, 42))
     ///     .build(&arena)?;
     /// ```
     pub fn record_builder(
+        arena: &'value_arena Bump,
         type_mgr: &'ty_arena TypeManager<'ty_arena>,
     ) -> RecordBuilder<'ty_arena, 'value_arena> {
-        RecordBuilder::new(type_mgr)
+        RecordBuilder::new(arena, type_mgr)
     }
 }

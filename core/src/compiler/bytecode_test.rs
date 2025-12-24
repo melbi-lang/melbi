@@ -7,7 +7,7 @@ use crate::{
     parser::{self, ComparisonOp},
     stdlib::math::build_math_package,
     types::manager::TypeManager,
-    values::{RawValue, dynamic::Value},
+    values::{binder::Binder, RawValue, dynamic::{RecordBuilder, Value}},
     vm::{Code, Instruction, VM},
 };
 use bumpalo::Bump;
@@ -23,7 +23,7 @@ fn compile_and_run<'a>(
     source: &str,
 ) -> (Code<'a>, Result<Value<'a, 'a>, ExecutionError>) {
     // Build Math package (available to all tests)
-    let math = build_math_package(arena, type_manager).unwrap();
+    let math = build_math_package(arena, type_manager, RecordBuilder::new(arena, type_manager)).build().unwrap();
 
     // Globals for analyzer (types only)
     let globals_types = &[("Math", math.ty)];

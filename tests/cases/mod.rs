@@ -106,7 +106,7 @@ macro_rules! handle_case {
             }
 
             let arena = bumpalo::Bump::new();
-            let engine = melbi::Engine::new(melbi::EngineOptions::default(), &arena, |_, _, _| {});
+            let engine = melbi::Engine::new(melbi::EngineOptions::default(), &arena, |_, _, env| env);
             let result = engine.compile(Default::default(), input(), &[]);
 
             let err = match result {

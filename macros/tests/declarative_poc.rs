@@ -12,6 +12,7 @@ use melbi_core::{
     types::manager::TypeManager,
     values::{
         FfiContext,
+        binder::Binder,
         dynamic::Value,
         function::{AnnotatedFunction, Function},
         typed::Str,
@@ -147,12 +148,12 @@ fn safe_div_impl(
 }
 
 /// Pure mode: no context
-fn pure_add_impl(a: i64, b: i64) -> i64 {
+fn no_context_add_impl(a: i64, b: i64) -> i64 {
     a + b
 }
 
 /// Pure mode with Result
-fn pure_checked_add_impl(a: i64, b: i64) -> Result<i64, RuntimeError> {
+fn no_context_checked_add_impl(a: i64, b: i64) -> Result<i64, RuntimeError> {
     a.checked_add(b).ok_or(RuntimeError::IntegerOverflow {})
 }
 
@@ -187,8 +188,8 @@ melbi_fn_impl!(
 );
 
 melbi_fn_impl!(
-    name = DeclPureAdd,
-    fn_name = pure_add_impl,
+    name = DeclNoContextAdd,
+    fn_name = no_context_add_impl,
     lt = '__a,
     context = Pure,
     signature = { a: i64, b: i64 } -> i64,
@@ -196,8 +197,8 @@ melbi_fn_impl!(
 );
 
 melbi_fn_impl!(
-    name = DeclPureCheckedAdd,
-    fn_name = pure_checked_add_impl,
+    name = DeclNoContextCheckedAdd,
+    fn_name = no_context_checked_add_impl,
     lt = '__a,
     context = Pure,
     signature = { a: i64, b: i64 } -> i64,
@@ -330,37 +331,37 @@ fn test_legacy_mode_result_error() {
 }
 
 #[test]
-fn test_pure_mode_plain() {
+fn test_no_context_mode_plain() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
-    let add_fn = DeclPureAdd::new(ctx.type_mgr);
-    assert_eq!(add_fn.name(), "DeclPureAdd");
+    let add_fn = DeclNoContextAdd::new(ctx.type_mgr);
+    assert_eq!(add_fn.name(), "DeclNoContextAdd");
 
     let result = ctx.call_ok(add_fn, &[ctx.int(10), ctx.int(32)]);
     assert_eq!(result.as_int().unwrap(), 42);
 }
 
 #[test]
-fn test_pure_mode_result_success() {
+fn test_no_context_mode_result_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
     let result = ctx.call_ok(
-        DeclPureCheckedAdd::new(ctx.type_mgr),
+        DeclNoContextCheckedAdd::new(ctx.type_mgr),
         &[ctx.int(1), ctx.int(2)],
     );
     assert_eq!(result.as_int().unwrap(), 3);
 }
 
 #[test]
-fn test_pure_mode_result_error() {
+fn test_no_context_mode_result_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
     let err = ctx
         .call(
-            DeclPureCheckedAdd::new(ctx.type_mgr),
+            DeclNoContextCheckedAdd::new(ctx.type_mgr),
             &[ctx.int(i64::MAX), ctx.int(1)],
         )
         .unwrap_err();
@@ -409,10 +410,10 @@ fn test_annotated_function_register() {
     let ctx = TestCtx::new(&arena);
 
     let add_fn = DeclAdd::new(ctx.type_mgr);
-    let builder = Value::record_builder(ctx.type_mgr);
-    let builder = add_fn.register(ctx.arena, builder).unwrap();
+    let builder = Value::record_builder(ctx.arena, ctx.type_mgr);
+    let builder = add_fn.register(ctx.arena, builder);
 
-    let record = builder.build(ctx.arena).unwrap();
+    let record = builder.build().unwrap();
     assert!(record.as_record().is_ok());
 }
 

@@ -31,10 +31,11 @@ impl RenderConfig {
 /// # Example
 /// ```no_run
 /// use melbi::{Engine, EngineOptions, render_error};
+/// use melbi_core::values::binder::Binder;
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
-/// let engine = Engine::new(EngineOptions::default(), &arena, |_,_,_| {});
+/// let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
 ///
 /// let source = "1 + true";
 /// match engine.compile(Default::default(), source, &[]) {
@@ -54,10 +55,11 @@ pub fn render_error(error: &Error) {
 /// # Example
 /// ```no_run
 /// use melbi::{Engine, EngineOptions, render_error_to, RenderConfig};
+/// use melbi_core::values::binder::Binder;
 /// use bumpalo::Bump;
 ///
 /// let arena = Bump::new();
-/// let engine = Engine::new(EngineOptions::default(), &arena, |_,_,_| {});
+/// let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
 ///
 /// let source = "1 + true";
 /// match engine.compile(Default::default(), source, &[]) {
@@ -167,7 +169,7 @@ mod tests {
     #[test]
     fn test_render_parse_error() {
         let arena = Bump::new();
-        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, _| {});
+        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
 
         let source = "1 + + 2"; // Invalid syntax
         let result = engine.compile(Default::default(), source, &[]);
@@ -188,7 +190,7 @@ mod tests {
     #[test]
     fn test_render_type_error() {
         let arena = Bump::new();
-        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, _| {});
+        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
 
         let source = "1 + \"hello\""; // Type mismatch
         let result = engine.compile(Default::default(), source, &[]);
@@ -207,7 +209,7 @@ mod tests {
     #[test]
     fn test_render_to_string_captures_output() {
         let arena = Bump::new();
-        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, _| {});
+        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
 
         let source = "bad syntax {";
         let result = engine.compile(Default::default(), source, &[]);

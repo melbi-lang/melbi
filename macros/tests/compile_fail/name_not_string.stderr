@@ -1,4 +1,4 @@
-error: [melbi] name attribute must be a string literal
+error: [melbi] name must be an identifier
  --> tests/compile_fail/name_not_string.rs:5:19
   |
 5 | #[melbi_fn(name = 123)]

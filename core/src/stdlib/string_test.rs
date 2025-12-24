@@ -4,7 +4,10 @@ use super::build_string_package;
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager,
-    values::dynamic::Value,
+    values::{
+        binder::Binder,
+        dynamic::{RecordBuilder, Value},
+    },
 };
 use bumpalo::Bump;
 
@@ -13,7 +16,9 @@ fn test_string_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let string = build_string_package(&arena, type_mgr).unwrap();
+    let string = build_string_package(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr))
+        .build()
+        .unwrap();
     let record = string.as_record().unwrap();
 
     // Should have all functions
@@ -29,8 +34,10 @@ where
     let arena = Bump::new();
 
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-        let string = build_string_package(arena, type_mgr).unwrap();
-        env.register("String", string).unwrap();
+        let string = build_string_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr))
+            .build()
+            .unwrap();
+        env.bind("String", string)
     });
 
     let compile_opts = CompileOptionsOverride::default();
