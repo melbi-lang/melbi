@@ -14,6 +14,7 @@ use melbi_core::{
     vm::VM,
 };
 use miette::Result;
+use nu_ansi_term::Style;
 use pest::Parser as PestParser;
 use reedline::{
     DefaultCompleter, DefaultPrompt, DefaultPromptSegment, DescriptionMode, EditCommand, Emacs,
@@ -190,7 +191,7 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let prompt = DefaultPrompt::new(
         DefaultPromptSegment::Basic("  ".into()),
-        DefaultPromptSegment::CurrentDateTime,
+        DefaultPromptSegment::Empty,
     );
 
     (line_editor, prompt)
@@ -444,7 +445,11 @@ fn main() -> Result<()> {
     // Interactive REPL mode
     let (mut line_editor, prompt) = setup_reedline();
 
-    println!("🖖 Melbi REPL – Enter expressions; Ctrl+D to exit; Ctrl+C to abort entry");
+    let style = Style::new().dimmed();
+    println!(
+        "🖖 Melbi REPL. {}",
+        style.paint("Enter expressions; Ctrl+D to exit; Ctrl+C to abort entry")
+    );
 
     loop {
         let sig = match line_editor.read_line(&prompt) {
