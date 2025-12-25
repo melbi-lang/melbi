@@ -1,5 +1,0 @@
-error: [melbi] builder must be an identifier
- --> tests/compile_fail/package_builder_string.rs:5:27
-  |
-5 | #[melbi_package(builder = "good_pkg")]
-  |                           ^^^^^^^^^^

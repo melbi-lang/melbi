@@ -5,7 +5,7 @@ extern crate alloc;
 use bumpalo::Bump;
 use melbi_core::{
     types::manager::TypeManager,
-    values::{FfiContext, dynamic::Value},
+    values::{FfiContext, binder::Binder, dynamic::Value},
 };
 use melbi_macros::{melbi_const, melbi_fn, melbi_package};
 
@@ -33,7 +33,10 @@ fn test_basic_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = basic_pkg::build_basic_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = basic_pkg::register_basic_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     // Should have both functions
@@ -45,7 +48,10 @@ fn test_basic_package_functions_work() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = basic_pkg::build_basic_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = basic_pkg::register_basic_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     // Get the Add function
@@ -104,7 +110,10 @@ fn test_package_with_constants_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = math_pkg::build_math_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = math_pkg::register_math_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     // Should have 2 constants + 2 functions = 4 fields
@@ -116,7 +125,10 @@ fn test_package_constants_have_correct_values() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = math_pkg::build_math_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = math_pkg::register_math_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     // Check PI
@@ -133,7 +145,10 @@ fn test_package_with_constants_functions_work() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = math_pkg::build_math_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = math_pkg::register_math_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     // Get and call Abs
@@ -155,10 +170,10 @@ fn test_package_with_constants_functions_work() {
 }
 
 // ============================================================================
-// Custom builder name
+// Custom package name
 // ============================================================================
 
-#[melbi_package(builder = create_custom_package)]
+#[melbi_package(name = Custom)]
 mod custom_pkg {
     use super::*;
 
@@ -169,14 +184,23 @@ mod custom_pkg {
 }
 
 #[test]
-fn test_custom_builder_name() {
+fn test_custom_package_name() {
+    use melbi_core::api::EnvironmentBuilder;
+
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    // The builder function should have the custom name
-    let pkg = custom_pkg::create_custom_package(&arena, type_mgr).unwrap();
-    let record = pkg.as_record().unwrap();
+    // register_custom_pkg_package should bind the package as "Custom"
+    let env = custom_pkg::register_custom_pkg_package(&arena, type_mgr, EnvironmentBuilder::new(&arena));
+    let env = env.build().unwrap();
 
+    // Should have one entry named "Custom"
+    assert_eq!(env.len(), 1);
+    assert_eq!(env[0].0, "Custom");
+
+    // The value should be a record with "Double" function
+    let pkg = env[0].1;
+    let record = pkg.as_record().unwrap();
     assert_eq!(record.len(), 1);
 
     // Verify function works
@@ -209,7 +233,10 @@ fn test_public_module_stays_public() {
     let type_mgr = TypeManager::new(&arena);
 
     // The module should still be public (this test compiles = visibility preserved)
-    let pkg = public_pkg::build_public_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = public_pkg::register_public_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     assert_eq!(record.len(), 1);
@@ -240,7 +267,10 @@ fn test_constants_only_package() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = constants_only_pkg::build_constants_only_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = constants_only_pkg::register_constants_only_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     assert_eq!(record.len(), 2);
@@ -280,7 +310,10 @@ fn test_derived_names() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = derived_names_pkg::build_derived_names_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = derived_names_pkg::register_derived_names_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     assert_eq!(record.len(), 2);
@@ -336,7 +369,10 @@ fn test_mixed_explicit_and_derived_names() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = mixed_names_pkg::build_mixed_names_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = mixed_names_pkg::register_mixed_names_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     // Should have 4 items: PI, EULER_NUMBER, Add, MultiplyValues
@@ -383,7 +419,10 @@ fn test_empty_parentheses_variants() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let pkg = empty_parens_pkg::build_empty_parens_pkg_package(&arena, type_mgr).unwrap();
+    let builder = Value::record_builder(&arena, type_mgr);
+    let pkg = empty_parens_pkg::register_empty_parens_pkg_functions(&arena, type_mgr, builder)
+        .build()
+        .unwrap();
     let record = pkg.as_record().unwrap();
 
     assert_eq!(record.len(), 2);

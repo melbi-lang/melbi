@@ -5,8 +5,8 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
-use syn::{Item, ItemMod, parse_macro_input, Ident};
+use quote::{format_ident, quote};
+use syn::{Ident, Item, ItemMod, parse_macro_input};
 
 use crate::common::{get_name_from_item, get_name_from_tokens};
 
@@ -26,20 +26,36 @@ struct MelbiConstInfo {
 
 pub fn melbi_package_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_mod = parse_macro_input!(item as ItemMod);
-    let mod_name = input_mod.ident.to_string();
-    let builder_name = match get_name_from_tokens(attr, "melbi_package", "builder", &mod_name) {
+    let mod_name = input_mod.ident.clone();
+
+    // Get package name from `name` attribute or derive from module name (math -> Math)
+    let package_name = match get_name_from_tokens(attr, "melbi_package", "name", &mod_name) {
         Ok(name) => name,
         Err(err) => return err.to_compile_error().into(),
     };
 
-    match generate_package(&builder_name, input_mod) {
+    // Derive function names from module name
+    let functions_fn_name = format_ident!("register_{}_functions", mod_name);
+    let package_fn_name = format_ident!("register_{}_package", mod_name);
+
+    match generate_package(
+        &package_name,
+        &functions_fn_name,
+        &package_fn_name,
+        input_mod,
+    ) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
 }
 
-/// Generate the package with builder function
-fn generate_package(builder_name: &Ident, mut input_mod: ItemMod) -> syn::Result<TokenStream2> {
+/// Generate the package with registration functions
+fn generate_package(
+    package_name: &Ident,
+    functions_fn_name: &Ident,
+    package_fn_name: &Ident,
+    mut input_mod: ItemMod,
+) -> syn::Result<TokenStream2> {
     // Get the module content
     let content = match &mut input_mod.content {
         Some((_, items)) => items,
@@ -57,7 +73,7 @@ fn generate_package(builder_name: &Ident, mut input_mod: ItemMod) -> syn::Result
 
     for item in content.iter() {
         if let Item::Fn(item_fn) = item {
-            let fn_name = item_fn.sig.ident.to_string();
+            let fn_name = item_fn.sig.ident.clone();
 
             // Check for melbi_fn attribute
             if let Some(name) = get_name_from_item(&item_fn.attrs, "melbi_fn", "name", &fn_name)? {
@@ -69,17 +85,24 @@ fn generate_package(builder_name: &Ident, mut input_mod: ItemMod) -> syn::Result
             {
                 constants.push(MelbiConstInfo {
                     melbi_name: name,
-                    rust_fn_name: item_fn.sig.ident.clone(),
+                    rust_fn_name: fn_name,
                 });
             }
         }
     }
 
-    // Generate the builder function
-    let builder_fn = generate_builder_function(builder_name, &functions, &constants);
+    // Generate both registration functions
+    let (functions_fn, package_fn) = generate_registration_functions(
+        package_name,
+        functions_fn_name,
+        package_fn_name,
+        &functions,
+        &constants,
+    );
 
-    // Append the builder function to the module content
-    content.push(syn::parse2(builder_fn)?);
+    // Append both registration functions to the module content
+    content.push(syn::parse2(functions_fn)?);
+    content.push(syn::parse2(package_fn)?);
 
     let mod_name = &input_mod.ident;
     let mod_vis = &input_mod.vis;
@@ -94,14 +117,19 @@ fn generate_package(builder_name: &Ident, mut input_mod: ItemMod) -> syn::Result
     })
 }
 
-/// Generate the builder function
-fn generate_builder_function(
-    builder_name: &Ident,
+/// Generate both registration functions:
+/// - `register_<mod>_functions`: Registers functions directly to any Binder
+/// - `register_<mod>_package`: Creates a Record and binds it to the Binder with the package name
+///
+/// Returns a tuple of (functions_fn, package_fn) as separate TokenStream2 values.
+fn generate_registration_functions(
+    package_name: &Ident,
+    functions_fn_name: &Ident,
+    package_fn_name: &Ident,
     functions: &[MelbiFnInfo],
     constants: &[MelbiConstInfo],
-) -> TokenStream2 {
+) -> (TokenStream2, TokenStream2) {
     // Generate constant registration code
-    // Constants receive both arena and type_mgr to support all value types
     let const_registrations: Vec<_> = constants
         .iter()
         .map(|c| {
@@ -124,25 +152,51 @@ fn generate_builder_function(
         })
         .collect();
 
-    quote! {
-        pub fn #builder_name<'arena>(
+    let package_name_str = package_name.to_string();
+
+    let functions_fn = quote! {
+        /// Registers all functions and constants from this package directly to a Binder.
+        ///
+        /// Use this to flatten the package's contents into a global environment or another record.
+        pub fn #functions_fn_name<'arena, B>(
             arena: &'arena ::bumpalo::Bump,
             type_mgr: &'arena ::melbi_core::types::manager::TypeManager<'arena>,
-        ) -> ::core::result::Result<
-            ::melbi_core::values::dynamic::Value<'arena, 'arena>,
-            ::melbi_core::values::binder::Error,
-        > {
-            use ::melbi_core::values::binder::Binder;
+            mut builder: B,
+        ) -> B
+        where
+            B: ::melbi_core::values::binder::Binder<'arena, 'arena>,
+        {
             use ::melbi_core::values::function::AnnotatedFunction;
-
-            let mut builder = ::melbi_core::values::dynamic::Value::record_builder(arena, type_mgr);
 
             #(#const_registrations)*
 
             #(#fn_registrations)*
 
-            builder.build()
+            builder
         }
-    }
-}
+    };
 
+    let package_fn = quote! {
+        /// Creates a Record containing all functions and constants, then binds it to the Binder.
+        ///
+        /// The record is bound with the package name (e.g., "Math").
+        pub fn #package_fn_name<'arena, B>(
+            arena: &'arena ::bumpalo::Bump,
+            type_mgr: &'arena ::melbi_core::types::manager::TypeManager<'arena>,
+            builder: B,
+        ) -> B
+        where
+            B: ::melbi_core::values::binder::Binder<'arena, 'arena>,
+        {
+            use ::melbi_core::values::binder::Binder;
+
+            let record_builder = ::melbi_core::values::dynamic::Value::record_builder(arena, type_mgr);
+            let record = #functions_fn_name(arena, type_mgr, record_builder)
+                .build()
+                .expect("duplicate binding in package - check #[melbi_fn] names");
+            builder.bind(#package_name_str, record)
+        }
+    };
+
+    (functions_fn, package_fn)
+}

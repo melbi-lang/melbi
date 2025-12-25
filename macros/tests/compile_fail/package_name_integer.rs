@@ -2,7 +2,7 @@
 
 use melbi_macros::melbi_package;
 
-#[melbi_package(builder = "good_pkg")]
+#[melbi_package(name = 123)]
 mod bad_pkg {
     pub fn placeholder() {}
 }
