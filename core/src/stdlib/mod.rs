@@ -4,7 +4,7 @@
 //! - Int: Integer arithmetic operations (Quot, Rem, Div, Mod)
 //! - Math: Mathematical functions and constants
 //! - String: String manipulation functions
-//! - Array: Array operations (future)
+//! - Array: Array operations
 //! - Option: Option utilities (future)
 //!
 //! Each package is implemented as a record containing functions and constants.
@@ -12,8 +12,7 @@
 //! global environment before user code executes.
 
 use crate::types::manager::TypeManager;
-use crate::values::binder;
-use crate::values::{binder::Binder, dynamic::Value};
+use crate::values::binder::Binder;
 use bumpalo::Bump;
 
 pub mod array;
@@ -22,64 +21,50 @@ pub mod math;
 pub mod string;
 
 // Re-export for convenience
-pub use array::build_array_package;
-pub use int::build_int_package;
-pub use math::build_math_package;
-pub use string::build_string_package;
+pub use array::{register_array_functions, register_array_package};
+pub use int::{register_int_functions, register_int_package};
+pub use math::{register_math_functions, register_math_package};
+pub use string::{register_string_functions, register_string_package};
 
 /// Register all standard library packages in the environment.
 ///
 /// This is a convenience function that registers all "default" standard library
-/// packages (Math, String, etc.) in the global environment. Use this in your
+/// packages (Math, String, Array, Int) in the global environment. Use this in your
 /// Engine initialization to get the full standard library.
 ///
 /// # Example
 ///
 /// ```ignore
 /// let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-///     register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed")
+///     register_stdlib(arena, type_mgr, env)
 /// });
 /// ```
 ///
 /// If you want more control over which packages to include, you can register
-/// them individually using `build_math_package()`, `build_string_package()`, etc.
+/// them individually using `register_math_package()`, `register_string_package()`, etc.
+///
+/// # Panics
+///
+/// Panics if there are duplicate bindings within a package. This indicates a bug
+/// in the stdlib implementation (e.g., two functions with the same name).
 pub fn register_stdlib<'a, B>(
     arena: &'a Bump,
     type_mgr: &'a TypeManager<'a>,
-    mut env: B,
-) -> Result<B, binder::Error>
+    env: B,
+) -> B
 where
     B: Binder<'a, 'a>,
 {
-    // Register Math package
-    let math_builder = Value::record_builder(arena, type_mgr);
-    let math_builder = build_math_package(arena, type_mgr, math_builder);
-    let math = math_builder.build()?;
-    env = env.bind("Math", math);
-
-    // Register String package
-    let string_builder = Value::record_builder(arena, type_mgr);
-    let string_builder = build_string_package(arena, type_mgr, string_builder);
-    let string = string_builder.build()?;
-    env = env.bind("String", string);
-
-    // Register Array package
-    let array_builder = Value::record_builder(arena, type_mgr);
-    let array_builder = build_array_package(arena, type_mgr, array_builder);
-    let array = array_builder.build()?;
-    env = env.bind("Array", array);
-
-    // Register Int package
-    let int_builder = Value::record_builder(arena, type_mgr);
-    let int_builder = build_int_package(arena, type_mgr, int_builder);
-    let int_pkg = int_builder.build()?;
-    env = env.bind("Int", int_pkg);
+    let env = register_math_package(arena, type_mgr, env);
+    let env = register_string_package(arena, type_mgr, env);
+    let env = register_array_package(arena, type_mgr, env);
+    let env = register_int_package(arena, type_mgr, env);
 
     // Future packages will be added here:
     // - Option package
     // - etc.
 
-    Ok(env)
+    env
 }
 
 #[cfg(test)]
@@ -93,9 +78,7 @@ mod tests {
         let options = EngineOptions::default();
         let arena = Bump::new();
 
-        let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-            register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed")
-        });
+        let engine = Engine::new(options, &arena, register_stdlib);
 
         let compile_opts = CompileOptionsOverride::default();
 
@@ -127,9 +110,7 @@ mod tests {
         let options = EngineOptions::default();
         let arena = Bump::new();
 
-        let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-            register_stdlib(arena, type_mgr, env).expect("stdlib registration should succeed")
-        });
+        let engine = Engine::new(options, &arena, register_stdlib);
 
         let compile_opts = CompileOptionsOverride::default();
         let expr = engine

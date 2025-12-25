@@ -1,6 +1,6 @@
 //! Tests for the Int package
 
-use super::build_int_package;
+use super::{register_int_functions, register_int_package};
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager,
@@ -13,7 +13,7 @@ fn test_int_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let int_pkg = build_int_package(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
+    let int_pkg = register_int_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
     let record = int_pkg.as_record().unwrap();
 
     // Should have all functions
@@ -32,10 +32,7 @@ where
     let options = EngineOptions::default();
     let arena = Bump::new();
 
-    let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-        let int_pkg = build_int_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
-        env.bind("Int", int_pkg)
-    });
+    let engine = Engine::new(options, &arena, register_int_package);
 
     let compile_opts = CompileOptionsOverride::default();
     let expr = engine
@@ -392,10 +389,7 @@ fn test_int_expr_expects_error(source: &str, expected_error_substring: &str) {
     let options = EngineOptions::default();
     let arena = Bump::new();
 
-    let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-        let int_pkg = build_int_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
-        env.bind("Int", int_pkg)
-    });
+    let engine = Engine::new(options, &arena, register_int_package);
 
     let compile_opts = CompileOptionsOverride::default();
     let expr = engine
@@ -436,10 +430,7 @@ fn test_int_expr_panics(source: &str) -> bool {
         let options = EngineOptions::default();
         let arena = Bump::new();
 
-        let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-            let int_pkg = build_int_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
-            env.bind("Int", int_pkg)
-        });
+        let engine = Engine::new(options, &arena, register_int_package);
 
         let compile_opts = CompileOptionsOverride::default();
         let expr = engine

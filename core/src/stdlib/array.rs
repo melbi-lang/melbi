@@ -363,7 +363,10 @@ impl<'types> AnnotatedFunction<'types> for NativeFunction<'types> {
     }
 }
 
-pub fn build_array_package<'a, B>(
+/// Registers all functions from the Array package directly to a Binder.
+///
+/// Use this to flatten the package's contents into a global environment or another record.
+pub fn register_array_functions<'a, B>(
     arena: &'a Bump,
     type_mgr: &'a TypeManager<'a>,
     mut builder: B,
@@ -455,6 +458,24 @@ where
     .register(arena, builder);
 
     builder
+}
+
+/// Creates a Record containing all Array functions, then binds it to the Binder.
+///
+/// The record is bound with the package name "Array".
+pub fn register_array_package<'a, B>(
+    arena: &'a Bump,
+    type_mgr: &'a TypeManager<'a>,
+    builder: B,
+) -> B
+where
+    B: Binder<'a, 'a>,
+{
+    let record_builder = Value::record_builder(arena, type_mgr);
+    let record = register_array_functions(arena, type_mgr, record_builder)
+        .build()
+        .expect("duplicate binding in package - check function names");
+    builder.bind("Array", record)
 }
 
 #[cfg(test)]

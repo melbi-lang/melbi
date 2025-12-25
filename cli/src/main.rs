@@ -355,8 +355,7 @@ fn build_stdlib<'arena>(
     &'arena [(&'arena str, Value<'arena, 'arena>)],
 ) {
     let env_builder = EnvironmentBuilder::new(arena);
-    let env_builder = register_stdlib(arena, type_manager, env_builder)
-        .expect("stdlib registration should succeed");
+    let env_builder = register_stdlib(arena, type_manager, env_builder);
     let globals_values = env_builder
         .build()
         .expect("Environment build should succeed");

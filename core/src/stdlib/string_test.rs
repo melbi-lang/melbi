@@ -1,6 +1,6 @@
 //! Tests for the String package
 
-use super::build_string_package;
+use super::{register_string_functions, register_string_package};
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager,
@@ -16,7 +16,7 @@ fn test_string_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let string = build_string_package(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr))
+    let string = register_string_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr))
         .build()
         .unwrap();
     let record = string.as_record().unwrap();
@@ -33,12 +33,7 @@ where
     let options = EngineOptions::default();
     let arena = Bump::new();
 
-    let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-        let string = build_string_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr))
-            .build()
-            .unwrap();
-        env.bind("String", string)
-    });
+    let engine = Engine::new(options, &arena, register_string_package);
 
     let compile_opts = CompileOptionsOverride::default();
     let expr = engine

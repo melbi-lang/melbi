@@ -21,14 +21,7 @@ impl PlaygroundEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> PlaygroundEngine {
         let arena = Box::leak(Box::new(Bump::new()));
-        let engine = Engine::new(
-            EngineOptions::default(),
-            arena,
-            |arena, type_mgr, env_builder| {
-                stdlib::register_stdlib(arena, type_mgr, env_builder)
-                    .expect("registration should succeed")
-            },
-        );
+        let engine = Engine::new(EngineOptions::default(), arena, stdlib::register_stdlib);
 
         PlaygroundEngine {
             engine_arena: arena,
