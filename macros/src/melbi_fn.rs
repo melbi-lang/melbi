@@ -84,7 +84,7 @@ use crate::common::get_name_from_tokens;
 /// Entry point for the `#[melbi_fn]` attribute macro.
 pub fn melbi_fn_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_fn = parse_macro_input!(item as ItemFn);
-    let fn_name = input_fn.sig.ident.to_string();
+    let fn_name = input_fn.sig.ident.clone();
 
     // Parse the attribute to get the Melbi name (explicit or derived)
     let melbi_name = match get_name_from_tokens(attr, "melbi_fn", "name", &fn_name) {

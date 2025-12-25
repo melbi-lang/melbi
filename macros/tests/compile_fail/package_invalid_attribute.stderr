@@ -1,5 +1,5 @@
-error: [melbi] expected `builder = identifier`, or no arguments
+error: [melbi] expected `name = identifier`, or no arguments
  --> tests/compile_fail/package_invalid_attribute.rs:5:17
   |
-5 | #[melbi_package(invalid = "value")]
-  |                 ^^^^^^^^^^^^^^^^^
+5 | #[melbi_package(invalid = BadPkg)]
+  |                 ^^^^^^^^^^^^^^^^

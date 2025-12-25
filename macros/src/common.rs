@@ -1,7 +1,7 @@
 //! Shared utilities for Melbi procedural macros.
 
-use quote::format_ident;
 use proc_macro2::TokenStream as TokenStream2;
+use quote::format_ident;
 use syn::{Attribute, Expr, Ident, Meta};
 
 /// Parse a single `key = "value"` from attribute tokens.
@@ -14,10 +14,7 @@ use syn::{Attribute, Expr, Ident, Meta};
 /// - `Ok(Some(value))` if `key = "value"` is found.
 /// - `Ok(None)` if the tokens are empty.
 /// - `Err(...)` if malformed or another key is present.
-pub(crate) fn parse_name_value(
-    tokens: TokenStream2,
-    key: &str,
-) -> syn::Result<Option<Ident>> {
+pub(crate) fn parse_name_value(tokens: TokenStream2, key: &str) -> syn::Result<Option<Ident>> {
     if tokens.is_empty() {
         return Ok(None);
     }
@@ -58,7 +55,7 @@ pub(crate) fn get_name_from_item(
     item_attrs: &[Attribute],
     attr_name: &str,
     key: &str,
-    rust_item_name: &str,
+    rust_item_name: &Ident,
 ) -> syn::Result<Option<Ident>> {
     // Find attribute matching attr_name
     let attr = item_attrs.iter().find(|a| a.path().is_ident(attr_name));
@@ -96,7 +93,7 @@ pub(crate) fn get_name_from_tokens(
     attr_tokens: proc_macro::TokenStream,
     attr_name: &str,
     key: &str,
-    item_name: &str,
+    item_name: &Ident,
 ) -> syn::Result<Ident> {
     // Parse the tokens for an explicit name using the common helper
     let explicit_name = parse_name_value(attr_tokens.into(), key)?;
@@ -107,12 +104,16 @@ pub(crate) fn get_name_from_tokens(
 
     // If no explicit name, derive it based on the attribute type
     let derived_name_str = match attr_name {
-        "melbi_fn" => to_pascal_case(item_name),
-        "melbi_const" => to_screaming_snake_case(item_name),
-        "melbi_package" => format!("build_{}_package", item_name),
+        "melbi_fn" => to_pascal_case(&item_name.to_string()),
+        "melbi_const" => to_screaming_snake_case(&item_name.to_string()),
+        "melbi_package" => to_pascal_case(&item_name.to_string()), // math -> Math (package name)
         _ => item_name.to_string(), // Should not happen given the key match above
     };
-    Ok(format_ident!("{}", derived_name_str))
+    Ok(format_ident!(
+        "{}",
+        derived_name_str,
+        span = item_name.span()
+    ))
 }
 
 /// Convert snake_case to PascalCase.
