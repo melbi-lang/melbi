@@ -1,10 +1,13 @@
 //! Tests for the Math package
 
-use super::build_math_package;
+use super::{register_math_functions, register_math_package};
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
     types::manager::TypeManager, // This import is necessary for test helpers
-    values::{binder::Binder, dynamic::{RecordBuilder, Value}},
+    values::{
+        binder::Binder,
+        dynamic::{RecordBuilder, Value},
+    },
 };
 use bumpalo::Bump;
 
@@ -13,7 +16,9 @@ fn test_math_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let math = build_math_package(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
+    let math = register_math_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr))
+        .build()
+        .unwrap();
     let record = math.as_record().unwrap();
 
     // Should have all constants and functions
@@ -25,7 +30,9 @@ fn test_math_constants() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let math = build_math_package(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
+    let math = register_math_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr))
+        .build()
+        .unwrap();
     let record = math.as_record().unwrap();
 
     // Test PI
@@ -58,10 +65,7 @@ where
     let options = EngineOptions::default();
     let arena = Bump::new();
 
-    let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
-        let math = build_math_package(arena, type_mgr, RecordBuilder::new(arena, type_mgr)).build().unwrap();
-        env.bind("Math", math)
-    });
+    let engine = Engine::new(options, &arena, register_math_package);
 
     let compile_opts = CompileOptionsOverride::default();
     let expr = engine
