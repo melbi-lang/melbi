@@ -36,7 +36,7 @@ fn check_overflow(a: i64, b: i64) -> Result<(), RuntimeError> {
 }
 
 #[melbi_package]
-pub mod int {
+mod int {
     use super::*;
 
     // ========================================================================
@@ -58,8 +58,8 @@ pub mod int {
     /// - `Int.Quot(-7, 3)  -> -2`
     /// - `Int.Quot(7, -3)  -> -2`
     /// - `Int.Quot(-7, -3) ->  2`
-    #[melbi_fn(name = Quot)]
-    fn int_quot(a: i64, b: i64) -> Result<i64, RuntimeError> {
+    #[melbi_fn]
+    fn quot(a: i64, b: i64) -> Result<i64, RuntimeError> {
         check_division_by_zero(b)?;
         check_overflow(a, b)?;
         Ok(a / b)
@@ -79,8 +79,8 @@ pub mod int {
     /// - `Int.Rem(-7, 3)  -> -1`
     /// - `Int.Rem(7, -3)  ->  1`
     /// - `Int.Rem(-7, -3) -> -1`
-    #[melbi_fn(name = Rem)]
-    fn int_rem(a: i64, b: i64) -> Result<i64, RuntimeError> {
+    #[melbi_fn]
+    fn rem(a: i64, b: i64) -> Result<i64, RuntimeError> {
         check_division_by_zero(b)?;
         check_overflow(a, b)?;
         Ok(a % b)
@@ -108,8 +108,8 @@ pub mod int {
     /// - `Int.Div(-7, 3)  -> -3`
     /// - `Int.Div(7, -3)  -> -2`
     /// - `Int.Div(-7, -3) ->  3`
-    #[melbi_fn(name = Div)]
-    fn int_div(a: i64, b: i64) -> Result<i64, RuntimeError> {
+    #[melbi_fn]
+    fn div(a: i64, b: i64) -> Result<i64, RuntimeError> {
         check_division_by_zero(b)?;
         check_overflow(a, b)?;
         Ok(a.div_euclid(b))
@@ -130,15 +130,15 @@ pub mod int {
     /// - `Int.Mod(7, -3)  ->  1`
     /// - `Int.Mod(-7, -3) ->  2` (result is positive even if b is negative)
     #[melbi_fn(name = Mod)]
-    fn int_mod(a: i64, b: i64) -> Result<i64, RuntimeError> {
+    fn mod_(a: i64, b: i64) -> Result<i64, RuntimeError> {
         check_division_by_zero(b)?;
         check_overflow(a, b)?;
         Ok(a.rem_euclid(b))
     }
 }
 
-// Re-export registration functions for cleaner access
-pub use int::{register_int_functions, register_int_package};
+// Re-export everything for cleaner access
+pub use self::int::*;
 
 #[cfg(test)]
 #[path = "int_test.rs"]

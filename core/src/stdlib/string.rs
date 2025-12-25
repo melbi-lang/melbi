@@ -18,7 +18,7 @@ use crate::{
 use melbi_macros::{melbi_fn, melbi_package};
 
 #[melbi_package]
-pub mod string {
+mod string {
     use super::*;
 
     // ========================================================================
@@ -26,32 +26,32 @@ pub mod string {
     // ========================================================================
 
     /// Get the length of a string (number of UTF-8 codepoints, not bytes)
-    #[melbi_fn(name = Len)]
-    fn string_len(s: Str) -> i64 {
+    #[melbi_fn]
+    fn len(s: Str) -> i64 {
         s.chars().count() as i64
     }
 
     /// Check if string is empty
-    #[melbi_fn(name = IsEmpty)]
-    fn string_is_empty(s: Str) -> bool {
+    #[melbi_fn]
+    fn is_empty(s: Str) -> bool {
         s.is_empty()
     }
 
     /// Check if haystack contains needle
-    #[melbi_fn(name = Contains)]
-    fn string_contains(haystack: Str, needle: Str) -> bool {
+    #[melbi_fn]
+    fn contains(haystack: Str, needle: Str) -> bool {
         haystack.contains(needle.as_ref())
     }
 
     /// Check if string starts with prefix
-    #[melbi_fn(name = StartsWith)]
-    fn string_starts_with(s: Str, prefix: Str) -> bool {
+    #[melbi_fn]
+    fn starts_with(s: Str, prefix: Str) -> bool {
         s.starts_with(prefix.as_ref())
     }
 
     /// Check if string ends with suffix
-    #[melbi_fn(name = EndsWith)]
-    fn string_ends_with(s: Str, suffix: Str) -> bool {
+    #[melbi_fn]
+    fn ends_with(s: Str, suffix: Str) -> bool {
         s.ends_with(suffix.as_ref())
     }
 
@@ -60,55 +60,50 @@ pub mod string {
     // ========================================================================
 
     /// Convert string to uppercase (ASCII-only)
-    #[melbi_fn(name = Upper)]
-    fn string_upper<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
+    #[melbi_fn]
+    fn upper<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
         let upper = s.to_ascii_uppercase();
         Str::from_str(ctx.arena(), &upper)
     }
 
     /// Convert string to lowercase (ASCII-only)
-    #[melbi_fn(name = Lower)]
-    fn string_lower<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
+    #[melbi_fn]
+    fn lower<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
         let lower = s.to_ascii_lowercase();
         Str::from_str(ctx.arena(), &lower)
     }
 
     /// Trim whitespace from both ends
-    #[melbi_fn(name = Trim)]
-    fn string_trim<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
+    #[melbi_fn]
+    fn trim<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
         let trimmed = s.as_str().trim();
         Str::from_borrowed_str(ctx.arena(), trimmed)
     }
 
     /// Trim whitespace from start
-    #[melbi_fn(name = TrimStart)]
-    fn string_trim_start<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
+    #[melbi_fn]
+    fn trim_start<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
         let trimmed = s.as_str().trim_start();
         Str::from_borrowed_str(ctx.arena(), trimmed)
     }
 
     /// Trim whitespace from end
-    #[melbi_fn(name = TrimEnd)]
-    fn string_trim_end<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
+    #[melbi_fn]
+    fn trim_end<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Str<'a> {
         let trimmed = s.as_str().trim_end();
         Str::from_borrowed_str(ctx.arena(), trimmed)
     }
 
     /// Replace all occurrences of pattern with replacement
-    #[melbi_fn(name = Replace)]
-    fn string_replace<'a>(
-        ctx: &FfiContext<'_, 'a>,
-        s: Str<'a>,
-        from: Str<'a>,
-        to: Str<'a>,
-    ) -> Str<'a> {
+    #[melbi_fn]
+    fn replace<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, from: Str<'a>, to: Str<'a>) -> Str<'a> {
         let replaced = s.replace(from.as_ref(), to.as_ref());
         Str::from_str(ctx.arena(), &replaced)
     }
 
     /// Replace first N occurrences of pattern with replacement
-    #[melbi_fn(name = ReplaceN)]
-    fn string_replace_n<'a>(
+    #[melbi_fn]
+    fn replace_n<'a>(
         ctx: &FfiContext<'_, 'a>,
         s: Str<'a>,
         from: Str<'a>,
@@ -126,12 +121,8 @@ pub mod string {
     /// Split string by delimiter
     ///
     /// Special case: empty delimiter splits into individual characters (codepoints)
-    #[melbi_fn(name = Split)]
-    fn string_split<'a>(
-        ctx: &FfiContext<'_, 'a>,
-        s: Str<'a>,
-        delimiter: Str<'a>,
-    ) -> Array<'a, Str<'a>> {
+    #[melbi_fn]
+    fn split<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, delimiter: Str<'a>) -> Array<'a, Str<'a>> {
         let parts: Vec<Str<'a>> = if delimiter.is_empty() {
             // Empty delimiter: split into individual characters (codepoints)
             // Note: This case still requires allocation since we need to create individual char strings
@@ -154,8 +145,8 @@ pub mod string {
     }
 
     /// Join array of strings with separator
-    #[melbi_fn(name = Join)]
-    fn string_join<'a>(
+    #[melbi_fn]
+    fn join<'a>(
         ctx: &FfiContext<'_, 'a>,
         parts: Array<'a, Str<'a>>,
         separator: Str<'a>,
@@ -184,8 +175,8 @@ pub mod string {
     ///
     /// This operation is O(n) where n is the string length, as it must count UTF-8 codepoints
     /// to find byte positions. The resulting substring is zero-copy (shares the original string's data).
-    #[melbi_fn(name = Substring)]
-    fn string_substring<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, start: i64, end: i64) -> Str<'a> {
+    #[melbi_fn]
+    fn substring<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>, start: i64, end: i64) -> Str<'a> {
         let start_idx = start as usize;
         let end_idx = end as usize;
 
@@ -226,8 +217,8 @@ pub mod string {
     // ========================================================================
 
     /// Parse string to integer
-    #[melbi_fn(name = ToInt)]
-    fn string_to_int<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, i64> {
+    #[melbi_fn]
+    fn to_int<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, i64> {
         match s.parse::<i64>() {
             Ok(value) => Optional::some(ctx.arena(), value),
             Err(_) => Optional::none(),
@@ -235,8 +226,8 @@ pub mod string {
     }
 
     /// Parse string to float
-    #[melbi_fn(name = ToFloat)]
-    fn string_to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64> {
+    #[melbi_fn]
+    fn to_float<'a>(ctx: &FfiContext<'_, 'a>, s: Str<'a>) -> Optional<'a, f64> {
         match s.parse::<f64>() {
             Ok(value) => Optional::some(ctx.arena(), value),
             Err(_) => Optional::none(),
@@ -244,8 +235,8 @@ pub mod string {
     }
 }
 
-// Re-export registration functions for cleaner access
-pub use string::{register_string_functions, register_string_package};
+// Re-export everything for cleaner access
+pub use self::string::*;
 
 #[cfg(test)]
 #[path = "string_test.rs"]
