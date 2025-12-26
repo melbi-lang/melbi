@@ -76,8 +76,8 @@ impl<'arena> hash::Hash for ArenaBuilder<'arena> {
 impl<'arena> ArenaBuilder<'arena> {
     /// Create a new arena builder.
     pub fn new(arena: &'arena Bump) -> Self {
-        let interned_strs = arena.alloc(RefCell::new(HashSet::with_capacity_in(256, arena)));
-        let interned_types = arena.alloc(RefCell::new(HashSet::with_capacity_in(256, arena)));
+        let interned_strs = arena.alloc(RefCell::new(StringSet::with_capacity_in(256, arena)));
+        let interned_types = arena.alloc(RefCell::new(TypeSet::with_capacity_in(256, arena)));
         Self {
             arena,
             interned_strs,
@@ -108,6 +108,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle {
+        // TODO: intern short strings inline in `Self::IdentHandle`.
         let s = ident.as_ref();
         let mut set = self.interned_strs.borrow_mut();
         if let Some(&interned) = set.get(s) {
