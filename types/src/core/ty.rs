@@ -145,6 +145,14 @@ impl<B: TyBuilder> Ident<B> {
     pub fn as_str(&self) -> &str {
         self.0.as_ref()
     }
+
+    /// Returns a reference to the underlying `IdentHandle`.
+    ///
+    /// This is useful for builders that need to access the handle directly,
+    /// such as for interned comparison operations.
+    pub fn handle(&self) -> &B::IdentHandle {
+        &self.0
+    }
 }
 
 // Implement Copy when IdentHandle is Copy (e.g., for ArenaBuilder)

@@ -1,5 +1,5 @@
 use core::num::NonZeroU8;
-use core::{marker::PhantomData, mem, ptr, slice};
+use core::{hash::Hash, marker::PhantomData, mem, ptr, slice};
 
 // === SimpleSmallStr ===
 
@@ -165,6 +165,46 @@ impl<'a> SmallStr<'a> {
     pub fn is_inline(&self) -> bool {
         unsafe { self.repr.inline.is_inline() }
     }
+
+    /// Smart equality comparison for interned strings.
+    /// - If both are inline: compares by value (string content)
+    /// - If both are arena-allocated: compares by pointer (fast interned comparison)
+    /// - If mixed: compares by value (fallback)
+    ///
+    /// This is more efficient than regular equality when strings are properly interned,
+    /// as it uses pointer comparison for long strings.
+    pub fn interned_eq(&self, other: &Self) -> bool {
+        match (self.is_inline(), other.is_inline()) {
+            (true, true) => {
+                // Both inline: compare by value
+                self.as_str() == other.as_str()
+            }
+            (false, false) => {
+                // Both arena-allocated: compare by pointer for speed
+                core::ptr::eq(self.as_str().as_ptr(), other.as_str().as_ptr())
+            }
+            _ => {
+                // One inline, one not: shouldn't happen with proper interning,
+                // but fall back to value comparison
+                self.as_str() == other.as_str()
+            }
+        }
+    }
+
+    /// Smart hash for interned strings.
+    /// - If inline: hashes the string content
+    /// - If arena-allocated: hashes the pointer for speed
+    ///
+    /// This should be used with `interned_eq` to maintain hash consistency.
+    pub fn interned_hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        if self.is_inline() {
+            // Inline: hash the content
+            self.as_str().hash(state);
+        } else {
+            // Arena-allocated: hash the pointer
+            self.as_str().as_ptr().hash(state);
+        }
+    }
 }
 
 impl AsRef<str> for SmallStr<'_> {
@@ -285,6 +325,46 @@ impl<'a> SimpleSmallStr<'a> {
 
     pub fn is_inline(&self) -> bool {
         matches!(self, SimpleSmallStr::Inline(_, _))
+    }
+
+    /// Smart equality comparison for interned strings.
+    /// - If both are inline: compares by value (string content)
+    /// - If both are arena-allocated: compares by pointer (fast interned comparison)
+    /// - If mixed: compares by value (fallback)
+    ///
+    /// This is more efficient than regular equality when strings are properly interned,
+    /// as it uses pointer comparison for long strings.
+    pub fn interned_eq(&self, other: &Self) -> bool {
+        match (self.is_inline(), other.is_inline()) {
+            (true, true) => {
+                // Both inline: compare by value
+                self.as_str() == other.as_str()
+            }
+            (false, false) => {
+                // Both arena-allocated: compare by pointer for speed
+                core::ptr::eq(self.as_str().as_ptr(), other.as_str().as_ptr())
+            }
+            _ => {
+                // One inline, one not: shouldn't happen with proper interning,
+                // but fall back to value comparison
+                self.as_str() == other.as_str()
+            }
+        }
+    }
+
+    /// Smart hash for interned strings.
+    /// - If inline: hashes the string content
+    /// - If arena-allocated: hashes the pointer for speed
+    ///
+    /// This should be used with `interned_eq` to maintain hash consistency.
+    pub fn interned_hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        if self.is_inline() {
+            // Inline: hash the content
+            self.as_str().hash(state);
+        } else {
+            // Arena-allocated: hash the pointer
+            self.as_str().as_ptr().hash(state);
+        }
     }
 }
 
@@ -574,5 +654,139 @@ mod tests {
         assert!(called, "closure should be called for long strings");
         assert_eq!(simple.as_str(), long_str.as_str());
         assert!(!simple.is_inline());
+    }
+
+    #[test]
+    fn test_small_str_interned_eq_both_inline() {
+        let s1 = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
+        let s2 = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
+        let s3 = SmallStr::new_or_alloc("world", |_| panic!("should not allocate"));
+
+        assert!(s1.is_inline());
+        assert!(s2.is_inline());
+        assert!(s3.is_inline());
+
+        // Same content should be equal
+        assert!(s1.interned_eq(&s2));
+        assert!(s2.interned_eq(&s1));
+
+        // Different content should not be equal
+        assert!(!s1.interned_eq(&s3));
+        assert!(!s3.interned_eq(&s1));
+    }
+
+    #[test]
+    fn test_small_str_interned_eq_both_arena() {
+        // Create a shared arena-allocated string
+        let arena_str: &'static str = Box::leak(
+            String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
+        );
+
+        let s1 = SmallStr::new_or_alloc(arena_str, |_| arena_str);
+        let s2 = SmallStr::new_or_alloc(arena_str, |_| arena_str);
+
+        assert!(!s1.is_inline());
+        assert!(!s2.is_inline());
+
+        // Same pointer should be equal
+        assert!(s1.interned_eq(&s2));
+        assert!(s2.interned_eq(&s1));
+
+        // Different arena-allocated strings with same content
+        let arena_str2: &'static str = Box::leak(
+            String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
+        );
+        let s3 = SmallStr::new_or_alloc(arena_str2, |_| arena_str2);
+
+        // Different pointers should not be equal (pointer comparison)
+        assert!(!s1.interned_eq(&s3));
+    }
+
+    #[test]
+    fn test_small_str_interned_hash_consistency() {
+        use core::hash::Hasher;
+
+        struct SimpleHasher(u64);
+        impl Hasher for SimpleHasher {
+            fn finish(&self) -> u64 {
+                self.0
+            }
+            fn write(&mut self, bytes: &[u8]) {
+                for &b in bytes {
+                    self.0 = self.0.wrapping_mul(31).wrapping_add(b as u64);
+                }
+            }
+        }
+
+        // Two inline strings with same content should hash the same
+        let s1 = SmallStr::new_or_alloc("test", |_| panic!("should not allocate"));
+        let s2 = SmallStr::new_or_alloc("test", |_| panic!("should not allocate"));
+
+        let mut h1 = SimpleHasher(0);
+        let mut h2 = SimpleHasher(0);
+        s1.interned_hash(&mut h1);
+        s2.interned_hash(&mut h2);
+
+        assert_eq!(h1.finish(), h2.finish());
+
+        // Arena-allocated strings pointing to same location should hash the same
+        let arena_str: &'static str = Box::leak(
+            String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
+        );
+        let s3 = SmallStr::new_or_alloc(arena_str, |_| arena_str);
+        let s4 = SmallStr::new_or_alloc(arena_str, |_| arena_str);
+
+        let mut h3 = SimpleHasher(0);
+        let mut h4 = SimpleHasher(0);
+        s3.interned_hash(&mut h3);
+        s4.interned_hash(&mut h4);
+
+        assert_eq!(h3.finish(), h4.finish());
+    }
+
+    #[test]
+    fn test_simple_small_str_interned_eq_both_inline() {
+        let s1 = SimpleSmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
+        let s2 = SimpleSmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
+        let s3 = SimpleSmallStr::new_or_alloc("world", |_| panic!("should not allocate"));
+
+        assert!(s1.is_inline());
+        assert!(s2.is_inline());
+        assert!(s3.is_inline());
+
+        // Same content should be equal
+        assert!(s1.interned_eq(&s2));
+        assert!(s2.interned_eq(&s1));
+
+        // Different content should not be equal
+        assert!(!s1.interned_eq(&s3));
+        assert!(!s3.interned_eq(&s1));
+    }
+
+    #[test]
+    fn test_simple_small_str_interned_eq_both_arena() {
+        // Create a shared arena-allocated string
+        let arena_str: &'static str = Box::leak(
+            String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
+        );
+
+        let s1 = SimpleSmallStr::new_or_alloc(arena_str, |_| arena_str);
+        let s2 = SimpleSmallStr::new_or_alloc(arena_str, |_| arena_str);
+
+        assert!(!s1.is_inline());
+        assert!(!s2.is_inline());
+
+        // Same pointer should be equal
+        assert!(s1.interned_eq(&s2));
+        assert!(s2.interned_eq(&s1));
+
+        // Different arena-allocated strings with same content
+        let arena_str2: &'static str = Box::leak(
+            String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
+        );
+        let s3 = SimpleSmallStr::new_or_alloc(arena_str2, |_| arena_str2);
+
+        // Different pointers should not be equal (pointer comparison)
+        assert!(!s1.interned_eq(&s3));
     }
 }
