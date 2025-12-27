@@ -1,3 +1,5 @@
+mod small_str;
+
 use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 use bumpalo::Bump;
 use core::cell::RefCell;
