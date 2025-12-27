@@ -6,6 +6,7 @@ use core::cell::RefCell;
 use core::hash::Hash;
 use core::{fmt, hash};
 use hashbrown::{Equivalent, HashSet};
+use small_str::SimpleSmallStr as SmallStr;
 
 type StringSet<'arena> = HashSet<&'arena str, hashbrown::DefaultHashBuilder, &'arena Bump>;
 type TypeSet<'arena> =
@@ -90,7 +91,7 @@ impl<'arena> ArenaBuilder<'arena> {
 
 impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     type TyHandle = &'arena TyNode<Self>;
-    type IdentHandle = &'arena str;
+    type IdentHandle = SmallStr<'arena>;
     type TyListHandle = &'arena [Ty<Self>];
     type IdentListHandle = &'arena [Ident<Self>];
     type FieldListHandle = &'arena [(Ident<Self>, Ty<Self>)];
@@ -110,15 +111,21 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle {
-        // TODO: intern short strings inline in `Self::IdentHandle`.
         let s = ident.as_ref();
-        let mut set = self.interned_strs.borrow_mut();
-        if let Some(&interned) = set.get(s) {
-            return interned;
-        }
-        let allocated = self.arena.alloc_str(s);
-        set.insert(allocated);
-        allocated
+
+        SmallStr::new_or_alloc(s, |s| {
+            let mut set = self.interned_strs.borrow_mut();
+
+            // Case A: Long, but it was already interned.
+            if let Some(&interned) = set.get(s) {
+                return interned;
+            }
+
+            // Case B: Long, but it hasn't been interned yet. Allocate.
+            let allocated = self.arena.alloc_str(s);
+            set.insert(allocated);
+            &*allocated
+        })
     }
 
     fn alloc_ty_list(
