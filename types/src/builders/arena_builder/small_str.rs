@@ -18,7 +18,7 @@ pub enum SimpleSmallStr<'a> {
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
-static_assertions::assert_eq_size!(SimpleSmallStr, (usize, usize));
+static_assertions::assert_eq_size!(SimpleSmallStr, &str);
 
 // === StrSliceRepr ===
 
@@ -38,37 +38,33 @@ struct StrSliceRepr {
     len: usize,
 }
 
-impl From<&str> for StrSliceRepr {
+impl StrSliceRepr {
     fn from(s: &str) -> Self {
         let len = s.len();
         let ptr = ptr::NonNull::new(s.as_ptr() as *mut u8).unwrap();
         Self { len, ptr }
     }
-}
 
-impl AsRef<str> for StrSliceRepr {
-    fn as_ref(&self) -> &str {
+    fn as_str(&self) -> &str {
         unsafe { str::from_utf8_unchecked(slice::from_raw_parts(self.ptr.as_ptr(), self.len)) }
     }
 }
 
 // === StrInlineRepr ===
 
-const INLINE_SIZE: usize = mem::size_of::<StrSliceRepr>() - 1;
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 #[cfg(target_endian = "big")]
 struct StrInlineRepr {
     tag_len: NonZeroU8, // Tag + Length: 0x80 | len
-    data: [u8; INLINE_SIZE],
+    data: [u8; SmallStr::INLINE_CAPACITY],
 }
 
 #[repr(C)]
 #[derive(Clone, Copy)]
 #[cfg(target_endian = "little")]
 struct StrInlineRepr {
-    data: [u8; INLINE_SIZE],
+    data: [u8; SmallStr::INLINE_CAPACITY],
     tag_len: NonZeroU8, // Tag + Length: 0x80 | len
 }
 
@@ -78,28 +74,24 @@ impl StrInlineRepr {
     fn is_inline(&self) -> bool {
         self.tag_len.get() & 0x80 != 0
     }
-}
 
-impl AsRef<str> for StrInlineRepr {
-    #[allow(unsafe_code)]
-    fn as_ref(&self) -> &str {
-        let len: usize = (self.tag_len.get() & !Self::TAG_MASK) as usize;
-        unsafe { str::from_utf8_unchecked(&self.data[..len]) }
-    }
-}
-
-impl From<&str> for StrInlineRepr {
     fn from(s: &str) -> Self {
         let len: u8 = s
             .len()
             .try_into()
             .expect("str is too long for inline variant");
-        let mut data = [0u8; _];
+        let mut data = [0u8; SmallStr::INLINE_CAPACITY];
         data[..s.len()].copy_from_slice(s.as_bytes());
         Self {
             tag_len: NonZeroU8::new(len | Self::TAG_MASK).expect("should be non-zero"),
             data,
         }
+    }
+
+    #[allow(unsafe_code)]
+    fn as_str(&self) -> &str {
+        let len: usize = (self.tag_len.get() & !Self::TAG_MASK) as usize;
+        unsafe { str::from_utf8_unchecked(&self.data[..len]) }
     }
 }
 
@@ -121,11 +113,14 @@ pub struct SmallStr<'a> {
     phantom: PhantomData<&'a str>,
 }
 
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+static_assertions::assert_eq_size!(SmallStr, &str);
+
 impl<'a> SmallStr<'a> {
-    pub const INLINE_CAPACITY: usize = INLINE_SIZE;
+    pub const INLINE_CAPACITY: usize = mem::size_of::<StrSliceRepr>() - 1;
 
     pub fn can_be_inlined(s: &str) -> bool {
-        s.len() <= INLINE_SIZE
+        s.len() <= Self::INLINE_CAPACITY
     }
 
     /// Create a new SmallStr, either by inlining the string data (if it fits)
@@ -156,9 +151,9 @@ impl<'a> SmallStr<'a> {
     pub fn as_str(&self) -> &str {
         unsafe {
             if self.repr.inline.is_inline() {
-                self.repr.inline.as_ref()
+                self.repr.inline.as_str()
             } else {
-                self.repr.slice.as_ref()
+                self.repr.slice.as_str()
             }
         }
     }
@@ -170,25 +165,42 @@ impl<'a> SmallStr<'a> {
     /// Smart equality comparison for interned strings.
     /// - If both are inline: compares by value (string content)
     /// - If both are arena-allocated: compares by pointer (fast interned comparison)
-    /// - If mixed: compares by value (fallback)
     ///
     /// This is more efficient than regular equality when strings are properly interned,
     /// as it uses pointer comparison for long strings.
+    ///
+    /// # Panics (Debug Only)
+    /// Panics in debug builds if two strings of the same length have different storage
+    /// strategies (one inline, one arena-allocated), which indicates a bug in the
+    /// interning logic.
     pub fn interned_eq(&self, other: &Self) -> bool {
-        match (self.is_inline(), other.is_inline()) {
-            (true, true) => {
-                // Both inline: compare by value
-                self.as_str() == other.as_str()
-            }
-            (false, false) => {
-                // Both arena-allocated: compare by pointer for speed
-                core::ptr::eq(self.as_str().as_ptr(), other.as_str().as_ptr())
-            }
-            _ => {
-                // One inline, one not: shouldn't happen with proper interning,
-                // but fall back to value comparison
-                self.as_str() == other.as_str()
-            }
+        let self_str = self.as_str();
+        let other_str = other.as_str();
+
+        // Fast path: different lengths means not equal
+        if self_str.len() != other_str.len() {
+            return false;
+        }
+
+        // Same length: they should have the same storage strategy
+        debug_assert!(
+            self.is_inline() == other.is_inline(),
+            "Strings of same length have different storage: '{}' (inline={}, len={}) vs '{}' (inline={}, len={}). \
+             This indicates a bug in the interning logic.",
+            self_str,
+            self.is_inline(),
+            self_str.len(),
+            other_str,
+            other.is_inline(),
+            other_str.len()
+        );
+
+        if self.is_inline() {
+            // Both inline: compare by value
+            self_str == other_str
+        } else {
+            // Both arena-allocated: compare by pointer (they could also compare by value as they have same length)
+            core::ptr::eq(self_str.as_ptr(), other_str.as_ptr())
         }
     }
 
@@ -331,25 +343,42 @@ impl<'a> SimpleSmallStr<'a> {
     /// Smart equality comparison for interned strings.
     /// - If both are inline: compares by value (string content)
     /// - If both are arena-allocated: compares by pointer (fast interned comparison)
-    /// - If mixed: compares by value (fallback)
     ///
     /// This is more efficient than regular equality when strings are properly interned,
     /// as it uses pointer comparison for long strings.
+    ///
+    /// # Panics (Debug Only)
+    /// Panics in debug builds if two strings of the same length have different storage
+    /// strategies (one inline, one arena-allocated), which indicates a bug in the
+    /// interning logic.
     pub fn interned_eq(&self, other: &Self) -> bool {
-        match (self.is_inline(), other.is_inline()) {
-            (true, true) => {
-                // Both inline: compare by value
-                self.as_str() == other.as_str()
-            }
-            (false, false) => {
-                // Both arena-allocated: compare by pointer for speed
-                core::ptr::eq(self.as_str().as_ptr(), other.as_str().as_ptr())
-            }
-            _ => {
-                // One inline, one not: shouldn't happen with proper interning,
-                // but fall back to value comparison
-                self.as_str() == other.as_str()
-            }
+        let self_str = self.as_str();
+        let other_str = other.as_str();
+
+        // Fast path: different lengths means not equal
+        if self_str.len() != other_str.len() {
+            return false;
+        }
+
+        // Same length: they should have the same storage strategy
+        debug_assert!(
+            self.is_inline() == other.is_inline(),
+            "Strings of same length have different storage: '{}' (inline={}, len={}) vs '{}' (inline={}, len={}). \
+             This indicates a bug in the interning logic.",
+            self_str,
+            self.is_inline(),
+            self_str.len(),
+            other_str,
+            other.is_inline(),
+            other_str.len()
+        );
+
+        if self.is_inline() {
+            // Both inline: compare by value
+            self_str == other_str
+        } else {
+            // Both arena-allocated: compare by pointer (they could also compare by value as they have same length)
+            core::ptr::eq(self_str.as_ptr(), other_str.as_ptr())
         }
     }
 
@@ -601,7 +630,6 @@ mod tests {
 
     #[test]
     fn test_inline_capacity_constants() {
-        assert_eq!(SmallStr::INLINE_CAPACITY, INLINE_SIZE);
         assert_eq!(SimpleSmallStr::INLINE_CAPACITY, SIMPLE_INLINE_SIZE);
     }
 
@@ -778,5 +806,39 @@ mod tests {
 
         // Different pointers should not be equal (pointer comparison)
         assert!(!s1.interned_eq(&s3));
+    }
+
+    #[test]
+    fn test_small_str_interned_eq_different_lengths() {
+        // Comparing strings of different lengths should return false (expected case)
+        let inline_str = SmallStr::new_or_alloc("short", |_| panic!("should not allocate"));
+        let arena_str: &'static str = Box::leak(
+            String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
+        );
+        let arena_small = SmallStr::new_or_alloc(arena_str, |_| arena_str);
+
+        assert!(inline_str.is_inline());
+        assert!(!arena_small.is_inline());
+
+        // Different lengths should just return false
+        assert!(!inline_str.interned_eq(&arena_small));
+        assert!(!arena_small.interned_eq(&inline_str));
+    }
+
+    #[test]
+    fn test_simple_small_str_interned_eq_different_lengths() {
+        // Comparing strings of different lengths should return false (expected case)
+        let inline_str = SimpleSmallStr::new_or_alloc("short", |_| panic!("should not allocate"));
+        let arena_str: &'static str = Box::leak(
+            String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
+        );
+        let arena_simple = SimpleSmallStr::new_or_alloc(arena_str, |_| arena_str);
+
+        assert!(inline_str.is_inline());
+        assert!(!arena_simple.is_inline());
+
+        // Different lengths should just return false
+        assert!(!inline_str.interned_eq(&arena_simple));
+        assert!(!arena_simple.interned_eq(&inline_str));
     }
 }
