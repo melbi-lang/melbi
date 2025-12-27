@@ -11,6 +11,7 @@ type SimpleSliceSize = u32;
 
 const SIMPLE_INLINE_SIZE: usize = 2 * mem::size_of::<usize>() - 2;
 
+#[derive(Clone, Copy)]
 pub enum SimpleSmallStr<'a> {
     Slice(SimpleSliceSize, ptr::NonNull<u8>, PhantomData<&'a str>),
     Inline(u8, [u8; SIMPLE_INLINE_SIZE]),
@@ -59,7 +60,7 @@ const INLINE_SIZE: usize = mem::size_of::<StrSliceRepr>() - 1;
 #[derive(Clone, Copy)]
 #[cfg(target_endian = "big")]
 struct StrInlineRepr {
-    tag_len: NonZeroU8, // Actually: (len << 1) | (1 << 7)
+    tag_len: NonZeroU8, // Tag + Length: 0x80 | len
     data: [u8; INLINE_SIZE],
 }
 
@@ -68,7 +69,7 @@ struct StrInlineRepr {
 #[cfg(target_endian = "little")]
 struct StrInlineRepr {
     data: [u8; INLINE_SIZE],
-    tag_len: NonZeroU8, // Actually: (len << 1) | (1 << 7)
+    tag_len: NonZeroU8, // Tag + Length: 0x80 | len
 }
 
 impl StrInlineRepr {
@@ -410,13 +411,13 @@ impl PartialEq<&str> for SimpleSmallStr<'_> {
 
 impl PartialOrd for SimpleSmallStr<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.as_str().cmp(other))
+        Some(self.as_str().cmp(other.as_str()))
     }
 }
 
 impl Ord for SimpleSmallStr<'_> {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.as_str().cmp(&**other)
+        self.as_str().cmp(other.as_str())
     }
 }
 
@@ -437,17 +438,6 @@ impl core::fmt::Display for SimpleSmallStr<'_> {
         core::fmt::Display::fmt(self.as_str(), f)
     }
 }
-
-impl Clone for SimpleSmallStr<'_> {
-    fn clone(&self) -> Self {
-        match self {
-            SimpleSmallStr::Slice(len, ptr, phantom) => SimpleSmallStr::Slice(*len, *ptr, *phantom),
-            SimpleSmallStr::Inline(len, data) => SimpleSmallStr::Inline(*len, *data),
-        }
-    }
-}
-
-impl Copy for SimpleSmallStr<'_> {}
 
 #[cfg(test)]
 mod tests {
