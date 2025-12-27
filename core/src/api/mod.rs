@@ -31,11 +31,11 @@
 //! assert!((result.as_float().unwrap() - 6.28318).abs() < 0.0001);
 //! ```
 
-pub mod engine;
-pub mod environment;
-pub mod error;
-pub mod expression;
-pub mod options;
+mod engine;
+mod environment;
+mod error;
+mod expression;
+mod options;
 
 pub use engine::Engine;
 pub use environment::EnvironmentBuilder;

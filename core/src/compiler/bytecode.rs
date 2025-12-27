@@ -16,8 +16,8 @@ use crate::{
     values::dynamic::Value,
     visitor::TreeTransformer,
     vm::{
-        ArrayContainsAdapter, CastAdapter, Code, FormatStrAdapter, FunctionAdapter,
-        GenericAdapter, Instruction, LambdaCode, LambdaKind,
+        ArrayContainsAdapter, CastAdapter, Code, FormatStrAdapter, FunctionAdapter, GenericAdapter,
+        Instruction, LambdaCode, LambdaKind,
     },
 };
 use bumpalo::Bump;
@@ -789,7 +789,10 @@ where
                             let adapter = ArrayContainsAdapter::new(element_type, op);
                             let adapter_index = self.generic_adapters.len();
                             self.generic_adapters.push(Box::new(adapter));
-                            self.emit_with_arg(Instruction::CallGenericAdapter, adapter_index as u32);
+                            self.emit_with_arg(
+                                Instruction::CallGenericAdapter,
+                                adapter_index as u32,
+                            );
                         }
                         TypeKind::Map(_, _) => {
                             self.emit(Instruction::MapHas);
@@ -1027,7 +1030,10 @@ where
                     TypeKind::Bytes => {
                         self.emit(Instruction::BytesGet);
                     }
-                    _ => panic!("Index operation on non-indexable type (type checker bug)"),
+                    _ => panic!(
+                        "Index operation on non-indexable type (type checker bug): {}",
+                        container_type
+                    ),
                 }
                 self.push_stack(); // Push result
             }
