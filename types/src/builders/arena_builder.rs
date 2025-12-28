@@ -1,9 +1,12 @@
+mod small_str;
+
 use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 use bumpalo::Bump;
 use core::cell::RefCell;
 use core::hash::Hash;
 use core::{fmt, hash};
 use hashbrown::{Equivalent, HashSet};
+use small_str::SimpleSmallStr as SmallStr;
 
 type StringSet<'arena> = HashSet<&'arena str, hashbrown::DefaultHashBuilder, &'arena Bump>;
 type TypeSet<'arena> =
@@ -76,8 +79,8 @@ impl<'arena> hash::Hash for ArenaBuilder<'arena> {
 impl<'arena> ArenaBuilder<'arena> {
     /// Create a new arena builder.
     pub fn new(arena: &'arena Bump) -> Self {
-        let interned_strs = arena.alloc(RefCell::new(HashSet::with_capacity_in(256, arena)));
-        let interned_types = arena.alloc(RefCell::new(HashSet::with_capacity_in(256, arena)));
+        let interned_strs = arena.alloc(RefCell::new(StringSet::with_capacity_in(256, arena)));
+        let interned_types = arena.alloc(RefCell::new(TypeSet::with_capacity_in(256, arena)));
         Self {
             arena,
             interned_strs,
@@ -88,7 +91,7 @@ impl<'arena> ArenaBuilder<'arena> {
 
 impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     type TyHandle = &'arena TyNode<Self>;
-    type IdentHandle = &'arena str;
+    type IdentHandle = SmallStr<'arena>;
     type TyListHandle = &'arena [Ty<Self>];
     type IdentListHandle = &'arena [Ident<Self>];
     type FieldListHandle = &'arena [(Ident<Self>, Ty<Self>)];
@@ -109,13 +112,20 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
 
     fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle {
         let s = ident.as_ref();
-        let mut set = self.interned_strs.borrow_mut();
-        if let Some(&interned) = set.get(s) {
-            return interned;
-        }
-        let allocated = self.arena.alloc_str(s);
-        set.insert(allocated);
-        allocated
+
+        SmallStr::new_or_alloc(s, |s| {
+            let mut set = self.interned_strs.borrow_mut();
+
+            // Case A: Long, but it was already interned.
+            if let Some(&interned) = set.get(s) {
+                return interned;
+            }
+
+            // Case B: Long, but it hasn't been interned yet. Allocate.
+            let allocated = self.arena.alloc_str(s);
+            set.insert(allocated);
+            &*allocated
+        })
     }
 
     fn alloc_ty_list(
@@ -152,11 +162,11 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn ident_eq(a: &Ident<Self>, b: &Ident<Self>) -> bool {
-        core::ptr::eq(a.as_str().as_ptr(), b.as_str().as_ptr())
+        a.handle().interned_eq(b.handle())
     }
 
     fn ident_hash<H: hash::Hasher>(ident: &Ident<Self>, state: &mut H) {
-        ident.as_str().as_ptr().hash(state)
+        ident.handle().interned_hash(state)
     }
 }
 

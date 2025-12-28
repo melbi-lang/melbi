@@ -73,7 +73,7 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{
     FnArg, GenericArgument, GenericParam, ItemFn, Pat, PatType, PathArguments, ReturnType, Type,
     parse_macro_input,
@@ -252,7 +252,7 @@ fn parse_generics(
 fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericParam> {
     let mut traits = Vec::new();
 
-    // Collect all recognized trait bounds, keeping the most restrictive
+    // Collect all recognized trait bounds
     for bound in &type_param.bounds {
         if let syn::TypeParamBound::Trait(trait_bound) = bound {
             if let Some(last_seg) = trait_bound.path.segments.last() {
@@ -545,9 +545,10 @@ fn generate_type_signature(sig: &ParsedSignature) -> TokenStream2 {
     } else {
         // Generic: use fresh_type_var for type params
         let type_param = &sig.generic_params[0]; // Phase 1: single type param
-        let type_var_name = syn::Ident::new(
-            &format!("__type_var_{}", type_param.ident.to_string().to_lowercase()),
-            type_param.ident.span(),
+        let type_var_name = format_ident!(
+            "__type_var_{}",
+            type_param.ident.to_string().to_lowercase(),
+            span = type_param.ident.span()
         );
 
         // Generate param types - use type var or Bridge::type_from

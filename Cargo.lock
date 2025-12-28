@@ -1534,6 +1534,7 @@ dependencies = [
  "hashbrown 0.16.1",
  "pretty_assertions",
  "smallvec",
+ "static_assertions",
  "string_cache",
 ]
 

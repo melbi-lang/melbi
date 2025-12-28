@@ -43,12 +43,16 @@
   - If the tests compile successfully but fail when running then annotate the with #[ignore = "reason"]
   - If they don't even compile, then comment them out. Be sure to leave a `TODO:` for each test.
 
+# USEFUL COMMANDS
+- Run tests with `cargo t --failure-output=never`
+  - That's an alias to `cargo nextest run --status-level=fail --show-progress=none --no-output-indent --cargo-quiet`
+  - And that's perfect to save context since it avoids listing successes.
+  - To inspect the output from the tests to see why they are failing run just `cargo t`
+- `cargo t -p melbi-core` - Don't forget this is a cargo workspace. Use `cargo t --workspace` to test all packages.
+- `RUST_LOG=debug cargo run -q -p melbi-cli -- --no-color --debug-type "1 + 2"` - Evaluates `1 + 2`, enable logging, etc.
+
 # LOGGING / DEBUGGING
 - Use crate `tracing` for logging key aspects.
   - `tracing::debug!(var_id = id, binding = %ty, "Binding type variable");`
   - Enable in tests with: `crate::test_utils::init_test_logging();`
   - `cargo test -p melbi-core test_array_type_inference -- --nocapture`
-
-# USEFUL COMMANDS
-- `cargo test -p melbi-core` - Don't forget this is a cargo workspace. Use `--workspace` to test all packages.
-- `RUST_LOG=debug cargo run -q -p melbi-cli -- --no-color --debug-type "1 + 2"` - Evaluates `1 + 2`, enable logging, etc.

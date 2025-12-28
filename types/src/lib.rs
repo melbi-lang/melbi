@@ -16,8 +16,8 @@
 //! let arr_ty = TyKind::Array(int_ty).alloc(&builder);
 //! ```
 
-#![no_std]
-#![forbid(unsafe_code)]
+#![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
+// #![forbid(unsafe_code)]  // TODO: uncomment after moving small_str to another crate
 extern crate alloc;
 
 pub mod algo;
