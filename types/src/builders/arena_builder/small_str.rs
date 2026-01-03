@@ -1,23 +1,78 @@
 use core::num::NonZeroU8;
 use core::{hash::Hash, marker::PhantomData, mem, ptr, slice};
 
-// === SimpleSmallStr ===
+// === internal::SmallStrSize ===
 
 #[cfg(target_pointer_width = "32")]
-type SimpleSliceSize = u16;
+mod internal {
+    #[derive(Clone, Copy)]
+    pub struct SmallStrSize(u8, u16); // high8, low16
+
+    impl TryFrom<usize> for SmallStrSize {
+        type Error = core::num::TryFromIntError;
+
+        fn try_from(value: usize) -> Result<Self, Self::Error> {
+            // On 32-bit, usize is 32 bits, we need to split into u8 (high) and u16 (low)
+            let high = u8::try_from(value >> 16)?;
+            let low = (value & 0xFFFF) as u16;
+            Ok(SmallStrSize(high, low))
+        }
+    }
+
+    impl From<SmallStrSize> for usize {
+        fn from(size: SmallStrSize) -> Self {
+            ((size.0 as usize) << 16) | (size.1 as usize)
+        }
+    }
+
+    impl From<&SmallStrSize> for usize {
+        fn from(size: &SmallStrSize) -> Self {
+            ((size.0 as usize) << 16) | (size.1 as usize)
+        }
+    }
+}
 
 #[cfg(target_pointer_width = "64")]
-type SimpleSliceSize = u32;
+mod internal {
+    #[derive(Clone, Copy)]
+    pub struct SmallStrSize(u32);
 
-const SIMPLE_INLINE_SIZE: usize = 2 * mem::size_of::<usize>() - 2;
+    impl TryFrom<usize> for SmallStrSize {
+        type Error = core::num::TryFromIntError;
+
+        fn try_from(value: usize) -> Result<Self, Self::Error> {
+            Ok(SmallStrSize(u32::try_from(value)?))
+        }
+    }
+
+    impl From<SmallStrSize> for usize {
+        fn from(size: SmallStrSize) -> Self {
+            size.0 as usize
+        }
+    }
+
+    impl From<&SmallStrSize> for usize {
+        fn from(size: &SmallStrSize) -> Self {
+            size.0 as usize
+        }
+    }
+}
+
+// === SimpleSmallStr ===
+
+use internal::SmallStrSize;
 
 #[derive(Clone, Copy)]
 pub enum SimpleSmallStr<'a> {
-    Slice(SimpleSliceSize, ptr::NonNull<u8>, PhantomData<&'a str>),
-    Inline(u8, [u8; SIMPLE_INLINE_SIZE]),
+    Slice(SmallStrSize, ptr::NonNull<u8>, PhantomData<&'a str>),
+    Inline(u8, [u8; SimpleSmallStr::INLINE_CAPACITY]),
 }
 
-#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+// Verify Option niche-filling optimization works.
+static_assertions::assert_eq_size!(SimpleSmallStr, Option<SimpleSmallStr>);
+
+// Verify the inlining optimization is not increasing the size over no inlining.
+#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
 static_assertions::assert_eq_size!(SimpleSmallStr, &str);
 
 // === StrSliceRepr ===
@@ -293,10 +348,10 @@ impl core::fmt::Display for SmallStr<'_> {
 // === SimpleSmallStr Implementations ===
 
 impl<'a> SimpleSmallStr<'a> {
-    pub const INLINE_CAPACITY: usize = SIMPLE_INLINE_SIZE;
+    pub const INLINE_CAPACITY: usize = mem::size_of::<&str>() - 2;
 
     pub fn can_be_inlined(s: &str) -> bool {
-        s.len() <= SIMPLE_INLINE_SIZE
+        s.len() <= Self::INLINE_CAPACITY
     }
 
     /// Create a new SimpleSmallStr, either by inlining the string data (if it fits)
@@ -311,25 +366,29 @@ impl<'a> SimpleSmallStr<'a> {
                 .len()
                 .try_into()
                 .expect("str is too long for inline variant");
-            let mut data = [0u8; SIMPLE_INLINE_SIZE];
+            let mut data = [0u8; Self::INLINE_CAPACITY];
             data[..s.len()].copy_from_slice(s.as_bytes());
             SimpleSmallStr::Inline(len, data)
         } else {
             let allocated = alloc_str(s);
-            let len: SimpleSliceSize = allocated
-                .len()
-                .try_into()
-                .expect("str is too long for slice variant");
-            let ptr = ptr::NonNull::new(allocated.as_ptr() as *mut u8).unwrap();
-            SimpleSmallStr::Slice(len, ptr, PhantomData)
+            let ptr = ptr::NonNull::from_ref(allocated).cast::<u8>();
+            SimpleSmallStr::Slice(
+                allocated
+                    .len()
+                    .try_into()
+                    .expect("str is too long for slice variant"),
+                ptr,
+                PhantomData,
+            )
         }
     }
 
     pub fn as_str(&self) -> &str {
         match self {
-            SimpleSmallStr::Slice(len, ptr, _) => unsafe {
-                str::from_utf8_unchecked(slice::from_raw_parts(ptr.as_ptr(), *len as usize))
-            },
+            SimpleSmallStr::Slice(small_len, ptr, _) => {
+                let len: usize = small_len.into();
+                unsafe { str::from_utf8_unchecked(slice::from_raw_parts(ptr.as_ptr(), len)) }
+            }
             SimpleSmallStr::Inline(len, data) => unsafe {
                 str::from_utf8_unchecked(&data[..*len as usize])
             },
@@ -626,11 +685,6 @@ mod tests {
         let s2 = s1;
         assert_eq!(s1, s2);
         assert_eq!(s1.as_str(), "hello");
-    }
-
-    #[test]
-    fn test_inline_capacity_constants() {
-        assert_eq!(SimpleSmallStr::INLINE_CAPACITY, SIMPLE_INLINE_SIZE);
     }
 
     #[test]

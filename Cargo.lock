@@ -1526,6 +1526,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "melbi-small-str"
+version = "0.1.0"
+
+[[package]]
+name = "melbi-teeny-vec"
+version = "0.1.0"
+
+[[package]]
 name = "melbi-types"
 version = "0.1.0"
 dependencies = [

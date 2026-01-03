@@ -10,6 +10,7 @@ members = [
     "types",
     "macros",
     "values",
+    "support/small-str", "support/teeny-vec",
 ]
 
 [workspace.package]
