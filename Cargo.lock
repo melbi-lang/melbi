@@ -1528,6 +1528,9 @@ dependencies = [
 [[package]]
 name = "melbi-small-str"
 version = "0.1.0"
+dependencies = [
+ "static_assertions",
+]
 
 [[package]]
 name = "melbi-teeny-vec"
@@ -1540,6 +1543,7 @@ dependencies = [
  "bitflags 2.10.0",
  "bumpalo",
  "hashbrown 0.16.1",
+ "melbi-small-str",
  "pretty_assertions",
  "smallvec",
  "static_assertions",
