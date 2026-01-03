@@ -27,6 +27,7 @@ melbi-cli = { version = "0.1.0" }
 melbi-fmt = { version = "0.1.0" }
 melbi-macros = { version = "0.1.0" }
 melbi-small-str = { version = "0.1.0" }
+melbi-teeny-vec = { version = "0.1.0" }
 
 allocator-api2 = "0.2.21"  # Match bumpalo and hashbrown
 ariadne = "0.6.0"
@@ -80,3 +81,4 @@ melbi-cli = { path = "cli" }
 melbi-fmt = { path = "fmt" }
 melbi-macros = { path = "macros" }
 melbi-small-str = { path = "support/small-str" }
+melbi-teeny-vec = { path = "support/teeny-vec" }

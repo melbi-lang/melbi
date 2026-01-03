@@ -3,7 +3,7 @@
 //! Run with: `cargo bench --bench teeny_vec`
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use melbi_core::teeny_vec::TeenyVec;
+use melbi_teeny_vec::TeenyVec;
 use smallvec::SmallVec;
 
 fn bench_push_small(c: &mut Criterion) {

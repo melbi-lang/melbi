@@ -6,3 +6,12 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+static_assertions.workspace = true
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+smallvec.workspace = true
+
+[[bench]]
+name = "teeny_vec"
+harness = false
