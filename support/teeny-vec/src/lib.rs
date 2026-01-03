@@ -35,7 +35,7 @@ enum TeenyVecKind {
 // struct Heap  { cap: u16, len: u16, data: NonNull<u8> }
 // struct Stack { len: u16, data: [u8; 14]              }
 //
-// Option 3:
+// Option 3: (we tried this and it's way worse)
 // * remove capacity and define it as the next power of 2 after the length
 // * heap doesn't need to use the first u16 in this case
 // * so when `len == 0` data is on the heap, otherwise `len - 1` is the actual length of stack data.
