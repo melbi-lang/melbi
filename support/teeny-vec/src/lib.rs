@@ -1,5 +1,3 @@
-#![allow(unsafe_code)]
-
 //! TeenyVec: A 16-byte small vector optimized for inline storage.
 //!
 //! TeenyVec provides a compact vector type that:
@@ -7,8 +5,7 @@
 //! - Stores up to 14 bytes inline without heap allocation
 //! - Grows to heap seamlessly when needed
 //! - Uses odd/even discriminant for stack/heap detection
-
-#![allow(dead_code)]
+#![allow(unsafe_code)]
 
 extern crate alloc;
 
@@ -146,6 +143,7 @@ impl TeenyVec {
         heap.cap = new_cap.try_into().expect("capacity overflow");
     }
 
+    #[allow(dead_code)] // Not currently used.
     #[inline(always)]
     fn set_len(&mut self, new_len: usize) {
         match self.kind() {
@@ -205,7 +203,7 @@ impl TeenyVec {
             // Update to new allocation
             let heap = &mut self.repr.heap;
             heap.data = NonNull::new_unchecked(new_ptr);
-            heap.cap = new_cap.try_into().expect("overflow");
+            self.set_cap(new_cap);
         }
     }
 
