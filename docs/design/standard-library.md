@@ -137,18 +137,21 @@ The standard library will be implemented as **packages** - records containing fu
 **Package Structure:**
 ```melbi
 // Example package (conceptual)
-Math = {
-    // Constants
-    PI = 3.14159265359,
-    E = 2.71828182846,
-    TAU = 6.28318530718,
-    
-    // Functions
-    Sin = <builtin function (Float) => Float>,
-    Cos = <builtin function (Float) => Float>,
-    Abs = <builtin function (Int) => Int>,  // Overloaded
-    Abs = <builtin function (Float) => Float>,
-    // etc.
+Math.Sin(Math.PI)
+where {
+    Math = {
+        // Constants
+        PI = 3.14159265359,
+        E = 2.71828182846,
+        TAU = 6.28318530718,
+        
+        // Functions
+        Sin = <builtin function (Float) => Float>,
+        Cos = <builtin function (Float) => Float>,
+        Abs = <builtin function (Int) => Int>,  // Overloaded
+        Abs = <builtin function (Float) => Float>,
+        // etc.
+    }
 }
 ```
 
@@ -345,53 +348,56 @@ Map.Merge(a: Map[K, V], b: Map[K, V]) => Map[K, V]  // b overwrites a
 
 ## Package: `Option`
 
-**Functions (Pure Melbi - no FFI needed):**
+**Functions:**
 ```melbi
-Option = {
-    // Unwrapping
-    UnwrapOr = (opt: Option[T], default: T) => T {
-        opt match {
-            some value -> value,
-            none -> default,
-        }
-    },
-    
-    // Transformation
-    Map = (opt: Option[T], fn: (T) => U) => Option[U] {
-        opt match {
-            some value -> some (fn(value)),
-            none -> none,
-        }
-    },
-    
-    AndThen = (opt: Option[T], fn: (T) => Option[U]) => Option[U] {
-        opt match {
-            some value -> fn(value),
-            none -> none,
-        }
-    },
-    
-    Or = (a: Option[T], b: Option[T]) => Option[T] {
-        a match {
-            some _ -> a,
-            none -> b,
-        }
-    },
-    
-    // Inspection
-    IsSome = (opt: Option[T]) => Bool {
-        opt match {
-            some _ -> true,
-            none -> false,
-        }
-    },
-    
-    IsNone = (opt: Option[T]) => Bool {
-        opt match {
-            some _ -> false,
-            none -> true,
-        }
-    },
+expression
+where {
+  Option = {
+      // Unwrapping
+      UnwrapOr = (opt: Option[T], default: T) => T {
+          opt match {
+              some value -> value,
+              none -> default,
+          }
+      },
+      
+      // Transformation
+      Map = (opt: Option[T], fn: (T) => U) => Option[U] {
+          opt match {
+              some value -> some (fn(value)),
+              none -> none,
+          }
+      },
+      
+      AndThen = (opt: Option[T], fn: (T) => Option[U]) => Option[U] {
+          opt match {
+              some value -> fn(value),
+              none -> none,
+          }
+      },
+      
+      Or = (a: Option[T], b: Option[T]) => Option[T] {
+          a match {
+              some _ -> a,
+              none -> b,
+          }
+      },
+      
+      // Inspection
+      IsSome = (opt: Option[T]) => Bool {
+          opt match {
+              some _ -> true,
+              none -> false,
+          }
+      },
+      
+      IsNone = (opt: Option[T]) => Bool {
+          opt match {
+              some _ -> false,
+              none -> true,
+          }
+      },
+  }
 }
 ```
 
