@@ -19,6 +19,7 @@ These crates are:
 ## Characteristics
 
 ### What Belongs Here
+
 - **Generic, reusable implementations** - Code that does something well and isn't Melbi-specific
 - **Performance-critical data structures** - e.g., inline-optimized collections
 - **Foundational types** used across multiple Melbi crates
@@ -30,6 +31,7 @@ Even if a Melbi crate allows unsafe code, consider moving generic utilities here
 - Could be reused by other projects
 
 ### What Doesn't Belong Here
+
 - **Melbi-specific features** - Parser, type system, VM, language semantics, etc.
 - **Business logic** - Code tightly coupled to Melbi's design
 - **Vague "utils"** - General-purpose grab-bags without a clear, focused purpose
