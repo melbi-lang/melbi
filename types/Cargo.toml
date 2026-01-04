@@ -12,10 +12,8 @@ hashbrown.workspace = true
 melbi-small-str.workspace = true
 string_cache = "0.9.0"
 smallvec.workspace = true
-static_assertions.workspace = true
 
 [dev-dependencies]
-pretty_assertions.workspace = true
 
 [lib]
 proc-macro = false
