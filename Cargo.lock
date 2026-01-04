@@ -1549,15 +1549,16 @@ dependencies = [
  "bumpalo",
  "hashbrown 0.16.1",
  "melbi-small-str",
- "pretty_assertions",
  "smallvec",
- "static_assertions",
  "string_cache",
 ]
 
 [[package]]
 name = "melbi-values"
 version = "0.1.0"
+dependencies = [
+ "melbi-types",
+]
 
 [[package]]
 name = "memchr"

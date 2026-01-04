@@ -23,6 +23,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 melbi = { version = "0.1.0" }
 melbi-core = { version = "0.1.0" }
+melbi-types = { version = "0.1.0" }
 melbi-lsp = { version = "0.1.0" }
 melbi-cli = { version = "0.1.0" }
 melbi-fmt = { version = "0.1.0" }
@@ -77,6 +78,7 @@ fmt = ["dep:melbi-fmt"]
 [patch.crates-io]
 melbi = { path = "." }
 melbi-core = { path = "core" }
+melbi-types = { path = "types" }
 melbi-lsp = { path = "lsp" }
 melbi-cli = { path = "cli" }
 melbi-fmt = { path = "fmt" }
