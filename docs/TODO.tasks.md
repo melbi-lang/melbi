@@ -13,6 +13,19 @@ _Re-evaluate priorities periodically as needs change_
   - Update type parser and type printer
   - Update enums
 
+- [ ] Formatter is not up-to-date with "match" syntax
+
+- [ ] Formatter breaks on:
+  ```melbi
+  message where {
+      message = if response.success
+      then f"User { response.data.username } logged in"
+      else "Login failed",
+  }
+  ```
+- [ ] Formatter test (strings with `//`) `"http://example.com"`, `some (some 42)`, `some (none)`.
+
+- [ ] Review array_test.rs.
 ---
 
 ## Error Handling
