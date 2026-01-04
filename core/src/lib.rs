@@ -29,7 +29,6 @@ pub mod parser;
 pub mod scope_stack;
 pub mod stdlib;
 pub mod syntax;
-pub mod teeny_vec;
 pub mod types;
 pub mod values;
 pub mod visitor;

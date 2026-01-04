@@ -45,10 +45,6 @@ name = "type_manager"
 harness = false
 
 [[bench]]
-name = "teeny_vec"
-harness = false
-
-[[bench]]
 name = "function_dispatch"
 harness = false
 

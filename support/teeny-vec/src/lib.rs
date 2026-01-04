@@ -1,5 +1,3 @@
-#![allow(unsafe_code)]
-
 //! TeenyVec: A 16-byte small vector optimized for inline storage.
 //!
 //! TeenyVec provides a compact vector type that:
@@ -7,8 +5,9 @@
 //! - Stores up to 14 bytes inline without heap allocation
 //! - Grows to heap seamlessly when needed
 //! - Uses odd/even discriminant for stack/heap detection
+#![allow(unsafe_code)]
 
-#![allow(dead_code)]
+extern crate alloc;
 
 use alloc::alloc::{Layout, alloc};
 use core::{
@@ -36,7 +35,7 @@ enum TeenyVecKind {
 // struct Heap  { cap: u16, len: u16, data: NonNull<u8> }
 // struct Stack { len: u16, data: [u8; 14]              }
 //
-// Option 3:
+// Option 3: (we tried this and it's way worse)
 // * remove capacity and define it as the next power of 2 after the length
 // * heap doesn't need to use the first u16 in this case
 // * so when `len == 0` data is on the heap, otherwise `len - 1` is the actual length of stack data.
@@ -144,6 +143,7 @@ impl TeenyVec {
         heap.cap = new_cap.try_into().expect("capacity overflow");
     }
 
+    #[allow(dead_code)] // Not currently used.
     #[inline(always)]
     fn set_len(&mut self, new_len: usize) {
         match self.kind() {
@@ -203,7 +203,7 @@ impl TeenyVec {
             // Update to new allocation
             let heap = &mut self.repr.heap;
             heap.data = NonNull::new_unchecked(new_ptr);
-            heap.cap = new_cap.try_into().expect("overflow");
+            self.set_cap(new_cap);
         }
     }
 
@@ -219,6 +219,12 @@ impl TeenyVec {
                 alloc::slice::from_raw_parts(ptr, self.len())
             },
         }
+    }
+}
+
+impl Default for TeenyVec {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
