@@ -1,16 +1,17 @@
 [workspace]
 members = [
-    "core",
-    "lsp",
     "cli",
+    "core",
     "fmt",
-    "playground/worker",
-    "zed",
-    "parser",
-    "types",
+    "lsp",
     "macros",
+    "parser",
+    "playground/worker",
+    "support/small-str",
+    "support/teeny-vec",
+    "types",
     "values",
-    "support/small-str", "support/teeny-vec",
+    "zed",
 ]
 
 [workspace.package]
