@@ -1,3 +1,6 @@
 [submodule "tree-sitter"]
 	path = tree-sitter
 	url = https://github.com/melbi-lang/tree-sitter-melbi
+[submodule "assets"]
+	path = assets
+	url = https://github.com/melbi-lang/melbi-assets
