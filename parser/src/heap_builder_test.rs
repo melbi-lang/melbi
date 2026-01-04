@@ -40,10 +40,10 @@ fn fold_tree<In, Out>(input: &In, output: &Out, tree: &Tree<In>) -> Tree<Out>
 where
     In: TreeBuilder<TreeData = Span>,
     Out: TreeBuilder<TreeData = Span, TreeKind = Expr<Out>>,
-    In::TreeKind: Fold<In, Out>,
+    TreeNode<In>: Fold<In, Out>,
 {
     let node = tree.node();
-    TreeNode(*node.data(), node.kind().fold(input, output)).alloc(output)
+    node.fold(input, output).alloc(output)
 }
 
 impl Fold<HeapBuilder, HeapBuilder> for Expr<HeapBuilder> {
