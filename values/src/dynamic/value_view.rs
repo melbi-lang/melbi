@@ -1,7 +1,9 @@
+use melbi_types::Ty;
+
 use crate::traits::ValueBuilder;
 
 pub trait ValueView<VB: ValueBuilder>: Sized {
-    fn ty(&self) -> VB::Ty;
+    fn ty(&self) -> Ty<VB::TB>;
 
     // Primitives: Return standard Rust types
     fn as_int(&self) -> Option<i64>;
