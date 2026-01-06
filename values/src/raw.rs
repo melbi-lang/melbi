@@ -1,21 +1,28 @@
 #![allow(unsafe_code)]
 
-use alloc::boxed::Box;
+use core::ptr::NonNull;
+use core::{fmt, slice};
+
 use alloc::vec::Vec;
-use core::fmt;
 
 #[repr(C)]
 pub union RawValue {
     int: i64,
     bool: bool,
-    array: *const Vec<RawValue>,
+    // Do not use NonNull<[RawValue]> to keep the pointer thin.
+    array: NonNull<RawValue>,
 }
+
+static_assertions::assert_eq_size!(RawValue, usize);
+
 impl Copy for RawValue {}
+
 impl Clone for RawValue {
     fn clone(&self) -> Self {
         *self
     }
 }
+
 impl fmt::Debug for RawValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:p}", unsafe { self.array })
@@ -32,9 +39,13 @@ impl RawValue {
     }
 
     pub fn new_array(values: &[RawValue]) -> Self {
-        // Just an example. In real life I don't want to leak memory.
-        let boxed: Box<Vec<RawValue>> = Box::new(Vec::from(values));
-        let array = Box::into_raw(boxed); // XXX
+        // TODO: This is just a proof of concept (and it leaks memory!).
+        let mut data = Vec::with_capacity(1 + values.len());
+        data.push(RawValue {
+            int: values.len() as i64,
+        });
+        data.extend_from_slice(values);
+        let array = NonNull::from_ref(data.leak()).cast();
         RawValue { array }
     }
 
@@ -47,6 +58,9 @@ impl RawValue {
     }
 
     pub fn as_array_unchecked(&self) -> &[RawValue] {
-        unsafe { &*self.array }
+        unsafe {
+            let len: usize = self.array.as_ref().int as usize;
+            slice::from_raw_parts(self.array.add(1).as_ref(), len)
+        }
     }
 }
