@@ -448,7 +448,7 @@ fn main() -> Result<()> {
     let style = Style::new().dimmed();
     println!(
         "🖖 Melbi REPL. {}",
-        style.paint("Enter expressions; Ctrl+D to exit; Ctrl+C to abort entry")
+        style.paint("Ctrl+D to exit; Ctrl+C to abort entry")
     );
 
     loop {
