@@ -1557,7 +1557,9 @@ dependencies = [
 name = "melbi-values"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "melbi-types",
+ "static_assertions",
 ]
 
 [[package]]
