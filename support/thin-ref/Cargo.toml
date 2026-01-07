@@ -1,0 +1,10 @@
+[package]
+name = "melbi-thin-ref"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+static_assertions.workspace = true
+bumpalo.workspace = true

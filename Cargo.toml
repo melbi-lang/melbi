@@ -9,6 +9,7 @@ members = [
     "playground/worker",
     "support/small-str",
     "support/teeny-vec",
+    "support/thin-ref",
     "types",
     "values",
     "zed",
