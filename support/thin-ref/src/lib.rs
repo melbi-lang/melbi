@@ -10,6 +10,9 @@ where
     phantom: PhantomData<&'a T>,
 }
 
+// TODO: uncomment after actually making it a thin reference.
+// static_assertions::assert_eq_size!(ThinRef<[i32]>, usize);
+
 impl<'a, T> ThinRef<'a, T>
 where
     T: 'a,

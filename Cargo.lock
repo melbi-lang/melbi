@@ -1544,6 +1544,9 @@ dependencies = [
 [[package]]
 name = "melbi-thin-ref"
 version = "0.1.0"
+dependencies = [
+ "static_assertions",
+]
 
 [[package]]
 name = "melbi-types"
