@@ -272,6 +272,7 @@ mod tests {
     extern crate alloc;
     extern crate std;
 
+    use alloc::boxed::Box;
     use alloc::format;
     use alloc::string::ToString;
     use alloc::vec;
@@ -306,6 +307,17 @@ mod tests {
         assert_eq!(*thin, Point { x: 10, y: 20 });
     }
 
+    #[test]
+    fn new_unit_type() {
+        let arena = Bump::new();
+        let thin: ThinRef<()> = ThinRef::new(&arena, ());
+        assert_eq!(size_of_val(&thin), 8);
+        assert_eq!(*thin, ());
+
+        let b = Box::new(());
+        assert_eq!(size_of_val(&b), 8);
+    }
+
     // =========================
     // ThinRef::from_slice() tests
     // =========================
@@ -322,6 +334,19 @@ mod tests {
         let arena = Bump::new();
         let thin: ThinRef<[i32]> = ThinRef::from_slice(&arena, [10, 20, 30]);
         assert_eq!(&*thin, &[10, 20, 30]);
+    }
+
+    #[test]
+    fn from_slice_array_align16_iterator() {
+        let arena = Bump::new();
+        let thin: ThinRef<[u128]> = ThinRef::from_slice(&arena, [10]);
+        assert_eq!(&*thin, &[10]);
+
+        // Layout: [usize:8|[u64:8, u64:8]]
+        assert_eq!(ThinRef::<[u64]>::layout(2).0.size(), 24);
+
+        // Layout: [usize:8|_:8|[u128:16]] where _ is padding.
+        assert_eq!(ThinRef::<[u128]>::layout(1).0.size(), 32);
     }
 
     #[test]
