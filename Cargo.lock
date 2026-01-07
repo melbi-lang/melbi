@@ -1545,6 +1545,7 @@ dependencies = [
 name = "melbi-thin-ref"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "static_assertions",
 ]
 

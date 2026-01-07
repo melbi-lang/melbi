@@ -2,6 +2,8 @@
 
 use core::{error::Error, fmt, marker::PhantomData, ops::Deref};
 
+use bumpalo::Bump;
+
 pub struct ThinRef<'a, T>
 where
     T: 'a + ?Sized,
@@ -17,9 +19,9 @@ impl<'a, T> ThinRef<'a, T>
 where
     T: 'a,
 {
-    pub fn new(value: &'a T) -> Self {
+    pub fn new(arena: &'a Bump, value: T) -> Self {
         ThinRef {
-            inner: value,
+            inner: arena.alloc(value),
             phantom: PhantomData,
         }
     }
@@ -29,9 +31,12 @@ impl<'a, T> ThinRef<'a, [T]>
 where
     [T]: 'a,
 {
-    pub fn from_slice(value: &'a [T]) -> Self {
+    pub fn from_slice(
+        arena: &'a Bump,
+        values: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
+    ) -> Self {
         ThinRef {
-            inner: value,
+            inner: arena.alloc_slice_fill_iter(values),
             phantom: PhantomData,
         }
     }
