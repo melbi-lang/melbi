@@ -12,6 +12,8 @@ where
     phantom: PhantomData<&'a T>,
 }
 
+static_assertions::assert_eq_size!(ThinRef<u128>, usize);
+static_assertions::assert_eq_size!(ThinRef<[i32; 3]>, usize);
 static_assertions::assert_eq_size!(ThinRef<[i32]>, usize);
 static_assertions::assert_eq_size!(ThinRef<str>, usize);
 
@@ -37,7 +39,7 @@ impl<T> ThinRefTarget for T {
     {
         // SAFETY: ptr was created from a valid &T allocated in the arena.
         // The lifetime 'a ensures the arena (and thus the allocation) outlives this reference.
-        unsafe { &*(thin.ptr.as_ptr() as *const T) }
+        unsafe { thin.ptr.cast().as_ref() }
     }
 }
 
@@ -46,9 +48,7 @@ where
     T: 'a,
 {
     pub fn new(arena: &'a Bump, value: T) -> Self {
-        let ptr = arena.alloc(value) as *const T as *mut u8;
-        // SAFETY: arena.alloc always returns a valid, non-null pointer.
-        let ptr = unsafe { NonNull::new_unchecked(ptr) };
+        let ptr = NonNull::from_ref(arena.alloc(value)).cast();
         ThinRef {
             ptr,
             phantom: PhantomData,
@@ -66,10 +66,10 @@ impl<T> ThinRefTarget for [T] {
         // SAFETY: ptr points to [len: usize][data: T * len] allocated in the arena.
         // The lifetime 'a ensures the arena (and thus the allocation) outlives this reference.
         unsafe {
-            let len = *thin.ptr.as_ptr().cast::<usize>();
+            let len = *thin.ptr.cast::<usize>().as_ref();
             let (_, slice_offset) = ThinRef::<[T]>::layout(len);
-            let data_ptr = thin.ptr.as_ptr().add(slice_offset).cast::<T>();
-            core::slice::from_raw_parts(data_ptr, len)
+            let data_ptr = thin.ptr.add(slice_offset).cast::<T>();
+            core::slice::from_raw_parts(data_ptr.as_ptr(), len)
         }
     }
 }
@@ -91,10 +91,10 @@ where
 
         unsafe {
             // Write the length at the start
-            ptr.as_ptr().cast::<usize>().write(len);
+            ptr.cast::<usize>().write(len);
 
             // Write each element at the correct offset
-            let data_ptr = ptr.as_ptr().add(slice_offset).cast::<T>();
+            let data_ptr = ptr.add(slice_offset).cast::<T>();
             for (i, value) in iter.enumerate() {
                 data_ptr.add(i).write(value);
             }
@@ -126,10 +126,10 @@ impl ThinRefTarget for str {
         // The bytes are valid UTF-8 because they were copied from a valid &str.
         // The lifetime 'a ensures the arena (and thus the allocation) outlives this reference.
         unsafe {
-            let len = *thin.ptr.as_ptr().cast::<usize>();
+            let len = *thin.ptr.cast::<usize>().as_ref();
             let (_, bytes_offset) = ThinRef::<str>::layout(len);
-            let data_ptr = thin.ptr.as_ptr().add(bytes_offset);
-            let bytes = core::slice::from_raw_parts(data_ptr, len);
+            let data_ptr = thin.ptr.add(bytes_offset);
+            let bytes = core::slice::from_raw_parts(data_ptr.as_ptr(), len);
             core::str::from_utf8_unchecked(bytes)
         }
     }
@@ -146,11 +146,11 @@ impl<'a> ThinRef<'a, str> {
 
         unsafe {
             // Write the length at the start
-            ptr.as_ptr().cast::<usize>().write(len);
+            ptr.cast::<usize>().write(len);
 
             // Copy the UTF-8 bytes
-            let data_ptr = ptr.as_ptr().add(bytes_offset);
-            core::ptr::copy_nonoverlapping(bytes.as_ptr(), data_ptr, len);
+            let data_ptr = ptr.add(bytes_offset);
+            core::ptr::copy_nonoverlapping(bytes.as_ptr(), data_ptr.as_ptr(), len);
         }
 
         ThinRef {
