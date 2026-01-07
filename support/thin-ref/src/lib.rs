@@ -152,7 +152,7 @@ where
         arena: &'a Bump,
         values: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
     ) -> Self {
-        let iter = values.into_iter();
+        let mut iter = values.into_iter();
         let len = iter.len();
         let (layout, slice_offset) = Self::layout(len);
 
@@ -165,8 +165,10 @@ where
 
             // Write each element at the correct offset
             let data_ptr = ptr.add(slice_offset).cast::<T>();
-            for (i, value) in iter.enumerate() {
-                data_ptr.add(i).write(value);
+            for i in 0..len {
+                data_ptr
+                    .add(i)
+                    .write(iter.next().expect("iterator exhausted too early"));
             }
         }
 
@@ -239,6 +241,12 @@ impl<'a> ThinRef<'a, str> {
     }
 }
 
+impl<T: ?Sized> Clone for ThinRef<'_, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl<T: ?Sized> Copy for ThinRef<'_, T> {}
 impl<'a, T: ?Sized + ThinRefTarget + fmt::Debug> fmt::Debug for ThinRef<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         (**self).fmt(f)
@@ -259,9 +267,6 @@ impl<'a, T: ?Sized + ThinRefTarget> Deref for ThinRef<'a, T> {
     fn deref(&self) -> &Self::Target {
         T::deref_inner(self)
     }
-}
-impl<'a, T: ?Sized> Drop for ThinRef<'a, T> {
-    fn drop(&mut self) {}
 }
 
 unsafe impl<T: ?Sized + Send> Send for ThinRef<'_, T> {}
