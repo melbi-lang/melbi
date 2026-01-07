@@ -1,9 +1,75 @@
+//! Thin pointers for arena-allocated unsized types.
+//!
+//! A `ThinRef<[T]>` is pointer-sized (`usize`), unlike `&[T]` which is two words
+//! (pointer + length). This matters when you're storing many references to slices
+//! or strings in memory-constrained or cache-sensitive contexts.
+//!
+//! # Why Thin?
+//!
+//! Standard Rust slice and string references are "fat pointers" - they carry both
+//! a pointer and a length, making them 16 bytes on 64-bit systems. `ThinRef` stores
+//! the length inline *before* the data in a single contiguous allocation:
+//!
+//! ```text
+//! ThinRef<[T]>:  ptr ──▶ [len | data...]
+//!                        └─────────────┘
+//!                        single allocation
+//! ```
+//!
+//! Benefits:
+//!
+//! - **Half the size**: 8 bytes instead of 16 for slice/string references
+//! - **Single allocation**: length and data are allocated together, no indirection
+//! - **Cache-friendly**: reading the length prefetches the data into the same cache line
+//! - **Simpler data structures**: arrays of `ThinRef` are more compact
+//!
+//! # Example
+//!
+//! ```
+//! use bumpalo::Bump;
+//! use melbi_thin_ref::ThinRef;
+//!
+//! let arena = Bump::new();
+//!
+//! // Sized types - just a pointer
+//! let num: ThinRef<i32> = ThinRef::new(&arena, 42);
+//! assert_eq!(*num, 42);
+//!
+//! // Slices - thin pointer with inline length
+//! let slice: ThinRef<[i32]> = ThinRef::from_slice(&arena, [1, 2, 3]);
+//! assert_eq!(slice.len(), 3);
+//!
+//! // Strings - same as slices
+//! let s: ThinRef<str> = ThinRef::from_str(&arena, "hello");
+//! assert_eq!(&*s, "hello");
+//! ```
+//!
+//! # Memory Layout
+//!
+//! | Type | Layout |
+//! |------|--------|
+//! | Sized `T` | `ptr → T` |
+//! | `[T]` | `ptr → [len: usize][data: T...]` |
+//! | `str` | `ptr → [len: usize][utf8 bytes...]` |
+//!
+//! # Gotchas
+//!
+//! - **No drop**: `Drop` is not called on contained values. Bumpalo arenas don't
+//!   run destructors by default. Don't store types that require cleanup.
+//! - **Immutable**: No `DerefMut` - values are read-only after creation.
+
 #![no_std]
 
 use core::{alloc::Layout, error::Error, fmt, marker::PhantomData, ops::Deref, ptr::NonNull};
 
 use bumpalo::Bump;
 
+/// A thin pointer to an arena-allocated value.
+///
+/// Unlike `&T`, `ThinRef<[T]>` and `ThinRef<str>` are pointer-sized (no fat pointer).
+/// The length is stored inline before the data.
+///
+/// See [crate-level docs](crate) for examples.
 pub struct ThinRef<'a, T>
 where
     T: 'a + ?Sized,
@@ -47,6 +113,7 @@ impl<'a, T> ThinRef<'a, T>
 where
     T: 'a,
 {
+    /// Allocates a sized value in the arena and returns a thin reference to it.
     pub fn new(arena: &'a Bump, value: T) -> Self {
         let ptr = NonNull::from_ref(arena.alloc(value)).cast();
         ThinRef {
@@ -78,6 +145,9 @@ impl<'a, T> ThinRef<'a, [T]>
 where
     [T]: 'a,
 {
+    /// Allocates a slice in the arena from an iterator.
+    ///
+    /// The iterator must be [`ExactSizeIterator`] so the length is known upfront.
     pub fn from_slice(
         arena: &'a Bump,
         values: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
@@ -111,7 +181,7 @@ where
         let (layout, slice_offset) = Layout::new::<usize>()
             .extend(Layout::array::<T>(n).unwrap())
             .unwrap();
-        (layout, slice_offset)
+        (layout.pad_to_align(), slice_offset)
     }
 }
 
@@ -136,6 +206,7 @@ impl ThinRefTarget for str {
 }
 
 impl<'a> ThinRef<'a, str> {
+    /// Allocates a string in the arena by copying the given `&str`.
     pub fn from_str(arena: &'a Bump, value: &str) -> Self {
         let bytes = value.as_bytes();
         let len = bytes.len();
@@ -164,7 +235,7 @@ impl<'a> ThinRef<'a, str> {
         let (layout, bytes_offset) = Layout::new::<usize>()
             .extend(Layout::array::<u8>(n).unwrap())
             .unwrap();
-        (layout, bytes_offset)
+        (layout.pad_to_align(), bytes_offset)
     }
 }
 
