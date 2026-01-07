@@ -1,6 +1,6 @@
 #![no_std]
 
-use core::{error::Error, fmt, marker::PhantomData, ops::Deref};
+use core::{alloc::Layout, error::Error, fmt, marker::PhantomData, ops::Deref, ptr::NonNull};
 
 use bumpalo::Bump;
 
@@ -8,21 +8,68 @@ pub struct ThinRef<'a, T>
 where
     T: 'a + ?Sized,
 {
-    inner: &'a T,
+    ptr: NonNull<u8>,
     phantom: PhantomData<&'a T>,
 }
 
-// TODO: uncomment after actually making it a thin reference.
-// static_assertions::assert_eq_size!(ThinRef<[i32]>, usize);
+static_assertions::assert_eq_size!(ThinRef<[i32]>, usize);
+static_assertions::assert_eq_size!(ThinRef<str>, usize);
+
+mod private {
+    pub trait Sealed {}
+}
+
+/// Trait that enables ThinRef to work with different types.
+/// This is a sealed trait - it cannot be implemented outside this crate.
+pub trait ThinRefTarget: private::Sealed {
+    #[doc(hidden)]
+    fn deref_inner<'a>(thin: &ThinRef<'a, Self>) -> &'a Self
+    where
+        Self: 'a;
+}
+
+impl<T> private::Sealed for T {}
+
+impl<T> ThinRefTarget for T {
+    fn deref_inner<'a>(thin: &ThinRef<'a, Self>) -> &'a Self
+    where
+        Self: 'a,
+    {
+        // SAFETY: ptr was created from a valid &T allocated in the arena.
+        // The lifetime 'a ensures the arena (and thus the allocation) outlives this reference.
+        unsafe { &*(thin.ptr.as_ptr() as *const T) }
+    }
+}
 
 impl<'a, T> ThinRef<'a, T>
 where
     T: 'a,
 {
     pub fn new(arena: &'a Bump, value: T) -> Self {
+        let ptr = arena.alloc(value) as *const T as *mut u8;
+        // SAFETY: arena.alloc always returns a valid, non-null pointer.
+        let ptr = unsafe { NonNull::new_unchecked(ptr) };
         ThinRef {
-            inner: arena.alloc(value),
+            ptr,
             phantom: PhantomData,
+        }
+    }
+}
+
+impl<T> private::Sealed for [T] {}
+
+impl<T> ThinRefTarget for [T] {
+    fn deref_inner<'a>(thin: &ThinRef<'a, Self>) -> &'a Self
+    where
+        Self: 'a,
+    {
+        // SAFETY: ptr points to [len: usize][data: T * len] allocated in the arena.
+        // The lifetime 'a ensures the arena (and thus the allocation) outlives this reference.
+        unsafe {
+            let len = *thin.ptr.as_ptr().cast::<usize>();
+            let (_, slice_offset) = ThinRef::<[T]>::layout(len);
+            let data_ptr = thin.ptr.as_ptr().add(slice_offset).cast::<T>();
+            core::slice::from_raw_parts(data_ptr, len)
         }
     }
 }
@@ -35,32 +82,111 @@ where
         arena: &'a Bump,
         values: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
     ) -> Self {
+        let iter = values.into_iter();
+        let len = iter.len();
+        let (layout, slice_offset) = Self::layout(len);
+
+        // SAFETY: arena.alloc_layout returns a valid, non-null, properly aligned pointer.
+        let ptr = arena.alloc_layout(layout);
+
+        unsafe {
+            // Write the length at the start
+            ptr.as_ptr().cast::<usize>().write(len);
+
+            // Write each element at the correct offset
+            let data_ptr = ptr.as_ptr().add(slice_offset).cast::<T>();
+            for (i, value) in iter.enumerate() {
+                data_ptr.add(i).write(value);
+            }
+        }
+
         ThinRef {
-            inner: arena.alloc_slice_fill_iter(values),
+            ptr,
             phantom: PhantomData,
+        }
+    }
+
+    /// Returns the layout and the offset to the slice data.
+    fn layout(n: usize) -> (Layout, usize) {
+        let (layout, slice_offset) = Layout::new::<usize>()
+            .extend(Layout::array::<T>(n).unwrap())
+            .unwrap();
+        (layout, slice_offset)
+    }
+}
+
+impl private::Sealed for str {}
+
+impl ThinRefTarget for str {
+    fn deref_inner<'a>(thin: &ThinRef<'a, Self>) -> &'a Self
+    where
+        Self: 'a,
+    {
+        // SAFETY: ptr points to [len: usize][utf8 bytes] allocated in the arena.
+        // The bytes are valid UTF-8 because they were copied from a valid &str.
+        // The lifetime 'a ensures the arena (and thus the allocation) outlives this reference.
+        unsafe {
+            let len = *thin.ptr.as_ptr().cast::<usize>();
+            let (_, bytes_offset) = ThinRef::<str>::layout(len);
+            let data_ptr = thin.ptr.as_ptr().add(bytes_offset);
+            let bytes = core::slice::from_raw_parts(data_ptr, len);
+            core::str::from_utf8_unchecked(bytes)
         }
     }
 }
 
-impl<'a, T: ?Sized + fmt::Debug> fmt::Debug for ThinRef<'a, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.inner.fmt(f)
+impl<'a> ThinRef<'a, str> {
+    pub fn from_str(arena: &'a Bump, value: &str) -> Self {
+        let bytes = value.as_bytes();
+        let len = bytes.len();
+        let (layout, bytes_offset) = Self::layout(len);
+
+        // SAFETY: arena.alloc_layout returns a valid, non-null, properly aligned pointer.
+        let ptr = arena.alloc_layout(layout);
+
+        unsafe {
+            // Write the length at the start
+            ptr.as_ptr().cast::<usize>().write(len);
+
+            // Copy the UTF-8 bytes
+            let data_ptr = ptr.as_ptr().add(bytes_offset);
+            core::ptr::copy_nonoverlapping(bytes.as_ptr(), data_ptr, len);
+        }
+
+        ThinRef {
+            ptr,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Returns the layout and the offset to the string bytes.
+    fn layout(n: usize) -> (Layout, usize) {
+        let (layout, bytes_offset) = Layout::new::<usize>()
+            .extend(Layout::array::<u8>(n).unwrap())
+            .unwrap();
+        (layout, bytes_offset)
     }
 }
-impl<'a, T: ?Sized + fmt::Display> fmt::Display for ThinRef<'a, T> {
+
+impl<'a, T: ?Sized + ThinRefTarget + fmt::Debug> fmt::Debug for ThinRef<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.inner.fmt(f)
+        (**self).fmt(f)
     }
 }
-impl<'a, T: ?Sized + Error> Error for ThinRef<'a, T> {
+impl<'a, T: ?Sized + ThinRefTarget + fmt::Display> fmt::Display for ThinRef<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        (**self).fmt(f)
+    }
+}
+impl<'a, T: ?Sized + ThinRefTarget + Error> Error for ThinRef<'a, T> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.inner.source()
+        (**self).source()
     }
 }
-impl<'a, T: ?Sized> Deref for ThinRef<'a, T> {
+impl<'a, T: ?Sized + ThinRefTarget> Deref for ThinRef<'a, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        self.inner
+        T::deref_inner(self)
     }
 }
 impl<'a, T: ?Sized> Drop for ThinRef<'a, T> {
@@ -228,5 +354,99 @@ mod tests {
 
         assert_send::<ThinRef<[i32]>>();
         assert_sync::<ThinRef<[i32]>>();
+    }
+
+    // =========================
+    // ThinRef::from_str() tests
+    // =========================
+
+    #[test]
+    fn from_str_basic() {
+        let arena = Bump::new();
+        let thin: ThinRef<str> = ThinRef::from_str(&arena, "hello");
+        assert_eq!(&*thin, "hello");
+    }
+
+    #[test]
+    fn from_str_empty() {
+        let arena = Bump::new();
+        let thin: ThinRef<str> = ThinRef::from_str(&arena, "");
+        assert!(thin.is_empty());
+        assert_eq!(thin.len(), 0);
+        assert_eq!(&*thin, "");
+    }
+
+    #[test]
+    fn from_str_unicode_multibyte() {
+        let arena = Bump::new();
+
+        // Japanese hiragana
+        let thin: ThinRef<str> = ThinRef::from_str(&arena, "こんにちは");
+        assert_eq!(&*thin, "こんにちは");
+
+        // Emoji
+        let thin2: ThinRef<str> = ThinRef::from_str(&arena, "🦀🎉✨");
+        assert_eq!(&*thin2, "🦀🎉✨");
+
+        // Mixed ASCII and multi-byte
+        let thin3: ThinRef<str> = ThinRef::from_str(&arena, "hello世界!");
+        assert_eq!(&*thin3, "hello世界!");
+    }
+
+    #[test]
+    fn from_str_len_vs_chars() {
+        let arena = Bump::new();
+
+        // ASCII: len == char count
+        let ascii: ThinRef<str> = ThinRef::from_str(&arena, "abc");
+        assert_eq!(ascii.len(), 3);
+        assert_eq!(ascii.chars().count(), 3);
+
+        // Multi-byte: len (bytes) > char count
+        let unicode: ThinRef<str> = ThinRef::from_str(&arena, "日本");
+        assert_eq!(unicode.len(), 6); // 2 chars * 3 bytes each
+        assert_eq!(unicode.chars().count(), 2);
+    }
+
+    #[test]
+    fn from_str_deref_methods() {
+        let arena = Bump::new();
+        let thin: ThinRef<str> = ThinRef::from_str(&arena, "  hello world  ");
+
+        // Various str methods via Deref
+        assert_eq!(thin.len(), 15);
+        assert!(!thin.is_empty());
+        assert!(thin.contains("hello"));
+        assert!(thin.starts_with("  hello"));
+        assert!(thin.ends_with("world  "));
+        assert_eq!(thin.trim(), "hello world");
+
+        let chars: alloc::vec::Vec<char> = thin.chars().take(5).collect();
+        assert_eq!(chars, vec![' ', ' ', 'h', 'e', 'l']);
+    }
+
+    #[test]
+    fn from_str_debug_format() {
+        let arena = Bump::new();
+        let thin: ThinRef<str> = ThinRef::from_str(&arena, "test");
+        // Debug for str includes quotes
+        assert_eq!(format!("{:?}", thin), "\"test\"");
+    }
+
+    #[test]
+    fn from_str_display_format() {
+        let arena = Bump::new();
+        let thin: ThinRef<str> = ThinRef::from_str(&arena, "hello world");
+        // Display for str does not include quotes
+        assert_eq!(thin.to_string(), "hello world");
+    }
+
+    #[test]
+    fn send_sync_str() {
+        fn assert_send<T: Send>() {}
+        fn assert_sync<T: Sync>() {}
+
+        assert_send::<ThinRef<str>>();
+        assert_sync::<ThinRef<str>>();
     }
 }
