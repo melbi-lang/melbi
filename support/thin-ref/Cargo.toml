@@ -1,13 +1,10 @@
 [package]
-
-# TODO: fix compilation errors and remove the line below.
-autotests = false
-
-name = "melbi-parser"
-edition = "2024"
+name = "melbi-thin-ref"
 version.workspace = true
+edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
 [dependencies]
+static_assertions.workspace = true
 bumpalo.workspace = true
