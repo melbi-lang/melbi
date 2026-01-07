@@ -114,6 +114,17 @@ where
     T: 'a,
 {
     /// Allocates a sized value in the arena and returns a thin reference to it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use bumpalo::Bump;
+    /// use melbi_thin_ref::ThinRef;
+    ///
+    /// let arena = Bump::new();
+    /// let value: ThinRef<i32> = ThinRef::new(&arena, 42);
+    /// assert_eq!(*value, 42);
+    /// ```
     pub fn new(arena: &'a Bump, value: T) -> Self {
         let ptr = NonNull::from_ref(arena.alloc(value)).cast();
         ThinRef {
@@ -148,6 +159,17 @@ where
     /// Allocates a slice in the arena from an iterator.
     ///
     /// The iterator must be [`ExactSizeIterator`] so the length is known upfront.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use bumpalo::Bump;
+    /// use melbi_thin_ref::ThinRef;
+    ///
+    /// let arena = Bump::new();
+    /// let slice: ThinRef<[i32]> = ThinRef::from_slice(&arena, [1, 2, 3]);
+    /// assert_eq!(&*slice, &[1, 2, 3]);
+    /// ```
     pub fn from_slice(
         arena: &'a Bump,
         values: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
@@ -209,6 +231,17 @@ impl ThinRefTarget for str {
 
 impl<'a> ThinRef<'a, str> {
     /// Allocates a string in the arena by copying the given `&str`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use bumpalo::Bump;
+    /// use melbi_thin_ref::ThinRef;
+    ///
+    /// let arena = Bump::new();
+    /// let s: ThinRef<str> = ThinRef::from_str(&arena, "hello");
+    /// assert_eq!(&*s, "hello");
+    /// ```
     pub fn from_str(arena: &'a Bump, value: &str) -> Self {
         let bytes = value.as_bytes();
         let len = bytes.len();
