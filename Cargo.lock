@@ -1542,6 +1542,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "melbi-thin-ref"
+version = "0.1.0"
+
+[[package]]
 name = "melbi-types"
 version = "0.1.0"
 dependencies = [
