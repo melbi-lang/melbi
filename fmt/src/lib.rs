@@ -1,3 +1,7 @@
+#![allow(unused_assignments)]
+// TODO: Use Melbi's errors instead of `FormatError`, then remove the line above.
+// TODO: Also remove miette. Use Melbi's render_error function.
+
 use miette::{Diagnostic, Result, SourceOffset, SourceSpan};
 use std::string::FromUtf8Error;
 use thiserror::Error;
