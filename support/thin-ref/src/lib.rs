@@ -269,7 +269,8 @@ impl<'a, T: ?Sized + ThinRefTarget> Deref for ThinRef<'a, T> {
     }
 }
 
-unsafe impl<T: ?Sized + Send> Send for ThinRef<'_, T> {}
+// Important: use correct semantics for references.
+unsafe impl<T: ?Sized + Sync> Send for ThinRef<'_, T> {}
 unsafe impl<T: ?Sized + Sync> Sync for ThinRef<'_, T> {}
 
 #[cfg(test)]
