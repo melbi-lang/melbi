@@ -38,7 +38,7 @@ This allows checking the first 2 bytes to determine the storage mode, leaving al
 
 ### Layout
 
-```
+```text
 Stack: [len: u16 (odd)] [data: 14 bytes]
 Heap:  [cap: u16 (even)] [len: u16] [ptr: 8 bytes]
 ```
@@ -62,7 +62,7 @@ Benchmarks compare TeenyVec against `Vec<u8>` and `SmallVec<[u8; 16]>`. Times sh
 
 ### push_small_inline
 
-Measures the time to create a new vector and push N bytes, where N stays within inline capacity (14 bytes). This is TeenyVec's primary use case. The lack of heap allocation gives TeenyVec a significant advantage, especially for very small sizes where `Vec`'s allocation overhead dominates.
+Measures the time to create a new vector and push N bytes, where N stays within inline capacity (14 bytes). This is TeenyVec's primary use case. The lack of heap allocation gives TeenyVec a significant advantage across the board for inline sizes, beating both `Vec` and `SmallVec`! It outperforms even `SmallVec` which is a data-structure designed for this specific use-case (unlike `Vec` which is designed to be generic).
 
 | Implementation | N=1 | N=4 | N=8 | N=12 | N=14 | Overall |
 | --- | --- | --- | --- | --- | --- | --- |
