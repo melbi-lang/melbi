@@ -1,20 +1,19 @@
 use core::fmt::Debug;
 
-use crate::{dynamic::ValueView, ty::TyKind, typed::ArrayView};
+use melbi_types::{Ty, TyBuilder};
+
+use crate::typed::ArrayView;
 
 pub trait ValueBuilder: Sized + Clone {
-    // The type of the value being built.
-    // Example: `&'a TyKind<'a>`, `Rc<TyKind>`.
-    type Ty: AsRef<TyKind> + Clone;
-    // The raw representation of the value.
-    // Example: `RawValue` (untagged union), or an enum.
+    /// The type builder used for type representation.
+    type TB: TyBuilder;
+    /// The raw representation of the value.
+    /// Example: `RawValue` (untagged union), or an enum.
     type Raw;
-    // The handle to the value.
-    // Example: `Value<Self>`, `Rc<Value<Self>>`
+    /// The handle to the value.
+    /// Example: `Value<Self>`, `Rc<Value<Self>>`
     type ValueHandle: AsRef<Value<Self>> + Clone + Debug;
 
-    type Value: ValueView<Self>;
-    //type Array: ArrayView<Self>;
     type Array: ArrayView<Value<Self>>;
 
     fn alloc(&self, value: Value<Self>) -> Self::ValueHandle;
@@ -36,11 +35,11 @@ impl<VB: ValueBuilder> Val<VB> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Value<VB: ValueBuilder> {
     raw: VB::Raw,
-    ty: VB::Ty,
+    ty: Ty<VB::TB>,
 }
 
 impl<VB: ValueBuilder> Value<VB> {
-    pub fn new(ty: VB::Ty, raw: VB::Raw) -> Self {
+    pub fn new(ty: Ty<VB::TB>, raw: VB::Raw) -> Self {
         Self { raw, ty }
     }
 
@@ -48,7 +47,7 @@ impl<VB: ValueBuilder> Value<VB> {
         &self.raw
     }
 
-    pub fn ty(&self) -> &VB::Ty {
+    pub fn ty(&self) -> &Ty<VB::TB> {
         &self.ty
     }
 

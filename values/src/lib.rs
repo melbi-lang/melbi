@@ -7,5 +7,4 @@ extern crate alloc;
 pub mod dynamic;
 pub mod raw;
 pub mod traits;
-pub mod ty;
 pub mod typed;

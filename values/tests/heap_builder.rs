@@ -1,11 +1,11 @@
 extern crate alloc;
 
 use alloc::rc::Rc;
+use melbi_types::{BoxBuilder, Scalar, Ty, TyKind, ty};
 use melbi_values::{
     dynamic::ValueView,
     raw::RawValue,
     traits::{Value, ValueBuilder},
-    ty::TyKind,
     typed::ArrayView,
 };
 
@@ -13,13 +13,12 @@ use melbi_values::{
 struct HeapBuilder;
 
 impl ValueBuilder for HeapBuilder {
-    type Ty = Rc<TyKind>;
+    type TB = BoxBuilder;
 
     type Raw = RawValue;
 
     type ValueHandle = Rc<Value<Self>>;
 
-    type Value = Value<Self>;
     type Array = Array;
 
     fn alloc(&self, value: Value<Self>) -> Self::ValueHandle {
@@ -28,19 +27,19 @@ impl ValueBuilder for HeapBuilder {
 }
 
 impl ValueView<HeapBuilder> for Value<HeapBuilder> {
-    fn ty(&self) -> Rc<TyKind> {
+    fn ty(&self) -> Ty<BoxBuilder> {
         self.ty().clone()
     }
 
     fn as_int(&self) -> Option<i64> {
-        let TyKind::Int = self.ty().as_ref() else {
+        let TyKind::Scalar(Scalar::Int) = self.ty().kind() else {
             return None;
         };
         Some(self.raw().as_int_unchecked())
     }
 
     fn as_bool(&self) -> Option<bool> {
-        let TyKind::Bool = self.ty().as_ref() else {
+        let TyKind::Scalar(Scalar::Bool) = self.ty().kind() else {
             return None;
         };
         Some(self.raw().as_bool_unchecked())
@@ -48,17 +47,14 @@ impl ValueView<HeapBuilder> for Value<HeapBuilder> {
 
     // Complex Types: Return the associated types from the System
     fn as_array(&self) -> Option<Array> {
-        let TyKind::Array(element_type) = self.ty().as_ref() else {
+        let TyKind::Array(element_type) = self.ty().kind() else {
             return None;
         };
         Some(Array(self.raw().clone(), element_type.clone()))
     }
 }
 
-struct Array(
-    <HeapBuilder as ValueBuilder>::Raw,
-    <HeapBuilder as ValueBuilder>::Ty,
-);
+struct Array(RawValue, Ty<BoxBuilder>);
 
 impl ArrayView<Value<HeapBuilder>> for Array {
     fn len(&self) -> usize {
@@ -74,8 +70,10 @@ impl ArrayView<Value<HeapBuilder>> for Array {
 #[test]
 fn test_heap_builder_int() {
     let builder = HeapBuilder;
+    let tb = BoxBuilder;
 
-    let v = Value::new(TyKind::Int.handle(), RawValue::new_int(42)).alloc(&builder);
+    let int_ty = ty!(tb, Int);
+    let v = Value::new(int_ty, RawValue::new_int(42)).alloc(&builder);
     let value = v.value();
 
     assert_eq!(value.as_bool(), None);
@@ -85,8 +83,10 @@ fn test_heap_builder_int() {
 #[test]
 fn test_heap_builder_bool() {
     let builder = HeapBuilder;
+    let tb = BoxBuilder;
 
-    let v = Value::new(TyKind::Bool.handle(), RawValue::new_bool(true)).alloc(&builder);
+    let bool_ty = ty!(tb, Bool);
+    let v = Value::new(bool_ty, RawValue::new_bool(true)).alloc(&builder);
     let value = v.value();
 
     assert_eq!(value.as_int(), None);
@@ -96,8 +96,10 @@ fn test_heap_builder_bool() {
 #[test]
 fn test_heap_builder_array() {
     let builder = HeapBuilder;
-    let int_ty = TyKind::Int.handle();
-    let array_ty = TyKind::Array(int_ty.clone()).handle();
+    let tb = BoxBuilder;
+
+    let int_ty = ty!(tb, Int);
+    let array_ty = ty!(tb, Array[Int]);
 
     let elements = [RawValue::new_int(10), RawValue::new_int(20)];
     let raw_array = RawValue::new_array(&elements);
@@ -112,11 +114,11 @@ fn test_heap_builder_array() {
     assert_eq!(array.len(), 2);
 
     let el0 = array.get(0).unwrap();
-    assert_eq!(el0.ty().as_ref(), &TyKind::Int);
+    assert_eq!(el0.ty(), &int_ty);
     assert_eq!(el0.as_int(), Some(10));
 
     let el1 = array.get(1).unwrap();
-    assert_eq!(el1.ty().as_ref(), &TyKind::Int);
+    assert_eq!(el1.ty(), &int_ty);
     assert_eq!(el1.as_int(), Some(20));
 
     assert!(array.get(2).is_none());
@@ -125,8 +127,9 @@ fn test_heap_builder_array() {
 #[test]
 fn test_heap_builder_empty_array() {
     let builder = HeapBuilder;
-    let int_ty = TyKind::Int.handle();
-    let array_ty = TyKind::Array(int_ty.clone()).handle();
+    let tb = BoxBuilder;
+
+    let array_ty = ty!(tb, Array[Int]);
 
     let elements = [];
     let raw_array = RawValue::new_array(&elements);

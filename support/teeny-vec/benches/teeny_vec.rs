@@ -124,25 +124,5 @@ fn bench_clone(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_size_of(c: &mut Criterion) {
-    c.bench_function("size_of_TeenyVec", |b| {
-        b.iter(|| black_box(core::mem::size_of::<TeenyVec>()));
-    });
-
-    c.bench_function("size_of_SmallVec16", |b| {
-        b.iter(|| black_box(core::mem::size_of::<SmallVec<[u8; 16]>>()));
-    });
-
-    c.bench_function("size_of_Vec", |b| {
-        b.iter(|| black_box(core::mem::size_of::<Vec<u8>>()));
-    });
-}
-
-criterion_group!(
-    benches,
-    bench_push_small,
-    bench_push_medium,
-    bench_clone,
-    bench_size_of
-);
+criterion_group!(benches, bench_push_small, bench_push_medium, bench_clone);
 criterion_main!(benches);

@@ -6,3 +6,6 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+melbi-types.workspace = true
+static_assertions.workspace = true
+bumpalo.workspace = true
