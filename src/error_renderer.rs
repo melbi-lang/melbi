@@ -9,20 +9,26 @@ use std::io::Write;
 
 /// Configuration for error rendering.
 #[derive(Debug, Clone)]
-pub struct RenderConfig {
+pub struct RenderConfig<'a> {
     /// Whether to use ANSI color codes in output.
     pub color: bool,
+    /// The filename to display in error messages.
+    /// Defaults to "<unknown>" if not provided.
+    pub filename: Option<&'a str>,
 }
 
-impl Default for RenderConfig {
+impl Default for RenderConfig<'_> {
     fn default() -> Self {
         RenderConfig::default()
     }
 }
 
-impl RenderConfig {
+impl RenderConfig<'_> {
     const fn default() -> Self {
-        Self { color: true }
+        Self {
+            color: true,
+            filename: None,
+        }
     }
 }
 
@@ -79,13 +85,15 @@ pub fn render_error_to(
     writer: &mut dyn Write,
     config: &RenderConfig,
 ) -> std::io::Result<()> {
+    let filename = config.filename.unwrap_or("<unknown>");
+
     match error {
         Error::Compilation {
             diagnostics,
             source,
-        } => render_diagnostics(source, diagnostics, writer, config),
+        } => render_diagnostics(source, diagnostics, writer, config, filename),
         Error::Runtime { diagnostic, source } => {
-            render_diagnostics(source, &[diagnostic.clone()], writer, config)
+            render_diagnostics(source, &[diagnostic.clone()], writer, config, filename)
         }
         Error::ResourceExceeded(msg) => {
             writeln!(writer, "Resource limit exceeded: {}", msg)
@@ -101,6 +109,7 @@ fn render_diagnostics(
     diagnostics: &[Diagnostic],
     writer: &mut dyn Write,
     config: &RenderConfig,
+    filename: &str,
 ) -> std::io::Result<()> {
     for diag in diagnostics {
         let mut colors = ColorGenerator::new();
@@ -114,7 +123,7 @@ fn render_diagnostics(
 
         let ariadne_config = ariadne::Config::default().with_color(config.color);
 
-        let mut report = Report::build(kind, ("<unknown>", diag.span.0.clone()))
+        let mut report = Report::build(kind, (filename, diag.span.0.clone()))
             .with_message(&diag.message)
             .with_config(ariadne_config);
 
@@ -126,7 +135,7 @@ fn render_diagnostics(
         // Primary label with the main error span
         let color = colors.next();
         report = report.with_label(
-            Label::new(("<unknown>", diag.span.0.clone()))
+            Label::new((filename, diag.span.0.clone()))
                 .with_message(&diag.message)
                 .with_color(color),
         );
@@ -135,7 +144,7 @@ fn render_diagnostics(
         for related in &diag.related {
             let color = colors.next();
             report = report.with_label(
-                Label::new(("<unknown>", related.span.0.clone()))
+                Label::new((filename, related.span.0.clone()))
                     .with_message(&related.message)
                     .with_color(color),
             );
@@ -149,7 +158,7 @@ fn render_diagnostics(
         // Render to the writer (need to reborrow to avoid moving)
         report
             .finish()
-            .write(("<unknown>", Source::from(source)), &mut *writer)?;
+            .write((filename, Source::from(source)), &mut *writer)?;
     }
 
     Ok(())

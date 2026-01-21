@@ -214,6 +214,7 @@ pub fn run(args: ReplArgs, no_color: bool) -> CliResult<()> {
                     globals_types,
                     globals_values,
                     buffer.as_ref(),
+                    None, // REPL has no filename
                     args.runtime,
                     no_color,
                 )?;

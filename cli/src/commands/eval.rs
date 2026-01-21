@@ -26,6 +26,7 @@ pub fn run(args: EvalArgs, no_color: bool) -> CliResult<()> {
         globals_types,
         globals_values,
         &args.expression,
+        None, // eval command has no filename
         args.runtime,
         no_color,
     )
@@ -37,11 +38,13 @@ pub fn interpret_input<'types>(
     globals_types: &[(&'types str, &'types Type<'types>)],
     globals_values: &'types [(&'types str, Value<'types, 'types>)],
     input: &str,
+    filename: Option<&str>,
     runtime: Runtime,
     no_color: bool,
 ) -> CliResult<()> {
     let config = RenderConfig {
         color: !no_color,
+        filename,
         ..Default::default()
     };
     let render_err = |e: melbi::Error| {

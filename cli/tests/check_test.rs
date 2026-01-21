@@ -235,3 +235,117 @@ fn check_from_stdin_quiet_error() {
         .stdout(predicate::str::is_empty())
         .stderr(predicate::str::is_empty());
 }
+
+// ============================================================================
+// Error output format tests
+// ============================================================================
+
+#[test]
+fn check_error_shows_filename() {
+    let file = temp_file("1 + true");
+    let path = file.path();
+    let path_str = path.to_str().unwrap();
+
+    let output = melbi()
+        .args(["--no-color", "check", path_str])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let stderr = String::from_utf8_lossy(&output);
+
+    // Error should contain the filename
+    assert!(
+        stderr.contains(path_str),
+        "Error should contain filename, got:\n{}",
+        stderr
+    );
+}
+
+#[test]
+fn check_error_shows_stdin_label() {
+    let output = melbi()
+        .args(["--no-color", "check", "-"])
+        .write_stdin("1 + true")
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let stderr = String::from_utf8_lossy(&output);
+
+    // Error should show <stdin> as the source
+    assert!(
+        stderr.contains("<stdin>"),
+        "Error should contain <stdin>, got:\n{}",
+        stderr
+    );
+}
+
+#[test]
+fn check_type_error_output_format() {
+    let output = melbi()
+        .args(["--no-color", "check", "-"])
+        .write_stdin("1 + true")
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let stderr = String::from_utf8_lossy(&output);
+
+    // Verify key parts of the error format
+    assert!(stderr.contains("[E001]"), "Should have error code E001");
+    assert!(stderr.contains("Type mismatch"), "Should mention type mismatch");
+    assert!(stderr.contains("expected Int"), "Should mention expected Int");
+    assert!(stderr.contains("found Bool"), "Should mention found Bool");
+    assert!(stderr.contains("1 + true"), "Should show the source code");
+    assert!(stderr.contains("<stdin>:1:"), "Should show line number");
+}
+
+#[test]
+fn check_undefined_variable_output_format() {
+    let output = melbi()
+        .args(["--no-color", "check", "-"])
+        .write_stdin("undefined_var + 1")
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let stderr = String::from_utf8_lossy(&output);
+
+    // Verify key parts of the error format
+    assert!(stderr.contains("[E002]"), "Should have error code E002");
+    assert!(
+        stderr.contains("Undefined variable"),
+        "Should mention undefined variable"
+    );
+    assert!(
+        stderr.contains("undefined_var"),
+        "Should mention the variable name"
+    );
+}
+
+#[test]
+fn check_parse_error_output_format() {
+    let output = melbi()
+        .args(["--no-color", "check", "-"])
+        .write_stdin("1 + +")
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let stderr = String::from_utf8_lossy(&output);
+
+    // Parse errors should show the source
+    assert!(stderr.contains("1 + +"), "Should show the source code");
+    assert!(stderr.contains("<stdin>"), "Should show stdin as source");
+}

@@ -12,7 +12,7 @@ use super::eval::interpret_input;
 
 /// Run the run command.
 pub fn run(args: RunArgs, no_color: bool) -> CliResult<()> {
-    let (content, _display_name) = match read_input(&args.file) {
+    let (content, display_name) = match read_input(&args.file) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("error: {}", e);
@@ -29,6 +29,7 @@ pub fn run(args: RunArgs, no_color: bool) -> CliResult<()> {
         globals_types,
         globals_values,
         &content,
+        Some(&display_name),
         args.runtime,
         no_color,
     )

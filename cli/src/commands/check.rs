@@ -40,6 +40,7 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
 
     let config = RenderConfig {
         color: !no_color,
+        filename: Some(&display_name),
         ..Default::default()
     };
     let render_err = |e: melbi::Error| {
