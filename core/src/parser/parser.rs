@@ -2464,4 +2464,136 @@ mod tests {
         );
         assert_eq!(parsed.ann.span_of(parsed.expr), Some(Span::new(0, 9)));
     }
+
+    // ===== Keyword boundary tests =====
+    // Keywords should only be recognized when followed by non-identifier characters.
+    // For example, `notdefined` should be an identifier, not `not defined`.
+
+    #[test]
+    fn test_keyword_not_in_identifier() {
+        let arena = Bump::new();
+
+        // `notdefined` should be a single identifier, not `not defined`
+        let parsed = parse(&arena, "notdefined").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("notdefined"));
+
+        // `notify` should be a single identifier
+        let parsed = parse(&arena, "notify").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("notify"));
+
+        // `not_a_thing` should be a single identifier
+        let parsed = parse(&arena, "not_a_thing").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("not_a_thing"));
+    }
+
+    #[test]
+    fn test_keyword_and_in_identifier() {
+        let arena = Bump::new();
+
+        // `android` should be a single identifier, not `and roid`
+        let parsed = parse(&arena, "android").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("android"));
+
+        // `and_also` should be a single identifier
+        let parsed = parse(&arena, "and_also").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("and_also"));
+    }
+
+    #[test]
+    fn test_keyword_or_in_identifier() {
+        let arena = Bump::new();
+
+        // `order` should be a single identifier, not `or der`
+        let parsed = parse(&arena, "order").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("order"));
+
+        // `orange` should be a single identifier
+        let parsed = parse(&arena, "orange").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("orange"));
+
+        // `or_else` should be a single identifier
+        let parsed = parse(&arena, "or_else").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("or_else"));
+    }
+
+    #[test]
+    fn test_keyword_in_in_identifier() {
+        let arena = Bump::new();
+
+        // `index` should be a single identifier, not `in dex`
+        let parsed = parse(&arena, "index").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("index"));
+
+        // `input` should be a single identifier
+        let parsed = parse(&arena, "input").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("input"));
+
+        // `in_range` should be a single identifier
+        let parsed = parse(&arena, "in_range").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("in_range"));
+    }
+
+    #[test]
+    fn test_keyword_some_in_identifier() {
+        let arena = Bump::new();
+
+        // `something` should be a single identifier, not `some thing`
+        let parsed = parse(&arena, "something").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("something"));
+
+        // `some_value` should be a single identifier
+        let parsed = parse(&arena, "some_value").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("some_value"));
+    }
+
+    #[test]
+    fn test_keyword_none_in_identifier() {
+        let arena = Bump::new();
+
+        // `nonetheless` should be a single identifier, not `none theless`
+        let parsed = parse(&arena, "nonetheless").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("nonetheless"));
+
+        // `none_value` should be a single identifier
+        let parsed = parse(&arena, "none_value").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("none_value"));
+    }
+
+    #[test]
+    fn test_keyword_as_standalone() {
+        let arena = Bump::new();
+
+        // `not true` should be `not` applied to `true`
+        let parsed = parse(&arena, "not true").unwrap();
+        assert_eq!(
+            *parsed.expr,
+            Expr::Unary {
+                op: UnaryOp::Not,
+                expr: arena.alloc(Expr::Literal(Literal::Bool(true))),
+            }
+        );
+
+        // `x and y` should be `x and y`
+        let parsed = parse(&arena, "x and y").unwrap();
+        assert_eq!(
+            *parsed.expr,
+            Expr::Boolean {
+                op: BoolOp::And,
+                left: arena.alloc(Expr::Ident("x")),
+                right: arena.alloc(Expr::Ident("y")),
+            }
+        );
+
+        // `some 42` should be `some` applied to `42`
+        let parsed = parse(&arena, "some 42").unwrap();
+        assert_eq!(
+            *parsed.expr,
+            Expr::Option {
+                inner: Some(arena.alloc(Expr::Literal(Literal::Int {
+                    value: 42,
+                    suffix: None
+                })))
+            }
+        );
+    }
 }
