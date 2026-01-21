@@ -3,6 +3,8 @@
 //! This module contains only clap struct definitions - no business logic.
 //! All command implementations are in the `commands` module.
 
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 
@@ -23,6 +25,15 @@ pub enum Command {
     /// Evaluate an expression
     Eval(EvalArgs),
 
+    /// Run a Melbi file
+    Run(RunArgs),
+
+    /// Type-check files without running
+    Check(CheckArgs),
+
+    /// Format Melbi files
+    Fmt(FmtArgs),
+
     /// Start interactive REPL
     Repl(ReplArgs),
 
@@ -32,10 +43,6 @@ pub enum Command {
     /// Debug commands (for development)
     #[command(hide = true)]
     Debug(DebugArgs),
-    // Phase 2 commands (remaining):
-    // Run(RunArgs),
-    // Check(CheckArgs),
-    // Fmt(FmtArgs),
 }
 
 /// Arguments for the `eval` command.
@@ -47,6 +54,41 @@ pub struct EvalArgs {
     /// Runtime to use for evaluation
     #[arg(long, default_value = "both")]
     pub runtime: Runtime,
+}
+
+/// Arguments for the `run` command.
+#[derive(Args, Debug)]
+pub struct RunArgs {
+    /// Melbi file to run
+    pub file: PathBuf,
+
+    /// Runtime to use for evaluation
+    #[arg(long, default_value = "both")]
+    pub runtime: Runtime,
+}
+
+/// Arguments for the `check` command.
+#[derive(Args, Debug)]
+pub struct CheckArgs {
+    /// Melbi files to type-check
+    #[arg(required = true)]
+    pub files: Vec<PathBuf>,
+}
+
+/// Arguments for the `fmt` command.
+#[derive(Args, Debug)]
+pub struct FmtArgs {
+    /// Melbi files to format
+    #[arg(required = true)]
+    pub files: Vec<PathBuf>,
+
+    /// Write formatted output back to files
+    #[arg(short, long)]
+    pub write: bool,
+
+    /// Check if files are formatted (exit 1 if not)
+    #[arg(long)]
+    pub check: bool,
 }
 
 /// Arguments for the `repl` command.

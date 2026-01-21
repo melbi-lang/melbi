@@ -20,8 +20,12 @@ nu-ansi-term = "0.50"
 dirs = "6.0.0"
 logos = "0.15.1"
 pest.workspace = true
+topiary-core = "0.6.1"
+topiary-tree-sitter-facade = "0.6.2"
+similar = "2.6"
 
 [dev-dependencies]
 assert_cmd = "2.0"
 predicates = "3.1"
 rexpect = "0.6"
+tempfile = "3.15"

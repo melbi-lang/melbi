@@ -29,6 +29,9 @@ fn main() {
 
     let result = match cli.command {
         Command::Eval(args) => commands::eval::run(args, cli.no_color),
+        Command::Run(args) => commands::run::run(args, cli.no_color),
+        Command::Check(args) => commands::check::run(args, cli.no_color),
+        Command::Fmt(args) => commands::fmt::run(args, cli.no_color),
         Command::Repl(args) => commands::repl::run(args, cli.no_color),
         Command::Completions(args) => {
             commands::completions::run(args);
