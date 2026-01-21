@@ -8,6 +8,9 @@ use clap::Parser;
 use cli::{Cli, Command};
 
 fn main() {
+    // Install panic handler for user-friendly crash reporting
+    common::panic::install_handler();
+
     // Initialize logging subscriber
     use tracing_subscriber::{EnvFilter, fmt};
 
@@ -35,6 +38,10 @@ fn main() {
         Command::Repl(args) => commands::repl::run(args, cli.no_color),
         Command::Completions(args) => {
             commands::completions::run(args);
+            Ok(())
+        }
+        Command::Bug(args) => {
+            commands::bug::run(args);
             Ok(())
         }
         Command::Debug(args) => {

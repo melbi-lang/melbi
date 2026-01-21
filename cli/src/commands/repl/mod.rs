@@ -17,7 +17,7 @@ use reedline::{
 };
 
 use crate::cli::ReplArgs;
-use crate::common::{CliResult, engine::build_stdlib};
+use crate::common::{CliResult, engine::build_stdlib, panic as panic_handler};
 use highlighter::Highlighter;
 use lexer::calculate_depth;
 
@@ -209,7 +209,10 @@ pub fn run(args: ReplArgs, no_color: bool) -> CliResult<()> {
                 continue;
             }
             Signal::Success(buffer) => {
-                interpret_input(
+                // Set current expression for panic handler (crash reports)
+                panic_handler::set_current_expression(&buffer);
+
+                let result = interpret_input(
                     type_manager,
                     globals_types,
                     globals_values,
@@ -217,7 +220,12 @@ pub fn run(args: ReplArgs, no_color: bool) -> CliResult<()> {
                     None, // REPL has no filename
                     args.runtime,
                     no_color,
-                )?;
+                );
+
+                // Clear expression after evaluation (success or handled error)
+                panic_handler::clear_current_expression();
+
+                result?;
             }
             Signal::CtrlD => {
                 println!("\nGoodbye!");

@@ -2,6 +2,7 @@
 //!
 //! Each subcommand has its own module with a `run` function.
 
+pub mod bug;
 pub mod check;
 pub mod completions;
 pub mod debug;
