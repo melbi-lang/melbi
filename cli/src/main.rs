@@ -30,6 +30,14 @@ fn main() {
     let result = match cli.command {
         Command::Eval(args) => commands::eval::run(args, cli.no_color),
         Command::Repl(args) => commands::repl::run(args, cli.no_color),
+        Command::Completions(args) => {
+            commands::completions::run(args);
+            Ok(())
+        }
+        Command::Debug(args) => {
+            commands::debug::run(args, cli.no_color);
+            Ok(())
+        }
     };
 
     if let Err(e) = result {
