@@ -1,12 +1,10 @@
 //! The `fmt` command - format Melbi files.
 
-use std::path::Path;
-
 use similar::{ChangeTag, TextDiff};
 use topiary_core::{FormatterError, Operation, TopiaryQuery};
 
 use crate::cli::FmtArgs;
-use crate::common::input::read_file;
+use crate::common::input::{is_stdin, read_input};
 use crate::common::CliResult;
 
 const QUERY: &str = include_str!("../../../topiary-queries/queries/melbi.scm");
@@ -24,7 +22,9 @@ pub fn run(args: FmtArgs, no_color: bool) -> CliResult<()> {
                 }
             }
             Err(e) => {
-                eprintln!("error: {}: {}", file.display(), e);
+                if !args.quiet {
+                    eprintln!("error: {}: {}", file, e);
+                }
                 has_errors = true;
             }
         }
@@ -41,25 +41,41 @@ pub fn run(args: FmtArgs, no_color: bool) -> CliResult<()> {
     Ok(())
 }
 
-/// Format a single file.
-/// Returns Ok(true) if the file needed formatting, Ok(false) if already formatted.
-fn format_file(path: &Path, args: &FmtArgs, no_color: bool) -> Result<bool, String> {
-    let input = read_file(path)?;
+/// Format a single file or stdin.
+/// Returns Ok(true) if the input needed formatting, Ok(false) if already formatted.
+fn format_file(path: &str, args: &FmtArgs, no_color: bool) -> Result<bool, String> {
+    let from_stdin = is_stdin(path);
+
+    // --write is incompatible with stdin
+    if args.write && from_stdin {
+        return Err("cannot use --write with stdin".to_string());
+    }
+
+    let (input, display_name) = read_input(path)?;
     let formatted = format_source(&input)?;
 
     if input == formatted {
         return Ok(false);
     }
 
-    if args.write {
+    if args.quiet {
+        // Quiet mode: no output, just return whether formatting was needed
+        if args.write {
+            std::fs::write(path, &formatted)
+                .map_err(|e| format!("failed to write: {}", e))?;
+        }
+    } else if args.write {
         std::fs::write(path, &formatted)
             .map_err(|e| format!("failed to write: {}", e))?;
-        println!("formatted {}", path.display());
+        println!("formatted {}", display_name);
     } else if args.check {
-        println!("{} needs formatting", path.display());
+        println!("{} needs formatting", display_name);
+    } else if from_stdin {
+        // For stdin without --write or --check, just print formatted output
+        print!("{}", formatted);
     } else {
-        // Default: print diff
-        print_diff(path, &input, &formatted, no_color);
+        // Default for files: print diff
+        print_diff(&display_name, &input, &formatted, no_color);
     }
 
     Ok(true)
@@ -120,11 +136,11 @@ fn format_source(input: &str) -> Result<String, String> {
 }
 
 /// Print a unified diff between original and formatted content.
-fn print_diff(path: &Path, original: &str, formatted: &str, no_color: bool) {
+fn print_diff(name: &str, original: &str, formatted: &str, no_color: bool) {
     let diff = TextDiff::from_lines(original, formatted);
 
-    println!("--- {}", path.display());
-    println!("+++ {}", path.display());
+    println!("--- {}", name);
+    println!("+++ {}", name);
 
     for hunk in diff.unified_diff().iter_hunks() {
         println!("{}", hunk.header());

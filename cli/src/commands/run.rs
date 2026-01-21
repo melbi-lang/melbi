@@ -5,14 +5,14 @@ use melbi_core::types::manager::TypeManager;
 
 use crate::cli::RunArgs;
 use crate::common::engine::build_stdlib;
-use crate::common::input::read_file;
+use crate::common::input::read_input;
 use crate::common::CliResult;
 
 use super::eval::interpret_input;
 
 /// Run the run command.
 pub fn run(args: RunArgs, no_color: bool) -> CliResult<()> {
-    let content = match read_file(&args.file) {
+    let (content, _display_name) = match read_input(&args.file) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("error: {}", e);

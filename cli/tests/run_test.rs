@@ -142,3 +142,47 @@ fn run_no_color_flag() {
         .stderr(predicate::str::contains("Type mismatch"))
         .stderr(predicate::str::contains("\x1b[").not());
 }
+
+// ============================================================================
+// Stdin support
+// ============================================================================
+
+#[test]
+fn run_from_stdin() {
+    melbi()
+        .args(["run", "-"])
+        .write_stdin("1 + 2")
+        .assert()
+        .success()
+        .stdout("3\n");
+}
+
+#[test]
+fn run_from_stdin_multiline() {
+    melbi()
+        .args(["run", "-"])
+        .write_stdin("x + y where {\n    x = 10,\n    y = 20,\n}")
+        .assert()
+        .success()
+        .stdout("30\n");
+}
+
+#[test]
+fn run_from_stdin_with_runtime() {
+    melbi()
+        .args(["run", "--runtime", "vm", "-"])
+        .write_stdin("5 * 6")
+        .assert()
+        .success()
+        .stdout("30\n");
+}
+
+#[test]
+fn run_from_stdin_error() {
+    melbi()
+        .args(["run", "-"])
+        .write_stdin("1 + true")
+        .assert()
+        .success() // CLI exits 0 but prints error
+        .stderr(predicate::str::contains("Type mismatch"));
+}

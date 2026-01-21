@@ -1,14 +1,12 @@
 //! The `check` command - type-check Melbi files without running.
 
-use std::path::Path;
-
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
 use melbi_core::{analyzer::analyze, parser, types::manager::TypeManager};
 
 use crate::cli::CheckArgs;
 use crate::common::engine::build_stdlib;
-use crate::common::input::read_file;
+use crate::common::input::read_input;
 use crate::common::CliResult;
 
 /// Run the check command.
@@ -16,7 +14,7 @@ pub fn run(args: CheckArgs, no_color: bool) -> CliResult<()> {
     let mut has_errors = false;
 
     for file in &args.files {
-        if !check_file(file, no_color) {
+        if !check_file(file, args.quiet, no_color) {
             has_errors = true;
         }
     }
@@ -29,11 +27,13 @@ pub fn run(args: CheckArgs, no_color: bool) -> CliResult<()> {
 }
 
 /// Check a single file. Returns true if OK, false if errors.
-fn check_file(path: &Path, no_color: bool) -> bool {
-    let content = match read_file(path) {
+fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
+    let (content, display_name) = match read_input(path) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("error: {}", e);
+            if !quiet {
+                eprintln!("error: {}", e);
+            }
             return false;
         }
     };
@@ -43,7 +43,9 @@ fn check_file(path: &Path, no_color: bool) -> bool {
         ..Default::default()
     };
     let render_err = |e: melbi::Error| {
-        render_error_to(&e, &mut std::io::stderr(), &config).ok();
+        if !quiet {
+            render_error_to(&e, &mut std::io::stderr(), &config).ok();
+        }
     };
 
     let arena = Bump::new();
@@ -65,6 +67,8 @@ fn check_file(path: &Path, no_color: bool) -> bool {
         return false;
     }
 
-    println!("{}: OK", path.display());
+    if !quiet {
+        println!("{}: OK", display_name);
+    }
     true
 }

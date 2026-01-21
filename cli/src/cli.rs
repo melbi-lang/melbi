@@ -3,8 +3,6 @@
 //! This module contains only clap struct definitions - no business logic.
 //! All command implementations are in the `commands` module.
 
-use std::path::PathBuf;
-
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 
@@ -59,8 +57,8 @@ pub struct EvalArgs {
 /// Arguments for the `run` command.
 #[derive(Args, Debug)]
 pub struct RunArgs {
-    /// Melbi file to run
-    pub file: PathBuf,
+    /// Melbi file to run (use '-' for stdin)
+    pub file: String,
 
     /// Runtime to use for evaluation
     #[arg(long, default_value = "both")]
@@ -70,17 +68,21 @@ pub struct RunArgs {
 /// Arguments for the `check` command.
 #[derive(Args, Debug)]
 pub struct CheckArgs {
-    /// Melbi files to type-check
+    /// Melbi files to type-check (use '-' for stdin)
     #[arg(required = true)]
-    pub files: Vec<PathBuf>,
+    pub files: Vec<String>,
+
+    /// Suppress all output, only set exit code
+    #[arg(short, long)]
+    pub quiet: bool,
 }
 
 /// Arguments for the `fmt` command.
 #[derive(Args, Debug)]
 pub struct FmtArgs {
-    /// Melbi files to format
+    /// Melbi files to format (use '-' for stdin)
     #[arg(required = true)]
-    pub files: Vec<PathBuf>,
+    pub files: Vec<String>,
 
     /// Write formatted output back to files
     #[arg(short, long)]
@@ -89,6 +91,10 @@ pub struct FmtArgs {
     /// Check if files are formatted (exit 1 if not)
     #[arg(long)]
     pub check: bool,
+
+    /// Suppress all output, only set exit code
+    #[arg(short, long)]
+    pub quiet: bool,
 }
 
 /// Arguments for the `repl` command.

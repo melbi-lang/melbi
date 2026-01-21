@@ -132,3 +132,106 @@ fn check_no_color_flag() {
         .stderr(predicate::str::contains("Type mismatch"))
         .stderr(predicate::str::contains("\x1b[").not());
 }
+
+// ============================================================================
+// --quiet flag
+// ============================================================================
+
+#[test]
+fn check_quiet_success() {
+    let file = temp_file("1 + 2");
+
+    melbi()
+        .args(["check", "--quiet", file.path().to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::is_empty());
+}
+
+#[test]
+fn check_quiet_failure() {
+    let file = temp_file("1 + true");
+
+    melbi()
+        .args(["check", "--quiet", file.path().to_str().unwrap()])
+        .assert()
+        .failure()
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::is_empty());
+}
+
+#[test]
+fn check_quiet_multiple_files() {
+    let valid = temp_file("1 + 2");
+    let invalid = temp_file("1 + true");
+
+    melbi()
+        .args([
+            "check",
+            "--quiet",
+            valid.path().to_str().unwrap(),
+            invalid.path().to_str().unwrap(),
+        ])
+        .assert()
+        .failure()
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::is_empty());
+}
+
+#[test]
+fn check_quiet_short_flag() {
+    let file = temp_file("1 + 2");
+
+    melbi()
+        .args(["check", "-q", file.path().to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty());
+}
+
+// ============================================================================
+// Stdin support
+// ============================================================================
+
+#[test]
+fn check_from_stdin() {
+    melbi()
+        .args(["check", "-"])
+        .write_stdin("1 + 2")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("<stdin>: OK"));
+}
+
+#[test]
+fn check_from_stdin_error() {
+    melbi()
+        .args(["check", "-"])
+        .write_stdin("1 + true")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Type mismatch"));
+}
+
+#[test]
+fn check_from_stdin_quiet() {
+    melbi()
+        .args(["check", "--quiet", "-"])
+        .write_stdin("1 + 2")
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::is_empty());
+}
+
+#[test]
+fn check_from_stdin_quiet_error() {
+    melbi()
+        .args(["check", "--quiet", "-"])
+        .write_stdin("1 + true")
+        .assert()
+        .failure()
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::is_empty());
+}
