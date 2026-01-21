@@ -1,7 +1,12 @@
-use miette::Result;
 use nu_ansi_term::{Color, Style};
 use reedline::StyledText;
+use thiserror::Error;
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent};
+
+/// Error type for highlighter initialization.
+#[derive(Debug, Error)]
+#[error("Failed to initialize highlighter: {0}")]
+pub struct HighlighterError(String);
 
 #[derive(Debug)]
 struct PaletteItem<'a> {
@@ -90,7 +95,7 @@ pub struct Highlighter {
 }
 
 impl Highlighter {
-    pub fn new() -> Result<Self> {
+    pub fn new() -> Result<Self, HighlighterError> {
         let highlight_names = PALETTE.iter().map(|item| item.name).collect::<Vec<_>>();
 
         let mut config = HighlightConfiguration::new(
@@ -100,7 +105,7 @@ impl Highlighter {
             "",
             "",
         )
-        .map_err(|e| miette::miette!(e))?;
+        .map_err(|e| HighlighterError(e.to_string()))?;
         config.configure(&highlight_names);
         Ok(Self { config })
     }
