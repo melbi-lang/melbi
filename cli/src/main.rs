@@ -3,8 +3,6 @@
 mod cli;
 mod commands;
 mod common;
-pub mod highlighter;
-pub mod lexer;
 
 use clap::Parser;
 use cli::{Cli, Command};

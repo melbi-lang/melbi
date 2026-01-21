@@ -1,5 +1,8 @@
 //! The `repl` command - interactive REPL.
 
+pub mod highlighter;
+pub mod lexer;
+
 use bumpalo::Bump;
 use melbi_core::{
     parser::{ExpressionParser, Rule},
@@ -15,8 +18,8 @@ use reedline::{
 
 use crate::cli::ReplArgs;
 use crate::common::{CliResult, engine::build_stdlib};
-use crate::highlighter::Highlighter;
-use crate::lexer::calculate_depth;
+use highlighter::Highlighter;
+use lexer::calculate_depth;
 
 use super::eval::interpret_input;
 
@@ -132,9 +135,7 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
     let validator = Box::new(MelbiValidator);
 
     let line_editor = Reedline::create()
-        .with_highlighter(Box::new(
-            Highlighter::new().expect("Failed to initialize highlighter"),
-        ))
+        .with_highlighter(Box::new(Highlighter::new()))
         .with_history(history)
         .with_validator(validator)
         .with_completer(completer)

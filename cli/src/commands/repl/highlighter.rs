@@ -1,12 +1,8 @@
+//! Syntax highlighter for the REPL using tree-sitter.
+
 use nu_ansi_term::{Color, Style};
 use reedline::StyledText;
-use thiserror::Error;
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent};
-
-/// Error type for highlighter initialization.
-#[derive(Debug, Error)]
-#[error("Failed to initialize highlighter: {0}")]
-pub struct HighlighterError(String);
 
 #[derive(Debug)]
 struct PaletteItem<'a> {
@@ -88,14 +84,19 @@ const PALETTE: &[PaletteItem] = &[
     },
 ];
 
-const HIGHLIGHTS_QUERY: &str = include_str!("../../zed/languages/melbi/highlights.scm");
+const HIGHLIGHTS_QUERY: &str = include_str!("../../../../zed/languages/melbi/highlights.scm");
 
 pub struct Highlighter {
     config: HighlightConfiguration,
 }
 
 impl Highlighter {
-    pub fn new() -> Result<Self, HighlighterError> {
+    /// Creates a new syntax highlighter.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the tree-sitter highlight configuration fails to initialize.
+    pub fn new() -> Self {
         let highlight_names = PALETTE.iter().map(|item| item.name).collect::<Vec<_>>();
 
         let mut config = HighlightConfiguration::new(
@@ -105,9 +106,9 @@ impl Highlighter {
             "",
             "",
         )
-        .map_err(|e| HighlighterError(e.to_string()))?;
+        .expect("Failed to create highlight configuration");
         config.configure(&highlight_names);
-        Ok(Self { config })
+        Self { config }
     }
 }
 

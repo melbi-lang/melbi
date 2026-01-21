@@ -6,5 +6,3 @@
 pub mod cli;
 pub mod commands;
 pub mod common;
-pub mod highlighter;
-pub mod lexer;
