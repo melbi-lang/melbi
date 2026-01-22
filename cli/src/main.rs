@@ -1,11 +1,10 @@
 //! Melbi CLI - A safe, fast, embeddable expression language.
 
-mod cli;
-mod commands;
-mod common;
-
 use clap::Parser;
-use cli::{Cli, Command};
+use melbi_cli::{
+    cli::{Cli, Command},
+    commands, common,
+};
 
 fn main() {
     // Install panic handler for user-friendly crash reporting
