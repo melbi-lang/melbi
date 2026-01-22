@@ -44,10 +44,7 @@ fn main() {
             commands::bug::run();
             Ok(())
         }
-        Command::Debug(args) => {
-            commands::debug::run(args, cli.no_color);
-            Ok(())
-        }
+        Command::Debug(args) => commands::debug::run(args, cli.no_color),
     };
 
     if let Err(e) = result {

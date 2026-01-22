@@ -2661,4 +2661,69 @@ mod tests {
             result
         );
     }
+
+    // ===== Pattern keyword boundary regression tests =====
+    // These tests verify that `some` and `none` keywords in pattern (match) contexts
+    // require word boundaries and don't incorrectly match partial words.
+    //
+    // Bug: Without word boundary guards, `x match { some_value -> 1 }` would incorrectly
+    // parse `some_value` as `Pattern::Some(Var("_value"))` instead of `Pattern::Var("some_value")`.
+
+    #[test]
+    fn test_pattern_keyword_boundary_some_value() {
+        let arena = Bump::new();
+        // `some_value` should parse as Pattern::Var("some_value"), not Pattern::Some
+        let parsed = parse(&arena, "x match { some_value -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("some_value"));
+    }
+
+    #[test]
+    fn test_pattern_keyword_boundary_none_value() {
+        let arena = Bump::new();
+        // `none_value` should parse as Pattern::Var("none_value"), not Pattern::None
+        let parsed = parse(&arena, "x match { none_value -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("none_value"));
+    }
+
+    #[test]
+    fn test_pattern_some_with_binding() {
+        let arena = Bump::new();
+        // `some y` (with space) should parse as Pattern::Some containing Pattern::Var("y")
+        let parsed = parse(&arena, "x match { some y -> y, none -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        let Pattern::Some(inner) = arms[0].pattern else {
+            panic!("Expected Pattern::Some, got {:?}", arms[0].pattern);
+        };
+        assert_eq!(**inner, Pattern::Var("y"));
+    }
+
+    #[test]
+    fn test_pattern_keyword_boundary_something() {
+        let arena = Bump::new();
+        // `something` should be Pattern::Var("something"), not Pattern::Some
+        let parsed = parse(&arena, "x match { something -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("something"));
+    }
+
+    #[test]
+    fn test_pattern_keyword_boundary_nonetheless() {
+        let arena = Bump::new();
+        // `nonetheless` should be Pattern::Var("nonetheless"), not Pattern::None
+        let parsed = parse(&arena, "x match { nonetheless -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("nonetheless"));
+    }
 }

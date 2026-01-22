@@ -124,7 +124,7 @@ fn eval_runtime_error_shows_error() {
     melbi()
         .args(["eval", "1 / 0"])
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure() // Runtime errors exit non-zero
         .stderr(predicate::str::contains("division by zero").or(predicate::str::contains("Division")));
 }
 

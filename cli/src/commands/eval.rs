@@ -98,8 +98,7 @@ pub fn interpret_input<'types>(
         {
             Ok(code) => code,
             Err(e) => {
-                // TODO: Convert compiler error to melbi::Error for consistent handling
-                eprintln!("Bytecode compilation error: {:?}", e);
+                render_error_to(&e.into(), &mut std::io::stderr(), &config).ok();
                 std::process::exit(1);
             }
         };
@@ -111,18 +110,21 @@ pub fn interpret_input<'types>(
     }
 
     // Output results
+    let mut has_error = false;
     match (runtime, eval_result, vm_result) {
         (Runtime::Evaluator, Some(Ok(value)), _) => {
             println!("{:?}", value);
         }
         (Runtime::Evaluator, Some(Err(e)), _) => {
             render_err(e.into());
+            has_error = true;
         }
         (Runtime::Vm, _, Some(Ok(value))) => {
             println!("{:?}", value);
         }
         (Runtime::Vm, _, Some(Err(e))) => {
             render_err(e.into());
+            has_error = true;
         }
         (Runtime::Both, Some(eval_res), Some(vm_res)) => {
             match (eval_res, vm_res) {
@@ -140,12 +142,14 @@ pub fn interpret_input<'types>(
                     eprintln!("  Evaluator: error");
                     render_err(e.into());
                     eprintln!("  VM:        {:?}", vm_val);
+                    has_error = true;
                 }
                 (Ok(eval_val), Err(e)) => {
                     eprintln!("MISMATCH!");
                     eprintln!("  Evaluator: {:?}", eval_val);
                     eprintln!("  VM:        error");
                     render_err(e.into());
+                    has_error = true;
                 }
                 (Err(eval_e), Err(vm_e)) => {
                     // Both errored - check if same kind of error
@@ -158,11 +162,15 @@ pub fn interpret_input<'types>(
                         eprintln!("  VM:");
                         render_err(vm_e.into());
                     }
+                    has_error = true;
                 }
             }
         }
         _ => unreachable!(),
     }
 
+    if has_error {
+        std::process::exit(1);
+    }
     Ok(())
 }

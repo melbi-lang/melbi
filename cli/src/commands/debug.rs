@@ -11,14 +11,16 @@ use melbi_core::{
 
 use crate::cli::{DebugArgs, DebugCommand, DebugInputArgs};
 use crate::common::engine::build_stdlib;
+use crate::common::CliResult;
 
 /// Run the debug command.
-pub fn run(args: DebugArgs, no_color: bool) {
+pub fn run(args: DebugArgs, no_color: bool) -> CliResult<()> {
     match args.command {
         DebugCommand::Parser(input) => run_parser(input, no_color),
         DebugCommand::Analyzer(input) => run_analyzer(input, no_color),
         DebugCommand::Bytecode(input) => run_bytecode(input, no_color),
     }
+    Ok(())
 }
 
 fn render_err(e: melbi::Error, no_color: bool) {
@@ -96,8 +98,8 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) {
     let bytecode = match BytecodeCompiler::compile(type_manager, &arena, globals_values, &typed) {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("Bytecode compilation error: {:?}", e);
-            return;
+            render_err(e.into(), no_color);
+            std::process::exit(1);
         }
     };
 
