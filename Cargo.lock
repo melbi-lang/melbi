@@ -1461,8 +1461,6 @@ dependencies = [
  "predicates",
  "reedline",
  "rexpect",
- "serde",
- "serde_json",
  "shlex",
  "similar",
  "tempfile",

@@ -40,8 +40,8 @@ fn main() {
             commands::completions::run(args);
             Ok(())
         }
-        Command::Bug(args) => {
-            commands::bug::run(args);
+        Command::Bug => {
+            commands::bug::run();
             Ok(())
         }
         Command::Debug(args) => {

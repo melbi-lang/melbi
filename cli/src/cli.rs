@@ -38,8 +38,8 @@ pub enum Command {
     /// Generate shell completions
     Completions(CompletionsArgs),
 
-    /// Report a bug or crash
-    Bug(BugArgs),
+    /// Report a bug
+    Bug,
 
     /// Debug commands (for development)
     #[command(hide = true)]
@@ -113,14 +113,6 @@ pub struct ReplArgs {
 pub struct CompletionsArgs {
     /// Shell to generate completions for
     pub shell: Shell,
-}
-
-/// Arguments for the `bug` command.
-#[derive(Args, Debug)]
-pub struct BugArgs {
-    /// Encoded panic info from a crash (auto-generated)
-    #[arg(long, hide = true)]
-    pub panic_info: Option<String>,
 }
 
 /// Arguments for the `debug` command.
