@@ -19,20 +19,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install 32-bit dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-multilib
+        sudo apt-get install -y musl-tools gcc-multilib
     - name: Install Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        target: i686-unknown-linux-gnu
+        target: i686-unknown-linux-musl
         cache: true
     - name: Build i386 Binary
-      run: cargo build -p melbi-cli --release --verbose --target i686-unknown-linux-gnu
+      run: cargo build -p melbi-cli --release --verbose --target i686-unknown-linux-musl --bin melbi-cli
     - name: Archive production artifacts
       uses: actions/upload-artifact@v4
       with:
         name: rust-binary
-        path: target/i686-unknown-linux-gnu/release/melbi
+        path: target/*/release/melbi
       
