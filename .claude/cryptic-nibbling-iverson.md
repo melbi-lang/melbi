@@ -397,6 +397,6 @@ cargo t -p melbi-cli
 
 - `run` and `check` share the arena/type_manager setup - could extract to common
 - `fmt` doesn't need melbi-core at all, just tree-sitter
-- Consider adding `--quiet` flag to suppress "OK" messages in check
-- Future: add stdin support (`melbi fmt -` reads from stdin)
-- Update render_error to take a filename as argument.
+- Add `--quiet` flag `check` (no messages on error or success, only status code)
+- Add stdin support for `fmt` (`melbi fmt -` reads from stdin)
+- Update `render_error` to take a filename as argument. (Also add a few error tests that compare against the output)
