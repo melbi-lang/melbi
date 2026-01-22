@@ -66,6 +66,16 @@ fn run_with_runtime_vm() {
     );
 }
 
+#[test]
+fn run_with_runtime_both_explicit() {
+    let file = temp_file("1 + 2");
+    check_stdout(
+        &["run", "--runtime", "both", file.path().to_str().unwrap()],
+        None,
+        expect!["3\n"],
+    );
+}
+
 // ============================================================================
 // Error tests with full output verification
 // ============================================================================
@@ -166,44 +176,21 @@ fn run_from_stdin_error() {
 #[test]
 fn run_error_shows_filename() {
     let file = temp_file("1 + true");
-    let path = file.path();
-    let path_str = path.to_str().unwrap();
+    let path_str = file.path().to_str().unwrap();
 
-    let output = melbi()
+    melbi()
         .args(["--no-color", "run", path_str])
         .assert()
         .failure()
-        .get_output()
-        .stderr
-        .clone();
-
-    let stderr = String::from_utf8_lossy(&output);
-
-    // Error should contain the filename
-    assert!(
-        stderr.contains(path_str),
-        "Error should contain filename, got:\n{}",
-        stderr
-    );
+        .stderr(predicate::str::contains(path_str));
 }
 
 #[test]
 fn run_error_shows_stdin_label() {
-    let output = melbi()
+    melbi()
         .args(["--no-color", "run", "-"])
         .write_stdin("1 + true")
         .assert()
         .failure()
-        .get_output()
-        .stderr
-        .clone();
-
-    let stderr = String::from_utf8_lossy(&output);
-
-    // Error should show <stdin> as the source
-    assert!(
-        stderr.contains("<stdin>"),
-        "Error should contain <stdin>, got:\n{}",
-        stderr
-    );
+        .stderr(predicate::str::contains("<stdin>"));
 }

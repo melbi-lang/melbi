@@ -5,7 +5,7 @@
 const GITHUB_ISSUES_URL: &str = "https://github.com/melbi-lang/melbi/issues/new";
 
 /// Run the bug command.
-pub fn run() {
+pub(crate) fn run() {
     let url = build_bug_report_url();
 
     println!("Opening bug report in your browser...");

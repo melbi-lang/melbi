@@ -75,6 +75,7 @@ fn repl_ctrl_c_aborts_entry() {
 
     // Start typing something
     repl.send("1 + ").unwrap();
+    // Allow time for partial input to be processed before sending abort signal
     std::thread::sleep(Duration::from_millis(100));
 
     // Abort with Ctrl+C
@@ -84,5 +85,17 @@ fn repl_ctrl_c_aborts_entry() {
     repl.send_line("42").unwrap();
     repl.exp_string("42").unwrap();
 
+    repl.send_control('d').unwrap();
+}
+
+#[test]
+#[ignore = "rexpect tests may not work in all environments"]
+fn repl_recovers_from_type_error() {
+    let mut repl = spawn_repl().expect("Failed to spawn REPL");
+    repl.exp_string("Melbi REPL").unwrap();
+    repl.send_line("1 + true").unwrap();
+    repl.exp_string("Type").unwrap(); // Should show type error
+    repl.send_line("1 + 2").unwrap();
+    repl.exp_string("3").unwrap(); // Should recover
     repl.send_control('d').unwrap();
 }

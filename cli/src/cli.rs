@@ -88,7 +88,7 @@ pub struct FmtArgs {
     pub files: Vec<String>,
 
     /// Write formatted output back to files
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "check")]
     pub write: bool,
 
     /// Check if files are formatted (exit 1 if not)
@@ -141,7 +141,7 @@ pub struct DebugInputArgs {
     /// Expression to debug
     pub expression: String,
 
-    /// Runtime to use for evaluation (only for bytecode)
+    /// Runtime to use for execution (only meaningful for bytecode subcommand)
     #[arg(long, default_value = "both")]
     pub runtime: Runtime,
 }

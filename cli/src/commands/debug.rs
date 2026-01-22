@@ -38,7 +38,7 @@ fn run_parser(args: DebugInputArgs, no_color: bool) {
         Ok(ast) => ast,
         Err(e) => {
             render_err(e.into(), no_color);
-            return;
+            std::process::exit(1);
         }
     };
 
@@ -55,7 +55,7 @@ fn run_analyzer(args: DebugInputArgs, no_color: bool) {
         Ok(ast) => ast,
         Err(e) => {
             render_err(e.into(), no_color);
-            return;
+            std::process::exit(1);
         }
     };
 
@@ -63,7 +63,7 @@ fn run_analyzer(args: DebugInputArgs, no_color: bool) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into(), no_color);
-            return;
+            std::process::exit(1);
         }
     };
 
@@ -83,7 +83,7 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) {
         Ok(ast) => ast,
         Err(e) => {
             render_err(e.into(), no_color);
-            return;
+            std::process::exit(1);
         }
     };
 
@@ -91,7 +91,7 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into(), no_color);
-            return;
+            std::process::exit(1);
         }
     };
 

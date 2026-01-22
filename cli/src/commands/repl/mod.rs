@@ -125,12 +125,16 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let edit_mode = Box::new(Emacs::new(keybindings));
 
-    let history_path = dirs::config_dir()
-        .expect("Failed to find a suitable config directory")
-        .join("melbi/history");
-    let history = Box::new(
-        FileBackedHistory::with_file(10000, history_path).expect("Failed to initialize history"),
-    );
+    let history: Box<dyn reedline::History> = match dirs::config_dir()
+        .map(|p| p.join("melbi/history"))
+        .and_then(|p| FileBackedHistory::with_file(10000, p).ok())
+    {
+        Some(h) => Box::new(h),
+        None => {
+            eprintln!("Warning: Could not initialize history file, using in-memory history");
+            Box::new(FileBackedHistory::new(1000).unwrap())
+        }
+    };
 
     let validator = Box::new(MelbiValidator);
 

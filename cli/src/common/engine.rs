@@ -5,7 +5,21 @@ use melbi_core::stdlib::register_stdlib;
 use melbi_core::types::{Type, manager::TypeManager};
 use melbi_core::values::dynamic::Value;
 
-/// Build stdlib and return (globals_types, globals_values) for use with analyze/evaluate.
+/// Build the standard library environment for Melbi evaluation.
+///
+/// Initializes stdlib modules (Math, String, Array, etc.) and returns
+/// type and value bindings for the analyzer and evaluator.
+///
+/// # Arguments
+/// * `arena` - Bump allocator for stdlib values and types
+/// * `type_manager` - Type manager for creating and interning types
+///
+/// # Returns
+/// * `globals_types` - Type bindings for `analyze()`
+/// * `globals_values` - Value bindings for `Evaluator` or `VM`
+///
+/// # Panics
+/// Panics if environment build fails (line 22-23 `.expect()`).
 pub fn build_stdlib<'arena>(
     arena: &'arena Bump,
     type_manager: &'arena TypeManager<'arena>,

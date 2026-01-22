@@ -1,5 +1,6 @@
 //! The `fmt` command - format Melbi files.
 
+use nu_ansi_term::Color;
 use similar::{ChangeTag, TextDiff};
 use topiary_core::{FormatterError, Operation, TopiaryQuery};
 
@@ -59,14 +60,13 @@ fn format_file(path: &str, args: &FmtArgs, no_color: bool) -> Result<bool, Strin
         return Ok(false);
     }
 
-    if args.quiet {
-        // Quiet mode: no output, just return whether formatting was needed
-        if args.write {
-            std::fs::write(path, &formatted).map_err(|e| format!("failed to write: {}", e))?;
-        }
-    } else if args.write {
+    if args.write {
         std::fs::write(path, &formatted).map_err(|e| format!("failed to write: {}", e))?;
-        println!("formatted {}", display_name);
+        if !args.quiet {
+            println!("formatted {}", display_name);
+        }
+    } else if args.quiet {
+        // quiet mode without write - no output
     } else if args.check {
         println!("{} needs formatting", display_name);
     } else if from_stdin {
@@ -143,20 +143,22 @@ fn print_diff(name: &str, original: &str, formatted: &str, no_color: bool) {
     for hunk in diff.unified_diff().iter_hunks() {
         println!("{}", hunk.header());
         for change in hunk.iter_changes() {
-            let (sign, color_start, color_end) = match change.tag() {
-                ChangeTag::Delete => (
-                    "-",
-                    if no_color { "" } else { "\x1b[31m" },
-                    if no_color { "" } else { "\x1b[0m" },
-                ),
-                ChangeTag::Insert => (
-                    "+",
-                    if no_color { "" } else { "\x1b[32m" },
-                    if no_color { "" } else { "\x1b[0m" },
-                ),
-                ChangeTag::Equal => (" ", "", ""),
+            let sign = match change.tag() {
+                ChangeTag::Delete => "-",
+                ChangeTag::Insert => "+",
+                ChangeTag::Equal => " ",
             };
-            print!("{}{}{}{}", color_start, sign, change.value(), color_end);
+            let line = format!("{}{}", sign, change.value());
+            let colored = if no_color {
+                line
+            } else {
+                match change.tag() {
+                    ChangeTag::Delete => Color::Red.paint(&line).to_string(),
+                    ChangeTag::Insert => Color::Green.paint(&line).to_string(),
+                    ChangeTag::Equal => line,
+                }
+            };
+            print!("{}", colored);
             if !change.value().ends_with('\n') {
                 println!();
             }

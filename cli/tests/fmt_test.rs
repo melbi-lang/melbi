@@ -103,6 +103,30 @@ fn fmt_no_color_flag() {
 }
 
 // ============================================================================
+// Idempotency
+// ============================================================================
+
+#[test]
+fn fmt_is_idempotent() {
+    let inputs = ["{x=1,y=2}", "1+2+3", "x+y where{x=1,y=2}"];
+
+    for input in inputs {
+        let file = temp_file(input);
+        let path = file.path().to_str().unwrap();
+
+        // First format
+        melbi().args(["fmt", "--write", path]).assert().success();
+        let first = fs::read_to_string(file.path()).unwrap();
+
+        // Second format should not change
+        melbi().args(["fmt", "--write", path]).assert().success();
+        let second = fs::read_to_string(file.path()).unwrap();
+
+        assert_eq!(first, second, "Formatting should be idempotent for: {}", input);
+    }
+}
+
+// ============================================================================
 // --write flag
 // ============================================================================
 
