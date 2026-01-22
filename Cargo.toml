@@ -64,6 +64,7 @@ miette.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+expect-test = "1.5"
 pretty_assertions.workspace = true
 once_cell.workspace = true
 indoc = "2"

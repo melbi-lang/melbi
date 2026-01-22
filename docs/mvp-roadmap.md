@@ -309,7 +309,7 @@ These optimizations can be implemented on the typed AST before bytecode generati
 
 **Current**:
 - Basic binary exists in `cli/`
-- Can be invoked with `cargo run --bin melbi-cli`
+- Can be invoked with `cargo run --bin melbi`
 
 **Needed for MVP**:
 - Eval mode: `melbi eval "1 + 2"`

@@ -1,4 +1,4 @@
-error[E0658]: non-inline modules in proc macro input are unstable
+error[E0658]: file modules in proc macro input are unstable
  --> tests/compile_fail/package_file_module.rs:6:1
   |
 6 | mod file_module;

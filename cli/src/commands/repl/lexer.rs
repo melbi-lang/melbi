@@ -1,3 +1,5 @@
+//! Lexer for tracking nesting depth in the REPL.
+
 use logos::Logos;
 
 /// Token types recognized by the Melbi lexer for depth calculation.
@@ -57,15 +59,6 @@ pub enum Token {
 ///
 /// Returns `Some(depth)` where depth is the net nesting level (≥ 0),
 /// or `None` if the buffer contains invalid/incomplete tokens.
-///
-/// # Examples
-/// ```
-/// use melbi_cli::lexer::calculate_depth;
-/// assert_eq!(calculate_depth("{ { } }"), Some(0));
-/// assert_eq!(calculate_depth("{ "), Some(1));
-/// assert_eq!(calculate_depth(r#"{"unclosed"#), None);
-/// assert_eq!(calculate_depth(r#"unclosed ' //"#), None);
-/// ```
 pub fn calculate_depth(buffer: &str) -> Option<usize> {
     let mut depth: isize = 0;
 

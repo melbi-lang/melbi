@@ -18,7 +18,7 @@
 - **Unsafe**: Do not use `unsafe` or `transmute` without asking first.
   - Permission applies only to that specific instance.
   - Document safety invariants thoroughly.
-- **Code duplication**: Do not duplicate code!
+- **Code duplication**: DRY (Don't Repeat Yourself)!
   - Extract common code into helper functions or modules.
   - Prefer generic functions over multiple specialized ones.
   - Do not duplicate constructors because a new field is added.

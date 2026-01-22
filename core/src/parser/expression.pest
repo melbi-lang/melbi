@@ -55,8 +55,8 @@ prefix_op = _{
 }
 
 neg = @{ "-" ~ !(ASCII_DIGIT | ".") }  // Avoid ambiguity with negative numbers.
-not = { "not" }
-some_op = { "some" }  // Option[T] constructor
+not = @{ "not" ~ !(ASCII_ALPHANUMERIC | "_") }  // Word boundary to avoid matching `notify` as `not ify`
+some_op = @{ "some" ~ !(ASCII_ALPHANUMERIC | "_") }  // Word boundary to avoid matching `something` as `some thing`
 
 if_op = { "if" ~ expression ~ "then" ~ expression ~ "else" }
 
@@ -96,12 +96,12 @@ le     = { "<=" }
 ge     = { ">=" }
 lt     = { "<" }
 gt     = { ">" }
-in_op  = { "in" }
-not_in = @{ "not" ~ WHITESPACE+ ~ "in" }
-and    = { "and" }
-or     = { "or" }
+in_op  = @{ "in" ~ !(ASCII_ALPHANUMERIC | "_") }
+not_in = @{ "not" ~ WHITESPACE+ ~ "in" ~ !(ASCII_ALPHANUMERIC | "_") }
+and    = @{ "and" ~ !(ASCII_ALPHANUMERIC | "_") }
+or     = @{ "or" ~ !(ASCII_ALPHANUMERIC | "_") }
 
-otherwise_op = { "otherwise" }
+otherwise_op = @{ "otherwise" ~ !(ASCII_ALPHANUMERIC | "_") }
 
 // === postfix operations ===
 
@@ -142,8 +142,8 @@ pattern_primary = _{
 }
 
 pattern_prefix  = _{ pattern_some }
-pattern_some    =  { "some" }
-pattern_none    =  { "none" }
+pattern_some    = @{ "some" ~ !(ASCII_ALPHANUMERIC | "_") }
+pattern_none    = @{ "none" ~ !(ASCII_ALPHANUMERIC | "_") }
 
 // Empty operators for Phase 3 - tokens that will never appear in patterns
 // These consume input if matched, avoiding non-progressing repetition issues
@@ -210,7 +210,7 @@ scalar_literal = _{
 }
 
 boolean = { "true" | "false" }
-none = { "none" }
+none = @{ "none" ~ !(ASCII_ALPHANUMERIC | "_") }  // Word boundary to avoid matching `nonetheless` as `none theless`
 
 // 3.14 3. 3.0e10
 // .5, .5e10

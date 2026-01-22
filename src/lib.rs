@@ -79,7 +79,7 @@
 
 // Error rendering utilities
 pub mod error_renderer;
-pub use error_renderer::{RenderConfig, render_error, render_error_to};
+pub use error_renderer::{CharSet, RenderConfig, render_error, render_error_to};
 
 // Re-export public API from melbi_core
 pub use melbi_core::api::{

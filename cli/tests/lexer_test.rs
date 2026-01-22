@@ -1,5 +1,5 @@
 use logos::Logos;
-use melbi_cli::lexer::{Token, calculate_depth};
+use melbi_cli::commands::repl::lexer::{Token, calculate_depth};
 
 #[test]
 fn test_lexer_brackets() {

@@ -2464,4 +2464,266 @@ mod tests {
         );
         assert_eq!(parsed.ann.span_of(parsed.expr), Some(Span::new(0, 9)));
     }
+
+    // ===== Keyword boundary tests =====
+    // Keywords should only be recognized when followed by non-identifier characters.
+    // For example, `notdefined` should be an identifier, not `not defined`.
+
+    #[test]
+    fn test_keyword_not_in_identifier() {
+        let arena = Bump::new();
+
+        // `notdefined` should be a single identifier, not `not defined`
+        let parsed = parse(&arena, "notdefined").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("notdefined"));
+
+        // `notify` should be a single identifier
+        let parsed = parse(&arena, "notify").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("notify"));
+
+        // `not_a_thing` should be a single identifier
+        let parsed = parse(&arena, "not_a_thing").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("not_a_thing"));
+    }
+
+    #[test]
+    fn test_keyword_and_in_identifier() {
+        let arena = Bump::new();
+
+        // `android` should be a single identifier, not `and roid`
+        let parsed = parse(&arena, "android").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("android"));
+
+        // `and_also` should be a single identifier
+        let parsed = parse(&arena, "and_also").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("and_also"));
+    }
+
+    #[test]
+    fn test_keyword_or_in_identifier() {
+        let arena = Bump::new();
+
+        // `order` should be a single identifier, not `or der`
+        let parsed = parse(&arena, "order").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("order"));
+
+        // `orange` should be a single identifier
+        let parsed = parse(&arena, "orange").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("orange"));
+
+        // `or_else` should be a single identifier
+        let parsed = parse(&arena, "or_else").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("or_else"));
+    }
+
+    #[test]
+    fn test_keyword_in_in_identifier() {
+        let arena = Bump::new();
+
+        // `index` should be a single identifier, not `in dex`
+        let parsed = parse(&arena, "index").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("index"));
+
+        // `input` should be a single identifier
+        let parsed = parse(&arena, "input").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("input"));
+
+        // `in_range` should be a single identifier
+        let parsed = parse(&arena, "in_range").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("in_range"));
+    }
+
+    #[test]
+    fn test_keyword_some_in_identifier() {
+        let arena = Bump::new();
+
+        // `something` should be a single identifier, not `some thing`
+        let parsed = parse(&arena, "something").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("something"));
+
+        // `some_value` should be a single identifier
+        let parsed = parse(&arena, "some_value").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("some_value"));
+    }
+
+    #[test]
+    fn test_keyword_none_in_identifier() {
+        let arena = Bump::new();
+
+        // `nonetheless` should be a single identifier, not `none theless`
+        let parsed = parse(&arena, "nonetheless").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("nonetheless"));
+
+        // `none_value` should be a single identifier
+        let parsed = parse(&arena, "none_value").unwrap();
+        assert_eq!(*parsed.expr, Expr::Ident("none_value"));
+    }
+
+    #[test]
+    fn test_keyword_as_standalone() {
+        let arena = Bump::new();
+
+        // `not true` should be `not` applied to `true`
+        let parsed = parse(&arena, "not true").unwrap();
+        assert_eq!(
+            *parsed.expr,
+            Expr::Unary {
+                op: UnaryOp::Not,
+                expr: arena.alloc(Expr::Literal(Literal::Bool(true))),
+            }
+        );
+
+        // `x and y` should be `x and y`
+        let parsed = parse(&arena, "x and y").unwrap();
+        assert_eq!(
+            *parsed.expr,
+            Expr::Boolean {
+                op: BoolOp::And,
+                left: arena.alloc(Expr::Ident("x")),
+                right: arena.alloc(Expr::Ident("y")),
+            }
+        );
+
+        // `some 42` should be `some` applied to `42`
+        let parsed = parse(&arena, "some 42").unwrap();
+        assert_eq!(
+            *parsed.expr,
+            Expr::Option {
+                inner: Some(arena.alloc(Expr::Literal(Literal::Int {
+                    value: 42,
+                    suffix: None
+                })))
+            }
+        );
+    }
+
+    // ===== Infix keyword boundary regression tests =====
+    // These tests verify that infix keywords (`and`, `or`, `in`, `otherwise`) require
+    // word boundaries and don't incorrectly match partial words in binary expressions.
+    //
+    // Bug: Without word boundary guards, `x andy` would incorrectly parse as `x and y`
+    // because the parser would see `and` as an operator, leaving `y` as the right operand.
+    // The fix adds `~ !(ASCII_ALPHANUMERIC | "_")` guards to these operators in expression.pest.
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_and() {
+        let arena = Bump::new();
+
+        // `x andy` should fail to parse - it's two consecutive identifiers with no operator.
+        // Without the word boundary fix, this would incorrectly parse as `x and y`.
+        let result = parse(&arena, "x andy");
+        assert!(
+            result.is_err(),
+            "Expected parse error for 'x andy', but got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_or() {
+        let arena = Bump::new();
+
+        // `x ory` should fail to parse - it's two consecutive identifiers with no operator.
+        // Without the word boundary fix, this would incorrectly parse as `x or y`.
+        let result = parse(&arena, "x ory");
+        assert!(
+            result.is_err(),
+            "Expected parse error for 'x ory', but got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_in() {
+        let arena = Bump::new();
+
+        // `x inside` should fail to parse - it's two consecutive identifiers with no operator.
+        // Without the word boundary fix, this would incorrectly parse as `x in side`.
+        let result = parse(&arena, "x inside");
+        assert!(
+            result.is_err(),
+            "Expected parse error for 'x inside', but got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_otherwise() {
+        let arena = Bump::new();
+
+        // `1 otherwisely` should fail to parse - it's a literal followed by an identifier
+        // with no operator between them.
+        // Without the word boundary fix, this would incorrectly parse as `1 otherwise ly`.
+        let result = parse(&arena, "1 otherwisely");
+        assert!(
+            result.is_err(),
+            "Expected parse error for '1 otherwisely', but got: {:?}",
+            result
+        );
+    }
+
+    // ===== Pattern keyword boundary regression tests =====
+    // These tests verify that `some` and `none` keywords in pattern (match) contexts
+    // require word boundaries and don't incorrectly match partial words.
+    //
+    // Bug: Without word boundary guards, `x match { some_value -> 1 }` would incorrectly
+    // parse `some_value` as `Pattern::Some(Var("_value"))` instead of `Pattern::Var("some_value")`.
+
+    #[test]
+    fn test_pattern_keyword_boundary_some_value() {
+        let arena = Bump::new();
+        // `some_value` should parse as Pattern::Var("some_value"), not Pattern::Some
+        let parsed = parse(&arena, "x match { some_value -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("some_value"));
+    }
+
+    #[test]
+    fn test_pattern_keyword_boundary_none_value() {
+        let arena = Bump::new();
+        // `none_value` should parse as Pattern::Var("none_value"), not Pattern::None
+        let parsed = parse(&arena, "x match { none_value -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("none_value"));
+    }
+
+    #[test]
+    fn test_pattern_some_with_binding() {
+        let arena = Bump::new();
+        // `some y` (with space) should parse as Pattern::Some containing Pattern::Var("y")
+        let parsed = parse(&arena, "x match { some y -> y, none -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        let Pattern::Some(inner) = arms[0].pattern else {
+            panic!("Expected Pattern::Some, got {:?}", arms[0].pattern);
+        };
+        assert_eq!(**inner, Pattern::Var("y"));
+    }
+
+    #[test]
+    fn test_pattern_keyword_boundary_something() {
+        let arena = Bump::new();
+        // `something` should be Pattern::Var("something"), not Pattern::Some
+        let parsed = parse(&arena, "x match { something -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("something"));
+    }
+
+    #[test]
+    fn test_pattern_keyword_boundary_nonetheless() {
+        let arena = Bump::new();
+        // `nonetheless` should be Pattern::Var("nonetheless"), not Pattern::None
+        let parsed = parse(&arena, "x match { nonetheless -> 1, _ -> 0 }").unwrap();
+        let Expr::Match { arms, .. } = parsed.expr else {
+            panic!("Expected Match expression");
+        };
+        assert_eq!(*arms[0].pattern, Pattern::Var("nonetheless"));
+    }
 }
