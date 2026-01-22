@@ -107,7 +107,7 @@ fn run_type_error() {
     melbi()
         .args(["run", file.path().to_str().unwrap()])
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure()
         .stderr(predicate::str::contains("Type mismatch"));
 }
 
@@ -118,7 +118,7 @@ fn run_parse_error() {
     melbi()
         .args(["run", file.path().to_str().unwrap()])
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure()
         .stderr(predicate::str::contains("Error"));
 }
 
@@ -138,7 +138,7 @@ fn run_no_color_flag() {
     melbi()
         .args(["--no-color", "run", file.path().to_str().unwrap()])
         .assert()
-        .success()
+        .failure()
         .stderr(predicate::str::contains("Type mismatch"))
         .stderr(predicate::str::contains("\x1b[").not());
 }
@@ -183,7 +183,7 @@ fn run_from_stdin_error() {
         .args(["run", "-"])
         .write_stdin("1 + true")
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure()
         .stderr(predicate::str::contains("Type mismatch"));
 }
 
@@ -200,7 +200,7 @@ fn run_error_shows_filename() {
     let output = melbi()
         .args(["--no-color", "run", path_str])
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure()
         .get_output()
         .stderr
         .clone();
@@ -221,7 +221,7 @@ fn run_error_shows_stdin_label() {
         .args(["--no-color", "run", "-"])
         .write_stdin("1 + true")
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure()
         .get_output()
         .stderr
         .clone();

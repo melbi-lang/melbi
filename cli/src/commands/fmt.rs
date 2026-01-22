@@ -4,8 +4,8 @@ use similar::{ChangeTag, TextDiff};
 use topiary_core::{FormatterError, Operation, TopiaryQuery};
 
 use crate::cli::FmtArgs;
-use crate::common::input::{is_stdin, read_input};
 use crate::common::CliResult;
+use crate::common::input::{is_stdin, read_input};
 
 const QUERY: &str = include_str!("../../../topiary-queries/queries/melbi.scm");
 
@@ -22,6 +22,7 @@ pub fn run(args: FmtArgs, no_color: bool) -> CliResult<()> {
                 }
             }
             Err(e) => {
+                // TODO: Do not use strings as error messages. Reuse/update Melbi types.
                 if !args.quiet {
                     eprintln!("error: {}: {}", file, e);
                 }
@@ -61,12 +62,10 @@ fn format_file(path: &str, args: &FmtArgs, no_color: bool) -> Result<bool, Strin
     if args.quiet {
         // Quiet mode: no output, just return whether formatting was needed
         if args.write {
-            std::fs::write(path, &formatted)
-                .map_err(|e| format!("failed to write: {}", e))?;
+            std::fs::write(path, &formatted).map_err(|e| format!("failed to write: {}", e))?;
         }
     } else if args.write {
-        std::fs::write(path, &formatted)
-            .map_err(|e| format!("failed to write: {}", e))?;
+        std::fs::write(path, &formatted).map_err(|e| format!("failed to write: {}", e))?;
         println!("formatted {}", display_name);
     } else if args.check {
         println!("{} needs formatting", display_name);
@@ -81,19 +80,30 @@ fn format_file(path: &str, args: &FmtArgs, no_color: bool) -> Result<bool, Strin
     Ok(true)
 }
 
+/// Format a `FormatterError` into a human-readable error message.
+fn format_formatter_error(e: FormatterError) -> String {
+    match e {
+        FormatterError::Query(m, e) => match e {
+            None => m,
+            Some(e) => format!("{m}: {e}"),
+        },
+        FormatterError::Idempotence => "idempotency check failed".to_string(),
+        FormatterError::Parsing {
+            start_line,
+            start_column,
+            ..
+        } => format!("parse error at {}:{}", start_line, start_column),
+        _ => "unknown formatter error".to_string(),
+    }
+}
+
 /// Format Melbi source code.
 fn format_source(input: &str) -> Result<String, String> {
     let mut output = Vec::new();
 
     let grammar = topiary_tree_sitter_facade::Language::from(tree_sitter_melbi::LANGUAGE);
 
-    let query = TopiaryQuery::new(&grammar, QUERY).map_err(|e| match e {
-        FormatterError::Query(m, e) => match e {
-            None => m,
-            Some(e) => format!("{m}: {e}"),
-        },
-        _ => "unknown query error".to_string(),
-    })?;
+    let query = TopiaryQuery::new(&grammar, QUERY).map_err(format_formatter_error)?;
 
     let language = topiary_core::Language {
         name: "melbi".to_string(),
@@ -111,19 +121,7 @@ fn format_source(input: &str) -> Result<String, String> {
             tolerate_parsing_errors: false,
         },
     )
-    .map_err(|e| match e {
-        FormatterError::Query(m, e) => match e {
-            None => m,
-            Some(e) => format!("{m}: {e}"),
-        },
-        FormatterError::Idempotence => "idempotency check failed".to_string(),
-        FormatterError::Parsing {
-            start_line,
-            start_column,
-            ..
-        } => format!("parse error at {}:{}", start_line, start_column),
-        _ => "unknown formatter error".to_string(),
-    })?;
+    .map_err(format_formatter_error)?;
 
     let output = String::from_utf8(output).map_err(|e| e.to_string())?;
 
@@ -146,8 +144,16 @@ fn print_diff(name: &str, original: &str, formatted: &str, no_color: bool) {
         println!("{}", hunk.header());
         for change in hunk.iter_changes() {
             let (sign, color_start, color_end) = match change.tag() {
-                ChangeTag::Delete => ("-", if no_color { "" } else { "\x1b[31m" }, if no_color { "" } else { "\x1b[0m" }),
-                ChangeTag::Insert => ("+", if no_color { "" } else { "\x1b[32m" }, if no_color { "" } else { "\x1b[0m" }),
+                ChangeTag::Delete => (
+                    "-",
+                    if no_color { "" } else { "\x1b[31m" },
+                    if no_color { "" } else { "\x1b[0m" },
+                ),
+                ChangeTag::Insert => (
+                    "+",
+                    if no_color { "" } else { "\x1b[32m" },
+                    if no_color { "" } else { "\x1b[0m" },
+                ),
                 ChangeTag::Equal => (" ", "", ""),
             };
             print!("{}{}{}{}", color_start, sign, change.value(), color_end);

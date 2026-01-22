@@ -3,6 +3,7 @@ name = "melbi-cli"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
+include = ["src/**/*", "../zed/languages/melbi/highlights.scm"]
 
 [[bin]]
 name = "melbi"

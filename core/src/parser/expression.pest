@@ -96,12 +96,12 @@ le     = { "<=" }
 ge     = { ">=" }
 lt     = { "<" }
 gt     = { ">" }
-in_op  = { "in" }
-not_in = @{ "not" ~ WHITESPACE+ ~ "in" }
-and    = { "and" }
-or     = { "or" }
+in_op  = @{ "in" ~ !(ASCII_ALPHANUMERIC | "_") }
+not_in = @{ "not" ~ WHITESPACE+ ~ "in" ~ !(ASCII_ALPHANUMERIC | "_") }
+and    = @{ "and" ~ !(ASCII_ALPHANUMERIC | "_") }
+or     = @{ "or" ~ !(ASCII_ALPHANUMERIC | "_") }
 
-otherwise_op = { "otherwise" }
+otherwise_op = @{ "otherwise" ~ !(ASCII_ALPHANUMERIC | "_") }
 
 // === postfix operations ===
 

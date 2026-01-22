@@ -112,7 +112,7 @@ fn eval_type_error_shows_error() {
     melbi()
         .args(["eval", "1 + true"])
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure()
         .stderr(predicate::str::contains("Type mismatch"));
 }
 
@@ -121,7 +121,7 @@ fn eval_parse_error_shows_error() {
     melbi()
         .args(["eval", "1 + +"])
         .assert()
-        .success() // CLI exits 0 but prints error
+        .failure()
         .stderr(predicate::str::contains("Error"));
 }
 
@@ -157,7 +157,7 @@ fn eval_no_color_flag() {
     melbi()
         .args(["--no-color", "eval", "1 + true"])
         .assert()
-        .success()
+        .failure()
         .stderr(predicate::str::contains("Type mismatch"))
         // No ANSI escape codes when --no-color is used
         .stderr(predicate::str::contains("\x1b[").not());
