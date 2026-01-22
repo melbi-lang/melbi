@@ -3025,9 +3025,9 @@ checksum = "4ae62f7eae5eb549c71b76658648b72cc6111f2d87d24a1e31fa907f4943e3ce"
 [[package]]
 name = "tree-sitter-melbi"
 version = "0.1.0"
-source = "git+https://github.com/melbi-lang/tree-sitter-melbi#5b6b0812988f59829b6b9b868b7d907a2ae6838e"
 dependencies = [
  "cc",
+ "tree-sitter",
  "tree-sitter-language",
 ]
 

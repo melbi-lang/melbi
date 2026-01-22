@@ -17,7 +17,13 @@ fn eval_simple_expression() {
 
 #[test]
 fn eval_arithmetic() {
-    check_stdout(&["eval", "10 * 5 - 3"], None, expect!["47\n"]);
+    check_stdout(
+        &["eval", "10 * 5 - 3"],
+        None,
+        expect![[r#"
+        47
+    "#]],
+    );
 }
 
 #[test]
@@ -27,19 +33,33 @@ fn eval_string() {
 
 #[test]
 fn eval_boolean() {
-    check_stdout(&["eval", "true and false"], None, expect!["false\n"]);
+    check_stdout(
+        &["eval", "true and false"],
+        None,
+        expect![[r#"
+        false
+    "#]],
+    );
 }
 
 #[test]
 fn eval_array() {
-    check_stdout(&["eval", "[1, 2, 3]"], None, expect!["[1, 2, 3]\n"]);
+    check_stdout(
+        &["eval", "[1, 2, 3]"],
+        None,
+        expect![[r#"
+        [1, 2, 3]
+    "#]],
+    );
 }
 
 #[test]
 fn eval_record() {
-    check_stdout(&["eval", "{ x = 1, y = 2 }"], None, expect![[r#"
-        {x = 1, y = 2}
-    "#]]);
+    check_stdout(
+        &["eval", "{ x = 1, y = 2 }"],
+        None,
+        expect!["{x = 1, y = 2}\n"],
+    );
 }
 
 #[test]
@@ -58,7 +78,13 @@ fn eval_if_expression() {
 
 #[test]
 fn eval_lambda() {
-    check_stdout(&["eval", "((x) => x * 2)(21)"], None, expect!["42\n"]);
+    check_stdout(
+        &["eval", "((x) => x * 2)(21)"],
+        None,
+        expect![[r#"
+        42
+    "#]],
+    );
 }
 
 #[test]
@@ -89,9 +115,9 @@ fn eval_type_error_shows_error() {
                ╭─[ <unknown>:1:5 ]
                │
              1 │ 1 + true
-               │     ──┬─  
+               │     ──┬─
                │       ╰─── Type mismatch: expected Int, found Bool
-               │ 
+               │
                │ Help: Types must match in this context
             ───╯
         "#]],
@@ -108,7 +134,7 @@ fn eval_parse_error_shows_error() {
                ╭─[ <unknown>:1:5 ]
                │
              1 │ 1 + +
-               │     │ 
+               │     │
                │     ╰─ Expected expression, literal or identifier, found unexpected token
             ───╯
         "#]],
@@ -125,12 +151,18 @@ fn eval_runtime_error_shows_error() {
         .args(["eval", "1 / 0"])
         .assert()
         .failure() // Runtime errors exit non-zero
-        .stderr(predicate::str::contains("division by zero").or(predicate::str::contains("Division")));
+        .stderr(
+            predicate::str::contains("division by zero").or(predicate::str::contains("Division")),
+        );
 }
 
 #[test]
 fn eval_with_runtime_evaluator() {
-    check_stdout(&["eval", "--runtime", "evaluator", "1 + 2"], None, expect!["3\n"]);
+    check_stdout(
+        &["eval", "--runtime", "evaluator", "1 + 2"],
+        None,
+        expect!["3\n"],
+    );
 }
 
 #[test]

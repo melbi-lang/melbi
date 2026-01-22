@@ -22,7 +22,9 @@ fn check_valid_expression() {
 
 #[test]
 fn check_from_stdin() {
-    check_stdout(&["check", "-"], Some("1 + 2"), expect!["<stdin>: OK\n"]);
+    check_stdout(&["check", "-"], Some("1 + 2"), expect![[r#"
+        <stdin>: OK
+    "#]]);
 }
 
 #[test]
@@ -54,9 +56,9 @@ fn check_type_error_output_format() {
                ╭─[ <stdin>:1:5 ]
                │
              1 │ 1 + true
-               │     ──┬─  
+               │     ──┬─
                │       ╰─── Type mismatch: expected Int, found Bool
-               │ 
+               │
                │ Help: Types must match in this context
             ───╯
         "#]],
@@ -73,9 +75,9 @@ fn check_undefined_variable_output_format() {
                ╭─[ <stdin>:1:1 ]
                │
              1 │ undefined_var + 1
-               │ ──────┬──────  
+               │ ──────┬──────
                │       ╰──────── Undefined variable 'undefined_var'
-               │ 
+               │
                │ Help: Make sure the variable is declared before use
             ───╯
         "#]],
@@ -92,7 +94,7 @@ fn check_parse_error_output_format() {
                ╭─[ <stdin>:1:5 ]
                │
              1 │ 1 + +
-               │     │ 
+               │     │
                │     ╰─ Expected expression, literal or identifier, found unexpected token
             ───╯
         "#]],
@@ -262,7 +264,12 @@ fn check_from_stdin_error() {
 
 #[test]
 fn check_from_stdin_quiet() {
-    check_output(&["check", "--quiet", "-"], Some("1 + 2"), expect![""], expect![""]);
+    check_output(
+        &["check", "--quiet", "-"],
+        Some("1 + 2"),
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]

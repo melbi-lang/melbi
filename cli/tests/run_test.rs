@@ -160,9 +160,9 @@ fn run_from_stdin_error() {
                ╭─[ <stdin>:1:5 ]
                │
              1 │ 1 + true
-               │     ──┬─  
+               │     ──┬─
                │       ╰─── Type mismatch: expected Int, found Bool
-               │ 
+               │
                │ Help: Types must match in this context
             ───╯
         "#]],

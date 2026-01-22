@@ -20,7 +20,7 @@ tracing = { version = "0.1", features = ["release_max_level_warn"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tree-sitter = "0.25"
 tree-sitter-highlight = "0.25"
-tree-sitter-melbi = { git = "https://github.com/melbi-lang/tree-sitter-melbi" }
+tree-sitter-melbi.workspace = true
 nu-ansi-term = "0.50"
 dirs = "6.0.0"
 logos = "0.15.1"
