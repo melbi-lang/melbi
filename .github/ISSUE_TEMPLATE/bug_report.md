@@ -4,7 +4,7 @@ about: Report incorrect, unexpected, or subpar behavior
 title: ''
 labels: ''
 assignees: ''
-
+type: Bug
 ---
 
 ## Bug Report
