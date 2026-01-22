@@ -2596,4 +2596,69 @@ mod tests {
             }
         );
     }
+
+    // ===== Infix keyword boundary regression tests =====
+    // These tests verify that infix keywords (`and`, `or`, `in`, `otherwise`) require
+    // word boundaries and don't incorrectly match partial words in binary expressions.
+    //
+    // Bug: Without word boundary guards, `x andy` would incorrectly parse as `x and y`
+    // because the parser would see `and` as an operator, leaving `y` as the right operand.
+    // The fix adds `~ !(ASCII_ALPHANUMERIC | "_")` guards to these operators in expression.pest.
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_and() {
+        let arena = Bump::new();
+
+        // `x andy` should fail to parse - it's two consecutive identifiers with no operator.
+        // Without the word boundary fix, this would incorrectly parse as `x and y`.
+        let result = parse(&arena, "x andy");
+        assert!(
+            result.is_err(),
+            "Expected parse error for 'x andy', but got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_or() {
+        let arena = Bump::new();
+
+        // `x ory` should fail to parse - it's two consecutive identifiers with no operator.
+        // Without the word boundary fix, this would incorrectly parse as `x or y`.
+        let result = parse(&arena, "x ory");
+        assert!(
+            result.is_err(),
+            "Expected parse error for 'x ory', but got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_in() {
+        let arena = Bump::new();
+
+        // `x inside` should fail to parse - it's two consecutive identifiers with no operator.
+        // Without the word boundary fix, this would incorrectly parse as `x in side`.
+        let result = parse(&arena, "x inside");
+        assert!(
+            result.is_err(),
+            "Expected parse error for 'x inside', but got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_infix_keyword_boundary_regression_otherwise() {
+        let arena = Bump::new();
+
+        // `1 otherwisely` should fail to parse - it's a literal followed by an identifier
+        // with no operator between them.
+        // Without the word boundary fix, this would incorrectly parse as `1 otherwise ly`.
+        let result = parse(&arena, "1 otherwisely");
+        assert!(
+            result.is_err(),
+            "Expected parse error for '1 otherwisely', but got: {:?}",
+            result
+        );
+    }
 }

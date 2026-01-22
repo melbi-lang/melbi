@@ -41,38 +41,79 @@ pub fn install_handler() {
 fn panic_hook(info: &PanicHookInfo<'_>) {
     use std::io::IsTerminal;
 
-    eprintln!("\n💥 Melbi crashed unexpectedly 💥\n");
-    eprintln!("{info}");
+    let context = collect_crash_context(info);
+    let url = build_crash_report_url(&context);
 
-    let url = build_crash_report_url(info);
+    let style = if std::io::stderr().is_terminal() {
+        Color::White.bold()
+    } else {
+        Color::White.normal()
+    };
 
     eprintln!();
+    eprintln!(
+        "{}",
+        style.paint("Melbi has crashed! We'd appreciate a bug report.")
+    );
+    eprintln!();
+    eprintln!("We would include the following information:");
+    eprintln!(
+        "  melbi {} — {} — {}",
+        context.version, context.os, context.arch
+    );
+    if let Some(ref cmd) = context.command_line {
+        if cmd.contains('\n') {
+            let cmd = format!("\n{}", cmd).replace('\n', "\n     | ");
+            eprintln!("  {}:\n     | melbi {cmd}", style.paint("Command"));
+        } else {
+            eprintln!("  {}: melbi {}", style.paint("Command"), cmd);
+        }
+    }
+    if let Some(ref expr) = context.expression {
+        eprintln!("  {}: {expr}", style.paint("Expression"));
+    }
+    eprintln!("  {}: {}", style.paint("Location"), context.location);
+    if context.message.contains('\n') {
+        let message = format!("\n{}", context.message).replace('\n', "\n     | ");
+        eprintln!("  {}: {}", style.paint("Message"), message);
+    } else {
+        eprintln!("  {}: {}", style.paint("Message"), context.message);
+    }
+    eprintln!();
+
     if std::io::stderr().is_terminal() {
-        // Use OSC 8 terminal hyperlink: \x1b]8;;URL\x07TEXT\x1b]8;;\x07
-        let link_style = Color::LightBlue;
-        let link_text = link_style.paint("[click here]");
-        eprintln!("To report this bug \x1b]8;;{url}\x07{link_text}\x1b]8;;\x07.");
+        let link = Color::LightBlue.paint("click here").hyperlink(&url);
+        eprintln!("If this data is free of PII and secrets, {link} to report.");
     } else {
         // Not a terminal - print full URL without escape sequences
-        eprintln!("To report this bug, open:");
+        eprintln!("If this data is free of PII and secrets, open this URL to report:");
         eprintln!("  {url}");
     }
-    eprintln!("\n(You'll be able to review the report before it's submitted)");
+    eprintln!();
+    eprintln!("You can still review and edit the report before submitting.");
 }
 
 const GITHUB_ISSUES_URL: &str = "https://github.com/melbi-lang/melbi/issues/new";
 
-fn build_crash_report_url(info: &PanicHookInfo<'_>) -> String {
-    let version = env!("CARGO_PKG_VERSION");
-    let os = std::env::consts::OS;
-    let arch = std::env::consts::ARCH;
+/// Crash context data collected for bug reports.
+struct CrashContext {
+    version: &'static str,
+    os: &'static str,
+    arch: &'static str,
+    message: String,
+    location: String,
+    command_line: Option<String>,
+    expression: Option<String>,
+}
 
+fn collect_crash_context(info: &PanicHookInfo<'_>) -> CrashContext {
     let message = info
         .payload()
         .downcast_ref::<&str>()
         .copied()
         .or_else(|| info.payload().downcast_ref::<String>().map(|s| s.as_str()))
-        .unwrap_or("unknown");
+        .unwrap_or("unknown")
+        .to_string();
 
     let location = info
         .location()
@@ -80,21 +121,45 @@ fn build_crash_report_url(info: &PanicHookInfo<'_>) -> String {
         .unwrap_or_else(|| "unknown".to_string());
 
     // Collect command line args (skip program name)
-    let command_line: Vec<String> = std::env::args().skip(1).collect();
-    let command_section = if command_line.is_empty() {
-        String::new()
-    } else {
-        let cmd = shlex::try_join(command_line.iter().map(|s| s.as_str()))
-            .unwrap_or_else(|_| command_line.join(" "));
-        format!("### Command\n```\nmelbi {cmd}\n```\n\n")
+    let command_line = {
+        let args: Vec<String> = std::env::args().skip(1).collect();
+        if args.is_empty() {
+            None
+        } else {
+            Some(
+                shlex::try_join(args.iter().map(|s| s.as_str())).unwrap_or_else(|_| args.join(" ")),
+            )
+        }
     };
 
     // Get current expression if in REPL
-    let expression_section = get_current_expression()
+    let expression = get_current_expression();
+
+    CrashContext {
+        version: env!("CARGO_PKG_VERSION"),
+        os: std::env::consts::OS,
+        arch: std::env::consts::ARCH,
+        message,
+        location,
+        command_line,
+        expression,
+    }
+}
+
+fn build_crash_report_url(context: &CrashContext) -> String {
+    let command_section = context
+        .command_line
+        .as_ref()
+        .map(|cmd| format!("### Command\n```\nmelbi {cmd}\n```\n\n"))
+        .unwrap_or_default();
+
+    let expression_section = context
+        .expression
+        .as_ref()
         .map(|expr| format!("### Expression\n```melbi\n{expr}\n```\n\n"))
         .unwrap_or_default();
 
-    let title = format!("Crash: {}", truncate(message, 50));
+    let title = format!("Crash: {}", truncate(&context.message, 50));
     let body = format!(
         "## Crash Report\n\n\
          **Version:** {version}\n\
@@ -105,7 +170,12 @@ fn build_crash_report_url(info: &PanicHookInfo<'_>) -> String {
          {expression_section}\
          ### Panic Message\n```\n{message}\n```\n\n\
          ### Steps to Reproduce\n<!-- What were you doing when this happened? -->\n\n\
-         ### Additional Context\n<!-- Any other relevant information -->"
+         ### Additional Context\n<!-- Any other relevant information -->",
+        version = context.version,
+        os = context.os,
+        arch = context.arch,
+        location = context.location,
+        message = context.message,
     );
 
     format!(

@@ -1,53 +1,31 @@
 //! Integration tests for the `run` command.
 
-use assert_cmd::Command;
+mod common;
+
+use common::{check_stderr, check_stdout, melbi, temp_file};
+use expect_test::expect;
 use predicates::prelude::*;
-use std::io::Write;
 
-fn melbi() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_melbi"))
-}
-
-fn temp_file(content: &str) -> tempfile::NamedTempFile {
-    let mut file = tempfile::Builder::new()
-        .suffix(".melbi")
-        .tempfile()
-        .unwrap();
-    file.write_all(content.as_bytes()).unwrap();
-    file
-}
+// ============================================================================
+// Success tests with full output verification
+// ============================================================================
 
 #[test]
 fn run_simple_expression() {
     let file = temp_file("1 + 2");
-
-    melbi()
-        .args(["run", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout("3\n");
+    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["3\n"]);
 }
 
 #[test]
 fn run_arithmetic() {
     let file = temp_file("10 * 5 - 3");
-
-    melbi()
-        .args(["run", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout("47\n");
+    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["47\n"]);
 }
 
 #[test]
 fn run_where_binding() {
     let file = temp_file("x + y where { x = 10, y = 20 }");
-
-    melbi()
-        .args(["run", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout("30\n");
+    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["30\n"]);
 }
 
 #[test]
@@ -59,46 +37,38 @@ fn run_multiline_expression() {
     result = a + b,
 }"#,
     );
-
-    melbi()
-        .args(["run", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout("3\n");
+    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["3\n"]);
 }
 
 #[test]
 fn run_stdlib_function() {
     let file = temp_file("Math.Floor(3.7)");
-
-    melbi()
-        .args(["run", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout("3\n");
+    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["3\n"]);
 }
 
 #[test]
 fn run_with_runtime_evaluator() {
     let file = temp_file("1 + 2");
-
-    melbi()
-        .args(["run", "--runtime", "evaluator", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout("3\n");
+    check_stdout(
+        &["run", "--runtime", "evaluator", file.path().to_str().unwrap()],
+        None,
+        expect!["3\n"],
+    );
 }
 
 #[test]
 fn run_with_runtime_vm() {
     let file = temp_file("1 + 2");
-
-    melbi()
-        .args(["run", "--runtime", "vm", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout("3\n");
+    check_stdout(
+        &["run", "--runtime", "vm", file.path().to_str().unwrap()],
+        None,
+        expect!["3\n"],
+    );
 }
+
+// ============================================================================
+// Error tests with full output verification
+// ============================================================================
 
 #[test]
 fn run_type_error() {
@@ -149,42 +119,44 @@ fn run_no_color_flag() {
 
 #[test]
 fn run_from_stdin() {
-    melbi()
-        .args(["run", "-"])
-        .write_stdin("1 + 2")
-        .assert()
-        .success()
-        .stdout("3\n");
+    check_stdout(&["run", "-"], Some("1 + 2"), expect!["3\n"]);
 }
 
 #[test]
 fn run_from_stdin_multiline() {
-    melbi()
-        .args(["run", "-"])
-        .write_stdin("x + y where {\n    x = 10,\n    y = 20,\n}")
-        .assert()
-        .success()
-        .stdout("30\n");
+    check_stdout(
+        &["run", "-"],
+        Some("x + y where {\n    x = 10,\n    y = 20,\n}"),
+        expect!["30\n"],
+    );
 }
 
 #[test]
 fn run_from_stdin_with_runtime() {
-    melbi()
-        .args(["run", "--runtime", "vm", "-"])
-        .write_stdin("5 * 6")
-        .assert()
-        .success()
-        .stdout("30\n");
+    check_stdout(&["run", "--runtime", "vm", "-"], Some("5 * 6"), expect!["30\n"]);
 }
 
+/// Test that errors from stdin are displayed correctly with full error message.
+///
+/// This test uses exact string matching to catch double-rendering bugs
+/// where errors might be printed multiple times.
 #[test]
 fn run_from_stdin_error() {
-    melbi()
-        .args(["run", "-"])
-        .write_stdin("1 + true")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Type mismatch"));
+    check_stderr(
+        &["--no-color", "run", "-"],
+        Some("1 + true"),
+        expect![[r#"
+            [E001] Error: Type mismatch: expected Int, found Bool
+               ╭─[ <stdin>:1:5 ]
+               │
+             1 │ 1 + true
+               │     ──┬─  
+               │       ╰─── Type mismatch: expected Int, found Bool
+               │ 
+               │ Help: Types must match in this context
+            ───╯
+        "#]],
+    );
 }
 
 // ============================================================================

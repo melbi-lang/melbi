@@ -57,9 +57,9 @@ pub fn interpret_input<'types>(
     let ast = match parser::parse(&arena, input) {
         Ok(ast) => ast,
         Err(e) => {
-            let err: melbi::Error = e.into();
-            render_error_to(&err, &mut std::io::stderr(), &config).ok();
-            return Err(err);
+            render_error_to(&e.into(), &mut std::io::stderr(), &config).ok();
+            // TODO: Return an error instead of calling exit. Also elsewhere.
+            std::process::exit(1);
         }
     };
 
@@ -67,9 +67,8 @@ pub fn interpret_input<'types>(
     let typed = match analyze(type_manager, &arena, &ast, globals_types, &[]) {
         Ok(typed) => typed,
         Err(e) => {
-            let err: melbi::Error = e.into();
-            render_error_to(&err, &mut std::io::stderr(), &config).ok();
-            return Err(err);
+            render_error_to(&e.into(), &mut std::io::stderr(), &config).ok();
+            std::process::exit(1);
         }
     };
 

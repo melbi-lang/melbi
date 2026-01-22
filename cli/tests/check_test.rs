@@ -1,32 +1,107 @@
 //! Integration tests for the `check` command.
 
-use assert_cmd::Command;
+mod common;
+
+use common::{check_output, check_stderr, check_stdout, melbi, temp_file};
+use expect_test::expect;
 use predicates::prelude::*;
-use std::io::Write;
 
-fn melbi() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_melbi"))
-}
-
-fn temp_file(content: &str) -> tempfile::NamedTempFile {
-    let mut file = tempfile::Builder::new()
-        .suffix(".melbi")
-        .tempfile()
-        .unwrap();
-    file.write_all(content.as_bytes()).unwrap();
-    file
-}
+// ============================================================================
+// Success tests with full output verification
+// ============================================================================
 
 #[test]
 fn check_valid_expression() {
     let file = temp_file("1 + 2");
-
     melbi()
         .args(["check", file.path().to_str().unwrap()])
         .assert()
         .success()
-        .stdout(predicate::str::contains("OK"));
+        .stdout(predicate::str::ends_with(": OK\n"));
 }
+
+#[test]
+fn check_from_stdin() {
+    check_stdout(&["check", "-"], Some("1 + 2"), expect!["<stdin>: OK\n"]);
+}
+
+#[test]
+fn check_complex_expression() {
+    let file = temp_file(
+        r#"result where {
+    double = (x) => x * 2,
+    result = double(21),
+}"#,
+    );
+    melbi()
+        .args(["check", file.path().to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::ends_with(": OK\n"));
+}
+
+// ============================================================================
+// Error tests with full output verification
+// ============================================================================
+
+#[test]
+fn check_type_error_output_format() {
+    check_stderr(
+        &["--no-color", "check", "-"],
+        Some("1 + true"),
+        expect![[r#"
+            [E001] Error: Type mismatch: expected Int, found Bool
+               ╭─[ <stdin>:1:5 ]
+               │
+             1 │ 1 + true
+               │     ──┬─  
+               │       ╰─── Type mismatch: expected Int, found Bool
+               │ 
+               │ Help: Types must match in this context
+            ───╯
+        "#]],
+    );
+}
+
+#[test]
+fn check_undefined_variable_output_format() {
+    check_stderr(
+        &["--no-color", "check", "-"],
+        Some("undefined_var + 1"),
+        expect![[r#"
+            [E002] Error: Undefined variable 'undefined_var'
+               ╭─[ <stdin>:1:1 ]
+               │
+             1 │ undefined_var + 1
+               │ ──────┬──────  
+               │       ╰──────── Undefined variable 'undefined_var'
+               │ 
+               │ Help: Make sure the variable is declared before use
+            ───╯
+        "#]],
+    );
+}
+
+#[test]
+fn check_parse_error_output_format() {
+    check_stderr(
+        &["--no-color", "check", "-"],
+        Some("1 + +"),
+        expect![[r#"
+            [P001] Error: Expected expression, literal or identifier, found unexpected token
+               ╭─[ <stdin>:1:5 ]
+               │
+             1 │ 1 + +
+               │     │ 
+               │     ╰─ Expected expression, literal or identifier, found unexpected token
+            ───╯
+        "#]],
+    );
+}
+
+// ============================================================================
+// Multiple files
+// ============================================================================
 
 #[test]
 fn check_multiple_valid_files() {
@@ -106,22 +181,6 @@ fn check_nonexistent_file() {
 }
 
 #[test]
-fn check_complex_expression() {
-    let file = temp_file(
-        r#"result where {
-    double = (x) => x * 2,
-    result = double(21),
-}"#,
-    );
-
-    melbi()
-        .args(["check", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("OK"));
-}
-
-#[test]
 fn check_no_color_flag() {
     let file = temp_file("1 + true");
 
@@ -140,69 +199,56 @@ fn check_no_color_flag() {
 #[test]
 fn check_quiet_success() {
     let file = temp_file("1 + 2");
-
-    melbi()
-        .args(["check", "--quiet", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["check", "--quiet", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
 fn check_quiet_failure() {
     let file = temp_file("1 + true");
-
-    melbi()
-        .args(["check", "--quiet", file.path().to_str().unwrap()])
-        .assert()
-        .failure()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["check", "--quiet", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
 fn check_quiet_multiple_files() {
     let valid = temp_file("1 + 2");
     let invalid = temp_file("1 + true");
-
-    melbi()
-        .args([
+    check_output(
+        &[
             "check",
             "--quiet",
             valid.path().to_str().unwrap(),
             invalid.path().to_str().unwrap(),
-        ])
-        .assert()
-        .failure()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+        ],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
 fn check_quiet_short_flag() {
     let file = temp_file("1 + 2");
-
-    melbi()
-        .args(["check", "-q", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
+    check_output(
+        &["check", "-q", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 // ============================================================================
 // Stdin support
 // ============================================================================
-
-#[test]
-fn check_from_stdin() {
-    melbi()
-        .args(["check", "-"])
-        .write_stdin("1 + 2")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("<stdin>: OK"));
-}
 
 #[test]
 fn check_from_stdin_error() {
@@ -216,24 +262,17 @@ fn check_from_stdin_error() {
 
 #[test]
 fn check_from_stdin_quiet() {
-    melbi()
-        .args(["check", "--quiet", "-"])
-        .write_stdin("1 + 2")
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(&["check", "--quiet", "-"], Some("1 + 2"), expect![""], expect![""]);
 }
 
 #[test]
 fn check_from_stdin_quiet_error() {
-    melbi()
-        .args(["check", "--quiet", "-"])
-        .write_stdin("1 + true")
-        .assert()
-        .failure()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["check", "--quiet", "-"],
+        Some("1 + true"),
+        expect![""],
+        expect![""],
+    );
 }
 
 // ============================================================================
@@ -283,69 +322,4 @@ fn check_error_shows_stdin_label() {
         "Error should contain <stdin>, got:\n{}",
         stderr
     );
-}
-
-#[test]
-fn check_type_error_output_format() {
-    let output = melbi()
-        .args(["--no-color", "check", "-"])
-        .write_stdin("1 + true")
-        .assert()
-        .failure()
-        .get_output()
-        .stderr
-        .clone();
-
-    let stderr = String::from_utf8_lossy(&output);
-
-    // Verify key parts of the error format
-    assert!(stderr.contains("[E001]"), "Should have error code E001");
-    assert!(stderr.contains("Type mismatch"), "Should mention type mismatch");
-    assert!(stderr.contains("expected Int"), "Should mention expected Int");
-    assert!(stderr.contains("found Bool"), "Should mention found Bool");
-    assert!(stderr.contains("1 + true"), "Should show the source code");
-    assert!(stderr.contains("<stdin>:1:"), "Should show line number");
-}
-
-#[test]
-fn check_undefined_variable_output_format() {
-    let output = melbi()
-        .args(["--no-color", "check", "-"])
-        .write_stdin("undefined_var + 1")
-        .assert()
-        .failure()
-        .get_output()
-        .stderr
-        .clone();
-
-    let stderr = String::from_utf8_lossy(&output);
-
-    // Verify key parts of the error format
-    assert!(stderr.contains("[E002]"), "Should have error code E002");
-    assert!(
-        stderr.contains("Undefined variable"),
-        "Should mention undefined variable"
-    );
-    assert!(
-        stderr.contains("undefined_var"),
-        "Should mention the variable name"
-    );
-}
-
-#[test]
-fn check_parse_error_output_format() {
-    let output = melbi()
-        .args(["--no-color", "check", "-"])
-        .write_stdin("1 + +")
-        .assert()
-        .failure()
-        .get_output()
-        .stderr
-        .clone();
-
-    let stderr = String::from_utf8_lossy(&output);
-
-    // Parse errors should show the source
-    assert!(stderr.contains("1 + +"), "Should show the source code");
-    assert!(stderr.contains("<stdin>"), "Should show stdin as source");
 }

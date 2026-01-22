@@ -7,6 +7,16 @@ use crate::{Diagnostic, Error, Severity};
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use std::io::Write;
 
+/// Character set for rendering error messages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CharSet {
+    /// Use Unicode characters for rich visual output.
+    #[default]
+    Unicode,
+    /// Use ASCII-only characters for compatibility.
+    Ascii,
+}
+
 /// Configuration for error rendering.
 #[derive(Debug, Clone)]
 pub struct RenderConfig<'a> {
@@ -15,6 +25,9 @@ pub struct RenderConfig<'a> {
     /// The filename to display in error messages.
     /// Defaults to "<unknown>" if not provided.
     pub filename: Option<&'a str>,
+    /// The character set to use for rendering.
+    /// Defaults to Unicode for rich visual output.
+    pub charset: CharSet,
 }
 
 impl Default for RenderConfig<'_> {
@@ -28,6 +41,7 @@ impl RenderConfig<'_> {
         Self {
             color: true,
             filename: None,
+            charset: CharSet::Unicode,
         }
     }
 }
@@ -121,7 +135,13 @@ fn render_diagnostics(
             Severity::Info => ReportKind::Advice,
         };
 
-        let ariadne_config = ariadne::Config::default().with_color(config.color);
+        let ariadne_charset = match config.charset {
+            CharSet::Unicode => ariadne::CharSet::Unicode,
+            CharSet::Ascii => ariadne::CharSet::Ascii,
+        };
+        let ariadne_config = ariadne::Config::default()
+            .with_color(config.color)
+            .with_char_set(ariadne_charset);
 
         let mut report = Report::build(kind, (filename, diag.span.0.clone()))
             .with_message(&diag.message)
@@ -169,70 +189,192 @@ mod tests {
     use super::*;
     use crate::{Engine, EngineOptions};
     use bumpalo::Bump;
+    use expect_test::{expect, Expect};
 
-    const TEST_CONFIG: RenderConfig = RenderConfig {
+    const UNICODE_CONFIG: RenderConfig = RenderConfig {
         color: false,
-        ..RenderConfig::default()
+        filename: Some("test.melbi"),
+        charset: CharSet::Unicode,
     };
 
-    #[test]
-    fn test_render_parse_error() {
+    const ASCII_CONFIG: RenderConfig = RenderConfig {
+        color: false,
+        filename: Some("test.melbi"),
+        charset: CharSet::Ascii,
+    };
+
+    fn render_error_string(source: &str, config: &RenderConfig) -> String {
         let arena = Bump::new();
         let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
-
-        let source = "1 + + 2"; // Invalid syntax
         let result = engine.compile(Default::default(), source, &[]);
 
-        assert!(result.is_err());
-        if let Err(e) = result {
-            let mut buf = Vec::new();
-            render_error_to(&e, &mut buf, &TEST_CONFIG).unwrap();
-            let output = String::from_utf8_lossy(&buf);
-
-            // Should contain error indicator
-            assert!(output.contains("Error") || output.contains("error"));
-            // Should show the source
-            assert!(output.contains("1 + + 2"));
+        match result {
+            Err(e) => {
+                let mut buf = Vec::new();
+                render_error_to(&e, &mut buf, config).unwrap();
+                String::from_utf8_lossy(&buf).into_owned()
+            }
+            Ok(_) => panic!("Expected compilation error for source: {source}"),
         }
     }
 
-    #[test]
-    fn test_render_type_error() {
-        let arena = Bump::new();
-        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
-
-        let source = "1 + \"hello\""; // Type mismatch
-        let result = engine.compile(Default::default(), source, &[]);
-
-        assert!(result.is_err());
-        if let Err(e) = result {
-            let mut buf = Vec::new();
-            render_error_to(&e, &mut buf, &TEST_CONFIG).unwrap();
-            let output = String::from_utf8_lossy(&buf);
-
-            // Should indicate type error
-            assert!(output.contains("Type") || output.contains("type"));
-        }
+    fn check_error(source: &str, config: &RenderConfig, expected: Expect) {
+        let output = render_error_string(source, config);
+        expected.assert_eq(&output);
     }
 
     #[test]
-    fn test_render_to_string_captures_output() {
-        let arena = Bump::new();
-        let engine = Engine::new(EngineOptions::default(), &arena, |_, _, env| env);
+    fn test_parse_error_unicode() {
+        check_error(
+            "1 + + 2",
+            &UNICODE_CONFIG,
+            expect![[r#"
+                [P001] Error: Expected expression, literal or identifier, found unexpected token
+                   ╭─[ test.melbi:1:5 ]
+                   │
+                 1 │ 1 + + 2
+                   │     │ 
+                   │     ╰─ Expected expression, literal or identifier, found unexpected token
+                ───╯
+            "#]],
+        );
+    }
 
-        let source = "bad syntax {";
-        let result = engine.compile(Default::default(), source, &[]);
+    #[test]
+    fn test_parse_error_ascii() {
+        check_error(
+            "1 + + 2",
+            &ASCII_CONFIG,
+            expect![[r#"
+                [P001] Error: Expected expression, literal or identifier, found unexpected token
+                   ,-[ test.melbi:1:5 ]
+                   |
+                 1 | 1 + + 2
+                   |     | 
+                   |     `- Expected expression, literal or identifier, found unexpected token
+                ---'
+            "#]],
+        );
+    }
 
-        assert!(result.is_err());
-        if let Err(e) = result {
-            let mut buf = Vec::new();
-            render_error_to(&e, &mut buf, &TEST_CONFIG).unwrap();
-            let output = String::from_utf8_lossy(&buf);
+    #[test]
+    fn test_type_error_unicode() {
+        check_error(
+            "1 + true",
+            &UNICODE_CONFIG,
+            expect![[r#"
+                [E001] Error: Type mismatch: expected Int, found Bool
+                   ╭─[ test.melbi:1:5 ]
+                   │
+                 1 │ 1 + true
+                   │     ──┬─  
+                   │       ╰─── Type mismatch: expected Int, found Bool
+                   │ 
+                   │ Help: Types must match in this context
+                ───╯
+            "#]],
+        );
+    }
 
-            // Output should not be empty
-            assert!(!output.is_empty());
-            // Should be multi-line (ariadne adds formatting)
-            assert!(output.lines().count() > 1);
-        }
+    #[test]
+    fn test_type_error_ascii() {
+        check_error(
+            "1 + true",
+            &ASCII_CONFIG,
+            expect![[r#"
+                [E001] Error: Type mismatch: expected Int, found Bool
+                   ,-[ test.melbi:1:5 ]
+                   |
+                 1 | 1 + true
+                   |     ^^|^  
+                   |       `--- Type mismatch: expected Int, found Bool
+                   | 
+                   | Help: Types must match in this context
+                ---'
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_unknown_identifier_unicode() {
+        check_error(
+            "foo + 1",
+            &UNICODE_CONFIG,
+            expect![[r#"
+                [E002] Error: Undefined variable 'foo'
+                   ╭─[ test.melbi:1:1 ]
+                   │
+                 1 │ foo + 1
+                   │ ─┬─  
+                   │  ╰─── Undefined variable 'foo'
+                   │ 
+                   │ Help: Make sure the variable is declared before use
+                ───╯
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_unknown_identifier_ascii() {
+        check_error(
+            "foo + 1",
+            &ASCII_CONFIG,
+            expect![[r#"
+                [E002] Error: Undefined variable 'foo'
+                   ,-[ test.melbi:1:1 ]
+                   |
+                 1 | foo + 1
+                   | ^|^  
+                   |  `--- Undefined variable 'foo'
+                   | 
+                   | Help: Make sure the variable is declared before use
+                ---'
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_unclosed_brace_unicode() {
+        check_error(
+            "{ x = 1",
+            &UNICODE_CONFIG,
+            expect![[r#"
+                [P001] Error: Expected expression, found unexpected token
+                   ╭─[ test.melbi:1:8 ]
+                   │
+                 1 │ { x = 1
+                   │        │ 
+                   │        ╰─ Expected expression, found unexpected token
+                ───╯
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_unclosed_brace_ascii() {
+        check_error(
+            "{ x = 1",
+            &ASCII_CONFIG,
+            expect![[r#"
+                [P001] Error: Expected expression, found unexpected token
+                   ,-[ test.melbi:1:8 ]
+                   |
+                 1 | { x = 1
+                   |        | 
+                   |        `- Expected expression, found unexpected token
+                ---'
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_charset_default_is_unicode() {
+        assert_eq!(CharSet::default(), CharSet::Unicode);
+    }
+
+    #[test]
+    fn test_render_config_default_charset() {
+        let config = RenderConfig::default();
+        assert_eq!(config.charset, CharSet::Unicode);
     }
 }

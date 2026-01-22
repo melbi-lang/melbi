@@ -1,21 +1,59 @@
 //! Integration tests for the `fmt` command.
 
-use assert_cmd::Command;
+mod common;
+
+use common::{check_output, check_stderr, check_stdout, melbi, temp_file};
+use expect_test::expect;
 use predicates::prelude::*;
 use std::fs;
-use std::io::Write;
 
-fn melbi() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_melbi"))
+// ============================================================================
+// Success tests with full output verification
+// ============================================================================
+
+#[test]
+fn fmt_from_stdin() {
+    check_stdout(&["fmt", "-"], Some("1   +   2"), expect!["1 + 2"]);
 }
 
-fn temp_file(content: &str) -> tempfile::NamedTempFile {
-    let mut file = tempfile::Builder::new()
-        .suffix(".melbi")
-        .tempfile()
-        .unwrap();
-    file.write_all(content.as_bytes()).unwrap();
-    file
+#[test]
+fn fmt_from_stdin_already_formatted() {
+    check_stdout(&["fmt", "-"], Some("1 + 2"), expect![""]);
+}
+
+#[test]
+fn fmt_from_stdin_multiline() {
+    check_stdout(
+        &["fmt", "-"],
+        Some("x+y where{x=1,y=2}"),
+        expect!["x + y where { x = 1, y = 2 }"],
+    );
+}
+
+// ============================================================================
+// Error tests with full output verification
+// ============================================================================
+
+#[test]
+fn fmt_parse_error() {
+    check_stderr(
+        &["fmt", "-"],
+        Some("1 + +"),
+        expect![[r#"
+            error: -: parse error at 1:3
+        "#]],
+    );
+}
+
+#[test]
+fn fmt_from_stdin_write_error() {
+    check_stderr(
+        &["fmt", "--write", "-"],
+        Some("1   +   2"),
+        expect![[r#"
+            error: -: cannot use --write with stdin
+        "#]],
+    );
 }
 
 // ============================================================================
@@ -39,12 +77,7 @@ fn fmt_shows_diff_by_default() {
 #[test]
 fn fmt_no_output_when_already_formatted() {
     let file = temp_file("1 + 2");
-
-    melbi()
-        .args(["fmt", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
+    check_stdout(&["fmt", file.path().to_str().unwrap()], None, expect![""]);
 }
 
 #[test]
@@ -93,11 +126,7 @@ fn fmt_write_no_output_when_already_formatted() {
     let file = temp_file("1 + 2");
     let path = file.path().to_path_buf();
 
-    melbi()
-        .args(["fmt", "--write", path.to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
+    check_stdout(&["fmt", "--write", path.to_str().unwrap()], None, expect![""]);
 
     // File unchanged
     let content = fs::read_to_string(&path).unwrap();
@@ -122,12 +151,25 @@ fn fmt_check_exits_1_when_unformatted() {
 #[test]
 fn fmt_check_exits_0_when_formatted() {
     let file = temp_file("1 + 2");
+    check_stdout(
+        &["fmt", "--check", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+    );
+}
 
-    melbi()
-        .args(["fmt", "--check", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
+#[test]
+fn fmt_from_stdin_check() {
+    check_stdout(
+        &["fmt", "--check", "-"],
+        Some("1   +   2"),
+        expect!["<stdin> needs formatting\n"],
+    );
+}
+
+#[test]
+fn fmt_from_stdin_check_formatted() {
+    check_stdout(&["fmt", "--check", "-"], Some("1 + 2"), expect![""]);
 }
 
 // ============================================================================
@@ -195,7 +237,7 @@ fn fmt_write_multiple_files() {
 // ============================================================================
 
 #[test]
-fn fmt_parse_error() {
+fn fmt_file_parse_error() {
     let file = temp_file("1 + +");
 
     melbi()
@@ -252,129 +294,51 @@ fn fmt_record() {
 }
 
 // ============================================================================
-// Stdin support
-// ============================================================================
-
-#[test]
-fn fmt_from_stdin() {
-    melbi()
-        .args(["fmt", "-"])
-        .write_stdin("1   +   2")
-        .assert()
-        .success()
-        .stdout("1 + 2");
-}
-
-#[test]
-fn fmt_from_stdin_already_formatted() {
-    melbi()
-        .args(["fmt", "-"])
-        .write_stdin("1 + 2")
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
-}
-
-#[test]
-fn fmt_from_stdin_multiline() {
-    melbi()
-        .args(["fmt", "-"])
-        .write_stdin("x+y where{x=1,y=2}")
-        .assert()
-        .success()
-        .stdout("x + y where { x = 1, y = 2 }");
-}
-
-#[test]
-fn fmt_from_stdin_check() {
-    melbi()
-        .args(["fmt", "--check", "-"])
-        .write_stdin("1   +   2")
-        .assert()
-        .failure()
-        .stdout(predicate::str::contains("<stdin> needs formatting"));
-}
-
-#[test]
-fn fmt_from_stdin_check_formatted() {
-    melbi()
-        .args(["fmt", "--check", "-"])
-        .write_stdin("1 + 2")
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
-}
-
-#[test]
-fn fmt_from_stdin_write_error() {
-    // --write is incompatible with stdin
-    melbi()
-        .args(["fmt", "--write", "-"])
-        .write_stdin("1   +   2")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("cannot use --write with stdin"));
-}
-
-#[test]
-fn fmt_from_stdin_parse_error() {
-    melbi()
-        .args(["fmt", "-"])
-        .write_stdin("1 + +")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("parse error"));
-}
-
-// ============================================================================
 // --quiet flag
 // ============================================================================
 
 #[test]
 fn fmt_quiet_no_output() {
     let file = temp_file("1   +   2");
-
-    melbi()
-        .args(["fmt", "--quiet", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["fmt", "--quiet", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
 fn fmt_quiet_short_flag() {
     let file = temp_file("1   +   2");
-
-    melbi()
-        .args(["fmt", "-q", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
+    check_output(
+        &["fmt", "-q", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
 fn fmt_check_quiet_unformatted() {
     let file = temp_file("1   +   2");
-
-    melbi()
-        .args(["fmt", "--check", "--quiet", file.path().to_str().unwrap()])
-        .assert()
-        .failure()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["fmt", "--check", "--quiet", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
 fn fmt_check_quiet_formatted() {
     let file = temp_file("1 + 2");
-
-    melbi()
-        .args(["fmt", "--check", "--quiet", file.path().to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["fmt", "--check", "--quiet", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
@@ -382,11 +346,12 @@ fn fmt_write_quiet() {
     let file = temp_file("1   +   2");
     let path = file.path().to_path_buf();
 
-    melbi()
-        .args(["fmt", "--write", "--quiet", path.to_str().unwrap()])
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
+    check_output(
+        &["fmt", "--write", "--quiet", path.to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 
     // File should still be modified
     assert_eq!(fs::read_to_string(&path).unwrap(), "1 + 2");
@@ -394,33 +359,26 @@ fn fmt_write_quiet() {
 
 #[test]
 fn fmt_quiet_stdin() {
-    melbi()
-        .args(["fmt", "--quiet", "-"])
-        .write_stdin("1   +   2")
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty());
+    check_output(&["fmt", "--quiet", "-"], Some("1   +   2"), expect![""], expect![""]);
 }
 
 #[test]
 fn fmt_check_quiet_stdin() {
-    melbi()
-        .args(["fmt", "--check", "--quiet", "-"])
-        .write_stdin("1   +   2")
-        .assert()
-        .failure()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["fmt", "--check", "--quiet", "-"],
+        Some("1   +   2"),
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]
 fn fmt_quiet_error() {
     let file = temp_file("1 + +");
-
-    melbi()
-        .args(["fmt", "--quiet", file.path().to_str().unwrap()])
-        .assert()
-        .failure()
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+    check_output(
+        &["fmt", "--quiet", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+        expect![""],
+    );
 }
