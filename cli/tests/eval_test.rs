@@ -4,7 +4,7 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 
 fn melbi() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_melbi-cli"))
+    Command::new(env!("CARGO_BIN_EXE_melbi"))
 }
 
 #[test]

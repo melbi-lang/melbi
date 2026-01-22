@@ -5,7 +5,7 @@ use predicates::prelude::*;
 use std::io::Write;
 
 fn melbi() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_melbi-cli"))
+    Command::new(env!("CARGO_BIN_EXE_melbi"))
 }
 
 fn temp_file(content: &str) -> tempfile::NamedTempFile {

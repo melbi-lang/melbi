@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
+[[bin]]
+name = "melbi"
+path = "src/main.rs"
+
 [dependencies]
 melbi.workspace = true
 melbi-core.workspace = true
