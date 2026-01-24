@@ -6,7 +6,7 @@ use melbi_core::types::manager::TypeManager;
 use crate::cli::RunArgs;
 use crate::common::engine::build_stdlib;
 use crate::common::input::read_input;
-use crate::common::CliResult;
+use crate::common::{CliError, CliResult};
 
 use super::eval::interpret_input;
 
@@ -16,7 +16,7 @@ pub fn run(args: RunArgs, no_color: bool) -> CliResult<()> {
         Ok(c) => c,
         Err(e) => {
             eprintln!("error: {}", e);
-            std::process::exit(1);
+            return Err(CliError::Handled);
         }
     };
 

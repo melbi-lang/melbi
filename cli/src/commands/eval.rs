@@ -5,7 +5,7 @@ use melbi::{RenderConfig, render_error_to};
 use melbi_core::{
     analyzer::analyze,
     compiler::BytecodeCompiler,
-    evaluator::{Evaluator, EvaluatorOptions},
+    evaluator::{Evaluator, EvaluatorOptions, ExecutionError},
     parser,
     types::{Type, manager::TypeManager},
     values::dynamic::Value,
@@ -13,7 +13,7 @@ use melbi_core::{
 };
 
 use crate::cli::{EvalArgs, Runtime};
-use crate::common::{CliResult, engine::build_stdlib};
+use crate::common::{CliError, CliResult, engine::build_stdlib};
 
 /// Run the eval command.
 pub fn run(args: EvalArgs, no_color: bool) -> CliResult<()> {
@@ -47,8 +47,9 @@ pub fn interpret_input<'types>(
         filename,
         ..Default::default()
     };
-    let render_err = |e: melbi::Error| {
-        render_error_to(&e, &mut std::io::stderr(), &config).ok();
+    let render_err = |e: melbi::ExecutionError| {
+        let err = melbi::Error::from(e).with_filename_opt(filename);
+        render_error_to(&err, &mut std::io::stderr(), &config).ok();
     };
 
     let arena = Bump::new();
@@ -56,20 +57,13 @@ pub fn interpret_input<'types>(
     // Parse
     let ast = match parser::parse(&arena, input) {
         Ok(ast) => ast,
-        Err(e) => {
-            render_error_to(&e.into(), &mut std::io::stderr(), &config).ok();
-            // TODO: Return an error instead of calling exit. Also elsewhere.
-            std::process::exit(1);
-        }
+        Err(e) => return Err(melbi::Error::from(e).with_filename_opt(filename).into()),
     };
 
     // Type check
     let typed = match analyze(type_manager, &arena, &ast, globals_types, &[]) {
         Ok(typed) => typed,
-        Err(e) => {
-            render_error_to(&e.into(), &mut std::io::stderr(), &config).ok();
-            std::process::exit(1);
-        }
+        Err(e) => return Err(melbi::Error::from(e).with_filename_opt(filename).into()),
     };
 
     // Run with selected runtime(s)
@@ -97,10 +91,7 @@ pub fn interpret_input<'types>(
         let bytecode = match BytecodeCompiler::compile(type_manager, &arena, globals_values, &typed)
         {
             Ok(code) => code,
-            Err(e) => {
-                render_error_to(&e.into(), &mut std::io::stderr(), &config).ok();
-                std::process::exit(1);
-            }
+            Err(e) => return Err(melbi::Error::from(e).with_filename_opt(filename).into()),
         };
 
         let result_type = typed.expr.0;
@@ -109,68 +100,74 @@ pub fn interpret_input<'types>(
         );
     }
 
-    // Output results
-    let mut has_error = false;
-    match (runtime, eval_result, vm_result) {
-        (Runtime::Evaluator, Some(Ok(value)), _) => {
+    match runtime {
+        Runtime::Evaluator => output_result(eval_result.expect("Evaluator result should exist")),
+        Runtime::Vm => output_result(vm_result.expect("MV result should exist")),
+        Runtime::Both => {
+            return output_both_results(
+                eval_result.expect("Evaluator result should exist"),
+                vm_result.expect("VM result should exist"),
+                render_err,
+            );
+        }
+    }
+    .map_err(|e| melbi::Error::from(e).with_filename_opt(filename).into())
+}
+
+/// Output results from evaluator and/or VM, returns true on success.
+fn output_result(result: Result<Value, ExecutionError>) -> Result<(), ExecutionError> {
+    match result {
+        Ok(value) => {
             println!("{:?}", value);
+            Ok(())
         }
-        (Runtime::Evaluator, Some(Err(e)), _) => {
-            render_err(e.into());
-            has_error = true;
-        }
-        (Runtime::Vm, _, Some(Ok(value))) => {
-            println!("{:?}", value);
-        }
-        (Runtime::Vm, _, Some(Err(e))) => {
-            render_err(e.into());
-            has_error = true;
-        }
-        (Runtime::Both, Some(eval_res), Some(vm_res)) => {
-            match (eval_res, vm_res) {
-                (Ok(eval_val), Ok(vm_val)) => {
-                    if eval_val == vm_val {
-                        println!("{:?}", eval_val);
-                    } else {
-                        eprintln!("MISMATCH!");
-                        eprintln!("  Evaluator: {:?}", eval_val);
-                        eprintln!("  VM:        {:?}", vm_val);
-                    }
-                }
-                (Err(e), Ok(vm_val)) => {
-                    eprintln!("MISMATCH!");
-                    eprintln!("  Evaluator: error");
-                    render_err(e.into());
-                    eprintln!("  VM:        {:?}", vm_val);
-                    has_error = true;
-                }
-                (Ok(eval_val), Err(e)) => {
-                    eprintln!("MISMATCH!");
-                    eprintln!("  Evaluator: {:?}", eval_val);
-                    eprintln!("  VM:        error");
-                    render_err(e.into());
-                    has_error = true;
-                }
-                (Err(eval_e), Err(vm_e)) => {
-                    // Both errored - check if same kind of error
-                    if eval_e.kind == vm_e.kind {
-                        render_err(eval_e.into());
-                    } else {
-                        eprintln!("MISMATCH (both errors but different)!");
-                        eprintln!("  Evaluator:");
-                        render_err(eval_e.into());
-                        eprintln!("  VM:");
-                        render_err(vm_e.into());
-                    }
-                    has_error = true;
-                }
+        Err(e) => Err(e),
+    }
+}
+
+/// Output results when running both evaluator and VM, checking for mismatches.
+fn output_both_results(
+    eval_res: Result<Value, ExecutionError>,
+    vm_res: Result<Value, ExecutionError>,
+    render_err: impl Fn(melbi::ExecutionError),
+) -> CliResult<()> {
+    match (eval_res, vm_res) {
+        (Ok(eval_val), Ok(vm_val)) => {
+            if eval_val == vm_val {
+                println!("{:?}", eval_val);
+                Ok(())
+            } else {
+                eprintln!("MISMATCH!");
+                eprintln!("  Evaluator: {:?}", eval_val);
+                eprintln!("  VM:        {:?}", vm_val);
+                Err(CliError::Handled)
             }
         }
-        _ => unreachable!(),
+        (Err(e), Ok(vm_val)) => {
+            eprintln!("MISMATCH!");
+            eprintln!("  Evaluator: error");
+            render_err(e);
+            eprintln!("  VM:        {:?}", vm_val);
+            Err(CliError::Handled)
+        }
+        (Ok(eval_val), Err(e)) => {
+            eprintln!("MISMATCH!");
+            eprintln!("  Evaluator: {:?}", eval_val);
+            eprintln!("  VM:        error");
+            render_err(e);
+            Err(CliError::Handled)
+        }
+        (Err(eval_e), Err(vm_e)) => {
+            if eval_e.kind == vm_e.kind {
+                render_err(eval_e);
+            } else {
+                eprintln!("MISMATCH (both errors but different)!");
+                eprintln!("  Evaluator:");
+                render_err(eval_e);
+                eprintln!("  VM:");
+                render_err(vm_e);
+            }
+            Err(CliError::Handled)
+        }
     }
-
-    if has_error {
-        std::process::exit(1);
-    }
-    Ok(())
 }

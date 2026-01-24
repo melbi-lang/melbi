@@ -5,4 +5,4 @@ pub mod error;
 pub mod input;
 pub mod panic;
 
-pub use error::CliResult;
+pub use error::{CliError, CliResult};

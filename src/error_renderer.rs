@@ -99,16 +99,21 @@ pub fn render_error_to(
     writer: &mut dyn Write,
     config: &RenderConfig,
 ) -> std::io::Result<()> {
-    let filename = config.filename.unwrap_or("<unknown>");
+    // Prefer filename from error, fall back to config, then "<unknown>"
+    let filename = error
+        .filename()
+        .or(config.filename)
+        .unwrap_or("<unknown>");
 
     match error {
         Error::Compilation {
             diagnostics,
             source,
+            ..
         } => render_diagnostics(source, diagnostics, writer, config, filename),
-        Error::Runtime { diagnostic, source } => {
-            render_diagnostics(source, &[diagnostic.clone()], writer, config, filename)
-        }
+        Error::Runtime {
+            diagnostic, source, ..
+        } => render_diagnostics(source, &[diagnostic.clone()], writer, config, filename),
         Error::ResourceExceeded(msg) => {
             writeln!(writer, "Resource limit exceeded: {}", msg)
         }
