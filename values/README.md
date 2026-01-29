@@ -8,18 +8,18 @@ This crate defines the core value traits (`Value`, `ValueBuilder`, `ValueView`) 
 
 ## Value Types
 
-| Type | Rust Representation | Notes |
-|------|---------------------|-------|
-| `Int` | `i64` | 64-bit signed integer |
-| `Float` | `f64` | 64-bit floating point |
-| `Bool` | `bool` | Boolean |
-| `Str` | `&str` | UTF-8 string (arena-allocated) |
-| `Bytes` | `&[u8]` | Byte array (arena-allocated) |
-| `Array` | `&[Value]` | Homogeneous array |
-| `Record` | Field map | Named fields |
-| `Map` | Hash map | Key-value pairs |
-| `Option` | `Some(Value)` / `None` | Optional value |
-| `Lambda` | Closure | Function with captured environment |
+| Type     | Rust Representation   | Notes                             |
+| -------- | --------------------- | --------------------------------- |
+| `Int`    | `i64`                 | 64-bit signed integer             |
+| `Float`  | `f64`                 | 64-bit floating point             |
+| `Bool`   | `bool`                | Boolean                           |
+| `Str`    | `&str`                | UTF-8 string (arena-allocated)    |
+| `Bytes`  | `&[u8]`               | Byte array (arena-allocated)      |
+| `Array`  | `&[Value]`            | Homogeneous array                 |
+| `Record` | Field map             | Named fields                      |
+| `Map`    | Hash map              | Key-value pairs                   |
+| `Option` | `Some(Value)` / `None` | Optional value                    |
+| `Lambda` | Closure               | Function with captured environment |
 
 ## Design
 
@@ -30,18 +30,25 @@ This crate defines the core value traits (`Value`, `ValueBuilder`, `ValueView`) 
 ## Usage
 
 ```rust
-use melbi_core::values::dynamic::Value;
-use bumpalo::Bump;
+use melbi_values::{
+    raw::RawValue,
+    traits::{Value, ValueBuilder},
+};
+use melbi_types::{BoxBuilder, ty};
 
-// Values are typically created by the evaluator
-// Direct construction is primarily for FFI/host functions
+// Implement ValueBuilder for your allocation strategy
+// (see melbi-core for HeapBuilder example)
 
-fn create_values_example(arena: &Bump) {
-    // Construct values for FFI host functions
-    let int_val = Value::int(42);
-    let float_val = Value::float(3.14);
-    let bool_val = Value::bool(true);
-    let str_val = Value::str(arena.alloc_str("hello"));
+fn create_values_example<VB: ValueBuilder>(builder: &VB, tb: BoxBuilder) {
+    // Create typed values using the trait-based interface
+    let int_ty = ty!(tb, Int);
+    let int_val = Value::new(int_ty, RawValue::new_int(42));
+
+    let bool_ty = ty!(tb, Bool);
+    let bool_val = Value::new(bool_ty, RawValue::new_bool(true));
+
+    // Allocate to get a handle managed by the builder
+    let handle = int_val.alloc(builder);
 }
 ```
 
