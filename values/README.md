@@ -8,18 +8,18 @@ This crate defines the core value traits (`Value`, `ValueBuilder`, `ValueView`) 
 
 ## Value Types
 
-| Type     | Rust Representation   | Notes                             |
-| -------- | --------------------- | --------------------------------- |
-| `Int`    | `i64`                 | 64-bit signed integer             |
-| `Float`  | `f64`                 | 64-bit floating point             |
-| `Bool`   | `bool`                | Boolean                           |
-| `Str`    | `&str`                | UTF-8 string (arena-allocated)    |
-| `Bytes`  | `&[u8]`               | Byte array (arena-allocated)      |
-| `Array`  | `&[Value]`            | Homogeneous array                 |
-| `Record` | Field map             | Named fields                      |
-| `Map`    | Hash map              | Key-value pairs                   |
-| `Option` | `Some(Value)` / `None` | Optional value                    |
-| `Lambda` | Closure               | Function with captured environment |
+| Type     | Rust Representation    | Notes                              |
+| -------- | ---------------------- | ---------------------------------- |
+| `Int`    | `i64`                  | 64-bit signed integer              |
+| `Float`  | `f64`                  | 64-bit floating point              |
+| `Bool`   | `bool`                 | Boolean                            |
+| `Str`    | `&str`                 | UTF-8 string (arena-allocated)     |
+| `Bytes`  | `&[u8]`                | Byte array (arena-allocated)       |
+| `Array`  | `&[Value]`             | Homogeneous array                  |
+| `Record` | Field map              | Named fields                       |
+| `Map`    | Hash map               | Key-value pairs                    |
+| `Option` | `Some(Value)` / `None` | Optional value                     |
+| `Lambda` | Closure                | Function with captured environment |
 
 ## Design
 
