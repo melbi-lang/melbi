@@ -57,7 +57,7 @@ _Re-evaluate priorities periodically as needs change_
   - Test case: `factorial(5) where { factorial = (n) => if n <= 1 then 1 else n * factorial(n - 1) }`
   - Current behavior: Analyzer reports "Undefined variable 'factorial'" because the lambda body is analyzed before the binding is complete
   - Better error: "Recursive closures are not supported. Consider using a named function instead."
-  - Related: Phase 4 Milestone 4.1 in lambda-closure-implementation-plan.md
+  - Related: Lambdas are now fully implemented; this is about error message quality
   
 - [ ] **Add RecursiveClosure and UndefinedVariable error variants** (P3)
   - Deferred from lambda implementation - handle as part of broader error reporting improvements
@@ -70,16 +70,9 @@ _Re-evaluate priorities periodically as needs change_
 
 ## Features
 
-- [x] **Implement "in" and "not in" operators** (P1)
-  - Add containment checking operators for collections
-  - Supported types:
-    - `(String, String)` - substring check: `"lo" in "hello"`
-    - `(Bytes, Bytes)` - byte sequence check: `b"ab" in b"foobar"`
-    - `(k, Map[k, v])` - key existence: `"key" in map`
-    - `(e, Array[e])` - element membership: `5 in [1, 2, 3, 4, 5]`
-  - Should be a binary operator with appropriate precedence
-  - May need new type class `Containable` or similar
-  - Related files: `core/src/parser/grammar.pest`, `core/src/analyzer/`, `core/src/evaluator/operators.rs`
+- [x] **Implement "in" and "not in" operators** (P1) — DONE
+  - Containment checking for: String in String, Bytes in Bytes, key in Map, element in Array
+  - Both `in` and `not in` fully implemented
 
 - [ ] **Implement standard library** (P1)
   - Core MVP is complete but lacks standard library functions
@@ -90,14 +83,9 @@ _Re-evaluate priorities periodically as needs change_
   - Built-in functions should integrate with FFI system
   - Related files: `core/src/evaluator/ffi.rs`, potential new `core/src/stdlib/` module
 
-- [x] **Implement map indexing evaluation** (P0)
-  - **CRITICAL**: Currently crashes - no crashes are acceptable
-  - Add support for evaluating map indexing operations like `map[key]`
-  - Type checking already supports the `Indexable` type class for maps
-  - Need to implement the evaluation logic in the evaluator
-  - Verify if analyzer tests exist for map indexing type checking
-  - Related files: `core/src/evaluator/mod.rs`, `core/src/types/type_class.rs`
-  - Should handle both valid keys and missing key errors gracefully
+- [x] **Implement map indexing evaluation** (P0) — DONE
+  - Map indexing now works correctly
+  - Handles both valid keys and missing key errors gracefully
 
 ---
 
