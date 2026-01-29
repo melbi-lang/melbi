@@ -4,7 +4,7 @@ Runtime value types for the Melbi expression language.
 
 ## Overview
 
-This crate provides the runtime value representation used by the Melbi evaluator. It re-exports value types from `melbi-core::values`.
+This crate defines the core value traits (`Value`, `ValueBuilder`, `ValueView`) used by the Melbi evaluator. The actual implementations live in `melbi-core::values`.
 
 ## Value Types
 
@@ -31,10 +31,18 @@ This crate provides the runtime value representation used by the Melbi evaluator
 
 ```rust
 use melbi_core::values::dynamic::Value;
-use melbi_core::types::Type;
+use bumpalo::Bump;
 
 // Values are typically created by the evaluator
 // Direct construction is primarily for FFI/host functions
+
+fn create_values_example(arena: &Bump) {
+    // Construct values for FFI host functions
+    let int_val = Value::int(42);
+    let float_val = Value::float(3.14);
+    let bool_val = Value::bool(true);
+    let str_val = Value::str(arena.alloc_str("hello"));
+}
 ```
 
 ## Related

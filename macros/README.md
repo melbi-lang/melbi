@@ -44,12 +44,12 @@ Generate a package builder from a module:
 use melbi_macros::melbi_package;
 
 #[melbi_package]
-mod Math {
+mod math {
     #[melbi_const]
-    fn PI() -> f64 { std::f64::consts::PI }
+    fn pi() -> f64 { std::f64::consts::PI }
     
     #[melbi_fn]
-    fn Sin(x: f64) -> f64 { x.sin() }
+    fn sin(x: f64) -> f64 { x.sin() }
 }
 ```
 

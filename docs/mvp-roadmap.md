@@ -74,18 +74,18 @@ No specific timelines — features prioritized based on user feedback and contri
 
 ### Near-term Priorities
 
-**Standard Library Expansion**
+#### Standard Library Expansion
 - String operations (split, join, trim, etc.)
 - Math functions (abs, sqrt, trig, etc.)
 - Array operations (map, filter, reduce, sort)
 - Regex support via FFI
 
-**Developer Experience**
+#### Developer Experience
 - REPL with history and multi-line editing
 - LSP advanced features (completion, rename, find references)
 - Improved error messages with suggestions
 
-**Documentation**
+#### Documentation
 - User guide and tutorials
 - API documentation (rustdoc)
 - Cookbook with common patterns

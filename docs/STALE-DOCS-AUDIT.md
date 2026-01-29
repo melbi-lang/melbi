@@ -100,14 +100,14 @@ Most crates lack a README.md:
 
 | Crate | Has README? |
 |-------|-------------|
-| `core/` | ❌ |
-| `cli/` | ❌ |
-| `parser/` | ❌ |
+| `core/` | ✅ |
+| `cli/` | ✅ |
+| `parser/` | ✅ |
 | `types/` | ✅ |
-| `values/` | ❌ |
-| `fmt/` | ❌ |
-| `lsp/` | ❌ |
-| `macros/` | ❌ |
+| `values/` | ✅ |
+| `fmt/` | ✅ |
+| `lsp/` | ✅ |
+| `macros/` | ✅ |
 | `playground/` | ✅ |
 | `playground/worker/` | ❌ |
 | `support/small-str/` | ❌ |

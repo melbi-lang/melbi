@@ -4,7 +4,7 @@ Code formatter for the Melbi expression language.
 
 ## Overview
 
-`melbi-fmt` provides automatic code formatting for Melbi expressions using [Topiary](https://github.com/tweag/topiary), a Tree-sitter based formatting engine.
+`melbi-fmt` provides automatic code formatting for Melbi expressions using [Topiary](https://github.com/tweag/topiary), a Tree-sitter-based formatting engine.
 
 ## Features
 

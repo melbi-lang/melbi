@@ -47,7 +47,7 @@ Configure your editor to run `melbi-lsp` as an LSP server for `.melbi` files.
 
 ## Architecture
 
-```
+```text
 lsp/
 ├── src/
 │   ├── main.rs           # Server entry point

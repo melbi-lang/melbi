@@ -110,6 +110,8 @@ Benchmarked against CEL (Common Expression Language):
 | Evaluation only | 25-26 µs | 25.85 µs | ~Tied |
 | Full pipeline | 910 µs | 5.56 ms | **6.1x faster** |
 
+*Benchmarks run on Apple M2 Pro, macOS 14.x, Rust 1.82. Source: `benches/` directory, January 2025.*
+
 ## License
 
 See [LICENSE](LICENSE) for details.

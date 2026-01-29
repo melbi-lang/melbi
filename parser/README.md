@@ -18,8 +18,11 @@ For most use cases, prefer using `melbi-core` directly:
 use melbi_core::parser;
 use bumpalo::Bump;
 
-let arena = Bump::new();
-let ast = parser::parse(&arena, "1 + 2 * 3")?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let arena = Bump::new();
+    let ast = parser::parse(&arena, "1 + 2 * 3")?;
+    Ok(())
+}
 ```
 
 ## Related Crates
