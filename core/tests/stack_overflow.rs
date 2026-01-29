@@ -29,7 +29,9 @@ fn test_stack_overflow() {
 }
 
 #[test]
-#[ignore = "Rust 1.93+ has larger stack frames, causing overflow before depth check"]
+#[ignore = "Rust 1.93+ debug builds have larger stack frames (~16KB vs ~8KB per recursion), \
+            causing stack overflow at ~500 nesting levels before depth check (1000) triggers. \
+            Fix: either lower max_depth or restructure test with custom lower depth limit."]
 fn test_depth_protection_prevents_stack_overflow() {
     let arena = Bump::new();
 
