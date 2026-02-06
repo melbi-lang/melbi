@@ -405,26 +405,41 @@ fn print_timing(
                 let eval_nanos = eval_dur.as_nanos() as f64;
                 let vm_nanos = vm_dur.as_nanos() as f64;
 
-                // Calculate percentage difference (VM relative to Evaluator)
-                let diff_percent = if eval_nanos > 0.0 {
-                    ((vm_nanos - eval_nanos) / eval_nanos) * 100.0
+                // Calculate how VM compares to Evaluator
+                let diff_str = if eval_nanos > 0.0 && vm_nanos > 0.0 {
+                    let (ratio, is_faster) = if vm_nanos < eval_nanos {
+                        (eval_nanos / vm_nanos, true)
+                    } else {
+                        (vm_nanos / eval_nanos, false)
+                    };
+
+                    let speed_word = if is_faster { "faster" } else { "slower" };
+
+                    if ratio >= 2.0 {
+                        // Use multiplier for large differences
+                        format!("{:.1}x {}", ratio, speed_word)
+                    } else {
+                        // Use percentage for small differences
+                        let percent = (ratio - 1.0) * 100.0;
+                        format!("{:.0}% {}", percent, speed_word)
+                    }
                 } else {
-                    0.0
+                    String::new()
                 };
 
-                let diff_str = if diff_percent > 0.0 {
-                    format!("+{:.1}%", diff_percent)
+                let comparison = if diff_str.is_empty() {
+                    String::new()
                 } else {
-                    format!("{:.1}%", diff_percent)
+                    format!(" ({})", diff_str)
                 };
 
                 eprintln!(
                     "{}",
                     dimmed.paint(format!(
-                        "⏱ Evaluator: {} | VM: {} ({})",
+                        "⏱ Evaluator: {} | VM: {}{}",
                         format_duration(eval_dur),
                         format_duration(vm_dur),
-                        diff_str
+                        comparison
                     ))
                 );
             }
