@@ -23,6 +23,7 @@ use reedline::{
 };
 use std::io::BufRead;
 use std::io::BufReader;
+use std::time::{Duration, Instant};
 
 /// Runtime to use for evaluation
 #[derive(Debug, Clone, Copy, Default, ValueEnum)]
@@ -63,6 +64,10 @@ struct Args {
     /// Disable colored output
     #[arg(long)]
     no_color: bool,
+
+    /// Print execution time for each runtime
+    #[arg(long)]
+    time: bool,
 
     /// Expression to evaluate (if not provided, reads from stdin)
     expression: Option<String>,
@@ -205,6 +210,7 @@ fn interpret_input<'types>(
     debug: &[DebugStage],
     runtime: Runtime,
     no_color: bool,
+    show_time: bool,
 ) -> Result<()> {
     let config = RenderConfig {
         color: !no_color,
@@ -252,7 +258,9 @@ fn interpret_input<'types>(
     let run_vm = matches!(runtime, Runtime::Vm | Runtime::Both);
 
     let mut eval_result = None;
+    let mut eval_duration = None;
     let mut vm_result = None;
+    let mut vm_duration = None;
 
     // Evaluator
     if run_evaluator {
@@ -264,7 +272,9 @@ fn interpret_input<'types>(
             globals_values,
             &[],
         );
+        let start = Instant::now();
         eval_result = Some(evaluator.eval());
+        eval_duration = Some(start.elapsed());
     }
 
     // VM
@@ -285,9 +295,11 @@ fn interpret_input<'types>(
         }
 
         let result_type = typed.expr.0;
+        let start = Instant::now();
         vm_result = Some(
             VM::execute(&arena, &bytecode).map(|raw| Value::from_raw_unchecked(result_type, raw)),
         );
+        vm_duration = Some(start.elapsed());
     }
 
     // Output results
@@ -344,7 +356,80 @@ fn interpret_input<'types>(
         _ => unreachable!(),
     }
 
+    // Print timing information
+    if show_time {
+        print_timing(runtime, eval_duration, vm_duration, no_color);
+    }
+
     Ok(())
+}
+
+fn format_duration(duration: Duration) -> String {
+    let nanos = duration.as_nanos();
+    if nanos < 1_000 {
+        format!("{}ns", nanos)
+    } else if nanos < 1_000_000 {
+        format!("{:.2}µs", nanos as f64 / 1_000.0)
+    } else if nanos < 1_000_000_000 {
+        format!("{:.2}ms", nanos as f64 / 1_000_000.0)
+    } else {
+        format!("{:.2}s", duration.as_secs_f64())
+    }
+}
+
+fn print_timing(
+    runtime: Runtime,
+    eval_duration: Option<Duration>,
+    vm_duration: Option<Duration>,
+    no_color: bool,
+) {
+    let dimmed = if no_color {
+        Style::new()
+    } else {
+        Style::new().dimmed()
+    };
+
+    match runtime {
+        Runtime::Evaluator => {
+            if let Some(duration) = eval_duration {
+                eprintln!("{}", dimmed.paint(format!("⏱ Evaluator: {}", format_duration(duration))));
+            }
+        }
+        Runtime::Vm => {
+            if let Some(duration) = vm_duration {
+                eprintln!("{}", dimmed.paint(format!("⏱ VM: {}", format_duration(duration))));
+            }
+        }
+        Runtime::Both => {
+            if let (Some(eval_dur), Some(vm_dur)) = (eval_duration, vm_duration) {
+                let eval_nanos = eval_dur.as_nanos() as f64;
+                let vm_nanos = vm_dur.as_nanos() as f64;
+
+                // Calculate percentage difference (VM relative to Evaluator)
+                let diff_percent = if eval_nanos > 0.0 {
+                    ((vm_nanos - eval_nanos) / eval_nanos) * 100.0
+                } else {
+                    0.0
+                };
+
+                let diff_str = if diff_percent > 0.0 {
+                    format!("+{:.1}%", diff_percent)
+                } else {
+                    format!("{:.1}%", diff_percent)
+                };
+
+                eprintln!(
+                    "{}",
+                    dimmed.paint(format!(
+                        "⏱ Evaluator: {} | VM: {} ({})",
+                        format_duration(eval_dur),
+                        format_duration(vm_dur),
+                        diff_str
+                    ))
+                );
+            }
+        }
+    }
 }
 
 /// Build stdlib and return (globals_types, globals_values) for use with analyze/evaluate
@@ -404,6 +489,7 @@ fn main() -> Result<()> {
             &args.debug,
             args.runtime,
             args.no_color,
+            args.time,
         )?;
         return Ok(());
     }
@@ -437,6 +523,7 @@ fn main() -> Result<()> {
                 &args.debug,
                 args.runtime,
                 args.no_color,
+                args.time,
             )?;
         }
         return Ok(());
@@ -504,6 +591,7 @@ fn main() -> Result<()> {
                     &args.debug,
                     args.runtime,
                     args.no_color,
+                    args.time,
                 )?;
             }
             Signal::CtrlD => {
