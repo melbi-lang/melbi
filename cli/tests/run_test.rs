@@ -222,14 +222,14 @@ fn run_with_shebang_from_stdin() {
 
 #[test]
 fn run_with_shebang_error_shows_correct_line() {
-    // Error is on line 2 of the file (after shebang), should report as line 1
-    // since shebang is stripped before parsing
+    // Error is on line 2 of the file (after shebang)
+    // Line numbers should match the actual file for easy debugging
     let file = temp_file("#!/usr/bin/env melbi run\n1 + true");
 
     melbi()
         .args(["--no-color", "run", file.path().to_str().unwrap()])
         .assert()
         .failure()
-        .stderr(predicate::str::contains(":1:")) // Line 1 in the code (after shebang)
+        .stderr(predicate::str::contains(":2:")) // Line 2 in the actual file
         .stderr(predicate::str::contains("Type mismatch"));
 }

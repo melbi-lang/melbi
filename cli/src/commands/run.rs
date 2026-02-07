@@ -22,7 +22,13 @@ pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
     };
 
     // Strip shebang line if present (e.g., #!/usr/bin/env melbi run)
-    let (_, content) = strip_shebang(&content);
+    // Prefix with newline to preserve line numbers in error messages
+    let (shebang, rest) = strip_shebang(&content);
+    let content = if shebang.is_some() {
+        format!("\n{}", rest)
+    } else {
+        rest.to_string()
+    };
 
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);

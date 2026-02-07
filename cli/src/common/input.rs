@@ -29,7 +29,7 @@ pub fn is_stdin(path: &str) -> bool {
 /// Returns `(Some(shebang_line_with_newline), rest)` if a shebang is found,
 /// or `(None, input)` if no shebang is present.
 ///
-/// A shebang must start with `#!` followed by `/` (e.g., `#!/usr/bin/env melbi run`).
+/// A shebang must start with `#!/` (e.g., `#!/usr/bin/env melbi run`).
 pub fn strip_shebang(input: &str) -> (Option<&str>, &str) {
     if input.starts_with("#!/") {
         match input.find('\n') {
