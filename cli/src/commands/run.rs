@@ -21,6 +21,13 @@ pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
         }
     };
 
+    // Strip shebang line if present (e.g., #!/usr/bin/env melbi run)
+    let content = if content.starts_with("#!") {
+        content.split_once('\n').map(|(_, rest)| rest).unwrap_or("")
+    } else {
+        &content
+    };
+
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
     let (globals_types, globals_values) = build_stdlib(&arena, type_manager);

@@ -55,7 +55,24 @@ fn format_file(path: &str, args: &FmtArgs, no_color: bool) -> Result<bool, Strin
     }
 
     let (input, display_name) = read_input(path)?;
-    let formatted = format_source(&input)?;
+
+    // Strip shebang line if present, we'll re-attach it after formatting
+    let (shebang, source) = if input.starts_with("#!") {
+        match input.split_once('\n') {
+            Some((shebang_line, rest)) => (Some(format!("{}\n", shebang_line)), rest),
+            None => (Some(input.clone()), ""),
+        }
+    } else {
+        (None, input.as_str())
+    };
+
+    let formatted_source = format_source(source)?;
+
+    // Re-attach shebang if present
+    let formatted = match shebang {
+        Some(shebang) => format!("{}{}", shebang, formatted_source),
+        None => formatted_source,
+    };
 
     if input == formatted {
         return Ok(false);
