@@ -85,6 +85,7 @@ fn add_menu_keybindings(keybindings: &mut Keybindings) {
 }
 
 fn setup_reedline() -> (Reedline, DefaultPrompt) {
+    // TODO: Populate with stdlib function names for tab completion
     let commands: Vec<String> = vec![];
 
     let completer = Box::new({

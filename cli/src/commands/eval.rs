@@ -263,13 +263,16 @@ fn print_timing(
                         (vm_nanos / eval_nanos, false)
                     };
 
-                    let speed_word = if is_faster { "faster" } else { "slower" };
-
-                    if ratio >= 2.0 {
+                    // Handle equal or near-equal times
+                    if (ratio - 1.0).abs() < 0.005 {
+                        String::new() // Don't show "0% slower/faster"
+                    } else if ratio >= 2.0 {
                         // Use multiplier for large differences
+                        let speed_word = if is_faster { "faster" } else { "slower" };
                         format!("{:.1}x {}", ratio, speed_word)
                     } else {
                         // Use percentage for small differences
+                        let speed_word = if is_faster { "faster" } else { "slower" };
                         let percent = (ratio - 1.0) * 100.0;
                         format!("{:.0}% {}", percent, speed_word)
                     }
