@@ -3994,3 +3994,76 @@ fn test_bool_in_array() {
     let (_, result) = compile_and_run(&arena, &type_manager, "true in [false, true, false]");
     assert_eq!(result.unwrap().as_bool().unwrap(), true);
 }
+
+/// Regression test: polymorphic lambda with format string should resolve types correctly.
+///
+/// When a polymorphic lambda uses a format string with the polymorphic parameter,
+/// the FormatStrAdapter needs the concrete type (not the type variable) to format
+/// the value correctly. This test verifies that the bytecode compiler resolves
+/// the type through monomorphism substitution when compiling format strings.
+#[test]
+fn test_polymorphic_lambda_format_string() {
+    let arena = Bump::new();
+    let type_manager = TypeManager::new(&arena);
+
+    // Polymorphic lambda: show = (x) => f"value: {x}"
+    // Used with both Int and String
+    let (_, result) = compile_and_run(
+        &arena,
+        &type_manager,
+        r#"{ a = show(42), b = show("hello") } where { show = (x) => f"value: {x}" }"#,
+    );
+
+    // Result is a record { a = "value: 42", b = "value: hello" }
+    let result_val = result.unwrap();
+    let record = result_val.as_record().unwrap();
+    assert_eq!(
+        record.get("a").unwrap().as_str().unwrap(),
+        "value: 42",
+        "Int formatting in polymorphic lambda should work"
+    );
+    assert_eq!(
+        record.get("b").unwrap().as_str().unwrap(),
+        "value: hello",
+        "String formatting in polymorphic lambda should work"
+    );
+}
+
+/// Test: polymorphic higher-order function (apply) works correctly.
+///
+/// This tests that a polymorphic lambda like `apply = (f, x) => f(x)` can be
+/// used with different function/argument type combinations.
+#[test]
+fn test_polymorphic_lambda_function_call() {
+    let arena = Bump::new();
+    let type_manager = TypeManager::new(&arena);
+
+    // Polymorphic lambda: apply = (f, x) => f(x)
+    // Used with different function/argument type combinations
+    let (_, result) = compile_and_run(
+        &arena,
+        &type_manager,
+        r#"{
+            a = apply(double, 21),
+            b = apply(greet, "World")
+        } where {
+            double = (n) => n * 2,
+            greet = (s) => f"Hello, {s}!",
+            apply = (f, x) => f(x)
+        }"#,
+    );
+
+    // Result is a record { a = 42, b = "Hello, World!" }
+    let result_val = result.unwrap();
+    let record = result_val.as_record().unwrap();
+    assert_eq!(
+        record.get("a").unwrap().as_int().unwrap(),
+        42,
+        "Polymorphic apply with Int function should work"
+    );
+    assert_eq!(
+        record.get("b").unwrap().as_str().unwrap(),
+        "Hello, World!",
+        "Polymorphic apply with String function should work"
+    );
+}
