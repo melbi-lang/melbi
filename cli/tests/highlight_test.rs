@@ -1,10 +1,10 @@
-use melbi_cli::highlighter::Highlighter;
+use melbi_cli::commands::repl::highlighter::Highlighter;
 use nu_ansi_term::Color;
 use reedline::Highlighter as _;
 
 #[test]
 fn test_highlight_number() {
-    let highlighter = Highlighter::new().expect("Failed to create highlighter");
+    let highlighter = Highlighter::new();
 
     // "1" should be an integer -> @number -> Cyan
     let output = highlighter.highlight("1", 0);
@@ -28,7 +28,7 @@ fn test_highlight_number() {
 
 #[test]
 fn test_highlight_keyword() {
-    let highlighter = Highlighter::new().expect("Failed to create highlighter");
+    let highlighter = Highlighter::new();
 
     // "if" should be a keyword -> @keyword -> Magenta
     let output = highlighter.highlight("if", 0);
@@ -45,7 +45,7 @@ fn test_highlight_keyword() {
 
 #[test]
 fn test_highlight_complex() {
-    let highlighter = Highlighter::new().expect("Failed to create highlighter");
+    let highlighter = Highlighter::new();
     let output = highlighter.highlight("if true then 1 else 0", 0);
 
     let expected = vec![
@@ -76,7 +76,7 @@ fn test_highlight_complex() {
 
 #[test]
 fn test_highlight_error() {
-    let highlighter = Highlighter::new().expect("Failed to create highlighter");
+    let highlighter = Highlighter::new();
     let output = highlighter.highlight("1 + @", 0);
 
     let expected = vec![

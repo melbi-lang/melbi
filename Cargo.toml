@@ -31,6 +31,7 @@ melbi-fmt = { version = "0.1.0" }
 melbi-macros = { version = "0.1.0" }
 melbi-small-str = { version = "0.1.0" }
 melbi-teeny-vec = { version = "0.1.0" }
+tree-sitter-melbi = { path = "tree-sitter" }
 
 allocator-api2 = "0.2.21"  # Match bumpalo and hashbrown
 ariadne = "0.6.0"
@@ -64,6 +65,7 @@ miette.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+expect-test = "1.5"
 pretty_assertions.workspace = true
 once_cell.workspace = true
 indoc = "2"
