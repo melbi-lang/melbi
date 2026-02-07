@@ -1181,7 +1181,9 @@ where
                 self.transform(callable)?;
 
                 // 3. Extract parameter types from callable's function type
-                let param_types: alloc::vec::Vec<_> = match callable.0.view() {
+                // Use resolve_type to handle polymorphic lambdas
+                let callable_type = self.resolve_type(callable.0);
+                let param_types: alloc::vec::Vec<_> = match callable_type.view() {
                     TypeKind::Function { params, .. } => params.collect(),
                     _ => panic!("Call on non-function (should be caught by type checker)"),
                 };
@@ -1203,8 +1205,9 @@ where
                 self.transform(inner_expr)?;
 
                 // Get source and target types
-                let source_type = inner_expr.0;
-                let target_type = tree.0;
+                // Use resolve_type to handle polymorphic lambdas
+                let source_type = self.resolve_type(inner_expr.0);
+                let target_type = self.resolve_type(tree.0);
 
                 // Create cast adapter and store it
                 let adapter = CastAdapter::new(self.type_mgr, source_type, target_type);
@@ -1380,7 +1383,10 @@ where
                 }
 
                 // 2. Collect expression types for the adapter
-                let expr_types: alloc::vec::Vec<_> = exprs.iter().map(|e| e.0).collect();
+                // Use resolve_type to handle polymorphic lambdas - the adapter needs
+                // concrete types to format values correctly
+                let expr_types: alloc::vec::Vec<_> =
+                    exprs.iter().map(|e| self.resolve_type(e.0)).collect();
 
                 // 3. Create and store FormatStrAdapter (copies strings internally)
                 let adapter = FormatStrAdapter::new(self.type_mgr, &expr_types, strs);
