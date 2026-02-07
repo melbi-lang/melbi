@@ -55,6 +55,10 @@ pub struct EvalArgs {
     /// Runtime to use for evaluation
     #[arg(long, default_value = "both")]
     pub runtime: Runtime,
+
+    /// Print execution time for each runtime
+    #[arg(long)]
+    pub time: bool,
 }
 
 /// Arguments for the `run` command.
@@ -66,6 +70,10 @@ pub struct RunArgs {
     /// Runtime to use for evaluation
     #[arg(long, default_value = "both")]
     pub runtime: Runtime,
+
+    /// Print execution time for each runtime
+    #[arg(long)]
+    pub time: bool,
 }
 
 /// Arguments for the `check` command.
@@ -106,6 +114,10 @@ pub struct ReplArgs {
     /// Runtime to use for evaluation
     #[arg(long, default_value = "both")]
     pub runtime: Runtime,
+
+    /// Print execution time for each runtime
+    #[arg(long)]
+    pub time: bool,
 }
 
 /// Arguments for the `completions` command.

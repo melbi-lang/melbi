@@ -33,5 +33,6 @@ pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
         Some(&display_name),
         args.runtime,
         no_color,
+        args.time,
     )
 }

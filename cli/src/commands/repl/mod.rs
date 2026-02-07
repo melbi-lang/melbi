@@ -228,6 +228,7 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
                     None, // REPL has no filename
                     args.runtime,
                     no_color,
+                    args.time,
                 );
 
                 // Clear expression after evaluation (success or handled error)

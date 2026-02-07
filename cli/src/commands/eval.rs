@@ -1,6 +1,7 @@
 //! The `eval` command - evaluate an expression.
 
 use std::process::ExitCode;
+use std::time::{Duration, Instant};
 
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
@@ -13,6 +14,7 @@ use melbi_core::{
     values::dynamic::Value,
     vm::VM,
 };
+use nu_ansi_term::Style;
 
 use crate::cli::{EvalArgs, Runtime};
 use crate::common::engine::build_stdlib;
@@ -31,6 +33,7 @@ pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
         None, // eval command has no filename
         args.runtime,
         no_color,
+        args.time,
     )
 }
 
@@ -43,6 +46,7 @@ pub fn interpret_input<'types>(
     filename: Option<&str>,
     runtime: Runtime,
     no_color: bool,
+    show_time: bool,
 ) -> ExitCode {
     let render_err = |e: melbi::Error| {
         let config = RenderConfig {
@@ -78,7 +82,9 @@ pub fn interpret_input<'types>(
     let run_vm = matches!(runtime, Runtime::Vm | Runtime::Both);
 
     let mut eval_result = None;
+    let mut eval_duration = None;
     let mut vm_result = None;
+    let mut vm_duration = None;
 
     // Evaluator
     if run_evaluator {
@@ -90,7 +96,9 @@ pub fn interpret_input<'types>(
             globals_values,
             &[],
         );
+        let start = Instant::now();
         eval_result = Some(evaluator.eval());
+        eval_duration = Some(start.elapsed());
     }
 
     // VM
@@ -105,12 +113,14 @@ pub fn interpret_input<'types>(
         };
 
         let result_type = typed.expr.0;
+        let start = Instant::now();
         vm_result = Some(
             VM::execute(&arena, &bytecode).map(|raw| Value::from_raw_unchecked(result_type, raw)),
         );
+        vm_duration = Some(start.elapsed());
     }
 
-    match runtime {
+    let exit_code = match runtime {
         Runtime::Evaluator => {
             output_single_result(eval_result.expect("Evaluator result should exist"), &render_err)
         }
@@ -122,7 +132,14 @@ pub fn interpret_input<'types>(
             vm_result.expect("VM result should exist"),
             &render_err,
         ),
+    };
+
+    // Print timing information
+    if show_time {
+        print_timing(runtime, eval_duration, vm_duration, no_color);
     }
+
+    exit_code
 }
 
 /// Output a single runtime result.
@@ -185,6 +202,97 @@ fn output_both_results(
                 render_err(vm_e.into());
             }
             ExitCode::FAILURE
+        }
+    }
+}
+
+/// Format a duration in a human-readable way.
+fn format_duration(duration: Duration) -> String {
+    let nanos = duration.as_nanos();
+    if nanos < 1_000 {
+        format!("{}ns", nanos)
+    } else if nanos < 1_000_000 {
+        format!("{:.2}µs", nanos as f64 / 1_000.0)
+    } else if nanos < 1_000_000_000 {
+        format!("{:.2}ms", nanos as f64 / 1_000_000.0)
+    } else {
+        format!("{:.2}s", duration.as_secs_f64())
+    }
+}
+
+/// Print timing information for the runtimes.
+fn print_timing(
+    runtime: Runtime,
+    eval_duration: Option<Duration>,
+    vm_duration: Option<Duration>,
+    no_color: bool,
+) {
+    let dimmed = if no_color {
+        Style::new()
+    } else {
+        Style::new().dimmed()
+    };
+
+    match runtime {
+        Runtime::Evaluator => {
+            if let Some(duration) = eval_duration {
+                eprintln!(
+                    "{}",
+                    dimmed.paint(format!("⏱ Evaluator: {}", format_duration(duration)))
+                );
+            }
+        }
+        Runtime::Vm => {
+            if let Some(duration) = vm_duration {
+                eprintln!(
+                    "{}",
+                    dimmed.paint(format!("⏱ VM: {}", format_duration(duration)))
+                );
+            }
+        }
+        Runtime::Both => {
+            if let (Some(eval_dur), Some(vm_dur)) = (eval_duration, vm_duration) {
+                let eval_nanos = eval_dur.as_nanos() as f64;
+                let vm_nanos = vm_dur.as_nanos() as f64;
+
+                // Calculate how VM compares to Evaluator
+                let diff_str = if eval_nanos > 0.0 && vm_nanos > 0.0 {
+                    let (ratio, is_faster) = if vm_nanos < eval_nanos {
+                        (eval_nanos / vm_nanos, true)
+                    } else {
+                        (vm_nanos / eval_nanos, false)
+                    };
+
+                    let speed_word = if is_faster { "faster" } else { "slower" };
+
+                    if ratio >= 2.0 {
+                        // Use multiplier for large differences
+                        format!("{:.1}x {}", ratio, speed_word)
+                    } else {
+                        // Use percentage for small differences
+                        let percent = (ratio - 1.0) * 100.0;
+                        format!("{:.0}% {}", percent, speed_word)
+                    }
+                } else {
+                    String::new()
+                };
+
+                let comparison = if diff_str.is_empty() {
+                    String::new()
+                } else {
+                    format!(" ({})", diff_str)
+                };
+
+                eprintln!(
+                    "{}",
+                    dimmed.paint(format!(
+                        "⏱ Evaluator: {} | VM: {}{}",
+                        format_duration(eval_dur),
+                        format_duration(vm_dur),
+                        comparison
+                    ))
+                );
+            }
         }
     }
 }
