@@ -2,10 +2,12 @@
 //!
 //! Opens a GitHub issue with pre-filled system information.
 
+use std::process::ExitCode;
+
 const GITHUB_ISSUES_URL: &str = "https://github.com/melbi-lang/melbi/issues/new";
 
 /// Run the bug command.
-pub fn run() {
+pub fn run() -> ExitCode {
     let url = build_bug_report_url();
 
     println!("Opening bug report in your browser...");
@@ -15,6 +17,7 @@ pub fn run() {
         eprintln!("Could not open browser automatically: {e}");
         eprintln!("Please copy the URL above and open it manually.");
     }
+    ExitCode::SUCCESS
 }
 
 fn build_bug_report_url() -> String {

@@ -1,17 +1,18 @@
 //! The `fmt` command - format Melbi files.
 
+use std::process::ExitCode;
+
 use nu_ansi_term::Color;
 use similar::{ChangeTag, TextDiff};
 use topiary_core::{FormatterError, Operation, TopiaryQuery};
 
 use crate::cli::FmtArgs;
-use crate::common::CliResult;
 use crate::common::input::{is_stdin, read_input};
 
 const QUERY: &str = include_str!("../../../topiary-queries/queries/melbi.scm");
 
 /// Run the fmt command.
-pub fn run(args: FmtArgs, no_color: bool) -> CliResult<()> {
+pub fn run(args: FmtArgs, no_color: bool) -> ExitCode {
     let mut has_errors = false;
     let mut needs_formatting = false;
 
@@ -33,14 +34,14 @@ pub fn run(args: FmtArgs, no_color: bool) -> CliResult<()> {
     }
 
     if has_errors {
-        std::process::exit(1);
+        return ExitCode::FAILURE;
     }
 
     if args.check && needs_formatting {
-        std::process::exit(1);
+        return ExitCode::FAILURE;
     }
 
-    Ok(())
+    ExitCode::SUCCESS
 }
 
 /// Format a single file or stdin.

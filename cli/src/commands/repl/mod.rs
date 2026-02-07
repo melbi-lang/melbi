@@ -3,6 +3,8 @@
 pub mod highlighter;
 pub mod lexer;
 
+use std::process::ExitCode;
+
 use bumpalo::Bump;
 use melbi_core::{
     parser::{ExpressionParser, Rule},
@@ -17,7 +19,7 @@ use reedline::{
 };
 
 use crate::cli::ReplArgs;
-use crate::common::{CliResult, engine::build_stdlib, panic as panic_handler};
+use crate::common::{engine::build_stdlib, panic as panic_handler};
 use highlighter::Highlighter;
 use lexer::calculate_depth;
 
@@ -155,7 +157,7 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 }
 
 /// Run the REPL command.
-pub fn run(args: ReplArgs, no_color: bool) -> CliResult<()> {
+pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
     let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
@@ -173,7 +175,7 @@ pub fn run(args: ReplArgs, no_color: bool) -> CliResult<()> {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Reedline error: {e}");
-                return Ok(());
+                return ExitCode::SUCCESS;
             }
         };
 
@@ -216,7 +218,9 @@ pub fn run(args: ReplArgs, no_color: bool) -> CliResult<()> {
                 // Set current expression for panic handler (crash reports)
                 panic_handler::set_current_expression(&buffer);
 
-                let result = interpret_input(
+                // Run the expression - errors are printed by interpret_input
+                // In REPL mode, we continue even on errors
+                let _result = interpret_input(
                     type_manager,
                     globals_types,
                     globals_values,
@@ -228,12 +232,10 @@ pub fn run(args: ReplArgs, no_color: bool) -> CliResult<()> {
 
                 // Clear expression after evaluation (success or handled error)
                 panic_handler::clear_current_expression();
-
-                result?;
             }
             Signal::CtrlD => {
                 println!("\nGoodbye!");
-                return Ok(());
+                return ExitCode::SUCCESS;
             }
             Signal::CtrlC => {
                 continue;

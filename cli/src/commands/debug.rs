@@ -1,5 +1,7 @@
 //! The `debug` command - debugging tools for development.
 
+use std::process::ExitCode;
+
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
 use melbi_core::{
@@ -11,16 +13,14 @@ use melbi_core::{
 
 use crate::cli::{DebugArgs, DebugCommand, DebugInputArgs};
 use crate::common::engine::build_stdlib;
-use crate::common::CliResult;
 
 /// Run the debug command.
-pub fn run(args: DebugArgs, no_color: bool) -> CliResult<()> {
+pub fn run(args: DebugArgs, no_color: bool) -> ExitCode {
     match args.command {
         DebugCommand::Parser(input) => run_parser(input, no_color),
         DebugCommand::Analyzer(input) => run_analyzer(input, no_color),
         DebugCommand::Bytecode(input) => run_bytecode(input, no_color),
     }
-    Ok(())
 }
 
 fn render_err(e: melbi::Error, no_color: bool) {
@@ -31,22 +31,23 @@ fn render_err(e: melbi::Error, no_color: bool) {
     render_error_to(&e, &mut std::io::stderr(), &config).ok();
 }
 
-fn run_parser(args: DebugInputArgs, no_color: bool) {
+fn run_parser(args: DebugInputArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
 
     let ast = match parser::parse(&arena, &args.expression) {
         Ok(ast) => ast,
         Err(e) => {
             render_err(e.into(), no_color);
-            std::process::exit(1);
+            return ExitCode::FAILURE;
         }
     };
 
     println!("=== Parsed AST ===");
     println!("{:#?}", ast.expr);
+    ExitCode::SUCCESS
 }
 
-fn run_analyzer(args: DebugInputArgs, no_color: bool) {
+fn run_analyzer(args: DebugInputArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
     let (globals_types, _globals_values) = build_stdlib(&arena, type_manager);
@@ -55,7 +56,7 @@ fn run_analyzer(args: DebugInputArgs, no_color: bool) {
         Ok(ast) => ast,
         Err(e) => {
             render_err(e.into(), no_color);
-            std::process::exit(1);
+            return ExitCode::FAILURE;
         }
     };
 
@@ -63,7 +64,7 @@ fn run_analyzer(args: DebugInputArgs, no_color: bool) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into(), no_color);
-            std::process::exit(1);
+            return ExitCode::FAILURE;
         }
     };
 
@@ -72,9 +73,10 @@ fn run_analyzer(args: DebugInputArgs, no_color: bool) {
     println!();
     println!("=== Lambda Instantiations ===");
     println!("{:#?}", typed.lambda_instantiations);
+    ExitCode::SUCCESS
 }
 
-fn run_bytecode(args: DebugInputArgs, no_color: bool) {
+fn run_bytecode(args: DebugInputArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
     let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
@@ -83,7 +85,7 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) {
         Ok(ast) => ast,
         Err(e) => {
             render_err(e.into(), no_color);
-            std::process::exit(1);
+            return ExitCode::FAILURE;
         }
     };
 
@@ -91,7 +93,7 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into(), no_color);
-            std::process::exit(1);
+            return ExitCode::FAILURE;
         }
     };
 
@@ -99,10 +101,11 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) {
         Ok(code) => code,
         Err(e) => {
             render_err(e.into(), no_color);
-            std::process::exit(1);
+            return ExitCode::FAILURE;
         }
     };
 
     println!("=== Bytecode ===");
     println!("{:#?}", bytecode);
+    ExitCode::SUCCESS
 }

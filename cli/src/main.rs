@@ -1,4 +1,17 @@
 //! Melbi CLI - A safe, fast, embeddable expression language.
+//!
+//! # Architecture
+//!
+//! Each sub-command is responsible for its own UI (output and error rendering).
+//! Sub-commands return `ExitCode` directly - they handle all printing before returning.
+//!
+//! This design follows the model of tools like `git` and `cargo`, where each
+//! sub-command is essentially its own binary with full control over its interface.
+//!
+//! For testability, test the core logic (parser, analyzer, evaluator) directly,
+//! and use integration tests for CLI behavior.
+
+use std::process::ExitCode;
 
 use clap::Parser;
 use melbi_cli::{
@@ -6,7 +19,7 @@ use melbi_cli::{
     commands, common,
 };
 
-fn main() {
+fn main() -> ExitCode {
     // Install panic handler for user-friendly crash reporting
     common::panic::install_handler();
 
@@ -29,24 +42,14 @@ fn main() {
 
     let cli = Cli::parse();
 
-    let result = match cli.command {
+    match cli.command {
         Command::Eval(args) => commands::eval::run(args, cli.no_color),
         Command::Run(args) => commands::run::run(args, cli.no_color),
         Command::Check(args) => commands::check::run(args, cli.no_color),
         Command::Fmt(args) => commands::fmt::run(args, cli.no_color),
         Command::Repl(args) => commands::repl::run(args, cli.no_color),
-        Command::Completions(args) => {
-            commands::completions::run(args);
-            Ok(())
-        }
-        Command::Bug => {
-            commands::bug::run();
-            Ok(())
-        }
+        Command::Completions(args) => commands::completions::run(args),
+        Command::Bug => commands::bug::run(),
         Command::Debug(args) => commands::debug::run(args, cli.no_color),
-    };
-
-    if let Err(e) = result {
-        common::error::render_and_exit(e, cli.no_color);
     }
 }

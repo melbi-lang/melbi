@@ -1,5 +1,7 @@
 //! The `check` command - type-check Melbi files without running.
 
+use std::process::ExitCode;
+
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
 use melbi_core::{analyzer::analyze, parser, types::manager::TypeManager};
@@ -7,10 +9,9 @@ use melbi_core::{analyzer::analyze, parser, types::manager::TypeManager};
 use crate::cli::CheckArgs;
 use crate::common::engine::build_stdlib;
 use crate::common::input::read_input;
-use crate::common::CliResult;
 
 /// Run the check command.
-pub fn run(args: CheckArgs, no_color: bool) -> CliResult<()> {
+pub fn run(args: CheckArgs, no_color: bool) -> ExitCode {
     let mut has_errors = false;
 
     for file in &args.files {
@@ -20,10 +21,10 @@ pub fn run(args: CheckArgs, no_color: bool) -> CliResult<()> {
     }
 
     if has_errors {
-        std::process::exit(1);
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
     }
-
-    Ok(())
 }
 
 /// Check a single file. Returns true if OK, false if errors.

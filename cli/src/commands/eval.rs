@@ -1,5 +1,7 @@
 //! The `eval` command - evaluate an expression.
 
+use std::process::ExitCode;
+
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
 use melbi_core::{
@@ -13,10 +15,10 @@ use melbi_core::{
 };
 
 use crate::cli::{EvalArgs, Runtime};
-use crate::common::{CliError, CliResult, engine::build_stdlib};
+use crate::common::engine::build_stdlib;
 
 /// Run the eval command.
-pub fn run(args: EvalArgs, no_color: bool) -> CliResult<()> {
+pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
     let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
@@ -41,15 +43,14 @@ pub fn interpret_input<'types>(
     filename: Option<&str>,
     runtime: Runtime,
     no_color: bool,
-) -> CliResult<()> {
-    let config = RenderConfig {
-        color: !no_color,
-        filename,
-        ..Default::default()
-    };
-    let render_err = |e: melbi::ExecutionError| {
-        let err = melbi::Error::from(e).with_filename_opt(filename);
-        render_error_to(&err, &mut std::io::stderr(), &config).ok();
+) -> ExitCode {
+    let render_err = |e: melbi::Error| {
+        let config = RenderConfig {
+            color: !no_color,
+            ..Default::default()
+        };
+        let e = e.with_filename_opt(filename);
+        render_error_to(&e, &mut std::io::stderr(), &config).ok();
     };
 
     let arena = Bump::new();
@@ -57,13 +58,19 @@ pub fn interpret_input<'types>(
     // Parse
     let ast = match parser::parse(&arena, input) {
         Ok(ast) => ast,
-        Err(e) => return Err(melbi::Error::from(e).with_filename_opt(filename).into()),
+        Err(e) => {
+            render_err(e.into());
+            return ExitCode::FAILURE;
+        }
     };
 
     // Type check
     let typed = match analyze(type_manager, &arena, &ast, globals_types, &[]) {
         Ok(typed) => typed,
-        Err(e) => return Err(melbi::Error::from(e).with_filename_opt(filename).into()),
+        Err(e) => {
+            render_err(e.into());
+            return ExitCode::FAILURE;
+        }
     };
 
     // Run with selected runtime(s)
@@ -91,7 +98,10 @@ pub fn interpret_input<'types>(
         let bytecode = match BytecodeCompiler::compile(type_manager, &arena, globals_values, &typed)
         {
             Ok(code) => code,
-            Err(e) => return Err(melbi::Error::from(e).with_filename_opt(filename).into()),
+            Err(e) => {
+                render_err(e.into());
+                return ExitCode::FAILURE;
+            }
         };
 
         let result_type = typed.expr.0;
@@ -101,27 +111,34 @@ pub fn interpret_input<'types>(
     }
 
     match runtime {
-        Runtime::Evaluator => output_result(eval_result.expect("Evaluator result should exist")),
-        Runtime::Vm => output_result(vm_result.expect("MV result should exist")),
-        Runtime::Both => {
-            return output_both_results(
-                eval_result.expect("Evaluator result should exist"),
-                vm_result.expect("VM result should exist"),
-                render_err,
-            );
+        Runtime::Evaluator => {
+            output_single_result(eval_result.expect("Evaluator result should exist"), &render_err)
         }
+        Runtime::Vm => {
+            output_single_result(vm_result.expect("VM result should exist"), &render_err)
+        }
+        Runtime::Both => output_both_results(
+            eval_result.expect("Evaluator result should exist"),
+            vm_result.expect("VM result should exist"),
+            &render_err,
+        ),
     }
-    .map_err(|e| melbi::Error::from(e).with_filename_opt(filename).into())
 }
 
-/// Output results from evaluator and/or VM, returns true on success.
-fn output_result(result: Result<Value, ExecutionError>) -> Result<(), ExecutionError> {
+/// Output a single runtime result.
+fn output_single_result(
+    result: Result<Value, ExecutionError>,
+    render_err: &impl Fn(melbi::Error),
+) -> ExitCode {
     match result {
         Ok(value) => {
             println!("{:?}", value);
-            Ok(())
+            ExitCode::SUCCESS
         }
-        Err(e) => Err(e),
+        Err(e) => {
+            render_err(e.into());
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -129,45 +146,45 @@ fn output_result(result: Result<Value, ExecutionError>) -> Result<(), ExecutionE
 fn output_both_results(
     eval_res: Result<Value, ExecutionError>,
     vm_res: Result<Value, ExecutionError>,
-    render_err: impl Fn(melbi::ExecutionError),
-) -> CliResult<()> {
+    render_err: &impl Fn(melbi::Error),
+) -> ExitCode {
     match (eval_res, vm_res) {
         (Ok(eval_val), Ok(vm_val)) => {
             if eval_val == vm_val {
                 println!("{:?}", eval_val);
-                Ok(())
+                ExitCode::SUCCESS
             } else {
                 eprintln!("MISMATCH!");
                 eprintln!("  Evaluator: {:?}", eval_val);
                 eprintln!("  VM:        {:?}", vm_val);
-                Err(CliError::Handled)
+                ExitCode::FAILURE
             }
         }
         (Err(e), Ok(vm_val)) => {
             eprintln!("MISMATCH!");
             eprintln!("  Evaluator: error");
-            render_err(e);
+            render_err(e.into());
             eprintln!("  VM:        {:?}", vm_val);
-            Err(CliError::Handled)
+            ExitCode::FAILURE
         }
         (Ok(eval_val), Err(e)) => {
             eprintln!("MISMATCH!");
             eprintln!("  Evaluator: {:?}", eval_val);
             eprintln!("  VM:        error");
-            render_err(e);
-            Err(CliError::Handled)
+            render_err(e.into());
+            ExitCode::FAILURE
         }
         (Err(eval_e), Err(vm_e)) => {
             if eval_e.kind == vm_e.kind {
-                render_err(eval_e);
+                render_err(eval_e.into());
             } else {
                 eprintln!("MISMATCH (both errors but different)!");
                 eprintln!("  Evaluator:");
-                render_err(eval_e);
+                render_err(eval_e.into());
                 eprintln!("  VM:");
-                render_err(vm_e);
+                render_err(vm_e.into());
             }
-            Err(CliError::Handled)
+            ExitCode::FAILURE
         }
     }
 }
