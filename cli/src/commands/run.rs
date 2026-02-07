@@ -7,7 +7,7 @@ use melbi_core::types::manager::TypeManager;
 
 use crate::cli::RunArgs;
 use crate::common::engine::build_stdlib;
-use crate::common::input::read_input;
+use crate::common::input::{read_input, strip_shebang};
 
 use super::eval::interpret_input;
 
@@ -19,6 +19,15 @@ pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
             eprintln!("error: {}", e);
             return ExitCode::FAILURE;
         }
+    };
+
+    // Strip shebang line if present (e.g., #!/usr/bin/env melbi run)
+    // Prefix with newline to preserve line numbers in error messages
+    let (shebang, rest) = strip_shebang(&content);
+    let content = if shebang.is_some() {
+        format!("\n{}", rest)
+    } else {
+        rest.to_string()
     };
 
     let arena = Bump::new();

@@ -23,3 +23,34 @@ pub fn read_input(path: &str) -> Result<(String, String), String> {
 pub fn is_stdin(path: &str) -> bool {
     path == "-"
 }
+
+/// Strip a shebang line from the input, if present.
+///
+/// Returns `(Some(shebang_line_with_newline), rest)` if a shebang is found,
+/// or `(None, input)` if no shebang is present.
+///
+/// A shebang must start with `#!/` (e.g., `#!/usr/bin/env melbi run`).
+///
+/// # Examples
+///
+/// ```ignore
+/// // With shebang
+/// let (shebang, rest) = strip_shebang("#!/usr/bin/env melbi run\n1 + 2");
+/// assert_eq!(shebang, Some("#!/usr/bin/env melbi run\n"));
+/// assert_eq!(rest, "1 + 2");
+///
+/// // Without shebang
+/// let (shebang, rest) = strip_shebang("1 + 2");
+/// assert_eq!(shebang, None);
+/// assert_eq!(rest, "1 + 2");
+/// ```
+pub(crate) fn strip_shebang(input: &str) -> (Option<&str>, &str) {
+    if input.starts_with("#!/") {
+        match input.find('\n') {
+            Some(pos) => (Some(&input[..=pos]), &input[pos + 1..]),
+            None => (Some(input), ""),
+        }
+    } else {
+        (None, input)
+    }
+}

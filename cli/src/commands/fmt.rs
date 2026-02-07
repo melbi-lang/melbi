@@ -7,7 +7,7 @@ use similar::{ChangeTag, TextDiff};
 use topiary_core::{FormatterError, Operation, TopiaryQuery};
 
 use crate::cli::FmtArgs;
-use crate::common::input::{is_stdin, read_input};
+use crate::common::input::{is_stdin, read_input, strip_shebang};
 
 const QUERY: &str = include_str!("../../../topiary-queries/queries/melbi.scm");
 
@@ -55,7 +55,16 @@ fn format_file(path: &str, args: &FmtArgs, no_color: bool) -> Result<bool, Strin
     }
 
     let (input, display_name) = read_input(path)?;
-    let formatted = format_source(&input)?;
+
+    // Strip shebang line if present, we'll re-attach it after formatting
+    let (shebang, source) = strip_shebang(&input);
+    let formatted_source = format_source(source)?;
+
+    // Re-attach shebang if present
+    let formatted = match shebang {
+        Some(shebang) => format!("{}{}", shebang, formatted_source),
+        None => formatted_source,
+    };
 
     if input == formatted {
         return Ok(false);

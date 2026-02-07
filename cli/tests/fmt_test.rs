@@ -108,7 +108,13 @@ fn fmt_no_color_flag() {
 
 #[test]
 fn fmt_is_idempotent() {
-    let inputs = ["{x=1,y=2}", "1+2+3", "x+y where{x=1,y=2}"];
+    let inputs = [
+        "{x=1,y=2}",
+        "1+2+3",
+        "x+y where{x=1,y=2}",
+        "#!/usr/bin/env melbi run\n1+2+3",
+        "#!/usr/bin/env melbi run\nx+y where{x=1,y=2}",
+    ];
 
     for input in inputs {
         let file = temp_file(input);
@@ -405,4 +411,71 @@ fn fmt_quiet_error() {
         expect![""],
         expect![""],
     );
+}
+
+// ============================================================================
+// Shebang support
+// ============================================================================
+
+#[test]
+fn fmt_preserves_shebang() {
+    let file = temp_file("#!/usr/bin/env melbi run\n1+2+3");
+
+    melbi()
+        .args(["fmt", file.path().to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("#!/usr/bin/env melbi run"))
+        .stdout(predicate::str::contains("+1 + 2 + 3"));
+}
+
+#[test]
+fn fmt_write_preserves_shebang() {
+    let file = temp_file("#!/usr/bin/env melbi run\n1+2+3");
+    let path = file.path().to_path_buf();
+
+    melbi()
+        .args(["fmt", "--write", path.to_str().unwrap()])
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(&path).unwrap();
+    assert!(content.starts_with("#!/usr/bin/env melbi run\n"));
+    assert!(content.contains("1 + 2 + 3"));
+}
+
+#[test]
+fn fmt_check_with_shebang_unformatted() {
+    let file = temp_file("#!/usr/bin/env melbi run\n1+2+3");
+
+    melbi()
+        .args(["fmt", "--check", file.path().to_str().unwrap()])
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains("needs formatting"));
+}
+
+#[test]
+fn fmt_check_with_shebang_formatted() {
+    let file = temp_file("#!/usr/bin/env melbi run\n1 + 2 + 3");
+    check_stdout(
+        &["fmt", "--check", file.path().to_str().unwrap()],
+        None,
+        expect![""],
+    );
+}
+
+#[test]
+fn fmt_shebang_from_stdin() {
+    check_stdout(
+        &["fmt", "-"],
+        Some("#!/usr/bin/env melbi run\n1+2"),
+        expect!["#!/usr/bin/env melbi run\n1 + 2"],
+    );
+}
+
+#[test]
+fn fmt_shebang_already_formatted() {
+    let file = temp_file("#!/usr/bin/env melbi run\n1 + 2 + 3");
+    check_stdout(&["fmt", file.path().to_str().unwrap()], None, expect![""]);
 }
