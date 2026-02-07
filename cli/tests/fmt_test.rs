@@ -108,7 +108,13 @@ fn fmt_no_color_flag() {
 
 #[test]
 fn fmt_is_idempotent() {
-    let inputs = ["{x=1,y=2}", "1+2+3", "x+y where{x=1,y=2}"];
+    let inputs = [
+        "{x=1,y=2}",
+        "1+2+3",
+        "x+y where{x=1,y=2}",
+        "#!/usr/bin/env melbi run\n1+2+3",
+        "#!/usr/bin/env melbi run\nx+y where{x=1,y=2}",
+    ];
 
     for input in inputs {
         let file = temp_file(input);

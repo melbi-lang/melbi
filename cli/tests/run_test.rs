@@ -219,3 +219,17 @@ fn run_with_shebang_from_stdin() {
         expect!["30\n"],
     );
 }
+
+#[test]
+fn run_with_shebang_error_shows_correct_line() {
+    // Error is on line 2 of the file (after shebang), should report as line 1
+    // since shebang is stripped before parsing
+    let file = temp_file("#!/usr/bin/env melbi run\n1 + true");
+
+    melbi()
+        .args(["--no-color", "run", file.path().to_str().unwrap()])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(":1:")) // Line 1 in the code (after shebang)
+        .stderr(predicate::str::contains("Type mismatch"));
+}

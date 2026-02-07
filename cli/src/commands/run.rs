@@ -7,7 +7,7 @@ use melbi_core::types::manager::TypeManager;
 
 use crate::cli::RunArgs;
 use crate::common::engine::build_stdlib;
-use crate::common::input::read_input;
+use crate::common::input::{read_input, strip_shebang};
 
 use super::eval::interpret_input;
 
@@ -22,11 +22,7 @@ pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
     };
 
     // Strip shebang line if present (e.g., #!/usr/bin/env melbi run)
-    let content = if content.starts_with("#!") {
-        content.split_once('\n').map(|(_, rest)| rest).unwrap_or("")
-    } else {
-        &content
-    };
+    let (_, content) = strip_shebang(&content);
 
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
