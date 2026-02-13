@@ -1,3 +1,5 @@
-mod value_view;
+mod array;
+mod value;
 
-pub use value_view::ValueView;
+pub use array::Array;
+pub use value::Value;

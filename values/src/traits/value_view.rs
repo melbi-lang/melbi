@@ -1,6 +1,9 @@
 use melbi_types::Ty;
 
-use crate::traits::ValueBuilder;
+use crate::{
+    dynamic::Value,
+    traits::{ArrayView, ValueBuilder},
+};
 
 pub trait ValueView<VB: ValueBuilder>: Sized {
     fn ty(&self) -> Ty<VB::TB>;
@@ -10,7 +13,7 @@ pub trait ValueView<VB: ValueBuilder>: Sized {
     fn as_bool(&self) -> Option<bool>;
 
     // Complex Types: Return the associated types from the System
-    fn as_array(&self) -> Option<VB::Array>;
+    fn as_array(&self) -> Option<impl ArrayView<Value<VB>>>;
 
     // fn as_map(&self) -> Option<S::Map>;
     // fn as_string(&self) -> Option<S::String>;

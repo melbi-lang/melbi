@@ -1,35 +1,34 @@
 #![allow(unsafe_code)]
 
-use core::ptr::NonNull;
-use core::{fmt, slice};
+use core::fmt;
+use core::mem::ManuallyDrop;
 
-use alloc::vec::Vec;
+use crate::traits::ValueBuilder;
 
 #[repr(C)]
-pub union RawValue {
+pub union RawValue<B: ValueBuilder> {
     int: i64,
     bool: bool,
-    // Do not use NonNull<[RawValue]> to keep the pointer thin.
-    array: NonNull<RawValue>,
+    array: ManuallyDrop<B::ArrayHandle>, // TODO: This is a fat pointer, but it must be thin.
 }
 
-static_assertions::assert_eq_size!(RawValue, usize);
+// static_assertions::assert_eq_size!(RawValue, usize);
 
-impl Copy for RawValue {}
+// impl<B: ValueBuilder> Copy for RawValue<B> {}
 
-impl Clone for RawValue {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+// impl<B: ValueBuilder> Clone for RawValue<B> {
+//     fn clone(&self) -> Self {
+//         *self
+//     }
+// }
 
-impl fmt::Debug for RawValue {
+impl<B: ValueBuilder> fmt::Debug for RawValue<B> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:p}", unsafe { self.array })
+        write!(f, "{:p}", unsafe { self.int as *const () })
     }
 }
 
-impl RawValue {
+impl<B: ValueBuilder> RawValue<B> {
     pub fn new_int(value: i64) -> Self {
         RawValue { int: value }
     }
@@ -38,14 +37,11 @@ impl RawValue {
         RawValue { bool: value }
     }
 
-    pub fn new_array(values: &[RawValue]) -> Self {
-        // TODO: This is just a proof of concept (and it leaks memory!).
-        let mut data = Vec::with_capacity(1 + values.len());
-        data.push(RawValue {
-            int: values.len() as i64,
-        });
-        data.extend_from_slice(values);
-        let array = NonNull::from_ref(data.leak()).cast();
+    pub fn new_array(
+        builder: &B,
+        values: impl IntoIterator<Item = B::ValueHandle, IntoIter: ExactSizeIterator>,
+    ) -> Self {
+        let array = ManuallyDrop::new(builder.alloc_array(values));
         RawValue { array }
     }
 
@@ -57,10 +53,7 @@ impl RawValue {
         unsafe { self.bool }
     }
 
-    pub fn as_array_unchecked(&self) -> &[RawValue] {
-        unsafe {
-            let len: usize = self.array.as_ref().int as usize;
-            slice::from_raw_parts(self.array.add(1).as_ref(), len)
-        }
+    pub fn as_array_unchecked(&self) -> &[B::ValueHandle] {
+        unsafe { self.array.as_ref() }
     }
 }
