@@ -19,6 +19,6 @@ tokio.workspace = true
 pest.workspace = true
 tower-lsp = "0.20.0"
 tree-sitter = "0.25"
-tree-sitter-melbi = { git = "https://github.com/melbi-lang/tree-sitter-melbi" }
+tree-sitter-melbi.workspace = true
 bumpalo = "3.16.0"
 dashmap = "6.1.0"

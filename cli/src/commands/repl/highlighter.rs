@@ -1,4 +1,5 @@
-use miette::Result;
+//! Syntax highlighter for the REPL using tree-sitter.
+
 use nu_ansi_term::{Color, Style};
 use reedline::StyledText;
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent};
@@ -83,14 +84,19 @@ const PALETTE: &[PaletteItem] = &[
     },
 ];
 
-const HIGHLIGHTS_QUERY: &str = include_str!("../../zed/languages/melbi/highlights.scm");
+const HIGHLIGHTS_QUERY: &str = include_str!("../../../../zed/languages/melbi/highlights.scm");
 
 pub struct Highlighter {
     config: HighlightConfiguration,
 }
 
 impl Highlighter {
-    pub fn new() -> Result<Self> {
+    /// Creates a new syntax highlighter.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the tree-sitter highlight configuration fails to initialize.
+    pub fn new() -> Self {
         let highlight_names = PALETTE.iter().map(|item| item.name).collect::<Vec<_>>();
 
         let mut config = HighlightConfiguration::new(
@@ -100,9 +106,9 @@ impl Highlighter {
             "",
             "",
         )
-        .map_err(|e| miette::miette!(e))?;
+        .expect("Failed to create highlight configuration");
         config.configure(&highlight_names);
-        Ok(Self { config })
+        Self { config }
     }
 }
 

@@ -29,6 +29,7 @@ pub enum Error {
     Compilation {
         diagnostics: Vec<Diagnostic>,
         source: String,
+        filename: Option<String>,
     },
 
     /// Runtime errors during evaluation (e.g., division by zero, index out of bounds).
@@ -37,10 +38,60 @@ pub enum Error {
     Runtime {
         diagnostic: Diagnostic,
         source: String,
+        filename: Option<String>,
     },
 
     /// Resource limits exceeded (e.g., stack overflow, iteration limit).
     ResourceExceeded(String),
+}
+
+impl Error {
+    /// Set the filename for this error.
+    ///
+    /// This is useful when the error was created without filename context
+    /// (e.g., from a `From` conversion) and you want to add it later.
+    pub fn with_filename(self, filename: impl Into<String>) -> Self {
+        let filename = Some(filename.into());
+        match self {
+            Error::Compilation {
+                diagnostics,
+                source,
+                ..
+            } => Error::Compilation {
+                diagnostics,
+                source,
+                filename,
+            },
+            Error::Runtime {
+                diagnostic,
+                source,
+                ..
+            } => Error::Runtime {
+                diagnostic,
+                source,
+                filename,
+            },
+            // Api and ResourceExceeded don't have filename context
+            other => other,
+        }
+    }
+
+    /// Get the filename associated with this error, if any.
+    pub fn filename(&self) -> Option<&str> {
+        match self {
+            Error::Compilation { filename, .. } => filename.as_deref(),
+            Error::Runtime { filename, .. } => filename.as_deref(),
+            _ => None,
+        }
+    }
+
+    /// Set the filename if provided, otherwise return self unchanged.
+    pub fn with_filename_opt(self, filename: Option<&str>) -> Self {
+        match filename {
+            Some(f) => self.with_filename(f),
+            None => self,
+        }
+    }
 }
 
 impl fmt::Display for Error {
@@ -50,6 +101,7 @@ impl fmt::Display for Error {
             Error::Compilation {
                 diagnostics,
                 source: _,
+                filename: _,
             } => {
                 let error_count = diagnostics
                     .iter()
@@ -127,11 +179,15 @@ pub struct RelatedInfo {
 // Conversion from internal errors
 // ============================================================================
 
+// TODO: Remove these From impls and require callers to use .with_filename()
+// to ensure filename is always set when available.
+
 impl From<crate::parser::ParseError> for Error {
     fn from(err: crate::parser::ParseError) -> Self {
         Error::Compilation {
             diagnostics: crate::Vec::from([err.to_diagnostic()]),
             source: err.source.clone(),
+            filename: None, // TODO: require caller to set via .with_filename()
         }
     }
 }
@@ -141,6 +197,7 @@ impl From<crate::analyzer::TypeError> for Error {
         Error::Compilation {
             diagnostics: crate::Vec::from([err.to_diagnostic()]),
             source: err.source.clone(),
+            filename: None, // TODO: require caller to set via .with_filename()
         }
     }
 }
@@ -152,6 +209,7 @@ impl From<Vec<crate::analyzer::TypeError>> for Error {
         Error::Compilation {
             diagnostics: errors.into_iter().map(|e| e.to_diagnostic()).collect(),
             source,
+            filename: None, // TODO: require caller to set via .with_filename()
         }
     }
 }
@@ -163,6 +221,7 @@ impl From<crate::evaluator::ExecutionError> for Error {
             ExecutionErrorKind::Runtime(_) => Error::Runtime {
                 diagnostic: err.to_diagnostic(),
                 source: err.source,
+                filename: None, // TODO: require caller to set via .with_filename()
             },
             ExecutionErrorKind::ResourceExceeded(e) => Error::ResourceExceeded(e.to_string()),
             ExecutionErrorKind::Internal(e) => Error::Api(format!("Internal error: {}", e)),
@@ -175,6 +234,7 @@ impl From<crate::compiler::CompileError> for Error {
         Error::Compilation {
             diagnostics: crate::Vec::from([err.to_diagnostic()]),
             source: String::new(),
+            filename: None, // TODO: require caller to set via .with_filename()
         }
     }
 }
