@@ -1,5 +1,9 @@
 # Fix: Add Call Stack Traces to Execution Errors
 
+> **Note:** This design document was generated with AI assistance and has not
+> been fully reviewed. The general approach is sound, but implementation details
+> (e.g., instrumentation strategy, output formatting) may change.
+
 ## Problem
 
 Execution errors (from FFI functions and lambdas) lack proper call stack information:
@@ -41,7 +45,7 @@ we get call stack traces while keeping melbi-core no_std.
 - Works for both FFI and lambda errors
 - Captures the full call chain, not just the immediate error location
 - Integrates with existing tracing infrastructure (see `docs/logging.md`)
-- Zero overhead when tracing is disabled
+- Virtually zero overhead when tracing is disabled
 
 ## Implementation Steps
 
@@ -53,17 +57,17 @@ we get call stack traces while keeping melbi-core no_std.
 pub struct ExecutionError {
     pub kind: ExecutionErrorKind,
     pub source: String,
-    pub span: Span,                      // Melbi source location (may be 0..0 for FFI)
+    pub source_span: Span,               // Melbi source location (may be 0..0 for FFI)
     pub tracing_span: tracing::Span,     // Handle to tracing span hierarchy
 }
 
 impl ExecutionError {
     /// Create error with captured tracing span
-    pub fn new(kind: ExecutionErrorKind, source: String, span: Span) -> Self {
+    pub fn new(kind: ExecutionErrorKind, source: String, source_span: Span) -> Self {
         Self {
             kind,
             source,
-            span,
+            source_span,
             tracing_span: tracing::Span::current(),
         }
     }
@@ -81,7 +85,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena, '_> {
     #[instrument(
         skip_all,
         fields(
-            call_site = %self.format_span(expr),  // e.g., "line 5, col 10"
+            call_site = %format_span(&expr.span),  // e.g., "line 5, col 10"
         )
     )]
     fn eval_call(
@@ -152,8 +156,8 @@ fn render_error_with_trace(error: &ExecutionError) {
     eprintln!("Error: {}", error.kind);
 
     // Display Melbi source location if available
-    if error.span != Span(0..0) {
-        eprintln!("  at {}", error.span);
+    if error.source_span != Span(0..0) {
+        eprintln!("  at {}", error.source_span);
     }
 
     // Display call stack
@@ -164,7 +168,7 @@ fn render_error_with_trace(error: &ExecutionError) {
 
 ## Files to Modify
 
-1. `core/src/evaluator/error.rs` - Add `tracing_span` field
+1. `core/src/evaluator/error.rs` - Rename `span` to `source_span`, add `tracing_span` field
 2. `core/src/evaluator/eval.rs` - Instrument Call handling with `#[instrument]`
 3. `melbi_macros/src/lib.rs` - Update error creation in macro
 4. `cli/Cargo.toml` - Add tracing-error dependency
@@ -172,7 +176,7 @@ fn render_error_with_trace(error: &ExecutionError) {
 
 ## Example Output
 
-```
+```text
 Error: Division by zero
 
 Call stack:
