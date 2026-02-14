@@ -3,6 +3,7 @@
 use bumpalo::Bump;
 use core::fmt;
 
+use melbi_thin_ref::ThinRef;
 use melbi_types::ArenaBuilder;
 
 use crate::traits::{RawValue, Val, ValueBuilder};
@@ -27,12 +28,12 @@ pub union ArenaRaw<'arena> {
     int: i64,
     bool: bool,
     float: f64,
-    array: &'arena [&'arena Val<ArenaValueBuilder<'arena>>],
+    array: ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>,
 }
 
-// TODO: Use a thin pointer to keep the size limited to the word size.
-// 16 bytes on 64-bit: the largest field is `array` (fat pointer = ptr + len).
-static_assertions::assert_eq_size!(ArenaRaw<'static>, [usize; 2]);
+// 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data).
+#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+static_assertions::assert_eq_size!(ArenaRaw<'static>, usize);
 
 // Union can't derive Copy/Clone — implement manually.
 // SAFETY: All fields are Copy types, so bitwise copy is always valid
@@ -52,7 +53,7 @@ impl fmt::Debug for ArenaRaw<'_> {
 }
 
 impl<'arena> RawValue for ArenaRaw<'arena> {
-    type ArrayHandle = &'arena [&'arena Val<ArenaValueBuilder<'arena>>];
+    type ArrayHandle = ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>;
 
     fn from_int(value: i64) -> Self {
         ArenaRaw { int: value }
@@ -135,7 +136,7 @@ impl<'arena> ValueBuilder for ArenaValueBuilder<'arena> {
     type TB = ArenaBuilder<'arena>;
     type Raw = ArenaRaw<'arena>;
     type ValueHandle = &'arena Val<Self>;
-    type ArrayHandle = &'arena [Self::ValueHandle];
+    type ArrayHandle = ThinRef<'arena, [Self::ValueHandle]>;
 
     fn ty_builder(&self) -> &ArenaBuilder<'arena> {
         &self.type_builder
@@ -149,6 +150,6 @@ impl<'arena> ValueBuilder for ArenaValueBuilder<'arena> {
         &self,
         elements: impl IntoIterator<Item = Self::ValueHandle, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle {
-        self.arena.alloc_slice_fill_iter(elements)
+        ThinRef::from_slice(self.arena, elements)
     }
 }

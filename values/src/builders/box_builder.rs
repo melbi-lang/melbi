@@ -20,7 +20,7 @@ pub enum BoxRaw {
     Float(f64),
     Array(Rc<[Rc<Val<BoxValueBuilder>>]>),
 }
-static_assertions::assert_eq_size!(BoxRaw, (usize, usize, usize));
+static_assertions::assert_eq_size!(BoxRaw, [usize; 3]);
 
 impl fmt::Debug for BoxRaw {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
