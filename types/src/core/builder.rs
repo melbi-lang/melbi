@@ -25,26 +25,35 @@ pub trait TyBuilder: Clone + Debug + Eq + Hash + Sized {
     type FieldListHandle: Deref<Target = [(Ident<Self>, Ty<Self>)]> + Clone + Debug + Eq + Hash;
 
     /// Internal: Allocate a new type with the given kind.
-    /// Call instead: `TypeKind(...).alloc(builder)`.
+    /// Call instead: `TyKind::*.alloc(builder)`.
     fn alloc(&self, kind: TyKind<Self>) -> Self::TyHandle;
 
+    /// Internal: Allocate a new identifier.
+    /// Call instead: `Ident::new(builder, "name")`.
     fn alloc_ident(&self, ident: impl AsRef<str>) -> Self::IdentHandle;
 
+    /// Internal: Allocate a new type list.
+    /// Call instead: `TyList::from_iter(builder, iter)`.
     fn alloc_ty_list(
         &self,
         iter: impl IntoIterator<Item = Ty<Self>, IntoIter: ExactSizeIterator>,
     ) -> Self::TyListHandle;
 
+    /// Internal: Allocate a new identifier list.
+    /// Call instead: `IdentList::from_iter(builder, iter)`.
     fn alloc_ident_list(
         &self,
         iter: impl IntoIterator<Item = Ident<Self>, IntoIter: ExactSizeIterator>,
     ) -> Self::IdentListHandle;
 
+    /// Internal: Allocate a new field list.
+    /// Call instead: `FieldList::from_iter(builder, iter)`.
     fn alloc_field_list(
         &self,
         iter: impl IntoIterator<Item = (Ident<Self>, Ty<Self>), IntoIter: ExactSizeIterator>,
     ) -> Self::FieldListHandle;
 
+    /// Internal: Resolve a type handle to its underlying node.
     fn resolve_ty_node(ty: &Ty<Self>) -> &TyNode<Self>;
 
     /// Compare two types for equality.
