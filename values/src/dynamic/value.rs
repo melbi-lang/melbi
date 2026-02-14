@@ -1,6 +1,8 @@
+use alloc::vec::Vec;
+
 use melbi_types::{Scalar, Ty, TyKind};
 
-use crate::traits::{Val, ValueBuilder, ValueView};
+use crate::traits::{RawValue, Val, ValueBuilder, ValueView};
 
 use super::Array;
 
@@ -14,14 +16,9 @@ use super::Array;
 ///
 /// ```ignore
 /// let builder = BoxValueBuilder::new();
-/// let tb = BoxBuilder;
 ///
-/// // Create a typed value
-/// let v = IntVal(42).alloc(&builder, &tb);
+/// let v = Value::int(&builder, 42);
 /// assert_eq!(v.as_int(), Some(42));
-///
-/// // Type is carried with the value
-/// assert_eq!(v.ty().kind(), &TyKind::Scalar(Scalar::Int));
 /// ```
 #[derive(Debug, Clone)]
 pub struct Value<B: ValueBuilder> {
@@ -30,11 +27,44 @@ pub struct Value<B: ValueBuilder> {
 }
 
 impl<B: ValueBuilder> Value<B> {
-    /// Create a new typed value from a type and handle.
+    /// Internal: Create a new typed value from a type and handle.
     ///
-    /// This is typically called by value descriptors, not directly by users.
-    pub fn new(ty: Ty<B::TB>, handle: B::ValueHandle) -> Self {
+    /// Prefer using the static constructors (`Value::int`, `Value::bool`, etc.)
+    /// which handle type creation automatically.
+    pub(crate) fn new(ty: Ty<B::TB>, handle: B::ValueHandle) -> Self {
         Self { ty, handle }
+    }
+
+    /// Create an integer value.
+    pub fn int(builder: &B, value: i64) -> Self {
+        let handle = builder.alloc_int(value);
+        let ty = TyKind::Scalar(Scalar::Int).alloc(builder.ty_builder());
+        Self::new(ty, handle)
+    }
+
+    /// Create a boolean value.
+    pub fn bool(builder: &B, value: bool) -> Self {
+        let handle = builder.alloc_bool(value);
+        let ty = TyKind::Scalar(Scalar::Bool).alloc(builder.ty_builder());
+        Self::new(ty, handle)
+    }
+
+    /// Create a float value.
+    pub fn float(builder: &B, value: f64) -> Self {
+        let handle = builder.alloc_float(value);
+        let ty = TyKind::Scalar(Scalar::Float).alloc(builder.ty_builder());
+        Self::new(ty, handle)
+    }
+
+    /// Create an array value from a list of elements.
+    ///
+    /// All elements must have the same type (the given `element_ty`).
+    pub fn array(builder: &B, element_ty: Ty<B::TB>, elements: Vec<Self>) -> Self {
+        let handles = elements.into_iter().map(|e| e.into_handle());
+        let array_handle = builder.alloc_array(handles);
+        let val_handle = builder.alloc_val(B::Raw::from_array(array_handle));
+        let ty = TyKind::Array(element_ty).alloc(builder.ty_builder());
+        Self::new(ty, val_handle)
     }
 
     /// Internal: Get the handle to the raw storage.
@@ -60,14 +90,21 @@ impl<B: ValueBuilder> ValueView<B> for Value<B> {
 
     fn as_int(&self) -> Option<i64> {
         match self.ty.kind() {
-            TyKind::Scalar(Scalar::Int) => Some(self.val().raw().as_int_unchecked()),
+            TyKind::Scalar(Scalar::Int) => Some(self.val().as_int_unchecked()),
             _ => None,
         }
     }
 
     fn as_bool(&self) -> Option<bool> {
         match self.ty.kind() {
-            TyKind::Scalar(Scalar::Bool) => Some(self.val().raw().as_bool_unchecked()),
+            TyKind::Scalar(Scalar::Bool) => Some(self.val().as_bool_unchecked()),
+            _ => None,
+        }
+    }
+
+    fn as_float(&self) -> Option<f64> {
+        match self.ty.kind() {
+            TyKind::Scalar(Scalar::Float) => Some(self.val().as_float_unchecked()),
             _ => None,
         }
     }
@@ -77,12 +114,7 @@ impl<B: ValueBuilder> ValueView<B> for Value<B> {
             return None;
         };
 
-        // TODO: This doesn't work yet - we need to reconcile
-        // ValueHandle (points to Val with RawValue) vs ArrayHandle
-        let raw = self.handle.as_ref().raw();
-        Some(Array::<B>::new(
-            element_ty.clone(),
-            raw.as_array_unchecked(),
-        ))
+        let handle = self.val().as_array_unchecked().clone();
+        Some(Array::<B>::new(element_ty.clone(), handle))
     }
 }
