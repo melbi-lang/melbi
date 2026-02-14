@@ -5,6 +5,7 @@
 extern crate alloc;
 
 pub mod builders;
+pub mod copy;
 pub mod dynamic;
 pub mod traits;
 pub mod typed;
