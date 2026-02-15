@@ -14,9 +14,12 @@ use super::Array;
 ///
 /// # Example
 ///
-/// ```ignore
-/// let builder = BoxValueBuilder::new();
+/// ```
+/// use melbi_values::builders::BoxValueBuilder;
+/// use melbi_values::dynamic::Value;
+/// use melbi_values::traits::ValueView;
 ///
+/// let builder = BoxValueBuilder::new();
 /// let v = Value::int(&builder, 42);
 /// assert_eq!(v.as_int(), Some(42));
 /// ```

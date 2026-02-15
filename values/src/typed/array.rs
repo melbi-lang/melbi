@@ -6,7 +6,11 @@
 //!
 //! # Example
 //!
-//! ```ignore
+//! ```
+//! use melbi_values::builders::BoxValueBuilder;
+//! use melbi_values::typed::{Array, Marshal};
+//! use melbi_values::traits::ArrayView;
+//!
 //! let builder = BoxValueBuilder::new();
 //! let arr = Array::<_, i64>::new(&builder, vec![1, 2, 3]);
 //!

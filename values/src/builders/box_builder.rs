@@ -94,7 +94,7 @@ impl RawValue for BoxRaw {
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
 /// use melbi_values::builders::BoxValueBuilder;
 /// use melbi_values::dynamic::Value;
 /// use melbi_values::traits::ValueView;

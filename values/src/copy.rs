@@ -6,8 +6,12 @@
 //!
 //! # Example
 //!
-//! ```ignore
+//! ```
+//! use bumpalo::Bump;
+//! use melbi_values::builders::{BoxValueBuilder, ArenaValueBuilder};
 //! use melbi_values::copy::copy_value;
+//! use melbi_values::dynamic::Value;
+//! use melbi_values::traits::ValueView;
 //!
 //! let box_builder = BoxValueBuilder::new();
 //! let arena = Bump::new();

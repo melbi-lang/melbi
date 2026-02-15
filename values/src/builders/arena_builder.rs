@@ -106,7 +106,7 @@ impl<'arena> RawValue for ArenaRaw<'arena> {
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
 /// use bumpalo::Bump;
 /// use melbi_values::builders::ArenaValueBuilder;
 /// use melbi_values::dynamic::Value;
