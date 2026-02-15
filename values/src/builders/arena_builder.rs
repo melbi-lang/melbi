@@ -135,20 +135,20 @@ impl<'arena> ArenaValueBuilder<'arena> {
 impl<'arena> ValueBuilder for ArenaValueBuilder<'arena> {
     type TB = ArenaBuilder<'arena>;
     type Raw = ArenaRaw<'arena>;
-    type ValueHandle = &'arena Val<Self>;
-    type ArrayHandle = ThinRef<'arena, [Self::ValueHandle]>;
+    type ValHandle = &'arena Val<Self>;
+    type ArrayHandle = ThinRef<'arena, [Self::ValHandle]>;
 
     fn ty_builder(&self) -> &ArenaBuilder<'arena> {
         &self.type_builder
     }
 
-    fn alloc_val(&self, raw: ArenaRaw<'arena>) -> Self::ValueHandle {
+    fn alloc_val(&self, raw: ArenaRaw<'arena>) -> Self::ValHandle {
         self.arena.alloc(Val::new(raw))
     }
 
     fn alloc_array(
         &self,
-        elements: impl IntoIterator<Item = Self::ValueHandle, IntoIter: ExactSizeIterator>,
+        elements: impl IntoIterator<Item = Self::ValHandle, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle {
         ThinRef::from_slice(self.arena, elements)
     }

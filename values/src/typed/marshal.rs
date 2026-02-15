@@ -41,12 +41,12 @@ pub trait Marshal<B: ValueBuilder>: Sized {
     fn from_val_unchecked(val: &Val<B>) -> Self;
 
     /// Allocate this value in the builder and return a handle.
-    fn into_value_handle(self, builder: &B) -> B::ValueHandle;
+    fn into_val_handle(self, builder: &B) -> B::ValHandle;
 
     /// Convert this Rust value into a dynamic [`Value`].
     fn into_value(self, builder: &B) -> Value<B> {
         let ty = Self::ty(builder.ty_builder());
-        let handle = self.into_value_handle(builder);
+        let handle = self.into_val_handle(builder);
         Value::new(ty, handle)
     }
 
@@ -79,7 +79,7 @@ impl<B: ValueBuilder> Marshal<B> for i64 {
         val.as_int_unchecked()
     }
 
-    fn into_value_handle(self, builder: &B) -> B::ValueHandle {
+    fn into_val_handle(self, builder: &B) -> B::ValHandle {
         builder.alloc_int(self)
     }
 }
@@ -97,7 +97,7 @@ impl<B: ValueBuilder> Marshal<B> for bool {
         val.as_bool_unchecked()
     }
 
-    fn into_value_handle(self, builder: &B) -> B::ValueHandle {
+    fn into_val_handle(self, builder: &B) -> B::ValHandle {
         builder.alloc_bool(self)
     }
 }
@@ -115,7 +115,7 @@ impl<B: ValueBuilder> Marshal<B> for f64 {
         val.as_float_unchecked()
     }
 
-    fn into_value_handle(self, builder: &B) -> B::ValueHandle {
+    fn into_val_handle(self, builder: &B) -> B::ValHandle {
         builder.alloc_float(self)
     }
 }

@@ -23,7 +23,7 @@ use super::Array;
 #[derive(Debug, Clone)]
 pub struct Value<B: ValueBuilder> {
     ty: Ty<B::TB>,
-    handle: B::ValueHandle,
+    handle: B::ValHandle,
 }
 
 impl<B: ValueBuilder> Value<B> {
@@ -31,7 +31,7 @@ impl<B: ValueBuilder> Value<B> {
     ///
     /// Prefer using the static constructors (`Value::int`, `Value::bool`, etc.)
     /// which handle type creation automatically.
-    pub(crate) fn new(ty: Ty<B::TB>, handle: B::ValueHandle) -> Self {
+    pub(crate) fn new(ty: Ty<B::TB>, handle: B::ValHandle) -> Self {
         Self { ty, handle }
     }
 
@@ -68,12 +68,12 @@ impl<B: ValueBuilder> Value<B> {
     }
 
     /// Internal: Get the handle to the raw storage.
-    pub(crate) fn handle(&self) -> &B::ValueHandle {
+    pub(crate) fn handle(&self) -> &B::ValHandle {
         &self.handle
     }
 
     /// Internal: Consume and return the handle.
-    pub(crate) fn into_handle(self) -> B::ValueHandle {
+    pub(crate) fn into_handle(self) -> B::ValHandle {
         self.handle
     }
 

@@ -126,20 +126,20 @@ impl Default for BoxValueBuilder {
 impl ValueBuilder for BoxValueBuilder {
     type TB = BoxBuilder;
     type Raw = BoxRaw;
-    type ValueHandle = Rc<Val<Self>>;
-    type ArrayHandle = Rc<[Self::ValueHandle]>;
+    type ValHandle = Rc<Val<Self>>;
+    type ArrayHandle = Rc<[Self::ValHandle]>;
 
     fn ty_builder(&self) -> &BoxBuilder {
         &self.tb
     }
 
-    fn alloc_val(&self, raw: BoxRaw) -> Self::ValueHandle {
+    fn alloc_val(&self, raw: BoxRaw) -> Self::ValHandle {
         Rc::new(Val::new(raw))
     }
 
     fn alloc_array(
         &self,
-        elements: impl IntoIterator<Item = Self::ValueHandle, IntoIter: ExactSizeIterator>,
+        elements: impl IntoIterator<Item = Self::ValHandle, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle {
         elements.into_iter().collect()
     }

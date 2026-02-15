@@ -68,9 +68,12 @@ impl<B: ValueBuilder, E: Marshal<B>> Array<B, E> {
     /// Create a typed array from a list of elements.
     ///
     /// Each element is marshalled into the builder's storage via
-    /// [`Marshal::into_value_handle`].
-    pub fn new(builder: &B, elements: impl IntoIterator<Item = E, IntoIter: ExactSizeIterator>) -> Self {
-        let handles = elements.into_iter().map(|e| e.into_value_handle(builder));
+    /// [`Marshal::into_val_handle`].
+    pub fn new(
+        builder: &B,
+        elements: impl IntoIterator<Item = E, IntoIter: ExactSizeIterator>,
+    ) -> Self {
+        let handles = elements.into_iter().map(|e| e.into_val_handle(builder));
         let handle = builder.alloc_array(handles);
         Array {
             handle,
@@ -122,7 +125,7 @@ impl<B: ValueBuilder, E: Marshal<B>> Marshal<B> for Array<B, E> {
         }
     }
 
-    fn into_value_handle(self, builder: &B) -> B::ValueHandle {
+    fn into_val_handle(self, builder: &B) -> B::ValHandle {
         builder.alloc_val(B::Raw::from_array(self.handle))
     }
 }

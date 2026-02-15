@@ -99,11 +99,11 @@ pub trait ValueBuilder: Sized + Clone + Debug {
 
     /// Handle to allocated raw value storage.
     /// Examples: `Rc<Val<Self>>`, `&'a Val<Self>`.
-    type ValueHandle: AsRef<Val<Self>> + Clone + Debug;
+    type ValHandle: AsRef<Val<Self>> + Clone + Debug;
 
     /// Handle to an array of value handles (no per-element types).
     /// Examples: `Rc<[Self::ValueHandle]>`, `&'a [Self::ValueHandle]`.
-    type ArrayHandle: AsRef<[Self::ValueHandle]> + Clone + Debug;
+    type ArrayHandle: AsRef<[Self::ValHandle]> + Clone + Debug;
 
     // TODO: StringHandle, BytesHandle, MapHandle, RecordHandle, etc.
 
@@ -114,7 +114,7 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     ///
     /// This is the core allocation method. The convenience methods (`alloc_int`,
     /// `alloc_bool`, etc.) delegate to this by default.
-    fn alloc_val(&self, raw: Self::Raw) -> Self::ValueHandle;
+    fn alloc_val(&self, raw: Self::Raw) -> Self::ValHandle;
 
     /// Internal: Allocate storage for an array of value handles.
     ///
@@ -122,21 +122,21 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     /// use [`Value::array()`] which calls this internally.
     fn alloc_array(
         &self,
-        elements: impl IntoIterator<Item = Self::ValueHandle, IntoIter: ExactSizeIterator>,
+        elements: impl IntoIterator<Item = Self::ValHandle, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle;
 
     /// Internal: Allocate storage for an integer value.
-    fn alloc_int(&self, value: i64) -> Self::ValueHandle {
+    fn alloc_int(&self, value: i64) -> Self::ValHandle {
         self.alloc_val(Self::Raw::from_int(value))
     }
 
     /// Internal: Allocate storage for a boolean value.
-    fn alloc_bool(&self, value: bool) -> Self::ValueHandle {
+    fn alloc_bool(&self, value: bool) -> Self::ValHandle {
         self.alloc_val(Self::Raw::from_bool(value))
     }
 
     /// Internal: Allocate storage for a float value.
-    fn alloc_float(&self, value: f64) -> Self::ValueHandle {
+    fn alloc_float(&self, value: f64) -> Self::ValHandle {
         self.alloc_val(Self::Raw::from_float(value))
     }
 }
