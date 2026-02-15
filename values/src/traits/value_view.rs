@@ -5,15 +5,24 @@ use crate::{
     traits::{ArrayView, ValueBuilder},
 };
 
+/// A read-only view over a dynamically typed value.
+///
+/// Each accessor returns `Some` only when the underlying value matches the
+/// requested type, and `None` otherwise.
 pub trait ValueView<VB: ValueBuilder>: Sized {
+    /// Returns the value's type.
     fn ty(&self) -> Ty<VB::TB>;
 
-    // Primitives: Return standard Rust types
+    /// Returns the integer value, or `None` if not an `Int`.
     fn as_int(&self) -> Option<i64>;
+
+    /// Returns the boolean value, or `None` if not a `Bool`.
     fn as_bool(&self) -> Option<bool>;
+
+    /// Returns the float value, or `None` if not a `Float`.
     fn as_float(&self) -> Option<f64>;
 
-    // Complex Types
+    /// Returns an array view, or `None` if not an `Array`.
     fn as_array(&self) -> Option<impl ArrayView<Value<VB>>>;
 
     // TODO: fn as_map(&self) -> Option<...>;

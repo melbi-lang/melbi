@@ -30,6 +30,8 @@ pub union ArenaRaw<'arena> {
 }
 
 // 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data).
+// Only asserted on architectures where we care about this layout guarantee
+// (e.g., wasm32 has different pointer sizes and is excluded intentionally).
 #[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
 static_assertions::assert_eq_size!(ArenaRaw<'static>, usize);
 
