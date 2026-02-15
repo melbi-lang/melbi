@@ -61,7 +61,7 @@ impl<B: ValueBuilder> Value<B> {
     /// All elements must have the same type (the given `element_ty`).
     pub fn array(builder: &B, element_ty: Ty<B::TB>, elements: Vec<Self>) -> Self {
         debug_assert!(
-            elements.iter().all(|e| e.ty() == element_ty),
+            elements.iter().all(|e| *e.ty() == element_ty),
             "all array elements must match element_ty",
         );
         let handles = elements.into_iter().map(|e| e.into_handle());
@@ -88,8 +88,8 @@ impl<B: ValueBuilder> Value<B> {
 }
 
 impl<B: ValueBuilder> ValueView<B> for Value<B> {
-    fn ty(&self) -> Ty<B::TB> {
-        self.ty.clone()
+    fn ty(&self) -> &Ty<B::TB> {
+        &self.ty
     }
 
     fn as_int(&self) -> Option<i64> {

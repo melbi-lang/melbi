@@ -11,7 +11,7 @@ use crate::{
 /// requested type, and `None` otherwise.
 pub trait ValueView<VB: ValueBuilder>: Sized {
     /// Returns the value's type.
-    fn ty(&self) -> Ty<VB::TB>;
+    fn ty(&self) -> &Ty<VB::TB>;
 
     /// Returns the integer value, or `None` if not an `Int`.
     fn as_int(&self) -> Option<i64>;

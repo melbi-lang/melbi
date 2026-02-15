@@ -518,7 +518,7 @@ fn type_preserved_int_box_to_arena() {
         copy_value(&v, &dst)
     };
 
-    assert_eq!(copied.ty(), ty!(dst_tb, Int));
+    assert_eq!(*copied.ty(), ty!(dst_tb, Int));
 }
 
 #[test]
@@ -533,7 +533,7 @@ fn type_preserved_array_arena_to_box() {
         copy_value(&v, &dst)
     };
 
-    assert_eq!(copied.ty(), ty!(dst_tb, Array[Int]));
+    assert_eq!(*copied.ty(), ty!(dst_tb, Array[Int]));
 }
 
 #[test]
@@ -551,5 +551,5 @@ fn type_preserved_nested_array() {
         copy_value(&outer, &dst)
     };
 
-    assert_eq!(copied.ty(), ty!(dst_tb, Array[Array[Int]]));
+    assert_eq!(*copied.ty(), ty!(dst_tb, Array[Array[Int]]));
 }

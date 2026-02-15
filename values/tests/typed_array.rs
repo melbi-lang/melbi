@@ -132,7 +132,7 @@ fn box_into_value_has_correct_type() {
     let arr = Array::<_, i64>::new(&b, vec![1, 2]);
     let value = arr.into_value(&b);
 
-    assert_eq!(value.ty(), ty!(tb, Array[Int]));
+    assert_eq!(*value.ty(), ty!(tb, Array[Int]));
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn box_nested_into_value_has_correct_type() {
     let outer = Array::<_, Array<_, i64>>::new(&b, vec![inner]);
     let value = outer.into_value(&b);
 
-    assert_eq!(value.ty(), ty!(tb, Array[Array[Int]]));
+    assert_eq!(*value.ty(), ty!(tb, Array[Array[Int]]));
 }
 
 // =============================================================================
@@ -399,7 +399,7 @@ fn arena_into_value_has_correct_type() {
     let arr = Array::<_, i64>::new(&b, vec![1, 2]);
     let value = arr.into_value(&b);
 
-    assert_eq!(value.ty(), ty!(tb, Array[Int]));
+    assert_eq!(*value.ty(), ty!(tb, Array[Int]));
 }
 
 #[test]
@@ -411,7 +411,7 @@ fn arena_nested_into_value_has_correct_type() {
     let outer = Array::<_, Array<_, i64>>::new(&b, vec![inner]);
     let value = outer.into_value(&b);
 
-    assert_eq!(value.ty(), ty!(tb, Array[Array[Int]]));
+    assert_eq!(*value.ty(), ty!(tb, Array[Array[Int]]));
 }
 
 // =============================================================================

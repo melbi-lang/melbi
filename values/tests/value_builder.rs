@@ -63,7 +63,7 @@ test_both_builders!(int_wrong_type_returns_none);
 fn int_has_correct_type<B: ValueBuilder>(b: &B) {
     let v = Value::int(b, 42);
     let tb = b.ty_builder().clone();
-    assert_eq!(v.ty(), ty!(tb, Int));
+    assert_eq!(*v.ty(), ty!(tb, Int));
 }
 test_both_builders!(int_has_correct_type);
 
@@ -93,7 +93,7 @@ test_both_builders!(bool_wrong_type_returns_none);
 fn bool_has_correct_type<B: ValueBuilder>(b: &B) {
     let v = Value::bool(b, true);
     let tb = b.ty_builder().clone();
-    assert_eq!(v.ty(), ty!(tb, Bool));
+    assert_eq!(*v.ty(), ty!(tb, Bool));
 }
 test_both_builders!(bool_has_correct_type);
 
@@ -129,7 +129,7 @@ test_both_builders!(float_wrong_type_returns_none);
 fn float_has_correct_type<B: ValueBuilder>(b: &B) {
     let v = Value::float(b, 1.0);
     let tb = b.ty_builder().clone();
-    assert_eq!(v.ty(), ty!(tb, Float));
+    assert_eq!(*v.ty(), ty!(tb, Float));
 }
 test_both_builders!(float_has_correct_type);
 
@@ -183,7 +183,7 @@ fn array_has_correct_type<B: ValueBuilder>(b: &B) {
 
     let v = Value::array(b, ty!(tb, Int), vec![Value::int(b, 1)]);
 
-    assert_eq!(v.ty(), ty!(tb, Array[Int]));
+    assert_eq!(*v.ty(), ty!(tb, Array[Int]));
 }
 test_both_builders!(array_has_correct_type);
 
@@ -196,7 +196,7 @@ fn array_elements_have_correct_type<B: ValueBuilder>(b: &B) {
 
     let array = v.as_array().unwrap();
     let elem = array.get(0).unwrap();
-    assert_eq!(elem.ty(), ty!(tb, Int));
+    assert_eq!(*elem.ty(), ty!(tb, Int));
 }
 test_both_builders!(array_elements_have_correct_type);
 
@@ -225,7 +225,7 @@ fn nested_array<B: ValueBuilder>(b: &B) {
     let inner_ty = ty!(tb, Array[Int]);
     let outer = Value::array(b, inner_ty, vec![inner1, inner2]);
 
-    assert_eq!(outer.ty(), ty!(tb, Array[Array[Int]]));
+    assert_eq!(*outer.ty(), ty!(tb, Array[Array[Int]]));
 
     let outer_arr = outer.as_array().unwrap();
     assert_eq!(outer_arr.len(), 2);
