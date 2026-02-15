@@ -32,4 +32,11 @@ impl<B: ValueBuilder> ArrayView<Value<B>> for Array<B> {
         let elem_handle = self.handle.as_ref().get(index)?;
         Some(Value::new(self.element_ty.clone(), elem_handle.clone()))
     }
+
+    fn iter(&self) -> impl Iterator<Item = Value<B>> + '_ {
+        self.handle
+            .as_ref()
+            .iter()
+            .map(|h| Value::new(self.element_ty.clone(), h.clone()))
+    }
 }

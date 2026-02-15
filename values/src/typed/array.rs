@@ -24,8 +24,7 @@ use core::marker::PhantomData;
 
 use melbi_types::{Ty, TyKind};
 
-use crate::dynamic::Value;
-use crate::traits::{ArrayView, RawValue, Val, ValueBuilder, ValueView};
+use crate::traits::{ArrayView, RawValue, Val, ValueBuilder};
 
 use super::Marshal;
 
@@ -79,30 +78,7 @@ impl<B: ValueBuilder, E: Marshal<B>> Array<B, E> {
         }
     }
 
-    /// Try to extract a typed array from a dynamic [`Value`].
-    ///
-    /// Returns `None` if the value's type does not match `Array[E]`.
-    /// Type checking is structural and allocation-free.
-    pub fn from_value(value: &Value<B>) -> Option<Self> {
-        if !Self::matches_ty_kind(&value.ty().kind()) {
-            return None;
-        }
-        let handle = value.val().as_array_unchecked().clone();
-        Some(Array {
-            handle,
-            _marker: PhantomData,
-        })
-    }
-
-    /// Convert this typed array into a dynamic [`Value`].
-    ///
-    /// Wraps the array handle in a `Value` with the appropriate `Ty`.
-    pub fn into_value(self, builder: &B) -> Value<B> {
-        let elem_ty = E::ty(builder.ty_builder());
-        let ty = TyKind::Array(elem_ty).alloc(builder.ty_builder());
-        let val_handle = builder.alloc_val(B::Raw::from_array(self.handle));
-        Value::new(ty, val_handle)
-    }
+    // `from_value` and `into_value` are provided by `Marshal<B>` default methods.
 }
 
 // --- ArrayView ---
@@ -115,6 +91,13 @@ impl<B: ValueBuilder, E: Marshal<B>> ArrayView<E> for Array<B, E> {
     fn get(&self, index: usize) -> Option<E> {
         let elem_handle = self.handle.as_ref().get(index)?;
         Some(E::from_val_unchecked(elem_handle.as_ref()))
+    }
+
+    fn iter(&self) -> impl Iterator<Item = E> + '_ {
+        self.handle
+            .as_ref()
+            .iter()
+            .map(|h| E::from_val_unchecked(h.as_ref()))
     }
 }
 

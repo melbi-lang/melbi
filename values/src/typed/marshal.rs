@@ -13,7 +13,8 @@
 
 use melbi_types::{Scalar, Ty, TyKind};
 
-use crate::traits::{Val, ValueBuilder};
+use crate::dynamic::Value;
+use crate::traits::{Val, ValueBuilder, ValueView};
 
 /// Marshalling between a Rust type and a builder's raw value storage.
 ///
@@ -41,6 +42,24 @@ pub trait Marshal<B: ValueBuilder>: Sized {
 
     /// Allocate this value in the builder and return a handle.
     fn into_value_handle(self, builder: &B) -> B::ValueHandle;
+
+    /// Convert this Rust value into a dynamic [`Value`].
+    fn into_value(self, builder: &B) -> Value<B> {
+        let ty = Self::ty(builder.ty_builder());
+        let handle = self.into_value_handle(builder);
+        Value::new(ty, handle)
+    }
+
+    /// Try to extract this Rust type from a dynamic [`Value`].
+    ///
+    /// Returns `None` if the value's type does not match.
+    /// Type checking is structural and allocation-free.
+    fn from_value(value: &Value<B>) -> Option<Self> {
+        if !Self::matches_ty_kind(&value.ty().kind()) {
+            return None;
+        }
+        Some(Self::from_val_unchecked(value.val()))
+    }
 }
 
 // =============================================================================

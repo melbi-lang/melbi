@@ -9,7 +9,7 @@ use melbi_values::{
     builders::{ArenaValueBuilder, BoxValueBuilder},
     dynamic::Value,
     traits::{ArrayView, ValueBuilder, ValueView},
-    typed::Array,
+    typed::{Array, Marshal},
 };
 
 // =============================================================================
