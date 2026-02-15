@@ -1608,6 +1608,7 @@ name = "melbi-values"
 version = "0.1.0"
 dependencies = [
  "bumpalo",
+ "melbi-thin-ref",
  "melbi-types",
  "static_assertions",
 ]

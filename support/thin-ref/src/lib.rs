@@ -302,6 +302,12 @@ impl<'a, T: ?Sized + ThinRefTarget> Deref for ThinRef<'a, T> {
     }
 }
 
+impl<T> AsRef<[T]> for ThinRef<'_, [T]> {
+    fn as_ref(&self) -> &[T] {
+        self
+    }
+}
+
 // Important: use correct semantics for references.
 unsafe impl<T: ?Sized + Sync> Send for ThinRef<'_, T> {}
 unsafe impl<T: ?Sized + Sync> Sync for ThinRef<'_, T> {}
@@ -410,6 +416,26 @@ mod tests {
         let arena = Bump::new();
         let thin: ThinRef<[i32]> = ThinRef::from_slice(&arena, [1, 2, 3, 4, 5]);
         assert_eq!(thin.len(), 5);
+    }
+
+    // ===================
+    // AsRef tests
+    // ===================
+
+    #[test]
+    fn as_ref_slice() {
+        let arena = Bump::new();
+        let thin: ThinRef<[i32]> = ThinRef::from_slice(&arena, [10, 20, 30]);
+        let slice: &[i32] = thin.as_ref();
+        assert_eq!(slice, &[10, 20, 30]);
+    }
+
+    #[test]
+    fn as_ref_empty_slice() {
+        let arena = Bump::new();
+        let thin: ThinRef<[i32]> = ThinRef::from_slice(&arena, []);
+        let slice: &[i32] = thin.as_ref();
+        assert!(slice.is_empty());
     }
 
     // ===================

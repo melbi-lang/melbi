@@ -1,3 +1,5 @@
-mod array_view;
+mod array;
+mod marshal;
 
-pub use array_view::ArrayView;
+pub use array::Array;
+pub use marshal::Marshal;
