@@ -125,6 +125,67 @@ fn int_box_to_box() {
     assert_eq!(copied.as_int(), Some(7));
 }
 
+#[test]
+fn bool_box_to_box() {
+    let dst = box_builder();
+    let copied = {
+        let src = box_builder();
+        let v = Value::bool(&src, true);
+        copy_value(&v, &dst)
+    };
+
+    assert_eq!(copied.as_bool(), Some(true));
+}
+
+#[test]
+fn float_box_to_box() {
+    let dst = box_builder();
+    let copied = {
+        let src = box_builder();
+        let v = Value::float(&src, 2.718);
+        copy_value(&v, &dst)
+    };
+
+    assert_eq!(copied.as_float(), Some(2.718));
+}
+
+// =============================================================================
+// Box → Box: arrays
+// =============================================================================
+
+#[test]
+fn array_of_ints_box_to_box() {
+    let dst = box_builder();
+    let copied = {
+        let src = box_builder();
+        let src_tb = src.ty_builder().clone();
+        let elements = vec![Value::int(&src, 4), Value::int(&src, 5), Value::int(&src, 6)];
+        let v = Value::array(&src, ty!(src_tb, Int), elements);
+        copy_value(&v, &dst)
+    };
+
+    let array = copied.as_array().expect("should be an array");
+    assert_eq!(array.len(), 3);
+    assert_eq!(array.get(0).and_then(|e| e.as_int()), Some(4));
+    assert_eq!(array.get(1).and_then(|e| e.as_int()), Some(5));
+    assert_eq!(array.get(2).and_then(|e| e.as_int()), Some(6));
+}
+
+#[test]
+fn empty_array_box_to_box() {
+    let dst = box_builder();
+    let copied = {
+        let src = box_builder();
+        let src_tb = src.ty_builder().clone();
+        let v = Value::array(&src, ty!(src_tb, Int), vec![]);
+        copy_value(&v, &dst)
+    };
+
+    let array = copied.as_array().unwrap();
+    assert_eq!(array.len(), 0);
+    assert!(array.is_empty());
+}
+
 // =============================================================================
 // Arena → Arena: scalars (separate arenas)
 // =============================================================================

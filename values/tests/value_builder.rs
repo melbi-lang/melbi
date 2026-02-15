@@ -2,159 +2,147 @@ extern crate alloc;
 
 use alloc::vec;
 
+use bumpalo::Bump;
 use melbi_types::ty;
 use melbi_values::{
-    builders::BoxValueBuilder,
+    builders::{ArenaValueBuilder, BoxValueBuilder},
     dynamic::Value,
     traits::{ArrayView, ValueBuilder, ValueView},
 };
 
-fn builder() -> BoxValueBuilder {
-    BoxValueBuilder::new()
+/// Generates `#[test]` wrappers that run a generic test function against both
+/// `BoxValueBuilder` and `ArenaValueBuilder`.
+macro_rules! test_both_builders {
+    ($name:ident) => {
+        mod $name {
+            use super::*;
+
+            #[test]
+            fn box_builder() {
+                super::$name(&BoxValueBuilder::new());
+            }
+
+            #[test]
+            fn arena_builder() {
+                let arena = Bump::new();
+                super::$name(&ArenaValueBuilder::new(&arena));
+            }
+        }
+    };
 }
 
 // =============================================================================
 // Integer values
 // =============================================================================
 
-#[test]
-fn int_value() {
-    let b = builder();
-    let v = Value::int(&b, 42);
-
+fn int_value<B: ValueBuilder>(b: &B) {
+    let v = Value::int(b, 42);
     assert_eq!(v.as_int(), Some(42));
 }
+test_both_builders!(int_value);
 
-#[test]
-fn int_negative() {
-    let b = builder();
-    let v = Value::int(&b, -100);
-
+fn int_negative<B: ValueBuilder>(b: &B) {
+    let v = Value::int(b, -100);
     assert_eq!(v.as_int(), Some(-100));
 }
+test_both_builders!(int_negative);
 
-#[test]
-fn int_zero() {
-    let b = builder();
-    let v = Value::int(&b, 0);
-
+fn int_zero<B: ValueBuilder>(b: &B) {
+    let v = Value::int(b, 0);
     assert_eq!(v.as_int(), Some(0));
 }
+test_both_builders!(int_zero);
 
-#[test]
-fn int_wrong_type_returns_none() {
-    let b = builder();
-    let v = Value::int(&b, 42);
-
+fn int_wrong_type_returns_none<B: ValueBuilder>(b: &B) {
+    let v = Value::int(b, 42);
     assert_eq!(v.as_bool(), None);
     assert_eq!(v.as_float(), None);
 }
+test_both_builders!(int_wrong_type_returns_none);
 
-#[test]
-fn int_has_correct_type() {
-    let b = builder();
-    let v = Value::int(&b, 42);
+fn int_has_correct_type<B: ValueBuilder>(b: &B) {
+    let v = Value::int(b, 42);
     let tb = b.ty_builder().clone();
-
     assert_eq!(v.ty(), ty!(tb, Int));
 }
+test_both_builders!(int_has_correct_type);
 
 // =============================================================================
 // Boolean values
 // =============================================================================
 
-#[test]
-fn bool_true() {
-    let b = builder();
-    let v = Value::bool(&b, true);
-
+fn bool_true<B: ValueBuilder>(b: &B) {
+    let v = Value::bool(b, true);
     assert_eq!(v.as_bool(), Some(true));
 }
+test_both_builders!(bool_true);
 
-#[test]
-fn bool_false() {
-    let b = builder();
-    let v = Value::bool(&b, false);
-
+fn bool_false<B: ValueBuilder>(b: &B) {
+    let v = Value::bool(b, false);
     assert_eq!(v.as_bool(), Some(false));
 }
+test_both_builders!(bool_false);
 
-#[test]
-fn bool_wrong_type_returns_none() {
-    let b = builder();
-    let v = Value::bool(&b, true);
-
+fn bool_wrong_type_returns_none<B: ValueBuilder>(b: &B) {
+    let v = Value::bool(b, true);
     assert_eq!(v.as_int(), None);
     assert_eq!(v.as_float(), None);
 }
+test_both_builders!(bool_wrong_type_returns_none);
 
-#[test]
-fn bool_has_correct_type() {
-    let b = builder();
-    let v = Value::bool(&b, true);
+fn bool_has_correct_type<B: ValueBuilder>(b: &B) {
+    let v = Value::bool(b, true);
     let tb = b.ty_builder().clone();
-
     assert_eq!(v.ty(), ty!(tb, Bool));
 }
+test_both_builders!(bool_has_correct_type);
 
 // =============================================================================
 // Float values
 // =============================================================================
 
-#[test]
-fn float_value() {
-    let b = builder();
-    let v = Value::float(&b, 3.14);
-
+fn float_value<B: ValueBuilder>(b: &B) {
+    let v = Value::float(b, 3.14);
     assert_eq!(v.as_float(), Some(3.14));
 }
+test_both_builders!(float_value);
 
-#[test]
-fn float_negative() {
-    let b = builder();
-    let v = Value::float(&b, -2.5);
-
+fn float_negative<B: ValueBuilder>(b: &B) {
+    let v = Value::float(b, -2.5);
     assert_eq!(v.as_float(), Some(-2.5));
 }
+test_both_builders!(float_negative);
 
-#[test]
-fn float_zero() {
-    let b = builder();
-    let v = Value::float(&b, 0.0);
-
+fn float_zero<B: ValueBuilder>(b: &B) {
+    let v = Value::float(b, 0.0);
     assert_eq!(v.as_float(), Some(0.0));
 }
+test_both_builders!(float_zero);
 
-#[test]
-fn float_wrong_type_returns_none() {
-    let b = builder();
-    let v = Value::float(&b, 3.14);
-
+fn float_wrong_type_returns_none<B: ValueBuilder>(b: &B) {
+    let v = Value::float(b, 3.14);
     assert_eq!(v.as_int(), None);
     assert_eq!(v.as_bool(), None);
 }
+test_both_builders!(float_wrong_type_returns_none);
 
-#[test]
-fn float_has_correct_type() {
-    let b = builder();
-    let v = Value::float(&b, 1.0);
+fn float_has_correct_type<B: ValueBuilder>(b: &B) {
+    let v = Value::float(b, 1.0);
     let tb = b.ty_builder().clone();
-
     assert_eq!(v.ty(), ty!(tb, Float));
 }
+test_both_builders!(float_has_correct_type);
 
 // =============================================================================
 // Array values
 // =============================================================================
 
-#[test]
-fn array_of_ints() {
-    let b = builder();
+fn array_of_ints<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
     let elem_ty = ty!(tb, Int);
 
-    let elements = vec![Value::int(&b, 10), Value::int(&b, 20), Value::int(&b, 30)];
-    let v = Value::array(&b, elem_ty, elements);
+    let elements = vec![Value::int(b, 10), Value::int(b, 20), Value::int(b, 30)];
+    let v = Value::array(b, elem_ty, elements);
 
     let array = v.as_array().expect("should be an array");
     assert_eq!(array.len(), 3);
@@ -164,84 +152,78 @@ fn array_of_ints() {
     assert_eq!(array.get(1).and_then(|e| e.as_int()), Some(20));
     assert_eq!(array.get(2).and_then(|e| e.as_int()), Some(30));
 }
+test_both_builders!(array_of_ints);
 
-#[test]
-fn array_out_of_bounds_returns_none() {
-    let b = builder();
+fn array_out_of_bounds_returns_none<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
 
-    let elements = vec![Value::int(&b, 1), Value::int(&b, 2)];
-    let v = Value::array(&b, ty!(tb, Int), elements);
+    let elements = vec![Value::int(b, 1), Value::int(b, 2)];
+    let v = Value::array(b, ty!(tb, Int), elements);
 
     let array = v.as_array().unwrap();
     assert!(array.get(2).is_none());
     assert!(array.get(100).is_none());
 }
+test_both_builders!(array_out_of_bounds_returns_none);
 
-#[test]
-fn empty_array() {
-    let b = builder();
+fn empty_array<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
 
-    let v = Value::array(&b, ty!(tb, Int), vec![]);
+    let v = Value::array(b, ty!(tb, Int), vec![]);
 
     let array = v.as_array().unwrap();
     assert_eq!(array.len(), 0);
     assert!(array.is_empty());
     assert!(array.get(0).is_none());
 }
+test_both_builders!(empty_array);
 
-#[test]
-fn array_has_correct_type() {
-    let b = builder();
+fn array_has_correct_type<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
 
-    let v = Value::array(&b, ty!(tb, Int), vec![Value::int(&b, 1)]);
+    let v = Value::array(b, ty!(tb, Int), vec![Value::int(b, 1)]);
 
     assert_eq!(v.ty(), ty!(tb, Array[Int]));
 }
+test_both_builders!(array_has_correct_type);
 
-#[test]
-fn array_elements_have_correct_type() {
-    let b = builder();
+fn array_elements_have_correct_type<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
     let int_ty = ty!(tb, Int);
 
-    let elements = vec![Value::int(&b, 10), Value::int(&b, 20)];
-    let v = Value::array(&b, int_ty, elements);
+    let elements = vec![Value::int(b, 10), Value::int(b, 20)];
+    let v = Value::array(b, int_ty, elements);
 
     let array = v.as_array().unwrap();
     let elem = array.get(0).unwrap();
     assert_eq!(elem.ty(), ty!(tb, Int));
 }
+test_both_builders!(array_elements_have_correct_type);
 
-#[test]
-fn array_wrong_type_returns_none() {
-    let b = builder();
+fn array_wrong_type_returns_none<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
 
-    let v = Value::array(&b, ty!(tb, Int), vec![Value::int(&b, 1)]);
+    let v = Value::array(b, ty!(tb, Int), vec![Value::int(b, 1)]);
 
     assert_eq!(v.as_int(), None);
     assert_eq!(v.as_bool(), None);
     assert_eq!(v.as_float(), None);
 }
+test_both_builders!(array_wrong_type_returns_none);
 
 // =============================================================================
 // Nested arrays
 // =============================================================================
 
-#[test]
-fn nested_array() {
-    let b = builder();
+fn nested_array<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
     let int_ty = ty!(tb, Int);
 
-    let inner1 = Value::array(&b, int_ty.clone(), vec![Value::int(&b, 1), Value::int(&b, 2)]);
-    let inner2 = Value::array(&b, int_ty.clone(), vec![Value::int(&b, 3), Value::int(&b, 4)]);
+    let inner1 = Value::array(b, int_ty.clone(), vec![Value::int(b, 1), Value::int(b, 2)]);
+    let inner2 = Value::array(b, int_ty.clone(), vec![Value::int(b, 3), Value::int(b, 4)]);
 
     let inner_ty = ty!(tb, Array[Int]);
-    let outer = Value::array(&b, inner_ty, vec![inner1, inner2]);
+    let outer = Value::array(b, inner_ty, vec![inner1, inner2]);
 
     assert_eq!(outer.ty(), ty!(tb, Array[Array[Int]]));
 
@@ -259,47 +241,45 @@ fn nested_array() {
     assert_eq!(second_inner_arr.get(0).and_then(|e| e.as_int()), Some(3));
     assert_eq!(second_inner_arr.get(1).and_then(|e| e.as_int()), Some(4));
 }
+test_both_builders!(nested_array);
 
 // =============================================================================
 // Array of booleans and floats
 // =============================================================================
 
-#[test]
-fn array_of_bools() {
-    let b = builder();
+fn array_of_bools<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
 
-    let elements = vec![Value::bool(&b, true), Value::bool(&b, false)];
-    let v = Value::array(&b, ty!(tb, Bool), elements);
+    let elements = vec![Value::bool(b, true), Value::bool(b, false)];
+    let v = Value::array(b, ty!(tb, Bool), elements);
 
     let array = v.as_array().unwrap();
     assert_eq!(array.get(0).and_then(|e| e.as_bool()), Some(true));
     assert_eq!(array.get(1).and_then(|e| e.as_bool()), Some(false));
 }
+test_both_builders!(array_of_bools);
 
-#[test]
-fn array_of_floats() {
-    let b = builder();
+fn array_of_floats<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
 
-    let elements = vec![Value::float(&b, 1.5), Value::float(&b, 2.5)];
-    let v = Value::array(&b, ty!(tb, Float), elements);
+    let elements = vec![Value::float(b, 1.5), Value::float(b, 2.5)];
+    let v = Value::array(b, ty!(tb, Float), elements);
 
     let array = v.as_array().unwrap();
     assert_eq!(array.get(0).and_then(|e| e.as_float()), Some(1.5));
     assert_eq!(array.get(1).and_then(|e| e.as_float()), Some(2.5));
 }
+test_both_builders!(array_of_floats);
 
 // =============================================================================
 // Clone semantics
 // =============================================================================
 
-#[test]
-fn value_clone_is_independent() {
-    let b = builder();
-    let v1 = Value::int(&b, 42);
+fn value_clone_is_independent<B: ValueBuilder>(b: &B) {
+    let v1 = Value::int(b, 42);
     let v2 = v1.clone();
 
     assert_eq!(v1.as_int(), Some(42));
     assert_eq!(v2.as_int(), Some(42));
 }
+test_both_builders!(value_clone_is_independent);

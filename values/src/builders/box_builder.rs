@@ -12,7 +12,7 @@ use crate::traits::{RawValue, Val, ValueBuilder};
 /// Raw value storage for [`BoxValueBuilder`].
 ///
 /// Uses an enum so that Clone and Drop work naturally (no unsafe needed).
-/// The arena builder (future) will use a union instead.
+/// The arena builder uses a union instead (see [`ArenaRaw`](super::arena_builder::ArenaRaw)).
 #[derive(Clone)]
 pub enum BoxRaw {
     Int(i64),
@@ -105,14 +105,14 @@ impl RawValue for BoxRaw {
 /// ```
 #[derive(Clone, Debug)]
 pub struct BoxValueBuilder {
-    tb: BoxBuilder,
+    type_builder: BoxBuilder,
 }
 
 impl BoxValueBuilder {
     /// Create a new box value builder.
     pub fn new() -> Self {
         Self {
-            tb: BoxBuilder::new(),
+            type_builder: BoxBuilder::new(),
         }
     }
 }
@@ -130,7 +130,7 @@ impl ValueBuilder for BoxValueBuilder {
     type ArrayHandle = Rc<[Self::ValHandle]>;
 
     fn ty_builder(&self) -> &BoxBuilder {
-        &self.tb
+        &self.type_builder
     }
 
     fn alloc_val(&self, raw: BoxRaw) -> Self::ValHandle {

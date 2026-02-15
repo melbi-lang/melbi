@@ -34,7 +34,7 @@ use melbi_types::TyBuilder;
 ///
 /// Each concrete builder provides its own raw storage type:
 /// - `BoxValueBuilder` uses an enum (`BoxRaw`) with proper Clone/Drop
-/// - `ArenaValueBuilder` (future) uses a union where the arena handles cleanup
+/// - `ArenaValueBuilder` uses a union (`ArenaRaw`) where the arena handles cleanup
 ///
 /// The accessor methods are unchecked — the caller must verify the type first
 /// (via [`Value`]'s type field) before calling these.
@@ -94,7 +94,7 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     /// Builder-specific raw value storage.
     ///
     /// - For `BoxValueBuilder`: an enum (`BoxRaw`) that can properly Clone/Drop
-    /// - For `ArenaValueBuilder` (future): a union where the arena handles cleanup
+    /// - For `ArenaValueBuilder`: a union (`ArenaRaw`) where the arena handles cleanup
     type Raw: RawValue<ArrayHandle = Self::ArrayHandle>;
 
     /// Handle to allocated raw value storage.
@@ -102,7 +102,7 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     type ValHandle: AsRef<Val<Self>> + Clone + Debug;
 
     /// Handle to an array of value handles (no per-element types).
-    /// Examples: `Rc<[Self::ValueHandle]>`, `&'a [Self::ValueHandle]`.
+    /// Examples: `Rc<[Self::ValHandle]>`, `&'a [Self::ValHandle]`.
     type ArrayHandle: AsRef<[Self::ValHandle]> + Clone + Debug;
 
     // TODO: StringHandle, BytesHandle, MapHandle, RecordHandle, etc.
@@ -145,7 +145,7 @@ pub trait ValueBuilder: Sized + Clone + Debug {
 // Val - Internal raw value storage
 // =============================================================================
 
-/// Internal: Raw value storage (what [`ValueHandle`](ValueBuilder::ValueHandle) points to).
+/// Internal: Raw value storage (what [`ValHandle`](ValueBuilder::ValHandle) points to).
 ///
 /// Contains only raw data, no type information. The type is tracked externally
 /// via [`Value`]. Users never interact with `Val` directly.

@@ -66,6 +66,6 @@ pub fn copy_value<Src: ValueBuilder, Dst: ValueBuilder>(
             let ty = TyKind::Array(dst_elem_ty).alloc(dst.ty_builder());
             Value::new(ty, val_handle)
         }
-        other => unreachable!("unsupported value type for copying: {other:?}"),
+        other => unimplemented!("value type not yet supported for copying: {other:?}"),
     }
 }

@@ -1,5 +1,3 @@
-#![allow(unsafe_code)] // Union field access requires unsafe
-
 use bumpalo::Bump;
 use core::fmt;
 
@@ -52,6 +50,7 @@ impl fmt::Debug for ArenaRaw<'_> {
     }
 }
 
+#[allow(unsafe_code)] // Union field access requires unsafe; each use has a SAFETY comment.
 impl<'arena> RawValue for ArenaRaw<'arena> {
     type ArrayHandle = ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>;
 

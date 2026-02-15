@@ -30,6 +30,9 @@ impl<B: ValueBuilder> ArrayView<Value<B>> for Array<B> {
 
     fn get(&self, index: usize) -> Option<Value<B>> {
         let elem_handle = self.handle.as_ref().get(index)?;
+        // element_ty is cloned per access: free for arena (Copy) but involves
+        // Rc ref-count bumps for box builders. Intentional trade-off to store
+        // the type once and re-attach per element.
         Some(Value::new(self.element_ty.clone(), elem_handle.clone()))
     }
 

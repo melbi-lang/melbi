@@ -559,6 +559,8 @@ fn arena_clone_is_independent() {
 // Copy — ArenaValueBuilder (arena arrays are Copy, box arrays are not)
 // =============================================================================
 
+static_assertions::assert_not_impl_any!(Array<BoxValueBuilder, i64>: Copy);
+
 fn assert_copy<T: Copy>(_: &T) {}
 
 #[test]

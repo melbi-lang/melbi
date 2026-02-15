@@ -60,6 +60,10 @@ impl<B: ValueBuilder> Value<B> {
     ///
     /// All elements must have the same type (the given `element_ty`).
     pub fn array(builder: &B, element_ty: Ty<B::TB>, elements: Vec<Self>) -> Self {
+        debug_assert!(
+            elements.iter().all(|e| e.ty() == element_ty),
+            "all array elements must match element_ty",
+        );
         let handles = elements.into_iter().map(|e| e.into_handle());
         let array_handle = builder.alloc_array(handles);
         let val_handle = builder.alloc_val(B::Raw::from_array(array_handle));
