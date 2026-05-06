@@ -92,5 +92,14 @@ jobs:
         with:
           tag_name: pre-alpha
           name: Pre-Alpha Build
+          body: |
+            This is a pre-alpha development build of Melbi. Binaries are provided for testing purposes only and may be unstable.
+
+            ### Included binaries
+
+            - `melbi` — CLI tool (eval, run, check, fmt, repl, completions)
+            - `melbi-lsp` — Language server for editor integration
+
+            Download the appropriate binary for your platform from the assets below.
           prerelease: true
           files: dist/**/*
