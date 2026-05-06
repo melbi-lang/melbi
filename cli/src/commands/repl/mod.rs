@@ -242,6 +242,9 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
             Signal::CtrlC => {
                 continue;
             }
+            _ => {
+                continue;
+            }
         }
     }
 }
