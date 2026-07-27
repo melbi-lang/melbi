@@ -16,7 +16,6 @@ fn main() -> std::io::Result<()> {
 
     let result = analyzer::analyze(type_manager, &arena, &ast, &[], &[]);
     let Ok(expr) = result else {
-        // Print the error using miette's fancy output, but don't exit
         eprintln!("{:?}", result.unwrap_err());
         return Ok(());
     };
