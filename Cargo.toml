@@ -1,18 +1,25 @@
 [workspace]
 members = [
-    "cli",
-    "core",
-    "fmt",
-    "lsp",
-    "macros",
-    "parser",
-    "playground/worker",
+    # Packages published as crates on crates.io
+    "cli", # CLI tool for evaluating, checking, formatting, REPL and more.
+    "core", # Parser, type-checker, interpreter, bytecode compiler, VM, types,
+            # values, standard library, and more. (no_std compatible).
+    "fmt",  # Unused? I think maybe this is superseded by code in melbi-cli.
+            # Although, it's something the LSP would use.
+    "lsp",  # Language Server Protocol implementation.
+    "macros", # Macros for the Melbi language.
+
+    # Independent packages (might become their own crates on crates.io)
     "support/small-str",
     "support/teeny-vec",
     "support/thin-ref",
-    "types",
-    "values",
-    "zed",
+
+    # Other packages.
+    "zed", # Zed editor extension (to be published to Zed's registry)
+    "playground/worker", # WebAssembly worker for the playground
+    "parser", # WIP: new parser
+    "types", # WIP: new type foundation based on "builder traits"
+    "values", # WIP: new value foundation based on "builder traits"
 ]
 
 [workspace.package]
