@@ -10,7 +10,7 @@ use core::ptr;
 use bumpalo::Bump;
 
 use crate::test_utils::{Expr, Rebuild, Span, SumLiterals, sample, sample_with_literals};
-use crate::{Tree, TreeBuilder, TreeNode, Visit};
+use crate::{Tree, TreeBuilder, TreeNode};
 
 #[derive(Clone, Copy)]
 pub struct ArenaBuilder<'arena> {

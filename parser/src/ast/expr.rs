@@ -23,49 +23,29 @@
 //! target type lives in the node's `TreeData` rather than in the kind. The
 //! unresolved form the parser emits needs a separate tree for type syntax.
 
-use crate::{Tree, TreeBuilder};
+use crate::Tree;
 
+use super::builder::{ExprBuilder, LiteralTree};
 use super::operators::{BinaryOp, BoolOp, ComparisonOp, UnaryOp};
 
 /// A node of the expression tree.
 ///
-/// Every child is a [`Tree<B>`], so this enum is self-recursive and needs no
-/// other tree — which is exactly why the constructs listed in the module docs
-/// are missing: each of them reaches outside this tree.
+/// Apart from [`Literal`], every child is a [`Tree<B>`] in this same tree.
 ///
-/// `Eq` and `Hash` are absent by necessity, not choice: [`Float`] holds an
+/// `Eq` and `Hash` are absent by necessity, not choice: a literal may hold an
 /// `f64`. `PartialEq` is derived, which works because `Tree`'s own `PartialEq`
 /// is unconditional.
 ///
-/// [`Float`]: ExprKind::Float
+/// [`Literal`]: ExprKind::Literal
 #[derive(Debug, Clone, PartialEq)]
-pub enum ExprKind<B: TreeBuilder> {
+pub enum ExprKind<B: ExprBuilder> {
     // --- Literals ---
-    /// ``42``, ``0x2a``, ``0b1010``, or with a unit of measurement:
-    /// ``42`m` ``, ``0o755`B/s` ``.
+    /// ``42``, ``"hello"``, ``9.81`m/s^2` `` — a node of the literal tree.
     ///
-    /// The suffix is a whole expression, not a name: a unit may be a product,
-    /// quotient or power, as in ``9.81`m/s^2` ``. The grammar admits any
-    /// expression there and a later pass rejects everything outside
-    /// identifiers, integers, `*`, `/` and `^`.
-    ///
-    /// See `docs/design/units-of-measurement.md`.
-    Int {
-        value: i64,
-        suffix: Option<Tree<B>>,
-    },
-    /// ``3.14``, ``1.5e-10``, ``9.81`m/s^2` `` — see [`Int`](ExprKind::Int) for
-    /// the suffix.
-    Float {
-        value: f64,
-        suffix: Option<Tree<B>>,
-    },
-    /// `true`, `false`
-    Bool(bool),
-    /// `"hello"`
-    Str(B::Str),
-    /// `b"hello"`
-    Bytes(B::Bytes),
+    /// This is the edge into [`LiteralKind`](super::LiteralKind), and the
+    /// literal's suffix is the edge back, which is what makes the two trees
+    /// mutually recursive.
+    Literal(LiteralTree<B>),
     /// `f"a { x } b"`.
     ///
     /// REQUIRES: `strs.len() == exprs.len() + 1` — the literal pieces surround

@@ -23,11 +23,11 @@ pub enum Expr<B: TreeBuilder> {
 }
 
 /// Shorthand for "a builder whose tree is [`Expr`] with [`Span`] data".
-pub trait ExprBuilder: TreeBuilder<TreeData = Span, TreeKind = Expr<Self>> {}
-impl<B: TreeBuilder<TreeData = Span, TreeKind = Expr<Self>>> ExprBuilder for B {}
+pub trait SampleBuilder: TreeBuilder<TreeData = Span, TreeKind = Expr<Self>> {}
+impl<B: TreeBuilder<TreeData = Span, TreeKind = Expr<Self>>> SampleBuilder for B {}
 
 /// `[1, 1 + (2 + x)]` — covers a shared subtree, a list, and an interned string.
-pub fn sample<B: ExprBuilder>(builder: &B) -> Tree<B> {
+pub fn sample<B: SampleBuilder>(builder: &B) -> Tree<B> {
     let one = TreeNode::new(Span(0, 1), Expr::Lit(1)).alloc(builder);
     let two = TreeNode::new(Span(4, 5), Expr::Lit(2)).alloc(builder);
     let x = TreeNode::new(Span(8, 9), Expr::Ident(builder.alloc_str("x"))).alloc(builder);
@@ -38,7 +38,7 @@ pub fn sample<B: ExprBuilder>(builder: &B) -> Tree<B> {
 }
 
 /// `f"a = {7}!"` next to `b"hi"`, so byte strings and string lists are covered.
-pub fn sample_with_literals<B: ExprBuilder>(builder: &B) -> Tree<B> {
+pub fn sample_with_literals<B: SampleBuilder>(builder: &B) -> Tree<B> {
     let strs = builder.alloc_str_list([builder.alloc_str("a = "), builder.alloc_str("!")]);
     let exprs = builder.alloc_list([TreeNode::new(Span(4, 5), Expr::Lit(7)).alloc(builder)]);
     let format = TreeNode::new(Span(0, 8), Expr::Format { strs, exprs }).alloc(builder);
@@ -54,12 +54,12 @@ pub struct SumLiterals {
     pub nodes_seen: usize,
 }
 
-impl<B: ExprBuilder> Visit<B, SumLiterals> for TreeNode<B> {
+impl<B: SampleBuilder> Visit<B, SumLiterals> for Expr<B> {
     type Output = ();
 
-    fn visit(&self, ctx: &mut SumLiterals) {
+    fn visit(&self, _data: &Span, ctx: &mut SumLiterals) {
         ctx.nodes_seen += 1;
-        match self.kind() {
+        match self {
             Expr::Lit(value) => ctx.total += value,
             Expr::Ident(_) | Expr::Bytes(_) => {}
             Expr::Add(left, right) => {
@@ -89,11 +89,11 @@ pub struct Rebuild<Out: TreeBuilder> {
     pub out: Out,
 }
 
-impl<In: ExprBuilder, Out: ExprBuilder> Visit<In, Rebuild<Out>> for TreeNode<In> {
+impl<In: SampleBuilder, Out: SampleBuilder> Visit<In, Rebuild<Out>> for Expr<In> {
     type Output = Tree<Out>;
 
-    fn visit(&self, ctx: &mut Rebuild<Out>) -> Tree<Out> {
-        let kind = match self.kind() {
+    fn visit(&self, data: &Span, ctx: &mut Rebuild<Out>) -> Tree<Out> {
+        let kind = match self {
             Expr::Lit(value) => Expr::Lit(*value),
             Expr::Ident(name) => Expr::Ident(ctx.out.alloc_str(name.as_ref())),
             Expr::Add(left, right) => Expr::Add(left.visit(ctx), right.visit(ctx)),
@@ -116,6 +116,6 @@ impl<In: ExprBuilder, Out: ExprBuilder> Visit<In, Rebuild<Out>> for TreeNode<In>
         // A pass that changes the data shape (inference: `Span` -> `{ty, span}`)
         // has to construct it explicitly at every node. See the TODO on
         // `TreeNode::new`.
-        TreeNode::new(*self.data(), kind).alloc(&ctx.out)
+        TreeNode::new(*data, kind).alloc(&ctx.out)
     }
 }

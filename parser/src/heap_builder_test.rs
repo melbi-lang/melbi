@@ -3,7 +3,7 @@
 use alloc::rc::Rc;
 
 use crate::test_utils::{Expr, Rebuild, Span, SumLiterals, sample, sample_with_literals};
-use crate::{Tree, TreeBuilder, TreeNode, Visit};
+use crate::{Tree, TreeBuilder, TreeNode};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HeapBuilder;
