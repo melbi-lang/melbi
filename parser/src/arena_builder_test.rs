@@ -1,31 +1,21 @@
-use crate::*;
+//! A bump-arena builder.
+//!
+//! The point of interest here is that `Tree<ArenaBuilder<'_>>` is `Copy`, and
+//! that rebuilding from one arena into another is the same generic pass used by
+//! the heap builder — neither arena's lifetime appears anywhere in it.
+
+use core::fmt;
+use core::ptr;
+
 use bumpalo::Bump;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Span(pub usize, pub usize);
+use crate::test_utils::{Expr, Rebuild, Span, SumLiterals, sample, sample_with_literals};
+use crate::{Tree, TreeBuilder, TreeNode, Visit};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr<B: TreeBuilder> {
-    Lit(i32),
-    // We now use Tree<B> instead of B::Handle directly.
-    // This is much cleaner for the user.
-    Add(Tree<B>, Tree<B>),
-}
-
-// Define a builder that owns the memory
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy)]
 pub struct ArenaBuilder<'arena> {
     arena: &'arena Bump,
 }
-
-impl PartialEq for ArenaBuilder<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        // Two builders are "equal" if they point to the same memory arena.
-        std::ptr::eq(self.arena, other.arena)
-    }
-}
-
-impl Eq for ArenaBuilder<'_> {}
 
 impl<'arena> ArenaBuilder<'arena> {
     pub fn new(arena: &'arena Bump) -> Self {
@@ -33,83 +23,155 @@ impl<'arena> ArenaBuilder<'arena> {
     }
 }
 
+impl fmt::Debug for ArenaBuilder<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ArenaBuilder")
+    }
+}
+
+impl PartialEq for ArenaBuilder<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        // Two builders are the same builder when they allocate from the same
+        // arena.
+        ptr::eq(self.arena, other.arena)
+    }
+}
+
+impl Eq for ArenaBuilder<'_> {}
+
+impl core::hash::Hash for ArenaBuilder<'_> {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        // Consistent with `PartialEq` above: identity is the arena it allocates
+        // from.
+        ptr::hash(self.arena, state);
+    }
+}
+
 impl<'arena> TreeBuilder for ArenaBuilder<'arena> {
     type TreeData = Span;
     type TreeKind = Expr<Self>;
-    type Handle = &'arena TreeNode<Self>;
+    type TreeHandle = &'arena TreeNode<Self>;
+    type Str = &'arena str;
+    type List = &'arena [Tree<Self>];
+    type StrList = &'arena [&'arena str];
+    type Bytes = &'arena [u8];
 
-    fn build(&self, node: TreeNode<Self>) -> Self::Handle {
+    fn alloc(&self, node: TreeNode<Self>) -> Self::TreeHandle {
         self.arena.alloc(node)
     }
 
-    fn node(handle: &Self::Handle) -> &TreeNode<Self> {
-        handle
+    fn alloc_str(&self, s: &str) -> Self::Str {
+        self.arena.alloc_str(s)
     }
-}
 
-fn fold_tree<In, Out>(input: &In, output: &Out, tree: &Tree<In>) -> Tree<Out>
-where
-    In: TreeBuilder<TreeData = Span>,
-    Out: TreeBuilder<TreeData = Span, TreeKind = Expr<Out>>,
-    In::TreeKind: Fold<In, Out>,
-{
-    let node = tree.node();
-    TreeNode(*node.data(), node.kind().fold(input, output)).alloc(output)
-}
-
-impl<'input, 'output> Fold<ArenaBuilder<'input>, ArenaBuilder<'output>>
-    for Expr<ArenaBuilder<'input>>
-{
-    fn fold(
+    fn alloc_list(
         &self,
-        input: &ArenaBuilder<'input>,
-        output: &ArenaBuilder<'output>,
-    ) -> Expr<ArenaBuilder<'output>> {
-        match self {
-            Expr::Lit(x) => Expr::Lit(*x),
-            Expr::Add(l, r) => {
-                // l and r are of type Tree<HeapBuilder>
-                let new_l = fold_tree(input, output, l);
-                let new_r = fold_tree(input, output, r);
-                Expr::Add(new_l, new_r)
-            }
-        }
+        items: impl IntoIterator<Item = Tree<Self>, IntoIter: ExactSizeIterator>,
+    ) -> Self::List {
+        self.arena.alloc_slice_fill_iter(items)
+    }
+
+    fn alloc_str_list(
+        &self,
+        items: impl IntoIterator<Item = Self::Str, IntoIter: ExactSizeIterator>,
+    ) -> Self::StrList {
+        self.arena.alloc_slice_fill_iter(items)
+    }
+
+    fn alloc_bytes(&self, bytes: &[u8]) -> Self::Bytes {
+        self.arena.alloc_slice_copy(bytes)
     }
 }
 
 #[test]
-fn test_arena_builder() {
-    // 1. Setup: We need TWO arenas.
-    // One for the source (read-only), one for the destination (write-only).
-    let old_bump = Bump::new();
-    let old_arena = ArenaBuilder::new(&old_bump);
-    let new_bump = Bump::new();
-    let new_arena = ArenaBuilder::new(&new_bump);
+fn builds_and_inspects_a_tree() {
+    let arena = Bump::new();
+    let builder = ArenaBuilder::new(&arena);
+    let root = sample(&builder);
 
-    // 2. Populate the Old Arena (The "Parser" phase)
-    let l1 = TreeNode(Span(0, 1), Expr::Lit(10)).alloc(&old_arena);
-    let l2 = TreeNode(Span(2, 3), Expr::Lit(20)).alloc(&old_arena);
-    let root = TreeNode(Span(0, 3), Expr::Add(l1, l2)).alloc(&old_arena);
+    assert_eq!(*root.data(), Span(0, 12));
 
-    // 3. Fold: Transform from Old -> New (The "Lowering" phase)
-    // We resolve from 'old_arena' and build into 'new_arena'.
+    let Expr::Sum(items) = root.kind() else {
+        panic!("expected Sum, got {:?}", root.kind());
+    };
+    assert_eq!(items.len(), 2);
+    assert_eq!(*items[0].kind(), Expr::Lit(1));
+}
 
-    // We have to manually start the fold logic here
-    let node = root.node();
+#[test]
+fn trees_are_copy() {
+    let arena = Bump::new();
+    let builder = ArenaBuilder::new(&arena);
+    let root = sample(&builder);
 
-    // Notice: input is &old_arena, output is &mut new_arena
-    let new_kind = node.kind().fold(&old_arena, &new_arena);
+    // No clone: an arena handle is a plain reference, so `Tree` is `Copy`.
+    let alias = root;
+    assert_eq!(*alias.data(), *root.data());
+}
 
-    // The result is a handle valid ONLY in new_arena
-    let new_root = TreeNode(*node.data(), new_kind).alloc(&new_arena);
+#[test]
+fn visit_threads_mutable_state() {
+    let arena = Bump::new();
+    let builder = ArenaBuilder::new(&arena);
+    let root = sample(&builder);
 
-    // 4. Verify
-    // We cannot compare 'root' and 'new_root' directly because they are
-    // indices (usize) referring to DIFFERENT arrays.
-    // root might be index 2 in old_arena. new_root might be index 0 in new_arena.
+    let mut ctx = SumLiterals::default();
+    root.visit(&mut ctx);
 
-    let old_node = root.node();
-    let new_node = new_root.node();
+    assert_eq!(ctx.total, 4);
+    assert_eq!(ctx.nodes_seen, 7);
+}
 
-    assert_eq!(*old_node.data(), *new_node.data());
+#[test]
+fn visit_rebuilds_from_one_arena_into_another() {
+    let source_arena = Bump::new();
+    let source = ArenaBuilder::new(&source_arena);
+    let root = sample(&source);
+
+    let dest_arena = Bump::new();
+    let mut ctx = Rebuild {
+        out: ArenaBuilder::new(&dest_arena),
+    };
+    let rebuilt = root.visit(&mut ctx);
+
+    // Structural equality across two unrelated arenas. Note that neither
+    // lifetime was named to get here.
+    assert_eq!(root, rebuilt);
+    assert!(!ptr::eq(root.node(), rebuilt.node()));
+}
+
+#[test]
+fn visit_rebuilds_from_an_arena_into_the_heap() {
+    use crate::heap_builder_test::HeapBuilder;
+
+    let source_arena = Bump::new();
+    let source = ArenaBuilder::new(&source_arena);
+    let root = sample(&source);
+
+    let mut ctx = Rebuild { out: HeapBuilder };
+    let rebuilt = root.visit(&mut ctx);
+
+    // The rebuilt tree outlives nothing in particular: it is reference counted,
+    // while the source is arena allocated.
+    let mut ctx = SumLiterals::default();
+    rebuilt.visit(&mut ctx);
+    assert_eq!(ctx.total, 4);
+    assert_eq!(ctx.nodes_seen, 7);
+}
+
+#[test]
+fn covers_bytes_and_format_strings() {
+    let arena = Bump::new();
+    let builder = ArenaBuilder::new(&arena);
+    let root = sample_with_literals(&builder);
+
+    let mut ctx = SumLiterals::default();
+    root.visit(&mut ctx);
+    assert_eq!(ctx.total, 7);
+
+    let dest_arena = Bump::new();
+    let mut ctx = Rebuild {
+        out: ArenaBuilder::new(&dest_arena),
+    };
+    assert_eq!(root, root.visit(&mut ctx));
 }

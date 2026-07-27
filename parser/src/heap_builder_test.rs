@@ -1,103 +1,136 @@
-use crate::*;
+//! A reference-counted heap builder.
 
-// --- 1. User Data & Kind ---
+use alloc::rc::Rc;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Span(pub usize, pub usize);
+use crate::test_utils::{Expr, Rebuild, Span, SumLiterals, sample, sample_with_literals};
+use crate::{Tree, TreeBuilder, TreeNode, Visit};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr<B: TreeBuilder> {
-    Lit(i32),
-    // We now use Tree<B> instead of B::Handle directly.
-    // This is much cleaner for the user.
-    Add(Tree<B>, Tree<B>),
-}
-
-// --- 2. The Builder Implementation ---
-
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HeapBuilder;
 
 impl TreeBuilder for HeapBuilder {
     type TreeData = Span;
     type TreeKind = Expr<Self>;
-    type Handle = Box<TreeNode<Self>>;
+    type TreeHandle = Rc<TreeNode<Self>>;
+    type Str = Rc<str>;
+    type List = Rc<[Tree<Self>]>;
+    type StrList = Rc<[Rc<str>]>;
+    type Bytes = Rc<[u8]>;
 
-    fn build(&self, node: TreeNode<Self>) -> Self::Handle {
-        Box::new(node)
+    fn alloc(&self, node: TreeNode<Self>) -> Self::TreeHandle {
+        Rc::new(node)
     }
 
-    fn node(handle: &Self::Handle) -> &TreeNode<Self> {
-        handle.as_ref()
+    fn alloc_str(&self, s: &str) -> Self::Str {
+        Rc::from(s)
     }
-}
 
-// --- 3. Fold Implementation ---
+    fn alloc_list(
+        &self,
+        items: impl IntoIterator<Item = Tree<Self>, IntoIter: ExactSizeIterator>,
+    ) -> Self::List {
+        items.into_iter().collect()
+    }
 
-// Helper to reduce boilerplate.
-// Accepts &Tree<In> and returns Tree<Out>
-fn fold_tree<In, Out>(input: &In, output: &Out, tree: &Tree<In>) -> Tree<Out>
-where
-    In: TreeBuilder<TreeData = Span>,
-    Out: TreeBuilder<TreeData = Span, TreeKind = Expr<Out>>,
-    TreeNode<In>: Fold<In, Out>,
-{
-    let node = tree.node();
-    node.fold(input, output).alloc(output)
-}
+    fn alloc_str_list(
+        &self,
+        items: impl IntoIterator<Item = Self::Str, IntoIter: ExactSizeIterator>,
+    ) -> Self::StrList {
+        items.into_iter().collect()
+    }
 
-impl Fold<HeapBuilder, HeapBuilder> for Expr<HeapBuilder> {
-    fn fold(&self, input: &HeapBuilder, output: &HeapBuilder) -> Expr<HeapBuilder> {
-        match self {
-            Expr::Lit(x) => Expr::Lit(*x),
-            Expr::Add(l, r) => {
-                // l and r are of type Tree<HeapBuilder>
-                let new_l = fold_tree(input, output, l);
-                let new_r = fold_tree(input, output, r);
-                Expr::Add(new_l, new_r)
-            }
-        }
+    fn alloc_bytes(&self, bytes: &[u8]) -> Self::Bytes {
+        Rc::from(bytes)
     }
 }
 
-// --- 4. Test ---
+#[test]
+fn builds_and_inspects_a_tree() {
+    let builder = HeapBuilder;
+    let root = sample(&builder);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    assert_eq!(*root.data(), Span(0, 12));
 
-    #[test]
-    fn test_heap_builder() {
-        let input = HeapBuilder;
+    let Expr::Sum(items) = root.kind() else {
+        panic!("expected Sum, got {:?}", root.kind());
+    };
+    assert_eq!(items.len(), 2);
+    assert_eq!(*items[0].kind(), Expr::Lit(1));
 
-        // 1. Construction
-        let l1 = TreeNode(Span(0, 1), Expr::Lit(10)).alloc(&input);
-        let l2 = TreeNode(Span(2, 3), Expr::Lit(20)).alloc(&input);
+    // Reaching a grandchild goes through `kind()` only — no handle juggling.
+    let Expr::Add(left, _) = items[1].kind() else {
+        panic!("expected Add");
+    };
+    assert_eq!(*left.data(), Span(0, 1));
+}
 
-        // Notice how clean this syntax is now:
-        let root = TreeNode(Span(0, 3), Expr::Add(l1.clone(), l2.clone())).alloc(&input);
+#[test]
+fn interned_strings_resolve() {
+    let builder = HeapBuilder;
+    let name = builder.alloc_str("some_ident");
+    let node = TreeNode::new(Span(0, 10), Expr::Ident(name)).alloc(&builder);
 
-        // 2. Resolve / Inspection
-        // We access the handle to resolve
-        let node = root.node();
-        assert_eq!(*node.data(), Span(0, 3));
+    let Expr::Ident(name) = node.kind() else {
+        panic!("expected Ident");
+    };
+    assert_eq!(name.as_ref(), "some_ident");
+}
 
-        if let Expr::Add(child1, _) = node.kind() {
-            // Recursively resolve child1
-            let child = child1.node();
-            assert_eq!(*child.data(), Span(0, 1));
-            assert_eq!(*child.kind(), Expr::Lit(10));
-        } else {
-            panic!("Wrong kind");
-        }
+#[test]
+fn visit_threads_mutable_state() {
+    let builder = HeapBuilder;
+    let root = sample(&builder);
 
-        // 3. Folding (Deep Clone)
-        // We pass the builder as both input and output
-        let output = HeapBuilder;
-        let node = root.node();
-        let cloned_kind = node.kind().fold(&input, &output);
-        let cloned_root = TreeNode(*node.data(), cloned_kind).alloc(&output);
+    let mut ctx = SumLiterals::default();
+    root.visit(&mut ctx);
 
-        assert_eq!(root, cloned_root);
-    }
+    // Literals 1, 1 and 2: the `1` is shared between two parents, and a shared
+    // subtree is visited once per edge, not once per allocation — so it is
+    // counted twice among the 7 visits of this 6-node tree.
+    assert_eq!(ctx.total, 4);
+    assert_eq!(ctx.nodes_seen, 7);
+}
+
+#[test]
+fn visit_rebuilds_into_another_builder() {
+    let source = HeapBuilder;
+    let root = sample(&source);
+
+    let mut ctx = Rebuild {
+        out: HeapBuilder,
+    };
+    let rebuilt = root.visit(&mut ctx);
+
+    // Equality is structural, so a rebuilt tree compares equal to its source.
+    assert_eq!(root, rebuilt);
+}
+
+#[test]
+fn rebuilt_tree_does_not_share_storage_with_the_source() {
+    let source = HeapBuilder;
+    let root = sample(&source);
+    let before = Rc::strong_count(root.handle());
+
+    let mut ctx = Rebuild {
+        out: HeapBuilder,
+    };
+    let rebuilt = root.visit(&mut ctx);
+
+    assert_eq!(Rc::strong_count(root.handle()), before);
+    assert!(!Rc::ptr_eq(root.handle(), rebuilt.handle()));
+}
+
+#[test]
+fn covers_bytes_and_format_strings() {
+    let builder = HeapBuilder;
+    let root = sample_with_literals(&builder);
+
+    let mut ctx = SumLiterals::default();
+    root.visit(&mut ctx);
+    assert_eq!(ctx.total, 7);
+
+    let mut ctx = Rebuild {
+        out: HeapBuilder,
+    };
+    assert_eq!(root, root.visit(&mut ctx));
 }
