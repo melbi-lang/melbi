@@ -74,13 +74,10 @@ macro_rules! handle_case {
         #[test]
         fn validate_formatted() {
             let formatted = melbi_fmt::format(input(), false, false);
-            let result = formatted
-                .as_ref()
-                .map(|s| s.as_str())
-                .map_err(|e| e.downcast_ref::<melbi_fmt::FormatError>().unwrap());
+            let result = formatted.as_ref().map(|s| s.as_str());
 
-            if let Err(melbi_fmt::FormatError::Idempotency) = &result {
-                eprintln!("{}", result.unwrap_err());
+            if let Err(melbi_fmt::FormatError::Idempotency) = &formatted {
+                eprintln!("{}", formatted.as_ref().unwrap_err());
                 if let Ok(first) = melbi_fmt::format(input(), true, false) {
                     println!("FIRST:\n{}", first);
                     if let Ok(second) = melbi_fmt::format(&first, true, false) {

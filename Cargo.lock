@@ -1481,6 +1481,7 @@ dependencies = [
  "logos",
  "melbi",
  "melbi-core",
+ "melbi-fmt",
  "nu-ansi-term",
  "open",
  "pest",
@@ -1490,8 +1491,6 @@ dependencies = [
  "shlex 1.3.0",
  "similar",
  "tempfile",
- "topiary-core",
- "topiary-tree-sitter-facade",
  "tracing",
  "tracing-subscriber",
  "tree-sitter",
@@ -1531,9 +1530,6 @@ dependencies = [
 name = "melbi-fmt"
 version = "0.1.0"
 dependencies = [
- "clap",
- "miette",
- "rayon",
  "thiserror 2.0.19",
  "topiary-core",
  "topiary-tree-sitter-facade",

@@ -6,9 +6,6 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-clap = { version = "4.5.49", features = ["std", "derive", "help"] }
-miette.workspace = true
-rayon = "1.11.0"
 thiserror.workspace = true
 topiary-core = "0.6.1"
 topiary-tree-sitter-facade = "0.6.2"

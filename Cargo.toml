@@ -4,7 +4,7 @@ members = [
     "cli", # CLI tool for evaluating, checking, formatting, REPL and more.
     "core", # Parser, type-checker, interpreter, bytecode compiler, VM, types,
             # values, standard library, and more. (no_std compatible).
-    "fmt",  # Used by LSP but duplicated by melbi-cli.
+    "fmt",  # Formatting library shared by melbi-cli and melbi-lsp.
     "lsp",  # Language Server Protocol implementation.
     "macros", # Macros for the Melbi language.
 

@@ -52,7 +52,7 @@ cli/src/
 - [x] `debug parser|analyzer|bytecode` - hidden debug commands
 - [x] `run FILE...` - run files (supports globs)
 - [x] `check FILE...` - type-check without running
-- [x] `fmt FILE...` - format files (copy topiary logic from `melbi-fmt`, remove that crate later)
+- [x] `fmt FILE...` - format files (uses the shared `melbi-fmt` library)
 
 ## Phase 3 - Enhancements
 
@@ -83,7 +83,7 @@ cli/src/
 
 ## Design Decisions
 
-- **`fmt`**: Copy topiary/tree-sitter logic from `melbi-fmt` into `commands/fmt.rs`, delete `melbi-fmt` crate later (it's just a thin wrapper)
+- **`fmt`**: `commands/fmt.rs` is a thin CLI wrapper (I/O, diffing, `--check`/`--write`/`--quiet`) around the shared `melbi-fmt` library, which also backs `melbi-lsp`. Topiary/tree-sitter formatting logic lives only in `melbi-fmt`.
 - **`lsp`**: Subcommand (not separate binary) for single-binary distribution
 - **`debug`**: Hidden from `--help` to reduce noise for users
 - **Error handling**: Use `melbi::render_error_to` with ariadne. Remove `miette` from both `melbi-cli` and `melbi-fmt` (including `FormatError` struct)

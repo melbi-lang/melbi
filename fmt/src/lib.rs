@@ -1,54 +1,80 @@
-#![allow(unused_assignments)]
-// TODO: Use Melbi's errors instead of `FormatError`, then remove the line above.
-// TODO: Also remove miette. Use Melbi's render_error function.
-
-use miette::{Diagnostic, Result, SourceOffset, SourceSpan};
 use std::string::FromUtf8Error;
-use thiserror::Error;
 use topiary_core::{FormatterError, Operation, TopiaryQuery};
-
-#[derive(Error, Debug, Diagnostic)]
-#[error("format error")]
-pub enum FormatError {
-    #[diagnostic(code(melbi_format::parse_error))]
-    #[error("parse error")]
-    Parse {
-        #[source_code]
-        src: String,
-
-        #[label("syntax not understood")]
-        err_span: SourceSpan,
-    },
-
-    #[error("internal query error")]
-    Query(#[help] String),
-
-    #[error("idempotency violated")]
-    Idempotency,
-
-    #[error("UTF8 conversion error")]
-    UTF8(#[from] FromUtf8Error),
-
-    #[error("unknown error")]
-    Unknown,
-}
 
 const QUERY: &str = include_str!("../../topiary-queries/queries/melbi.scm");
 
+/// An error that occurred while formatting Melbi source code.
+#[derive(thiserror::Error, Debug)]
+pub enum FormatError {
+    #[error("query error: {message}")]
+    Query { message: String },
+
+    /// The formatter's output was not idempotent, i.e. formatting the output
+    /// again made further changes. This indicates a bug in the formatter's
+    /// query rules, not in the input source code.
+    #[error("the formatter's output was not idempotent (this is a bug)")]
+    Idempotency,
+
+    #[error("parse error")]
+    Parse {
+        start_line: usize,
+        start_column: usize,
+        end_line: usize,
+        end_column: usize,
+    },
+
+    #[error("internal formatter error: {0}")]
+    Internal(String),
+
+    #[error("UTF-8 conversion error")]
+    Utf8(#[from] FromUtf8Error),
+}
+
+impl From<FormatterError> for FormatError {
+    fn from(e: FormatterError) -> Self {
+        match e {
+            FormatterError::Query(message, source) => FormatError::Query {
+                message: match source {
+                    None => message,
+                    Some(source) => format!("{message}: {source}"),
+                },
+            },
+            FormatterError::Idempotence | FormatterError::IdempotenceParsing(_) => {
+                FormatError::Idempotency
+            }
+            FormatterError::Parsing {
+                start_line,
+                start_column,
+                end_line,
+                end_column,
+            } => FormatError::Parse {
+                start_line: start_line as usize,
+                start_column: start_column as usize,
+                end_line: end_line as usize,
+                end_column: end_column as usize,
+            },
+            other => FormatError::Internal(other.to_string()),
+        }
+    }
+}
+
 /// Format Melbi source code.
+///
+/// A leading shebang line (e.g. `#!/usr/bin/env melbi run`) is preserved as-is
+/// and re-attached after formatting the rest of the source.
 ///
 /// # Arguments
 ///
 /// - `input`: Melbi source code to format
-/// - `tolerate_parsing_errors`: whether source code with syntax errors should be accepted or
-///   rejected.
 /// - `skip_idempotence`: skip check that AST of formatted source is identical to input. This is
 ///   intended for working around current formatter limitations.
+/// - `tolerate_parsing_errors`: whether source code with syntax errors should be accepted or
+///   rejected.
 ///
 /// # Examples
 ///
 /// ```
-/// # use melbi_fmt ::format;
+/// # use melbi_fmt::format;
 /// let source = "a   + b where{ a = 1, b = 2}";
 /// assert_eq!(
 ///     format(source, false, false).unwrap(),
@@ -59,29 +85,49 @@ pub fn format(
     input: &str,
     skip_idempotence: bool,
     tolerate_parsing_errors: bool,
-) -> Result<String> {
+) -> Result<String, FormatError> {
+    let (shebang, source) = strip_shebang(input);
+    let formatted = format_source(source, skip_idempotence, tolerate_parsing_errors)?;
+
+    Ok(match shebang {
+        Some(shebang) => format!("{shebang}{formatted}"),
+        None => formatted,
+    })
+}
+
+/// Strip a shebang line from the input, if present.
+///
+/// Returns `(Some(shebang_line_with_newline), rest)` if a shebang is found,
+/// or `(None, input)` if no shebang is present.
+fn strip_shebang(input: &str) -> (Option<&str>, &str) {
+    if input.starts_with("#!/") {
+        match input.find('\n') {
+            Some(pos) => (Some(&input[..=pos]), &input[pos + 1..]),
+            None => (Some(input), ""),
+        }
+    } else {
+        (None, input)
+    }
+}
+
+fn format_source(
+    input: &str,
+    skip_idempotence: bool,
+    tolerate_parsing_errors: bool,
+) -> Result<String, FormatError> {
     let mut output = Vec::new();
 
     let grammar = topiary_tree_sitter_facade::Language::from(tree_sitter_melbi::LANGUAGE);
+    let query = TopiaryQuery::new(&grammar, QUERY)?;
 
-    let query = TopiaryQuery::new(&grammar, QUERY).map_err(|e| match e {
-        FormatterError::Query(m, e) => FormatError::Query(match e {
-            None => m,
-            Some(e) => format!("{m}: {e}"),
-        }),
-        _ => FormatError::Unknown,
-    })?;
-
-    let language = {
-        topiary_core::Language {
-            name: "melbi".to_string(),
-            indent: Some("    ".to_string()),
-            grammar,
-            query,
-        }
+    let language = topiary_core::Language {
+        name: "melbi".to_string(),
+        indent: Some("    ".to_string()),
+        grammar,
+        query,
     };
 
-    if let Err(e) = topiary_core::formatter(
+    topiary_core::formatter(
         &mut input.as_bytes(),
         &mut output,
         &language,
@@ -89,45 +135,9 @@ pub fn format(
             skip_idempotence,
             tolerate_parsing_errors,
         },
-    ) {
-        Err(match e {
-            FormatterError::Query(m, e) => FormatError::Query(match e {
-                None => m,
-                Some(e) => format!("{m}: {e}"),
-            }),
-            FormatterError::Idempotence => FormatError::Idempotency,
-            FormatterError::Parsing {
-                start_line,
-                start_column,
-                end_line,
-                end_column,
-            } => {
-                let start = SourceOffset::from_location(
-                    input,
-                    start_line
-                        .try_into()
-                        .expect("cannot represent u32 as usize"),
-                    start_column
-                        .try_into()
-                        .expect("cannot represent u32 as usize"),
-                );
-                let end = SourceOffset::from_location(
-                    input,
-                    end_line.try_into().expect("cannot represent u32 as usize"),
-                    end_column
-                        .try_into()
-                        .expect("cannot represent u32 as usize"),
-                );
-                FormatError::Parse {
-                    src: input.to_string(),
-                    err_span: (start.offset(), end.offset() - start.offset()).into(),
-                }
-            }
-            _ => FormatError::Unknown,
-        })?;
-    }
+    )?;
 
-    let output = String::from_utf8(output).map_err(FormatError::UTF8)?;
+    let output = String::from_utf8(output)?;
 
     // Final cleanup of result. If we received an input not ending in a newline, also return an
     // output without newline. We do not want to force a newline since we e.g., could be formatting
