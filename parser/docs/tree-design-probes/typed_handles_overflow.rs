@@ -2,19 +2,17 @@
 //! is inlined into the handle (`&'a (Data, Kind)`) instead of going through a
 //! separate node type.
 //!
-//! This is the shape an LLM proposes when asked to make invalid trees
-//! unrepresentable, and it looks right. It does not compile: bounding the handle
-//! `PartialEq` asks the solver to prove `Expr<ArenaAst>: PartialEq`, whose proof
-//! needs `ArenaAst::ExprTree: PartialEq`, which is where it started.
+//! This is the shape everyone reaches for first, and nothing about the
+//! definitions hints that it is wrong — the failure is a property of how the
+//! trait solver unrolls the bound, not of the design. Bounding the handle
+//! `PartialEq` asks it to prove `Expr<ArenaAst>: PartialEq`, whose proof needs
+//! `ArenaAst::ExprTree: PartialEq`, which is where it started. Expect to
+//! rediscover this by reading rustc rather than by reasoning about the types.
 //!
 //! The fix is the `Tree`/`TreeNode` split in `tree_builder.rs`: the bounds move
 //! onto the descriptor, where they are discharged once at a concrete
 //! descriptor, and the hand-written unconditional impls on `Tree` stop the
 //! recursion. See `descriptor_design.rs` for the version that works.
-//!
-//! Two honesty fixes versus the proposal as written: the per-tree data structs
-//! become associated types (they must vary per compiler stage, which the
-//! original hardcodes), and `resolve_pat_list`'s return type typo is corrected.
 
 use std::fmt::Debug;
 
