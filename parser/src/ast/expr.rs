@@ -150,3 +150,9 @@ pub enum ParsedExprKind<B: TreeBuilder> {
         body: Tree<B, ParsedExpr>,
     },
 }
+
+// `#[path]` keeps the test beside this file instead of forcing an `expr/`
+// directory for a single module, matching `core/src/stdlib/string.rs`.
+#[cfg(test)]
+#[path = "expr_test.rs"]
+mod expr_test;

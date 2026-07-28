@@ -9,7 +9,7 @@
 //! builder. Both now come from the descriptor, so a pass needs nothing but
 //! `B: TreeBuilder`.
 
-use crate::{Span, Tree, TreeBuilder, TreeDescriptor, TreeNode, Visit};
+use melbi_parser::{Span, Tree, TreeBuilder, TreeDescriptor, TreeNode, Visit};
 
 /// The descriptor for this test tree.
 pub struct Sample;

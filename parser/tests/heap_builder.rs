@@ -1,46 +1,12 @@
-//! A reference-counted heap builder.
+//! Tests for the reference-counted heap builder.
 
-use alloc::rc::Rc;
+mod common;
 
-use crate::test_utils::{Expr, Rebuild, Sample, SumLiterals, sample, sample_with_literals};
-use crate::{Span, Tree, TreeBuilder, TreeDescriptor, TreeNode};
+use std::rc::Rc;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HeapBuilder;
-
-impl TreeBuilder for HeapBuilder {
-    type Handle<D: TreeDescriptor> = Rc<TreeNode<Self, D>>;
-    type List<D: TreeDescriptor> = Rc<[Tree<Self, D>]>;
-    type Str = Rc<str>;
-    type StrList = Rc<[Rc<str>]>;
-    type Bytes = Rc<[u8]>;
-
-    fn alloc<D: TreeDescriptor>(&self, node: TreeNode<Self, D>) -> Self::Handle<D> {
-        Rc::new(node)
-    }
-
-    fn alloc_str(&self, s: &str) -> Self::Str {
-        Rc::from(s)
-    }
-
-    fn alloc_list<D: TreeDescriptor>(
-        &self,
-        items: impl IntoIterator<Item = Tree<Self, D>, IntoIter: ExactSizeIterator>,
-    ) -> Self::List<D> {
-        items.into_iter().collect()
-    }
-
-    fn alloc_str_list(
-        &self,
-        items: impl IntoIterator<Item = Self::Str, IntoIter: ExactSizeIterator>,
-    ) -> Self::StrList {
-        items.into_iter().collect()
-    }
-
-    fn alloc_bytes(&self, bytes: &[u8]) -> Self::Bytes {
-        Rc::from(bytes)
-    }
-}
+use common::builders::HeapBuilder;
+use common::sample_tree::{Expr, Rebuild, Sample, SumLiterals, sample, sample_with_literals};
+use melbi_parser::{Span, TreeBuilder, TreeNode};
 
 #[test]
 fn builds_and_inspects_a_tree() {
