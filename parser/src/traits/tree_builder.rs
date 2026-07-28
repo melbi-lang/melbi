@@ -54,7 +54,7 @@
 //! both parameters, so inference works with no annotations.
 //!
 //! Probes for these claims, with exact error codes, are in
-//! `parser/docs/poc-mutually-recursive-trees/`.
+//! `parser/docs/tree-design-probes/`.
 
 use core::fmt::Debug;
 use core::hash::{Hash, Hasher};

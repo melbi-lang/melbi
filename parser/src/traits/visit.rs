@@ -32,7 +32,7 @@ use super::{Tree, TreeBuilder, TreeDescriptor, TreeNode};
 /// the kind remains the right shape, and `Tree`/`TreeNode` forward to it through
 /// the inherent methods below.
 ///
-/// See `parser/docs/poc-mutually-recursive-trees/` for the probes.
+/// See `parser/docs/tree-design-probes/` for the probes.
 ///
 /// Because the kind alone does not know its own node, the node's data is passed
 /// in: a pass needs the span to report errors, and the type once inference has
