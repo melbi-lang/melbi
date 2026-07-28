@@ -1,115 +1,164 @@
-//! Tree builder trait and the core tree types.
+//! The two tree traits and the core tree types.
 //!
 //! # Design Philosophy
 //!
-//! A tree is split into two halves that are kept deliberately out of band:
+//! A tree is pinned down along two independent axes, and the whole design falls
+//! out of keeping them independent:
 //!
-//! - The **navigational** half ([`TreeBuilder::TreeKind`]) — usually an enum
-//!   whose variants describe the shape of the node and whose children are
-//!   [`Tree<Self>`].
-//! - The **associated data** half ([`TreeBuilder::TreeData`]) — carried by every
-//!   node, uniform across the whole tree, and varying per compiler stage.
+//! - **What a tree is** — [`TreeDescriptor`]. Its navigational half
+//!   ([`Kind`](TreeDescriptor::Kind), usually an enum whose variants describe
+//!   the shape of a node and whose children are [`Tree`]s) and its associated
+//!   data ([`Data`](TreeDescriptor::Data), carried by every node of that tree).
+//! - **How a tree is stored** — [`TreeBuilder`]. Heap, arena, interning.
 //!
-//! Keeping them apart is what makes a traversal readable: matching on the kind
-//! never has to mention the data, and reading the data never has to match on
-//! the kind.
+//! Keeping the navigational and data halves apart is what makes a traversal
+//! readable: matching on the kind never has to mention the data, and reading the
+//! data never has to match on the kind.
 //!
-//! The builder additionally abstracts the *storage strategy* (heap, arena, …).
-//! Because the handle types are associated types of the builder, the allocator's
-//! lifetime never appears in code that consumes the tree — a function is generic
-//! over `B: TreeBuilder`, not over `'arena`. Copying a tree from one builder to
-//! another is then just a traversal that allocates into a different builder,
-//! with no lifetime bookkeeping at the call sites.
+//! Keeping *what* and *how* apart is what lets one builder host every tree in
+//! the AST, and lets one tree be stored several ways. Because the storage types
+//! are associated types of the builder, the allocator's lifetime never appears
+//! in code that consumes a tree — a pass is generic over `B: TreeBuilder`, not
+//! over `'arena`. Copying a tree from one builder to another is then just a
+//! traversal that allocates into a different builder, with no lifetime
+//! bookkeeping at the call sites.
+//!
+//! # A compiler stage is a descriptor, not a builder
+//!
+//! `ParsedExpr` and `TypedExpr` are two descriptors, each with its own `Data`
+//! *and* its own `Kind`. That is what makes the stages genuinely different
+//! types: literals fold away entirely after type-checking, `Ident(name)` becomes
+//! a resolved slot, and nodes that only exist after inference have no parsed
+//! counterpart. A single enum spanning both stages would have to be their union,
+//! with every pass carrying unreachable arms for the variants its stage cannot
+//! produce.
+//!
+//! Because the stage lives in the descriptor, [`TreeDescriptor::Data`] is a
+//! plain associated type rather than something indexed by the builder, and
+//! [`TreeBuilder`] knows nothing about stages at all.
+//!
+//! # Why one builder with descriptor-indexed types
+//!
+//! The obvious alternative is one builder trait per tree, each naming the others
+//! through paired associated types with `<Expr = Self>`-style equality
+//! constraints. That works for two trees and collapses beyond them: `N` trees
+//! need `N` traits holding `N-1` associated types each, and every pass has to
+//! restate the agreement between the data of each tree it touches. Indexing the
+//! builder's types by the descriptor instead costs nothing per tree, and a pass
+//! that crosses four trees still writes a single `B: TreeBuilder`.
+//!
+//! A supertrait bundling several builders does not work at all: `S::Expr` is an
+//! associated-type projection, projections are not injective, so `S` cannot be
+//! recovered from `Tree<S::Expr>` — every call needs a turbofish (E0283) and the
+//! forwarding impl cannot be written (E0207). `Tree<B, D>` *is* injective in
+//! both parameters, so inference works with no annotations.
+//!
+//! Probes for these claims, with exact error codes, are in
+//! `parser/docs/poc-mutually-recursive-trees/`.
 
 use core::fmt::Debug;
 use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 
-/// Allocation strategy and node types for one tree.
+/// One tree of the AST, at one compiler stage.
 ///
-/// The associated types pin down both *what* a node contains ([`TreeData`] and
-/// [`TreeKind`]) and *how* it is stored ([`TreeHandle`], [`Str`], [`List`], …).
+/// Implemented on an empty marker struct — `ParsedExpr`, `TypedExpr`,
+/// `ParsedLiteral` — which is then used as a type argument to [`Tree`],
+/// [`TreeNode`] and the builder's storage types. That marker is doing real
+/// work: `Tree<B, ParsedExpr>` and `Tree<B, ParsedLiteral>` are distinct,
+/// injective types, which is what multiplexes the tree machinery across every
+/// tree instead of it being hand-expanded per tree, and what keeps [`Visit`]
+/// impls from overlapping.
 ///
-/// [`TreeData`]: Self::TreeData
-/// [`TreeKind`]: Self::TreeKind
-/// [`TreeHandle`]: Self::TreeHandle
-/// [`Str`]: Self::Str
-/// [`List`]: Self::List
+/// [`Visit`]: crate::Visit
+pub trait TreeDescriptor: Sized + 'static {
+    /// Data carried by *every* node of this tree.
+    ///
+    /// At minimum the node's span; a typed stage's data also carries the node's
+    /// type. Cached summaries of a subtree (flags computed once at allocation,
+    /// to avoid repeated traversals) belong here too.
+    ///
+    /// This is a plain struct chosen by the descriptor, so reading it is a
+    /// direct field access — `tree.data().span` — with no trait or bound
+    /// involved, in any pass, without a where-clause.
+    //
+    // TODO: decide whether `span` should be hoisted out of `Data` into a
+    // dedicated field of `TreeNode`, so that a node is impossible to construct
+    // without one and `Tree::span()` works without knowing the concrete `Data`.
+    // Kept inside `Data` for now.
+    type Data: Clone + Debug + PartialEq;
+
+    /// The navigational, node-specific half. Usually an enum whose variants hold
+    /// their children as `Tree<B, _>`.
+    ///
+    /// Indexed by the builder because a kind holds trees, and a tree's storage
+    /// is the builder's business.
+    ///
+    /// `Eq` is deliberately not required — an AST holds float literals, and
+    /// `f64` is not `Eq` — but see the conditional `Eq` impls below for kinds
+    /// that can satisfy it.
+    type Kind<B: TreeBuilder>: Clone + Debug + PartialEq;
+}
+
+/// Allocation strategy for every tree of the AST.
+///
+/// Purely about storage: which allocator nodes come from, and how strings,
+/// slices and byte strings are held. It knows nothing about what any tree
+/// contains, nor which stage it is in — that is [`TreeDescriptor`]'s job.
+///
 /// # Why the supertrait bounds
 ///
 /// `Clone + Debug + Eq + Hash` are not here because anything clones, prints,
 /// compares or hashes a *builder*. They are here so that a user-defined
 /// `Kind<B>` can be derived: a derive on a generic type bounds its type
-/// parameters, so `#[derive(Debug)] enum ExprKind<B: TreeBuilder>` expands to an
-/// impl requiring `B: Debug`, whether or not any `B` is ever printed.
+/// parameters, so `#[derive(Debug)] enum ParsedExprKind<B: TreeBuilder>` expands
+/// to an impl requiring `B: Debug`, whether or not any `B` is ever printed.
 ///
 /// Requiring them up front means a builder author is told so by the trait,
 /// instead of discovering it as an error inside somebody else's kind.
 ///
-/// This works for `Clone`, `Debug` and `PartialEq`, whose `Tree` impls below are
-/// unconditional. It does *not* extend to `Eq` and `Hash`: those `Tree` impls
-/// are conditional on `TreeKind`, so a recursive kind cannot derive them and has
-/// to write them by hand. They are required here anyway, to mirror `TyBuilder`
-/// in `melbi-types` and to keep the option of making those impls unconditional
-/// later.
+/// # Why `PartialEq` on the storage types
+///
+/// `List`, `StrList` and `Bytes` require `PartialEq` for the same reason, but a
+/// step further along. A descriptor promises `Kind<B>: PartialEq` for *every*
+/// builder, so that proof has to go through generically, which in turn needs
+/// every field of the kind to be `PartialEq` generically. Under the previous
+/// one-builder-per-tree design these were discharged lazily at each concrete
+/// builder and could be left unstated; now they are assumptions, stated once.
 pub trait TreeBuilder: Sized + Clone + Debug + Eq + Hash {
-    /// Data associated with *every* node of the tree, and the only part that
-    /// changes between compiler stages.
-    ///
-    /// At minimum this carries the node's span; after type inference it also
-    /// carries the node's type. Cached summaries of a subtree (flags computed
-    /// once at allocation, to avoid repeated traversals) belong here too.
-    ///
-    /// This is a plain struct chosen by the builder, so reading it is a direct
-    /// field access — `tree.data().span` — with no trait or bound involved.
-    //
-    // TODO: decide whether `span` should be hoisted out of `TreeData` into a
-    // dedicated field of `TreeNode`, so that a node is impossible to construct
-    // without one and `Tree::span()` works without knowing the concrete
-    // `TreeData`. Kept inside `TreeData` for now.
-    type TreeData: Clone + Debug + PartialEq;
+    /// Handle to an allocated node of tree `D`.
+    /// Examples: `Rc<TreeNode<Self, D>>`, `&'arena TreeNode<Self, D>`.
+    type Handle<D: TreeDescriptor>: AsRef<TreeNode<Self, D>> + Clone + Debug;
 
-    /// The navigational, node-specific half of the tree. Usually an enum whose
-    /// variants hold their children as [`Tree<Self>`].
-    ///
-    /// `Eq` is deliberately not required here — an AST holds float literals,
-    /// and `f64` is not `Eq` — but see the conditional `Eq` impls below for
-    /// kinds that can satisfy it.
-    type TreeKind: Clone + Debug + PartialEq;
-
-    /// Handle to an allocated node.
-    /// Examples: `Rc<TreeNode<Self>>`, `&'arena TreeNode<Self>`.
-    type TreeHandle: AsRef<TreeNode<Self>> + Clone + Debug;
+    /// Storage for a list of child trees of tree `D`.
+    /// Examples: `Rc<[Tree<Self, D>]>`, `&'arena [Tree<Self, D>]`.
+    type List<D: TreeDescriptor>: Deref<Target = [Tree<Self, D>]> + Clone + Debug + PartialEq;
 
     /// Storage for a string.
     /// Examples: `Rc<str>`, `&'arena str`.
     type Str: AsRef<str> + Clone + Debug + Eq;
 
-    /// Storage for a list of child trees.
-    /// Examples: `Rc<[Tree<Self>]>`, `&'arena [Tree<Self>]`.
-    type List: Deref<Target = [Tree<Self>]> + Clone + Debug;
-
     /// Storage for a list of strings, for nodes that hold names but not trees
     /// (e.g. the literal pieces of a format string).
     /// Examples: `Rc<[Self::Str]>`, `&'arena [Self::Str]`.
-    type StrList: Deref<Target = [Self::Str]> + Clone + Debug;
+    type StrList: Deref<Target = [Self::Str]> + Clone + Debug + PartialEq;
 
     /// Storage for a byte string literal.
     /// Examples: `Rc<[u8]>`, `&'arena [u8]`.
-    type Bytes: Deref<Target = [u8]> + Clone + Debug;
+    type Bytes: Deref<Target = [u8]> + Clone + Debug + PartialEq;
 
     /// Internal: allocate a node and return a handle to it.
     /// Call instead: `TreeNode::new(data, kind).alloc(builder)`.
-    fn alloc(&self, node: TreeNode<Self>) -> Self::TreeHandle;
+    fn alloc<D: TreeDescriptor>(&self, node: TreeNode<Self, D>) -> Self::Handle<D>;
+
+    /// Internal: allocate a list of child trees.
+    fn alloc_list<D: TreeDescriptor>(
+        &self,
+        items: impl IntoIterator<Item = Tree<Self, D>, IntoIter: ExactSizeIterator>,
+    ) -> Self::List<D>;
 
     /// Internal: allocate (or intern) a string.
     fn alloc_str(&self, s: &str) -> Self::Str;
-
-    /// Internal: allocate a list of child trees.
-    fn alloc_list(
-        &self,
-        items: impl IntoIterator<Item = Tree<Self>, IntoIter: ExactSizeIterator>,
-    ) -> Self::List;
 
     /// Internal: allocate a list of strings.
     fn alloc_str_list(
@@ -125,36 +174,36 @@ pub trait TreeBuilder: Sized + Clone + Debug + Eq + Hash {
 // Tree - handle to a node
 // =============================================================================
 
-/// A handle to a node, and the type every child field uses.
+/// A handle to a node of tree `D`, and the type every child field uses.
 ///
-/// This is a thin wrapper around [`TreeBuilder::TreeHandle`]. It is `Copy`
-/// whenever the underlying handle is (arena builders), and cheap to clone
-/// otherwise (reference counted builders).
-pub struct Tree<B: TreeBuilder>(B::TreeHandle);
+/// This is a thin wrapper around [`TreeBuilder::Handle`]. It is `Copy` whenever
+/// the underlying handle is (arena builders), and cheap to clone otherwise
+/// (reference counted builders).
+pub struct Tree<B: TreeBuilder, D: TreeDescriptor>(B::Handle<D>);
 
-impl<B: TreeBuilder> Tree<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> Tree<B, D> {
     /// Allocate `node` in `builder` and return a handle to it.
-    pub fn new(builder: &B, node: TreeNode<B>) -> Self {
+    pub fn new(builder: &B, node: TreeNode<B, D>) -> Self {
         Self(builder.alloc(node))
     }
 
     /// Resolve the handle to the node it points at.
-    pub fn node(&self) -> &TreeNode<B> {
+    pub fn node(&self) -> &TreeNode<B, D> {
         self.0.as_ref()
     }
 
     /// The node's associated data.
-    pub fn data(&self) -> &B::TreeData {
+    pub fn data(&self) -> &D::Data {
         self.node().data()
     }
 
     /// The node's navigational half.
-    pub fn kind(&self) -> &B::TreeKind {
+    pub fn kind(&self) -> &D::Kind<B> {
         self.node().kind()
     }
 
     /// The underlying builder-specific handle.
-    pub fn handle(&self) -> &B::TreeHandle {
+    pub fn handle(&self) -> &B::Handle<D> {
         &self.0
     }
 }
@@ -162,29 +211,32 @@ impl<B: TreeBuilder> Tree<B> {
 // The impls below are written by hand rather than derived, and are deliberately
 // *unconditional*.
 //
-// `derive` cannot be used: it would bound the builder (`B: Clone`, `B: PartialEq`,
-// …), which says nothing about the associated types the fields actually have.
+// `derive` cannot be used: it would bound the type parameters (`B: Clone`,
+// `D: PartialEq`, …), which says nothing about the associated types the fields
+// actually have.
 //
-// A hand-written impl with a where-clause — `where TreeNode<B>: PartialEq` —
+// A hand-written impl with a where-clause — `where TreeNode<B, D>: PartialEq` —
 // compiles but is a trap. A tree is cyclic at the type level: a node's kind
-// holds `Tree<B>`, which resolves to a node, whose kind holds `Tree<B>`, and the
-// solver walks that circle forever (E0275). Stating the bounds on `TreeData` and
-// `TreeKind` in the trait instead turns them into assumptions that are
-// discharged once, where the concrete builder is defined.
+// holds `Tree<B, _>`, which resolves to a node, whose kind holds `Tree<B, _>`,
+// and the solver walks that circle forever (E0275). Stating the bounds on
+// `Data` and `Kind` in `TreeDescriptor` instead turns them into assumptions,
+// discharged once where the concrete descriptor is defined.
 //
 // This is also why `Tree` and `TreeNode` are two types rather than one: the
 // recursion has to pass through an intermediate type for the solver to have
-// somewhere to break the cycle. The split is load-bearing, not cosmetic.
+// somewhere to break the cycle. The split is load-bearing, not cosmetic —
+// collapsing the node into the handle (`&'a (Data, Kind)`) reintroduces E0275
+// immediately.
 
-impl<B: TreeBuilder> Clone for Tree<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> Clone for Tree<B, D> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<B: TreeBuilder> Copy for Tree<B> where B::TreeHandle: Copy {}
+impl<B: TreeBuilder, D: TreeDescriptor> Copy for Tree<B, D> where B::Handle<D>: Copy {}
 
-impl<B: TreeBuilder> Debug for Tree<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> Debug for Tree<B, D> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.node().fmt(f)
     }
@@ -193,13 +245,13 @@ impl<B: TreeBuilder> Debug for Tree<B> {
 /// Equality is structural — it compares the nodes pointed at, not the handles —
 /// so a tree rebuilt into a different builder compares equal to its source.
 ///
-/// Note that this includes `TreeData`, and therefore spans: two identical
-/// subtrees at different source offsets are *not* equal.
+/// Note that this includes `Data`, and therefore spans: two identical subtrees
+/// at different source offsets are *not* equal.
 //
 // TODO: if a pass needs "same expression, ignoring spans", add `tree_eq`/
 // `tree_hash` hooks on `TreeBuilder`, the way `TyBuilder` has `ty_eq`/`ty_hash`,
 // so a builder can override the comparison.
-impl<B: TreeBuilder> PartialEq for Tree<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> PartialEq for Tree<B, D> {
     fn eq(&self, other: &Self) -> bool {
         self.node() == other.node()
     }
@@ -211,14 +263,14 @@ impl<B: TreeBuilder> PartialEq for Tree<B> {
 
 /// A node: its associated data plus its navigational half.
 ///
-/// This is what a [`TreeBuilder::TreeHandle`] points at. Construct one with
+/// This is what a [`TreeBuilder::Handle`] points at. Construct one with
 /// [`TreeNode::new`] and allocate it with [`TreeNode::alloc`].
-pub struct TreeNode<B: TreeBuilder> {
-    data: B::TreeData,
-    kind: B::TreeKind,
+pub struct TreeNode<B: TreeBuilder, D: TreeDescriptor> {
+    data: D::Data,
+    kind: D::Kind<B>,
 }
 
-impl<B: TreeBuilder> TreeNode<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> TreeNode<B, D> {
     /// Create a node. Every node must be given its data explicitly.
     //
     // TODO: this pushes the full data onto every caller, including passes that
@@ -226,36 +278,36 @@ impl<B: TreeBuilder> TreeNode<B> {
     // API would let a pass opt out of rebuilding the part it does not touch —
     // e.g. mapping the data from the source node automatically. Deliberately
     // starting with the explicit, less ergonomic version.
-    pub fn new(data: B::TreeData, kind: B::TreeKind) -> Self {
+    pub fn new(data: D::Data, kind: D::Kind<B>) -> Self {
         Self { data, kind }
     }
 
     /// Allocate this node in `builder`.
-    pub fn alloc(self, builder: &B) -> Tree<B> {
+    pub fn alloc(self, builder: &B) -> Tree<B, D> {
         Tree::new(builder, self)
     }
 
-    pub fn data(&self) -> &B::TreeData {
+    pub fn data(&self) -> &D::Data {
         &self.data
     }
 
-    pub fn kind(&self) -> &B::TreeKind {
+    pub fn kind(&self) -> &D::Kind<B> {
         &self.kind
     }
 }
 
-/// Lets `&TreeNode<B>` satisfy the `AsRef<TreeNode<B>>` bound on
-/// [`TreeBuilder::TreeHandle`], so arena builders can use a plain reference as
-/// their handle.
-impl<B: TreeBuilder> AsRef<TreeNode<B>> for TreeNode<B> {
-    fn as_ref(&self) -> &TreeNode<B> {
+/// Lets `&TreeNode<B, D>` satisfy the `AsRef<TreeNode<B, D>>` bound on
+/// [`TreeBuilder::Handle`], so arena builders can use a plain reference as their
+/// handle.
+impl<B: TreeBuilder, D: TreeDescriptor> AsRef<TreeNode<B, D>> for TreeNode<B, D> {
+    fn as_ref(&self) -> &TreeNode<B, D> {
         self
     }
 }
 
 // Unconditional, for the reason given above `impl Clone for Tree`.
 
-impl<B: TreeBuilder> Clone for TreeNode<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> Clone for TreeNode<B, D> {
     fn clone(&self) -> Self {
         Self {
             data: self.data.clone(),
@@ -264,7 +316,7 @@ impl<B: TreeBuilder> Clone for TreeNode<B> {
     }
 }
 
-impl<B: TreeBuilder> Debug for TreeNode<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> Debug for TreeNode<B, D> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("TreeNode")
             .field("data", &self.data)
@@ -273,38 +325,38 @@ impl<B: TreeBuilder> Debug for TreeNode<B> {
     }
 }
 
-impl<B: TreeBuilder> PartialEq for TreeNode<B> {
+impl<B: TreeBuilder, D: TreeDescriptor> PartialEq for TreeNode<B, D> {
     fn eq(&self, other: &Self) -> bool {
         self.data == other.data && self.kind == other.kind
     }
 }
 
-// `Eq` is offered conditionally rather than required of `TreeKind`, because a
-// kind holding float literals cannot be `Eq`. A kind that *can* be will not get
-// this through `#[derive(Eq)]` — the derive on a generic `Kind<B>` asks for
-// `B::TreeKind: Eq`, which `TreeBuilder` does not promise — so such a kind has
-// to write its own `impl Eq`. This is an ordinary missing bound, not the
-// solver cycle described above.
-impl<B: TreeBuilder> Eq for TreeNode<B>
+// `Eq` is offered conditionally rather than required of `Kind`, because a kind
+// holding float literals cannot be `Eq`. A kind that *can* be will not get this
+// through `#[derive(Eq)]` — the derive on a generic `Kind<B>` asks for
+// `B: Eq`, which says nothing about the fields — so such a kind has to write its
+// own `impl Eq`. This is an ordinary missing bound, not the solver cycle
+// described above.
+impl<B: TreeBuilder, D: TreeDescriptor> Eq for TreeNode<B, D>
 where
-    B::TreeData: Eq,
-    B::TreeKind: Eq,
+    D::Data: Eq,
+    D::Kind<B>: Eq,
 {
 }
 
-impl<B: TreeBuilder> Eq for Tree<B>
+impl<B: TreeBuilder, D: TreeDescriptor> Eq for Tree<B, D>
 where
-    B::TreeData: Eq,
-    B::TreeKind: Eq,
+    D::Data: Eq,
+    D::Kind<B>: Eq,
 {
 }
 
 // Hashing mirrors equality: structural, over the node rather than the handle,
 // so that a tree and its copy in another builder hash alike.
-impl<B: TreeBuilder> Hash for TreeNode<B>
+impl<B: TreeBuilder, D: TreeDescriptor> Hash for TreeNode<B, D>
 where
-    B::TreeData: Hash,
-    B::TreeKind: Hash,
+    D::Data: Hash,
+    D::Kind<B>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.data.hash(state);
@@ -312,10 +364,10 @@ where
     }
 }
 
-impl<B: TreeBuilder> Hash for Tree<B>
+impl<B: TreeBuilder, D: TreeDescriptor> Hash for Tree<B, D>
 where
-    B::TreeData: Hash,
-    B::TreeKind: Hash,
+    D::Data: Hash,
+    D::Kind<B>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.node().hash(state);

@@ -2,22 +2,20 @@
 
 use alloc::rc::Rc;
 
-use crate::test_utils::{Expr, Rebuild, Span, SumLiterals, sample, sample_with_literals};
-use crate::{Tree, TreeBuilder, TreeNode};
+use crate::test_utils::{Expr, Rebuild, Sample, SumLiterals, sample, sample_with_literals};
+use crate::{Span, Tree, TreeBuilder, TreeDescriptor, TreeNode};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HeapBuilder;
 
 impl TreeBuilder for HeapBuilder {
-    type TreeData = Span;
-    type TreeKind = Expr<Self>;
-    type TreeHandle = Rc<TreeNode<Self>>;
+    type Handle<D: TreeDescriptor> = Rc<TreeNode<Self, D>>;
+    type List<D: TreeDescriptor> = Rc<[Tree<Self, D>]>;
     type Str = Rc<str>;
-    type List = Rc<[Tree<Self>]>;
     type StrList = Rc<[Rc<str>]>;
     type Bytes = Rc<[u8]>;
 
-    fn alloc(&self, node: TreeNode<Self>) -> Self::TreeHandle {
+    fn alloc<D: TreeDescriptor>(&self, node: TreeNode<Self, D>) -> Self::Handle<D> {
         Rc::new(node)
     }
 
@@ -25,10 +23,10 @@ impl TreeBuilder for HeapBuilder {
         Rc::from(s)
     }
 
-    fn alloc_list(
+    fn alloc_list<D: TreeDescriptor>(
         &self,
-        items: impl IntoIterator<Item = Tree<Self>, IntoIter: ExactSizeIterator>,
-    ) -> Self::List {
+        items: impl IntoIterator<Item = Tree<Self, D>, IntoIter: ExactSizeIterator>,
+    ) -> Self::List<D> {
         items.into_iter().collect()
     }
 
@@ -68,7 +66,11 @@ fn builds_and_inspects_a_tree() {
 fn interned_strings_resolve() {
     let builder = HeapBuilder;
     let name = builder.alloc_str("some_ident");
-    let node = TreeNode::new(Span(0, 10), Expr::Ident(name)).alloc(&builder);
+    // The descriptor has to be named here: `D::Kind<B>` is a projection, so
+    // `Expr<HeapBuilder>` does not determine `Sample` on its own. Everywhere
+    // else in these tests it is inferred from a `Tree<B, D>` in a signature or a
+    // field, which is the usual case.
+    let node = TreeNode::<HeapBuilder, Sample>::new(Span(0, 10), Expr::Ident(name)).alloc(&builder);
 
     let Expr::Ident(name) = node.kind() else {
         panic!("expected Ident");
@@ -96,9 +98,7 @@ fn visit_rebuilds_into_another_builder() {
     let source = HeapBuilder;
     let root = sample(&source);
 
-    let mut ctx = Rebuild {
-        out: HeapBuilder,
-    };
+    let mut ctx = Rebuild { out: HeapBuilder };
     let rebuilt = root.visit(&mut ctx);
 
     // Equality is structural, so a rebuilt tree compares equal to its source.
@@ -111,9 +111,7 @@ fn rebuilt_tree_does_not_share_storage_with_the_source() {
     let root = sample(&source);
     let before = Rc::strong_count(root.handle());
 
-    let mut ctx = Rebuild {
-        out: HeapBuilder,
-    };
+    let mut ctx = Rebuild { out: HeapBuilder };
     let rebuilt = root.visit(&mut ctx);
 
     assert_eq!(Rc::strong_count(root.handle()), before);
@@ -129,8 +127,6 @@ fn covers_bytes_and_format_strings() {
     root.visit(&mut ctx);
     assert_eq!(ctx.total, 7);
 
-    let mut ctx = Rebuild {
-        out: HeapBuilder,
-    };
+    let mut ctx = Rebuild { out: HeapBuilder };
     assert_eq!(root, root.visit(&mut ctx));
 }

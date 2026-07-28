@@ -1,16 +1,17 @@
 //! A bump-arena builder.
 //!
-//! The point of interest here is that `Tree<ArenaBuilder<'_>>` is `Copy`, and
-//! that rebuilding from one arena into another is the same generic pass used by
-//! the heap builder — neither arena's lifetime appears anywhere in it.
+//! The point of interest here is that `Tree<ArenaBuilder<'_>, Sample>` is
+//! `Copy`, and that rebuilding from one arena into another is the same generic
+//! pass used by the heap builder — neither arena's lifetime appears anywhere in
+//! it.
 
 use core::fmt;
 use core::ptr;
 
 use bumpalo::Bump;
 
-use crate::test_utils::{Expr, Rebuild, Span, SumLiterals, sample, sample_with_literals};
-use crate::{Tree, TreeBuilder, TreeNode};
+use crate::test_utils::{Expr, Rebuild, SumLiterals, sample, sample_with_literals};
+use crate::{Span, Tree, TreeBuilder, TreeDescriptor, TreeNode};
 
 #[derive(Clone, Copy)]
 pub struct ArenaBuilder<'arena> {
@@ -48,15 +49,13 @@ impl core::hash::Hash for ArenaBuilder<'_> {
 }
 
 impl<'arena> TreeBuilder for ArenaBuilder<'arena> {
-    type TreeData = Span;
-    type TreeKind = Expr<Self>;
-    type TreeHandle = &'arena TreeNode<Self>;
+    type Handle<D: TreeDescriptor> = &'arena TreeNode<Self, D>;
+    type List<D: TreeDescriptor> = &'arena [Tree<Self, D>];
     type Str = &'arena str;
-    type List = &'arena [Tree<Self>];
     type StrList = &'arena [&'arena str];
     type Bytes = &'arena [u8];
 
-    fn alloc(&self, node: TreeNode<Self>) -> Self::TreeHandle {
+    fn alloc<D: TreeDescriptor>(&self, node: TreeNode<Self, D>) -> Self::Handle<D> {
         self.arena.alloc(node)
     }
 
@@ -64,10 +63,10 @@ impl<'arena> TreeBuilder for ArenaBuilder<'arena> {
         self.arena.alloc_str(s)
     }
 
-    fn alloc_list(
+    fn alloc_list<D: TreeDescriptor>(
         &self,
-        items: impl IntoIterator<Item = Tree<Self>, IntoIter: ExactSizeIterator>,
-    ) -> Self::List {
+        items: impl IntoIterator<Item = Tree<Self, D>, IntoIter: ExactSizeIterator>,
+    ) -> Self::List<D> {
         self.arena.alloc_slice_fill_iter(items)
     }
 

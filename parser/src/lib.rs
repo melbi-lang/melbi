@@ -4,13 +4,15 @@
 extern crate alloc;
 
 pub mod ast;
+mod span;
 pub mod traits;
 
-pub use traits::{Tree, TreeBuilder, TreeNode, Visit};
+pub use span::Span;
+pub use traits::{Tree, TreeBuilder, TreeDescriptor, TreeNode, Visit};
 
-// TODO: port the AST itself (`ExprKind`, patterns, type syntax) once the base
-// tree is settled. That additionally needs mutually recursive trees, which this
-// single-tree scaffolding does not cover.
+// TODO: port the rest of the AST (patterns, bindings, match arms, type syntax)
+// and then the typed stage. Each is a new `TreeDescriptor`; none of them changes
+// `TreeBuilder` or any existing pass.
 
 #[cfg(test)]
 mod test_utils;
