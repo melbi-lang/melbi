@@ -42,17 +42,7 @@ impl From<FormatterError> for FormatError {
             FormatterError::Idempotence | FormatterError::IdempotenceParsing(_) => {
                 FormatError::Idempotency
             }
-            FormatterError::Parsing {
-                start_line,
-                start_column,
-                end_line,
-                end_column,
-            } => FormatError::Parse {
-                start_line: start_line as usize,
-                start_column: start_column as usize,
-                end_line: end_line as usize,
-                end_column: end_column as usize,
-            },
+            FormatterError::Parsing(err) => FormatError::Internal(format!("{err:?}")),
             other => FormatError::Internal(other.to_string()),
         }
     }

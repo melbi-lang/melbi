@@ -7,6 +7,6 @@ license.workspace = true
 
 [dependencies]
 thiserror.workspace = true
-topiary-core = "0.6.1"
-topiary-tree-sitter-facade = "0.6.2"
+topiary-core = "0.7.3"
+topiary-tree-sitter-facade = "0.7.3"
 tree-sitter-melbi.workspace = true
