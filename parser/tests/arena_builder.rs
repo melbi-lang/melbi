@@ -11,9 +11,9 @@ use std::ptr;
 
 use bumpalo::Bump;
 
-use common::builders::{ArenaBuilder, HeapBuilder};
+use common::builders::HeapBuilder;
 use common::sample_tree::{Expr, Rebuild, SumLiterals, sample, sample_with_literals};
-use melbi_parser::Span;
+use melbi_parser::{ArenaBuilder, Span};
 
 #[test]
 fn builds_and_inspects_a_tree() {

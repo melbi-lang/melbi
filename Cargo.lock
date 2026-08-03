@@ -1569,6 +1569,8 @@ name = "melbi-parser"
 version = "0.1.0"
 dependencies = [
  "bumpalo",
+ "pest",
+ "pest_derive",
 ]
 
 [[package]]
