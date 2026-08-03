@@ -247,6 +247,17 @@ impl<B: TreeBuilder, D: TreeDescriptor> Debug for Tree<B, D> {
 ///
 /// Note that this includes `Data`, and therefore spans: two identical subtrees
 /// at different source offsets are *not* equal.
+///
+/// # This recurses
+///
+/// Comparison descends through the kind's derived `PartialEq`, one native stack
+/// frame per level, so comparing a very deeply nested tree overflows the stack —
+/// even where a fold over the same tree does not, because the fold driver is
+/// iterative. The same applies to `Debug` and `Hash`. In practice the parser
+/// caps nesting depth, so this is only reachable by building a tree by hand.
+//
+// TODO: if that stops being true, these three need iterative implementations,
+// which means walking the tree without going through the kind's derive.
 //
 // TODO: if a pass needs "same expression, ignoring spans", add `tree_eq`/
 // `tree_hash` hooks on `TreeBuilder`, the way `TyBuilder` has `ty_eq`/`ty_hash`,
