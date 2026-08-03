@@ -8,17 +8,15 @@
 //! 2. full_pipeline: Measures parse + analyze + eval together (for comparison)
 //! 3. cel_comparison: Comparison with CEL (Common Expression Language) interpreter
 
+use std::hint::black_box;
+
 use bumpalo::Bump;
 use cel_interpreter::{Context, Program};
-use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
-use melbi_core::{
-    analyzer,
-    evaluator::{Evaluator, EvaluatorOptions},
-    parser,
-    types::manager::TypeManager,
-    vm::{Code, Instruction, VM},
-};
-use pprof::criterion::{Output, PProfProfiler};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use melbi_core::evaluator::{Evaluator, EvaluatorOptions};
+use melbi_core::types::manager::TypeManager;
+use melbi_core::vm::{Code, Instruction, VM};
+use melbi_core::{analyzer, parser};
 
 /// Generate an arithmetic expression like "1 + 1 + 1 + ... + 1" with `n` additions.
 fn generate_arithmetic_chain(n: usize) -> String {
@@ -252,10 +250,13 @@ fn bench_rust_baseline(c: &mut Criterion) {
     group.finish();
 }
 
-// Configure Criterion with profiling support
-criterion_group! {
-    name = benches;
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
-    targets = bench_eval_only, bench_full_pipeline, bench_cel_comparison, bench_cel_full_pipeline, bench_vm_only, bench_rust_baseline
-}
+criterion_group!(
+    benches,
+    bench_eval_only,
+    bench_full_pipeline,
+    bench_cel_comparison,
+    bench_cel_full_pipeline,
+    bench_vm_only,
+    bench_rust_baseline
+);
 criterion_main!(benches);

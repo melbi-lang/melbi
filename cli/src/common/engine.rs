@@ -2,7 +2,8 @@
 
 use bumpalo::Bump;
 use melbi_core::stdlib::register_stdlib;
-use melbi_core::types::{Type, manager::TypeManager};
+use melbi_core::types::Type;
+use melbi_core::types::manager::TypeManager;
 use melbi_core::values::dynamic::Value;
 
 /// Build the standard library environment for Melbi evaluation.

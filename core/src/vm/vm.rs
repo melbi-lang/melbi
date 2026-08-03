@@ -5,15 +5,13 @@ use core::cmp::Ordering;
 use bumpalo::Bump;
 
 use super::instruction_set::Instruction;
-
-use crate::{
-    String, Vec,
-    evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError},
-    format,
-    parser::{ComparisonOp, Span},
-    values::{ArrayData, BytecodeLambda, LambdaInstantiation, MapData, RawValue, RecordData},
-    vm::{Code, GenericAdapter, LambdaKind, Stack},
+use crate::evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError};
+use crate::parser::{ComparisonOp, Span};
+use crate::values::{
+    ArrayData, BytecodeLambda, LambdaInstantiation, MapData, RawValue, RecordData,
 };
+use crate::vm::{Code, GenericAdapter, LambdaKind, Stack};
+use crate::{String, Vec, format};
 
 struct OtherwiseBlock {
     fallback: *const Instruction,
@@ -182,9 +180,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                 IntBinOp(b'^') => {
                     let b = self.stack.pop().as_int_unchecked();
                     let a = self.stack.pop().as_int_unchecked();
-                    let result = if b < 0 {
-                        0
-                    } else if b > u32::MAX as i64 {
+                    let result = if b < 0 || b > u32::MAX as i64 {
                         0
                     } else {
                         a.wrapping_pow(b as u32)
@@ -659,7 +655,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
 
                     // Sort entries by key (integer comparison for now)
                     // TODO: Proper multi-type key comparison
-                    entries.sort_by(|a, b| a.key.as_int_unchecked().cmp(&b.key.as_int_unchecked()));
+                    entries.sort_by_key(|a| a.key.as_int_unchecked());
 
                     // Create the map
                     let map = MapData::new_with_sorted(self.arena, &entries);

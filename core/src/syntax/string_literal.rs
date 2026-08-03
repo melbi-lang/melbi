@@ -1,15 +1,17 @@
+use alloc::string::ToString;
+use core::fmt;
+
+use bumpalo::Bump;
+
 /// String literal escaping and unescaping for Melbi syntax.
 ///
 /// This module provides utilities for converting between:
 /// - Runtime strings (e.g., "hello\n" with actual newline character)
 /// - Melbi source code string literals (e.g., "hello\n" with backslash-n sequence)
 use crate::{String, format};
-use alloc::string::ToString;
-use bumpalo::Bump;
-use core::fmt;
 
 /// Controls which quote style to use when escaping strings.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum QuoteStyle {
     /// Always use single quotes: `'...'`
     AlwaysSingle,
@@ -18,13 +20,8 @@ pub enum QuoteStyle {
     /// Prefer single quotes, use double if string contains single quotes but not double
     PreferSingle,
     /// Prefer double quotes, use single if string contains double quotes but not single
+    #[default]
     PreferDouble,
-}
-
-impl Default for QuoteStyle {
-    fn default() -> Self {
-        QuoteStyle::PreferDouble
-    }
 }
 
 /// Errors that can occur when unescaping string literals.

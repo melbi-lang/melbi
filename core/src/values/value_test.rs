@@ -1,10 +1,9 @@
-use crate::{String, format};
 use alloc::string::ToString;
 
-use crate::{
-    types::manager::TypeManager,
-    values::{TypeError, dynamic::Value},
-};
+use crate::types::manager::TypeManager;
+use crate::values::TypeError;
+use crate::values::dynamic::Value;
+use crate::{String, format};
 
 #[test]
 fn test_array_value() {

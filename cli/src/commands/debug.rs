@@ -4,12 +4,10 @@ use std::process::ExitCode;
 
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
-use melbi_core::{
-    analyzer::analyze,
-    compiler::BytecodeCompiler,
-    parser,
-    types::manager::TypeManager,
-};
+use melbi_core::analyzer::analyze;
+use melbi_core::compiler::BytecodeCompiler;
+use melbi_core::parser;
+use melbi_core::types::manager::TypeManager;
 
 use crate::cli::{DebugArgs, DebugCommand, DebugInputArgs};
 use crate::common::engine::build_stdlib;

@@ -1,3 +1,6 @@
+use alloc::vec::Vec;
+
+use crate::parser::Span;
 /// Constraint set for tracking type class requirements with associated types.
 ///
 /// Type classes represent relationships between types:
@@ -9,8 +12,6 @@
 /// the constraint solver verifies these relationships and may perform additional
 /// unification to resolve associated types.
 use crate::types::Type;
-use crate::parser::Span;
-use alloc::vec::Vec;
 
 /// A type class constraint with associated types.
 ///
@@ -72,7 +73,9 @@ impl<'types> TypeClassConstraint<'types> {
             TypeClassConstraint::Indexable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
             TypeClassConstraint::Hashable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
             TypeClassConstraint::Ord { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Containable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
+            TypeClassConstraint::Containable { spans, .. } => {
+                spans.first().unwrap_or(&DEFAULT_SPAN)
+            }
         }
     }
 
@@ -214,9 +217,10 @@ impl<'types> Default for ConstraintSet<'types> {
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::types::manager::TypeManager;
-    use bumpalo::Bump;
 
     #[test]
     fn test_add_numeric() {

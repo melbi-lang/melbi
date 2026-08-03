@@ -13,13 +13,12 @@
 
 use bumpalo::Bump;
 
-use crate::{
-    evaluator::ExecutionErrorKind,
-    parser::ComparisonOp,
-    types::Type,
-    values::{RawValue, dynamic::Value},
-    vm::GenericAdapter,
-};
+use crate::evaluator::ExecutionErrorKind;
+use crate::parser::ComparisonOp;
+use crate::types::Type;
+use crate::values::RawValue;
+use crate::values::dynamic::Value;
+use crate::vm::GenericAdapter;
 
 /// Adapter for array containment operations (`elem in array` / `elem not in array`).
 ///

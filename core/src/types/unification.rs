@@ -1,17 +1,16 @@
 use alloc::string::ToString;
-use core::{cell::RefCell, marker::PhantomData};
+use core::cell::RefCell;
+use core::marker::PhantomData;
 
 use hashbrown::{HashMap, HashSet};
 
-use crate::{
-    String, Vec,
-    types::{
-        TypeScheme,
-        manager::TypeManager,
-        traits::{TypeBuilder, TypeKind, TypeTransformer, TypeView, TypeVisitor, display_type},
-        type_class_resolver::TypeClassResolver,
-    },
+use crate::types::TypeScheme;
+use crate::types::manager::TypeManager;
+use crate::types::traits::{
+    TypeBuilder, TypeKind, TypeTransformer, TypeView, TypeVisitor, display_type,
 };
+use crate::types::type_class_resolver::TypeClassResolver;
+use crate::{String, Vec};
 
 /// Types of unification errors.
 #[derive(Debug)]
@@ -191,10 +190,10 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
 
         let resolved = self.resolve(t).view();
 
-        if let TypeVar(resolved_id) = resolved {
-            if resolved_id == id {
-                return true;
-            }
+        if let TypeVar(resolved_id) = resolved
+            && resolved_id == id
+        {
+            return true;
         }
 
         // Recursively check for occurrence in composite types

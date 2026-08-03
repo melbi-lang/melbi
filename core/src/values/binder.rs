@@ -1,5 +1,7 @@
-use crate::{String, Vec, values::dynamic::Value};
 use core::fmt;
+
+use crate::values::dynamic::Value;
+use crate::{String, Vec};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {

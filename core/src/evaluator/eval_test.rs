@@ -2,15 +2,13 @@
 use bumpalo::Bump;
 
 use super::*;
-use crate::{
-    analyzer,
-    evaluator::{
-        EvaluatorOptions, ExecutionErrorKind, ResourceExceededError, RuntimeError, eval::Evaluator,
-    },
-    parser::{self, Span},
-    types::manager::TypeManager,
-    values::{dynamic::Value, function::{FfiContext, NativeFunction}},
-};
+use crate::analyzer;
+use crate::evaluator::eval::Evaluator;
+use crate::evaluator::{EvaluatorOptions, ExecutionErrorKind, ResourceExceededError, RuntimeError};
+use crate::parser::{self, Span};
+use crate::types::manager::TypeManager;
+use crate::values::dynamic::Value;
+use crate::values::function::{FfiContext, NativeFunction};
 
 struct Runner<'a> {
     arena: &'a Bump,

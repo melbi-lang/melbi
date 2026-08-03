@@ -1,13 +1,12 @@
 //! Environment builder for registering global values.
 
-use crate::{
-    String, ToString, Vec,
-    values::binder::{Binder, Error},
-    values::dynamic::Value,
-};
-
 use alloc::collections::BTreeMap;
+
 use bumpalo::Bump;
+
+use crate::values::binder::{Binder, Error};
+use crate::values::dynamic::Value;
+use crate::{String, ToString, Vec};
 
 /// Builder for constructing the global environment.
 ///
@@ -83,6 +82,6 @@ impl<'arena> Binder<'arena, 'arena> for EnvironmentBuilder<'arena> {
         }
 
         // Sort by name for efficient binary search during lookup
-        Ok(self.arena.alloc_slice_fill_iter(self.entries.into_iter()))
+        Ok(self.arena.alloc_slice_fill_iter(self.entries))
     }
 }

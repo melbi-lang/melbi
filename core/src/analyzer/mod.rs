@@ -1,6 +1,6 @@
 pub mod analyzer;
-pub mod typed_expr;
 pub mod error;
+pub mod typed_expr;
 
 #[cfg(test)]
 mod analyzer_test;

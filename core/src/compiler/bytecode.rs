@@ -2,27 +2,23 @@
 
 use alloc::boxed::Box;
 
-use crate::{
-    Vec,
-    analyzer::typed_expr::{Expr, ExprBuilder, LambdaInstantiations, TypedExpr},
-    parser::ComparisonOp,
-    scope_stack::{CompleteScope, IncompleteScope, ScopeStack},
-    types::{
-        Type,
-        manager::TypeManager,
-        traits::{TypeKind, TypeView},
-        unification::Unification,
-    },
-    values::dynamic::Value,
-    visitor::TreeTransformer,
-    vm::{
-        ArrayContainsAdapter, CastAdapter, Code, FormatStrAdapter, FunctionAdapter, GenericAdapter,
-        Instruction, LambdaCode, LambdaKind,
-    },
-};
 use bumpalo::Bump;
 
 use super::error::CompileError;
+use crate::Vec;
+use crate::analyzer::typed_expr::{Expr, ExprBuilder, LambdaInstantiations, TypedExpr};
+use crate::parser::ComparisonOp;
+use crate::scope_stack::{CompleteScope, IncompleteScope, ScopeStack};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::types::unification::Unification;
+use crate::values::dynamic::Value;
+use crate::visitor::TreeTransformer;
+use crate::vm::{
+    ArrayContainsAdapter, CastAdapter, Code, FormatStrAdapter, FunctionAdapter, GenericAdapter,
+    Instruction, LambdaCode, LambdaKind,
+};
 
 /// A pending jump that needs to be patched to the next match arm.
 ///
@@ -366,7 +362,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
                 self.emit_with_arg(Instruction::LoadLocal, *index);
             }
             Some(ScopeEntry::Capture(index)) => {
-                self.emit_with_arg(Instruction::LoadCapture, *index as u32);
+                self.emit_with_arg(Instruction::LoadCapture, *index);
             }
             Some(ScopeEntry::Global(value)) => {
                 let const_index = self.add_constant(*value)?;
@@ -665,11 +661,9 @@ where
     type Output = Result<(), CompileError>;
 
     fn transform(&mut self, tree: &'arena Expr<'types, 'arena>) -> Self::Output {
-        use crate::{
-            analyzer::typed_expr::ExprInner,
-            parser::{BinaryOp, BoolOp},
-            visitor::TreeView,
-        };
+        use crate::analyzer::typed_expr::ExprInner;
+        use crate::parser::{BinaryOp, BoolOp};
+        use crate::visitor::TreeView;
 
         match tree.view() {
             // === Constants ===
@@ -992,26 +986,25 @@ where
                 let container_type = self.resolve_type(value.0);
 
                 // Check if index is a constant for optimization
-                if let ExprInner::Constant(idx_val) = index.view() {
-                    if let Ok(i) = idx_val.as_int() {
-                        if 0 <= i && i <= i8::MAX as i64 {
-                            // Use constant index optimization for arrays and bytes
-                            match container_type.view() {
-                                TypeKind::Array(_) => {
-                                    self.pop_stack(); // Pop array
-                                    self.emit_with_arg(Instruction::ArrayGetConst, i as u32);
-                                    self.push_stack(); // Push result
-                                    return Ok(());
-                                }
-                                TypeKind::Bytes => {
-                                    self.pop_stack(); // Pop bytes
-                                    self.emit(Instruction::BytesGetConst(i as u8));
-                                    self.push_stack(); // Push result (Int)
-                                    return Ok(());
-                                }
-                                _ => {} // Fall through to generic case (including maps)
-                            }
+                if let ExprInner::Constant(idx_val) = index.view()
+                    && let Ok(i) = idx_val.as_int()
+                    && (0..=i8::MAX as i64).contains(&i)
+                {
+                    // Use constant index optimization for arrays and bytes
+                    match container_type.view() {
+                        TypeKind::Array(_) => {
+                            self.pop_stack(); // Pop array
+                            self.emit_with_arg(Instruction::ArrayGetConst, i as u32);
+                            self.push_stack(); // Push result
+                            return Ok(());
                         }
+                        TypeKind::Bytes => {
+                            self.pop_stack(); // Pop bytes
+                            self.emit(Instruction::BytesGetConst(i as u8));
+                            self.push_stack(); // Push result (Int)
+                            return Ok(());
+                        }
+                        _ => {} // Fall through to generic case (including maps)
                     }
                 }
 

@@ -2,7 +2,8 @@
 
 use alloc::string::ToString;
 
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::{String, Vec, parser};
 
 /// Error returned when converting a TypeExpr to a Type.
@@ -122,9 +123,10 @@ pub fn type_expr_to_type<'types>(
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::parser::TypeExpr;
-    use bumpalo::Bump;
 
     #[test]
     fn test_simple_types() {

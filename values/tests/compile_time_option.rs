@@ -80,8 +80,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::mem::size_of;
+
+    use super::*;
 
     #[test]
     fn enabled_stores_and_returns_value() {

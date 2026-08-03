@@ -1,12 +1,13 @@
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::parser::Span;
 use crate::types::Type;
 use crate::types::constraint_set::{ConstraintSet, TypeClassConstraint};
 use crate::types::traits::TypeView;
 use crate::types::type_class::{TypeClassId, has_instance};
 use crate::types::unification::Unification;
-use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
 
 /// Error type for constraint resolution failures.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -168,22 +169,22 @@ impl<'types> TypeClassResolver<'types> {
                 index,
                 result,
                 spans,
-            } => self.resolve_indexable(*container, *index, *result, unification, spans),
+            } => self.resolve_indexable(container, index, result, unification, spans),
             TypeClassConstraint::Numeric {
                 left,
                 right,
                 result,
                 spans,
-            } => self.resolve_numeric(*left, *right, *result, unification, spans),
+            } => self.resolve_numeric(left, right, result, unification, spans),
             TypeClassConstraint::Hashable { ty, spans } => {
-                self.resolve_hashable(*ty, unification, spans)
+                self.resolve_hashable(ty, unification, spans)
             }
-            TypeClassConstraint::Ord { ty, spans } => self.resolve_ord(*ty, unification, spans),
+            TypeClassConstraint::Ord { ty, spans } => self.resolve_ord(ty, unification, spans),
             TypeClassConstraint::Containable {
                 needle,
                 haystack,
                 spans,
-            } => self.resolve_containable(*needle, *haystack, unification, spans),
+            } => self.resolve_containable(needle, haystack, unification, spans),
         }
     }
 
@@ -701,9 +702,7 @@ impl<'types> TypeClassResolver<'types> {
                     });
                 }
                 TypeClassConstraint::Containable {
-                    needle,
-                    haystack,
-                    ..
+                    needle, haystack, ..
                 } => {
                     self.constraints.push(TypeClassConstraint::Containable {
                         needle: unification.substitute(needle, &extended_subst),
@@ -732,9 +731,9 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.collect_vars_from_type(*left, unification, subst);
-                self.collect_vars_from_type(*right, unification, subst);
-                self.collect_vars_from_type(*result, unification, subst);
+                self.collect_vars_from_type(left, unification, subst);
+                self.collect_vars_from_type(right, unification, subst);
+                self.collect_vars_from_type(result, unification, subst);
             }
             TypeClassConstraint::Indexable {
                 container,
@@ -742,21 +741,21 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.collect_vars_from_type(*container, unification, subst);
-                self.collect_vars_from_type(*index, unification, subst);
-                self.collect_vars_from_type(*result, unification, subst);
+                self.collect_vars_from_type(container, unification, subst);
+                self.collect_vars_from_type(index, unification, subst);
+                self.collect_vars_from_type(result, unification, subst);
             }
             TypeClassConstraint::Hashable { ty, .. } => {
-                self.collect_vars_from_type(*ty, unification, subst);
+                self.collect_vars_from_type(ty, unification, subst);
             }
             TypeClassConstraint::Ord { ty, .. } => {
-                self.collect_vars_from_type(*ty, unification, subst);
+                self.collect_vars_from_type(ty, unification, subst);
             }
             TypeClassConstraint::Containable {
                 needle, haystack, ..
             } => {
-                self.collect_vars_from_type(*needle, unification, subst);
-                self.collect_vars_from_type(*haystack, unification, subst);
+                self.collect_vars_from_type(needle, unification, subst);
+                self.collect_vars_from_type(haystack, unification, subst);
             }
         }
     }
@@ -829,9 +828,9 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.type_mentions_var_resolved(*left, var_id, unification)
-                    || self.type_mentions_var_resolved(*right, var_id, unification)
-                    || self.type_mentions_var_resolved(*result, var_id, unification)
+                self.type_mentions_var_resolved(left, var_id, unification)
+                    || self.type_mentions_var_resolved(right, var_id, unification)
+                    || self.type_mentions_var_resolved(result, var_id, unification)
             }
             TypeClassConstraint::Indexable {
                 container,
@@ -839,21 +838,21 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.type_mentions_var_resolved(*container, var_id, unification)
-                    || self.type_mentions_var_resolved(*index, var_id, unification)
-                    || self.type_mentions_var_resolved(*result, var_id, unification)
+                self.type_mentions_var_resolved(container, var_id, unification)
+                    || self.type_mentions_var_resolved(index, var_id, unification)
+                    || self.type_mentions_var_resolved(result, var_id, unification)
             }
             TypeClassConstraint::Hashable { ty, .. } => {
-                self.type_mentions_var_resolved(*ty, var_id, unification)
+                self.type_mentions_var_resolved(ty, var_id, unification)
             }
             TypeClassConstraint::Ord { ty, .. } => {
-                self.type_mentions_var_resolved(*ty, var_id, unification)
+                self.type_mentions_var_resolved(ty, var_id, unification)
             }
             TypeClassConstraint::Containable {
                 needle, haystack, ..
             } => {
-                self.type_mentions_var_resolved(*needle, var_id, unification)
-                    || self.type_mentions_var_resolved(*haystack, var_id, unification)
+                self.type_mentions_var_resolved(needle, var_id, unification)
+                    || self.type_mentions_var_resolved(haystack, var_id, unification)
             }
         }
     }
@@ -934,10 +933,11 @@ impl<'types> Default for TypeClassResolver<'types> {
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::types::manager::TypeManager;
     use crate::types::unification::Unification;
-    use bumpalo::Bump;
 
     #[test]
     fn test_indexable_array() {

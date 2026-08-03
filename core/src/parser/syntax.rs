@@ -1,6 +1,7 @@
 // These are common syntax structures used in ParsedExpr and TypedExpr.
 
-use core::{cell::RefCell, ops::Range};
+use core::cell::RefCell;
+use core::ops::Range;
 
 use bumpalo::Bump;
 use hashbrown::{DefaultHashBuilder, HashMap};

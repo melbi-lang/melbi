@@ -167,7 +167,7 @@ impl From<Error> for WorkerError {
             Error::Runtime { diagnostic, .. } => WorkerError {
                 kind: "runtime",
                 message: diagnostic.message.clone(),
-                diagnostics: Some(vec![DiagnosticPayload::from(diagnostic)]),
+                diagnostics: Some(vec![DiagnosticPayload::from(*diagnostic)]),
             },
             Error::ResourceExceeded(message) => WorkerError {
                 kind: "resource_exceeded",

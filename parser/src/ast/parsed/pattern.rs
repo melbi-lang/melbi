@@ -1,8 +1,7 @@
 //! The parsed pattern tree, and the match arm that reaches it.
 
-use crate::{Tree, TreeBuilder};
-
 use super::{Expr, LiteralKind, Pattern};
+use crate::{Tree, TreeBuilder};
 
 /// A node of the parsed pattern tree.
 ///

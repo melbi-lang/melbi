@@ -5,20 +5,21 @@
 //! the untyped RawValue representation. Types are guaranteed at compile time,
 //! eliminating the need for runtime type checking or TypeManager.
 
-use crate::Vec;
 use core::marker::PhantomData;
 use core::ops::Deref;
 
 use bumpalo::Bump;
 
-use crate::{
-    types::Type,
-    types::manager::TypeManager,
-    values::raw::{ArrayData, MapData, MapEntry, RawValue, Slice},
-};
+use crate::Vec;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::raw::{ArrayData, MapData, MapEntry, RawValue, Slice};
 
 pub trait RawConvertible: Sized {
     fn to_raw_value(arena: &Bump, value: Self) -> RawValue;
+    /// # Safety
+    ///
+    /// The caller must ensure that `raw` contains a valid bit representation of `Self`.
     unsafe fn from_raw_value(raw: RawValue) -> Self;
 }
 
@@ -225,7 +226,7 @@ impl<'a> Bridge for Str<'a> {
     }
 }
 
-impl<'a> RawConvertible for &'a [u8] {
+impl RawConvertible for &[u8] {
     fn to_raw_value(arena: &Bump, value: Self) -> RawValue {
         let slice = Slice::new(arena, value);
         slice.as_raw_value()
@@ -753,16 +754,16 @@ where
     pub fn new(arena: &'a Bump, pairs: &[(K, V)]) -> Self {
         // Sort pairs by key
         let mut sorted_pairs: Vec<(K, V)> = pairs.to_vec();
-        sorted_pairs.sort_by(|a, b| a.0.cmp(&b.0));
+        sorted_pairs.sort_by_key(|a| a.0);
 
         // Deduplicate keys, keeping the last value for each key
         let mut deduplicated: Vec<(K, V)> = Vec::new();
         for (key, value) in sorted_pairs {
-            if let Some(last) = deduplicated.last() {
-                if last.0 == key {
-                    // Same key as previous - replace the value
-                    deduplicated.pop();
-                }
+            if let Some(last) = deduplicated.last()
+                && last.0 == key
+            {
+                // Same key as previous - replace the value
+                deduplicated.pop();
             }
             deduplicated.push((key, value));
         }

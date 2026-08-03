@@ -23,10 +23,10 @@ pub(crate) fn parse_name_value(tokens: TokenStream2, key: &str) -> syn::Result<O
     match meta {
         Meta::NameValue(nv) if nv.path.is_ident(key) => {
             // Handle `key = ident`
-            if let Expr::Path(expr_path) = &nv.value {
-                if let Some(ident) = expr_path.path.get_ident() {
-                    return Ok(Some(ident.clone()));
-                }
+            if let Expr::Path(expr_path) = &nv.value
+                && let Some(ident) = expr_path.path.get_ident()
+            {
+                return Ok(Some(ident.clone()));
             }
             Err(syn::Error::new_spanned(
                 &nv.value,

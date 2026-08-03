@@ -28,9 +28,8 @@ use core::marker::PhantomData;
 
 use melbi_types::{Ty, TyKind};
 
-use crate::traits::{ArrayView, RawValue, Val, ValueBuilder};
-
 use super::Marshal;
+use crate::traits::{ArrayView, RawValue, Val, ValueBuilder};
 
 /// A statically-typed array view.
 ///

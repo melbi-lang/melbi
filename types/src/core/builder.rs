@@ -1,8 +1,11 @@
-use core::{fmt::Debug, hash, hash::Hash, ops::Deref};
+use core::fmt::Debug;
+use core::hash;
+use core::hash::Hash;
+use core::ops::Deref;
 
+use super::kind::TyKind;
+use super::ty::TyNode;
 use crate::{Ident, Ty};
-
-use super::{kind::TyKind, ty::TyNode};
 
 pub trait TyBuilder: Clone + Debug + Eq + Hash + Sized {
     // Relevant concrete types:

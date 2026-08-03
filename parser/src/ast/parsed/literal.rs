@@ -1,8 +1,7 @@
 //! Literals, shared by expressions and patterns.
 
-use crate::{Tree, TreeBuilder};
-
 use super::Expr;
+use crate::{Tree, TreeBuilder};
 
 /// A literal, inlined into [`ExprKind::Literal`] and [`PatternKind::Literal`].
 ///

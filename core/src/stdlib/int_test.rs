@@ -1,19 +1,21 @@
 //! Tests for the Int package
 
-use super::{register_int_functions, register_int_package};
-use crate::{
-    api::{CompileOptionsOverride, Engine, EngineOptions},
-    types::manager::TypeManager,
-    values::{binder::Binder, dynamic::{RecordBuilder, Value}},
-};
 use bumpalo::Bump;
+
+use super::{register_int_functions, register_int_package};
+use crate::api::{CompileOptionsOverride, Engine, EngineOptions};
+use crate::types::manager::TypeManager;
+use crate::values::binder::Binder;
+use crate::values::dynamic::{RecordBuilder, Value};
 
 #[test]
 fn test_int_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let int_pkg = register_int_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
+    let int_pkg = register_int_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr))
+        .build()
+        .unwrap();
     let record = int_pkg.as_record().unwrap();
 
     // Should have all functions

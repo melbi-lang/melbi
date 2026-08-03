@@ -5,6 +5,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 default = []
 std = []
@@ -33,7 +36,6 @@ once_cell.workspace = true
 pretty_assertions.workspace = true
 criterion.workspace = true
 cel-interpreter = "0.10"
-pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
 tracing-subscriber.workspace = true
 
 [[bench]]

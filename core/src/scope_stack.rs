@@ -16,9 +16,10 @@ use alloc::collections::BTreeSet;
 use alloc::rc::Rc;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use bumpalo::Bump;
 use core::cell::RefCell;
 use core::fmt;
+
+use bumpalo::Bump;
 
 /// Trait for scopes that can be pushed onto the ScopeStack.
 ///
@@ -168,6 +169,12 @@ pub struct ScopeStack<'a, T> {
     scopes: Vec<Box<dyn Scope<'a, T> + 'a>>,
 }
 
+impl<'a, T: Copy> Default for ScopeStack<'a, T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, T: Copy> ScopeStack<'a, T> {
     /// Create a new empty scope stack.
     pub fn new() -> Self {
@@ -207,6 +214,7 @@ impl<'a, T: Copy> ScopeStack<'a, T> {
     /// - The topmost scope is immutable (complete scope)
     /// - The name was not pre-declared (incomplete scope)
     /// - The name is already bound (incomplete scope)
+    ///
     /// The name must have the same lifetime as the scope data.
     pub fn bind_in_current(&mut self, name: &'a str, value: T) -> Result<(), BindError> {
         self.scopes

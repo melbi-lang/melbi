@@ -1,7 +1,10 @@
-use bumpalo::Bump;
-use melbi_core::{types::Type, types::manager::TypeManager, values::dynamic::Value};
 use std::fmt;
 use std::marker::PhantomData;
+
+use bumpalo::Bump;
+use melbi_core::types::Type;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::dynamic::Value;
 
 // ============================================================================
 // Context
@@ -20,7 +23,7 @@ impl<'arena> Context<'arena> {
     }
 
     pub fn type_manager(&self) -> &TypeManager<'arena> {
-        &self.type_manager
+        self.type_manager
     }
 
     pub fn compile<'ctx>(
@@ -35,7 +38,7 @@ impl<'arena> Context<'arena> {
         println!("Compiling: {}", source);
 
         Ok(CompiledExpression {
-            type_manager: &self.type_manager,
+            type_manager: self.type_manager,
             source: source.to_string(),
             param_types: params.iter().map(|(_, ty)| *ty).collect(),
             param_names: params.iter().map(|(name, _)| name.to_string()).collect(),
@@ -282,11 +285,7 @@ where
     Args: MelbiArgs,
     Ret: MelbiType,
 {
-    pub fn eval<'val>(
-        &self,
-        arena: &'val Bump,
-        args: Args::Values,
-    ) -> Result<Ret, ValidationError> {
+    pub fn eval(&self, arena: &Bump, args: Args::Values) -> Result<Ret, ValidationError> {
         let values = Args::values_to_melbi(args, self.inner.type_manager);
 
         // Run the expression (could skip validation in optimized version)

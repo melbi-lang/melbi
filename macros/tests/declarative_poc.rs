@@ -7,17 +7,13 @@
 extern crate alloc;
 
 use bumpalo::Bump;
-use melbi_core::{
-    evaluator::RuntimeError,
-    types::manager::TypeManager,
-    values::{
-        FfiContext,
-        binder::Binder,
-        dynamic::Value,
-        function::{AnnotatedFunction, Function},
-        typed::Str,
-    },
-};
+use melbi_core::evaluator::RuntimeError;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::FfiContext;
+use melbi_core::values::binder::Binder;
+use melbi_core::values::dynamic::Value;
+use melbi_core::values::function::{AnnotatedFunction, Function};
+use melbi_core::values::typed::Str;
 
 // ============================================================================
 // The main declarative macro

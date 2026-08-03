@@ -35,7 +35,7 @@ pub enum Token {
     #[token(")")]
     RParen,
 
-    #[regex(r"//.*")]
+    #[regex(r"//.*", allow_greedy = true)]
     Comment,
 
     /// Quoted Identifier (can contain double slashes)

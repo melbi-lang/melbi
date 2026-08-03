@@ -1,12 +1,14 @@
 //! Compiled Melbi expressions.
 
+use bumpalo::Bump;
+
 use super::{Error, RunOptions, RunOptionsOverride};
 use crate::analyzer::typed_expr::TypedExpr;
 use crate::evaluator::{Evaluator, EvaluatorOptions};
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::values::dynamic::Value;
 use crate::{Vec, format};
-use bumpalo::Bump;
 
 /// A compiled Melbi expression ready for execution.
 ///
@@ -230,7 +232,7 @@ impl<'arena> CompiledExpression<'arena> {
         args: &[Value<'arena, 'value_arena>],
     ) -> Result<Value<'arena, 'value_arena>, Error> {
         // Merge execution options (defaults + provided)
-        let mut run_options = self.default_run_options.clone();
+        let mut run_options = self.default_run_options;
         run_options.override_with(&options_override);
 
         // Create evaluator options from execution options

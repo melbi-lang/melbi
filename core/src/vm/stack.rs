@@ -1,6 +1,7 @@
 #![allow(dead_code)]
-use crate::Vec;
 use alloc::fmt;
+
+use crate::Vec;
 
 /// A stack data structure with maximum size enforcement in debug mode.
 ///

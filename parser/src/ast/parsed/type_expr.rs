@@ -4,9 +4,8 @@
 //! these into an actual type is `core/src/types/from_parser.rs`, which will move
 //! to `melbi-types`.
 
-use crate::{Tree, TreeBuilder};
-
 use super::{TypeExpr, TypeField};
+use crate::{Tree, TreeBuilder};
 
 /// A node of the parsed type-expression tree.
 ///

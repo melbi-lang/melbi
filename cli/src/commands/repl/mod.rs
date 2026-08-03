@@ -6,10 +6,10 @@ pub mod lexer;
 use std::process::ExitCode;
 
 use bumpalo::Bump;
-use melbi_core::{
-    parser::{ExpressionParser, Rule},
-    types::manager::TypeManager,
-};
+use highlighter::Highlighter;
+use lexer::calculate_depth;
+use melbi_core::parser::{ExpressionParser, Rule};
+use melbi_core::types::manager::TypeManager;
 use nu_ansi_term::Style;
 use pest::Parser as PestParser;
 use reedline::{
@@ -18,12 +18,10 @@ use reedline::{
     ReedlineEvent, ReedlineMenu, Signal, ValidationResult, default_emacs_keybindings,
 };
 
-use crate::cli::ReplArgs;
-use crate::common::{engine::build_stdlib, panic as panic_handler};
-use highlighter::Highlighter;
-use lexer::calculate_depth;
-
 use super::eval::interpret_input;
+use crate::cli::ReplArgs;
+use crate::common::engine::build_stdlib;
+use crate::common::panic as panic_handler;
 
 /// A `reedline` validator that uses the full Melbi parser to determine input completeness.
 ///

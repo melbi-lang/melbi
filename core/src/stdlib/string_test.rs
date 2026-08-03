@@ -1,15 +1,12 @@
 //! Tests for the String package
 
-use super::{register_string_functions, register_string_package};
-use crate::{
-    api::{CompileOptionsOverride, Engine, EngineOptions},
-    types::manager::TypeManager,
-    values::{
-        binder::Binder,
-        dynamic::{RecordBuilder, Value},
-    },
-};
 use bumpalo::Bump;
+
+use super::{register_string_functions, register_string_package};
+use crate::api::{CompileOptionsOverride, Engine, EngineOptions};
+use crate::types::manager::TypeManager;
+use crate::values::binder::Binder;
+use crate::values::dynamic::{RecordBuilder, Value};
 
 #[test]
 fn test_string_package_builds() {

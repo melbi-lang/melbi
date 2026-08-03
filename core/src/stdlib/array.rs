@@ -1,19 +1,16 @@
 //! `Array` package for Melbi
-use crate::{
-    evaluator::ExecutionError,
-    types::{
-        Type,
-        manager::TypeManager,
-        traits::{TypeKind, TypeView},
-    },
-    values::{
-        binder::Binder,
-        dynamic::Value,
-        function::{AnnotatedFunction, FfiContext, Function},
-    },
-};
-use alloc::{vec, vec::Vec};
+use alloc::vec;
+use alloc::vec::Vec;
+
 use bumpalo::Bump;
+
+use crate::evaluator::ExecutionError;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::values::binder::Binder;
+use crate::values::dynamic::Value;
+use crate::values::function::{AnnotatedFunction, FfiContext, Function};
 
 // ============================================================================
 // Basic Functions

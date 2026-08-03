@@ -2,12 +2,12 @@
 
 use bumpalo::Bump;
 
-use crate::{
-    evaluator::ExecutionErrorKind,
-    types::{Type, manager::TypeManager},
-    values::{RawValue, dynamic::Value},
-    vm::GenericAdapter,
-};
+use crate::evaluator::ExecutionErrorKind;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::RawValue;
+use crate::values::dynamic::Value;
+use crate::vm::GenericAdapter;
 
 /// Adapter for type cast operations (`value as Type`).
 ///

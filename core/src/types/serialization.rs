@@ -2,8 +2,9 @@ use postcard::to_allocvec;
 use serde::Deserialize as _;
 use serde::de::{DeserializeSeed, Deserializer, EnumAccess, VariantAccess, Visitor};
 
+use crate::types::Type;
 use crate::types::manager::TypeManager;
-use crate::{Vec, format, types::Type};
+use crate::{Vec, format};
 
 impl<'de, 's, 'a> DeserializeSeed<'de> for &'s TypeManager<'a>
 where
@@ -278,8 +279,9 @@ where
     where
         A: serde::de::SeqAccess<'de>,
     {
-        use crate::Vec;
         use serde::de::Error;
+
+        use crate::Vec;
 
         // Deserialize params as Vec
         let params_vec: Vec<&'a Type<'a>> = seq

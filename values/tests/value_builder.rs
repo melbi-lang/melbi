@@ -4,11 +4,9 @@ use alloc::vec;
 
 use bumpalo::Bump;
 use melbi_types::ty;
-use melbi_values::{
-    builders::{ArenaValueBuilder, BoxValueBuilder},
-    dynamic::Value,
-    traits::{ArrayView, ValueBuilder, ValueView},
-};
+use melbi_values::builders::{ArenaValueBuilder, BoxValueBuilder};
+use melbi_values::dynamic::Value;
+use melbi_values::traits::{ArrayView, ValueBuilder, ValueView};
 
 /// Generates `#[test]` wrappers that run a generic test function against both
 /// `BoxValueBuilder` and `ArenaValueBuilder`.

@@ -1,9 +1,11 @@
 //! Test-specific tree types and implementations demonstrating the visitor pattern.
 
-use super::{TreeBuilder, TreeTransformer, TreeView};
-use bumpalo::Bump;
 use core::fmt::Debug;
 use core::hash::Hash;
+
+use bumpalo::Bump;
+
+use super::{TreeBuilder, TreeTransformer, TreeView};
 
 // === Test-specific tree types ===
 
@@ -422,7 +424,10 @@ fn make_example_tree() -> Box<TreeData<BoxedTreeBuilder>> {
     let b = BoxedTreeBuilder;
     // (2 + 3) * -(4 + 5)
     b.build(TreeKind::Mul(
-        b.build(TreeKind::Add(b.build(TreeKind::Num(2)), b.build(TreeKind::Num(3)))),
+        b.build(TreeKind::Add(
+            b.build(TreeKind::Num(2)),
+            b.build(TreeKind::Num(3)),
+        )),
         b.build(TreeKind::Neg(b.build(TreeKind::Add(
             b.build(TreeKind::Num(4)),
             b.build(TreeKind::Num(5)),
@@ -467,8 +472,14 @@ fn test_compare_trees() {
     assert_eq!(a.view(), TreeKind::Num(1));
 
     // Build trees: 2 + 3 and 2 + 3
-    let tree1 = b.build(TreeKind::Add(b.build(TreeKind::Num(2)), b.build(TreeKind::Num(3))));
-    let tree2 = b.build(TreeKind::Add(b.build(TreeKind::Num(2)), b.build(TreeKind::Num(3))));
+    let tree1 = b.build(TreeKind::Add(
+        b.build(TreeKind::Num(2)),
+        b.build(TreeKind::Num(3)),
+    ));
+    let tree2 = b.build(TreeKind::Add(
+        b.build(TreeKind::Num(2)),
+        b.build(TreeKind::Num(3)),
+    ));
 
     // Can't use simple equality because children are different references
     // assert_eq!(tree1.view(), tree2.view()); // Won't work!
@@ -490,7 +501,10 @@ fn test_arena_tree_builder() {
     let b = ArenaTreeBuilder::new(&arena);
 
     // Build a simple tree: 2 + 3
-    let tree = b.build(TreeKind::Add(b.build(TreeKind::Num(2)), b.build(TreeKind::Num(3))));
+    let tree = b.build(TreeKind::Add(
+        b.build(TreeKind::Num(2)),
+        b.build(TreeKind::Num(3)),
+    ));
 
     // Evaluate it
     let mut evaluator = ArenaEvaluator;
@@ -520,7 +534,10 @@ impl<'arena> TreeTransformer<ArenaTreeBuilder<'arena>> for ArenaEvaluator {
 #[test]
 fn test_negate_numbers() {
     let b = BoxedTreeBuilder;
-    let tree = b.build(TreeKind::Add(b.build(TreeKind::Num(5)), b.build(TreeKind::Num(10))));
+    let tree = b.build(TreeKind::Add(
+        b.build(TreeKind::Num(5)),
+        b.build(TreeKind::Num(10)),
+    ));
     let mut transformer = NegateNumbers::new();
     let result = transformer.transform(tree);
     assert_eq!(
@@ -544,8 +561,13 @@ fn test_partial_constant_fold() {
     // Add(2, Neg(x)) where x is unknown - should only fold the 2
     // For this test, we'll use a tree with mixed constants and non-constants
     let tree = b.build(TreeKind::Add(
-        b.build(TreeKind::Add(b.build(TreeKind::Num(2)), b.build(TreeKind::Num(3)))),
-        b.build(TreeKind::Neg(b.build(TreeKind::Neg(b.build(TreeKind::Num(5)))))),
+        b.build(TreeKind::Add(
+            b.build(TreeKind::Num(2)),
+            b.build(TreeKind::Num(3)),
+        )),
+        b.build(TreeKind::Neg(
+            b.build(TreeKind::Neg(b.build(TreeKind::Num(5)))),
+        )),
     ));
 
     let mut folder = ConstantFolder::new();

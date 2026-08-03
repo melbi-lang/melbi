@@ -1,8 +1,7 @@
 use melbi_types::Ty;
 
-use crate::traits::{ArrayView, ValueBuilder};
-
 use super::Value;
+use crate::traits::{ArrayView, ValueBuilder};
 
 /// A view into an array value.
 ///

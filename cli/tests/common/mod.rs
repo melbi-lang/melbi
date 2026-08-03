@@ -2,10 +2,11 @@
 
 #![allow(dead_code)]
 
-use assert_cmd::Command;
-use expect_test::Expect;
 use std::io::Write;
 use std::process::ExitStatus;
+
+use assert_cmd::Command;
+use expect_test::Expect;
 
 /// Create a new command for the melbi binary.
 pub fn melbi() -> Command {

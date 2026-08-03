@@ -12,14 +12,14 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
+
 use bumpalo::Bump;
 
+use super::{ParseError, ParseErrorKind, ParseOptions, parse, parse_with_options};
 use crate::ast::parsed::{Expr, ExprKind, LiteralKind, PatternKind, TypeExprKind};
 use crate::ast::{BinaryOp, BoolOp, ComparisonOp, UnaryOp};
 use crate::builders::ArenaBuilder;
 use crate::{Span, Tree};
-
-use super::{ParseError, ParseErrorKind, ParseOptions, parse, parse_with_options};
 
 // --- harness -----------------------------------------------------------------
 
@@ -85,7 +85,10 @@ fn parses_integer_literals_in_every_base() {
     ] {
         let tree = parse_in(&arena, source);
         let ExprKind::Literal(LiteralKind::Int { value, suffix }) = tree.kind() else {
-            panic!("expected an integer literal for {source:?}, got {:?}", tree.kind());
+            panic!(
+                "expected an integer literal for {source:?}, got {:?}",
+                tree.kind()
+            );
         };
         assert_eq!(*value, expected, "value of {source:?}");
         assert!(suffix.is_none(), "unexpected suffix on {source:?}");
@@ -109,7 +112,10 @@ fn parses_float_literals() {
     ] {
         let tree = parse_in(&arena, source);
         let ExprKind::Literal(LiteralKind::Float { value, .. }) = tree.kind() else {
-            panic!("expected a float literal for {source:?}, got {:?}", tree.kind());
+            panic!(
+                "expected a float literal for {source:?}, got {:?}",
+                tree.kind()
+            );
         };
         assert_eq!(*value, expected, "value of {source:?}");
     }
@@ -157,7 +163,10 @@ fn parses_a_unit_suffix_as_an_expression() {
     // back into the expression tree.
     let suffix = suffix.as_ref().expect("expected a unit suffix");
     assert_spans(source, suffix, "m/s^2");
-    let ExprKind::Binary { op: BinaryOp::Div, .. } = suffix.kind() else {
+    let ExprKind::Binary {
+        op: BinaryOp::Div, ..
+    } = suffix.kind()
+    else {
         panic!("expected a division, got {:?}", suffix.kind());
     };
 }
@@ -203,7 +212,12 @@ fn multiplication_binds_tighter_than_addition() {
     let source = "1 + 2 * 3";
     let tree = parse_in(&arena, source);
 
-    let ExprKind::Binary { op: BinaryOp::Add, left, right } = tree.kind() else {
+    let ExprKind::Binary {
+        op: BinaryOp::Add,
+        left,
+        right,
+    } = tree.kind()
+    else {
         panic!("expected an addition at the root, got {:?}", tree.kind());
     };
     assert_spans(source, left, "1");
@@ -217,7 +231,12 @@ fn power_is_right_associative() {
     let source = "2 ^ 3 ^ 2";
     let tree = parse_in(&arena, source);
 
-    let ExprKind::Binary { op: BinaryOp::Pow, left, right } = tree.kind() else {
+    let ExprKind::Binary {
+        op: BinaryOp::Pow,
+        left,
+        right,
+    } = tree.kind()
+    else {
         panic!("expected a power at the root, got {:?}", tree.kind());
     };
     assert_spans(source, left, "2");
@@ -230,7 +249,12 @@ fn subtraction_is_left_associative() {
     let source = "1 - 2 - 3";
     let tree = parse_in(&arena, source);
 
-    let ExprKind::Binary { op: BinaryOp::Sub, left, right } = tree.kind() else {
+    let ExprKind::Binary {
+        op: BinaryOp::Sub,
+        left,
+        right,
+    } = tree.kind()
+    else {
         panic!("expected a subtraction at the root, got {:?}", tree.kind());
     };
     assert_spans(source, left, "1 - 2");
@@ -250,7 +274,12 @@ fn parses_the_logical_and_comparison_operators() {
     // `and` binds tighter than `or`, so the root is the `or`.
     let source = "a or b and c";
     let tree = parse_in(&arena, source);
-    let ExprKind::Boolean { op: BoolOp::Or, right, .. } = tree.kind() else {
+    let ExprKind::Boolean {
+        op: BoolOp::Or,
+        right,
+        ..
+    } = tree.kind()
+    else {
         panic!("expected an `or` at the root, got {:?}", tree.kind());
     };
     assert_spans(source, right, "b and c");
@@ -267,7 +296,10 @@ fn parses_the_logical_and_comparison_operators() {
     ] {
         let tree = parse_in(&arena, source);
         let ExprKind::Comparison { op, .. } = tree.kind() else {
-            panic!("expected a comparison for {source:?}, got {:?}", tree.kind());
+            panic!(
+                "expected a comparison for {source:?}, got {:?}",
+                tree.kind()
+            );
         };
         assert_eq!(*op, expected, "operator of {source:?}");
     }
@@ -279,14 +311,21 @@ fn parses_the_prefix_operators() {
 
     let source = "not a";
     let tree = parse_in(&arena, source);
-    let ExprKind::Unary { op: UnaryOp::Not, expr } = tree.kind() else {
+    let ExprKind::Unary {
+        op: UnaryOp::Not,
+        expr,
+    } = tree.kind()
+    else {
         panic!("expected a `not`, got {:?}", tree.kind());
     };
     assert_spans(source, expr, "a");
 
     // `-x` is a negation, while `-1` lexes as a negative literal.
     let tree = parse_in(&arena, "-x");
-    let ExprKind::Unary { op: UnaryOp::Neg, .. } = tree.kind() else {
+    let ExprKind::Unary {
+        op: UnaryOp::Neg, ..
+    } = tree.kind()
+    else {
         panic!("expected a negation, got {:?}", tree.kind());
     };
 }
@@ -297,10 +336,21 @@ fn parentheses_override_precedence() {
     let source = "(1 + 2) * 3";
     let tree = parse_in(&arena, source);
 
-    let ExprKind::Binary { op: BinaryOp::Mul, left, .. } = tree.kind() else {
-        panic!("expected a multiplication at the root, got {:?}", tree.kind());
+    let ExprKind::Binary {
+        op: BinaryOp::Mul,
+        left,
+        ..
+    } = tree.kind()
+    else {
+        panic!(
+            "expected a multiplication at the root, got {:?}",
+            tree.kind()
+        );
     };
-    let ExprKind::Binary { op: BinaryOp::Add, .. } = left.kind() else {
+    let ExprKind::Binary {
+        op: BinaryOp::Add, ..
+    } = left.kind()
+    else {
         panic!("expected the sum to be grouped, got {:?}", left.kind());
     };
     // The parentheses leave no node — the nesting already says what they said —
@@ -322,7 +372,12 @@ fn a_parent_span_never_cuts_through_a_bracket() {
     let source = "1 + (2 + 3) * 4";
     let tree = parse_in(&arena, source);
 
-    let ExprKind::Binary { op: BinaryOp::Add, left, right } = tree.kind() else {
+    let ExprKind::Binary {
+        op: BinaryOp::Add,
+        left,
+        right,
+    } = tree.kind()
+    else {
         panic!("expected an addition at the root, got {:?}", tree.kind());
     };
     assert_spans(source, &tree, source);
@@ -330,8 +385,11 @@ fn a_parent_span_never_cuts_through_a_bracket() {
     // Not `2 + 3) * 4`.
     assert_spans(source, right, "(2 + 3) * 4");
 
-    let ExprKind::Binary { op: BinaryOp::Mul, left: product_left, right: product_right } =
-        right.kind()
+    let ExprKind::Binary {
+        op: BinaryOp::Mul,
+        left: product_left,
+        right: product_right,
+    } = right.kind()
     else {
         panic!("expected a multiplication, got {:?}", right.kind());
     };
@@ -346,7 +404,11 @@ fn prefix_and_postfix_spans_cover_surrounding_parentheses() {
     // A prefix over a grouped operand reaches the closing bracket.
     let source = "-(1 + 2)";
     let tree = parse_in(&arena, source);
-    let ExprKind::Unary { op: UnaryOp::Neg, expr } = tree.kind() else {
+    let ExprKind::Unary {
+        op: UnaryOp::Neg,
+        expr,
+    } = tree.kind()
+    else {
         panic!("expected a negation, got {:?}", tree.kind());
     };
     assert_spans(source, &tree, "-(1 + 2)");
@@ -394,9 +456,15 @@ fn pattern_bracket_recovery_handles_whitespace_and_nesting() {
     let arena = Bump::new();
 
     for (source, expected) in [
-        ("v match { some ( some x ) -> 1, _ -> 0 }", "some ( some x )"),
+        (
+            "v match { some ( some x ) -> 1, _ -> 0 }",
+            "some ( some x )",
+        ),
         ("v match { some((some x)) -> 1, _ -> 0 }", "some((some x))"),
-        ("v match { some\n  (some x) -> 1, _ -> 0 }", "some\n  (some x)"),
+        (
+            "v match { some\n  (some x) -> 1, _ -> 0 }",
+            "some\n  (some x)",
+        ),
         // No brackets at all: the span is just the operator and its operand.
         ("v match { some some x -> 1, _ -> 0 }", "some some x"),
     ] {
@@ -489,7 +557,12 @@ fn parses_if_expressions() {
     let source = "if x > 0 then x else -x";
     let tree = parse_in(&arena, source);
 
-    let ExprKind::If { cond, then_branch, else_branch } = tree.kind() else {
+    let ExprKind::If {
+        cond,
+        then_branch,
+        else_branch,
+    } = tree.kind()
+    else {
         panic!("expected an `if`, got {:?}", tree.kind());
     };
     assert_spans(source, cond, "x > 0");
@@ -583,7 +656,10 @@ fn parses_the_pattern_forms() {
     assert_eq!(*arms[0].kind().pattern.kind(), PatternKind::Wildcard);
     assert_eq!(
         *arms[1].kind().pattern.kind(),
-        PatternKind::Literal(LiteralKind::Int { value: 1, suffix: None })
+        PatternKind::Literal(LiteralKind::Int {
+            value: 1,
+            suffix: None
+        })
     );
     assert_eq!(
         *arms[2].kind().pattern.kind(),
@@ -700,7 +776,10 @@ fn format_string_keeps_one_more_string_than_expressions() {
     ] {
         let tree = parse_in(&arena, source);
         let ExprKind::FormatStr { strs, exprs } = tree.kind() else {
-            panic!("expected a format string for {source:?}, got {:?}", tree.kind());
+            panic!(
+                "expected a format string for {source:?}, got {:?}",
+                tree.kind()
+            );
         };
         assert_eq!(
             strs.len(),
@@ -812,7 +891,10 @@ fn parses_a_realistic_program() {
 fn comments_are_ignored() {
     let arena = Bump::new();
     let tree = parse_in(&arena, "1 + // a comment\n 2");
-    let ExprKind::Binary { op: BinaryOp::Add, .. } = tree.kind() else {
+    let ExprKind::Binary {
+        op: BinaryOp::Add, ..
+    } = tree.kind()
+    else {
         panic!("expected an addition, got {:?}", tree.kind());
     };
 }
@@ -873,7 +955,10 @@ fn rejects_a_well_formed_but_invalid_escape() {
     let ParseErrorKind::InvalidLiteral { message } = &error.kind else {
         panic!("expected an invalid literal, got {:?}", error.kind);
     };
-    assert!(message.contains("non-ASCII"), "unhelpful message: {message}");
+    assert!(
+        message.contains("non-ASCII"),
+        "unhelpful message: {message}"
+    );
 }
 
 #[test]
@@ -899,7 +984,11 @@ fn rejects_nesting_past_the_depth_limit() {
     let builder = ArenaBuilder::new(&arena);
 
     // Deep enough to exceed the limit set below, shallow enough to parse fast.
-    let source: String = "(".repeat(60).chars().chain("1".chars()).collect::<String>()
+    let source: String = "("
+        .repeat(60)
+        .chars()
+        .chain("1".chars())
+        .collect::<String>()
         + &")".repeat(60);
 
     let options = ParseOptions { max_depth: 10 };

@@ -1,11 +1,10 @@
 use smallvec::SmallVec;
 
-use crate::core::IdentList;
-use crate::{FieldList, Ident, TyList};
-
 use super::builder::TyBuilder;
 use super::flags::TyFlags;
 use super::ty::Ty;
+use crate::core::IdentList;
+use crate::{FieldList, Ident, TyList};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TyKind<B: TyBuilder> {

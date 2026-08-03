@@ -1,8 +1,9 @@
 //! Panic handler for user-friendly crash reporting.
 
-use nu_ansi_term::Color;
 use std::cell::RefCell;
 use std::panic::PanicHookInfo;
+
+use nu_ansi_term::Color;
 
 thread_local! {
     /// The current expression being evaluated (for REPL crash reports).

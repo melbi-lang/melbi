@@ -2,11 +2,11 @@
 
 use bumpalo::Bump;
 
-use crate::{
-    evaluator::ExecutionError,
-    types::manager::TypeManager,
-    values::{dynamic::Value, from_raw::TypeError, function::{FfiContext, NativeFunction}},
-};
+use crate::evaluator::ExecutionError;
+use crate::types::manager::TypeManager;
+use crate::values::dynamic::Value;
+use crate::values::from_raw::TypeError;
+use crate::values::function::{FfiContext, NativeFunction};
 
 // ============================================================================
 // Test FFI Functions
@@ -174,8 +174,9 @@ fn test_multiple_functions_same_arena() {
 #[test]
 fn test_trait_object_size() {
     // Verify trait object is a fat pointer (2 words)
-    use crate::values::function::Function;
     use core::mem::size_of;
+
+    use crate::values::function::Function;
 
     // Trait object reference is a fat pointer: data pointer + vtable pointer
     assert_eq!(

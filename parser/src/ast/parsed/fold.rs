@@ -24,12 +24,11 @@
 
 use alloc::vec::Vec;
 
-use crate::{Tree, TreeBuilder, TreeNode};
-
 use super::{
     Binding, BindingKind, Data, Expr, ExprKind, LiteralKind, MapEntry, MapEntryKind, MatchArm,
     MatchArmKind, Pattern, PatternKind, TypeExpr, TypeExprKind, TypeField, TypeFieldKind,
 };
+use crate::{Tree, TreeBuilder, TreeNode};
 
 /// What a `fold_*` method decides about one node.
 ///

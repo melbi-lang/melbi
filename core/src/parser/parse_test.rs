@@ -1,7 +1,7 @@
-use super::parser::ExpressionParser;
-use super::parser::Rule;
 use pest::Parser;
 use pest::error::Error;
+
+use super::parser::{ExpressionParser, Rule};
 
 #[test]
 fn test_valid_expressions() -> Result<(), Error<Rule>> {
@@ -113,8 +113,9 @@ fn test_invalid_expressions() {
 
 #[test]
 fn test_pattern_matching_syntax() {
-    use crate::parser;
     use bumpalo::Bump;
+
+    use crate::parser;
 
     let examples = [
         // Basic patterns
@@ -144,7 +145,6 @@ fn test_pattern_matching_syntax() {
 
     let arena = Bump::new();
     for expr in examples {
-        parser::parse(&arena, expr)
-            .unwrap_or_else(|e| panic!("Failed to parse '{}': {}", expr, e));
+        parser::parse(&arena, expr).unwrap_or_else(|e| panic!("Failed to parse '{}': {}", expr, e));
     }
 }

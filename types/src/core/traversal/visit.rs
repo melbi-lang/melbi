@@ -1,4 +1,6 @@
-use crate::core::{builder::TyBuilder, kind::TyKind, ty::Ty};
+use crate::core::builder::TyBuilder;
+use crate::core::kind::TyKind;
+use crate::core::ty::Ty;
 
 /// A generic trait for traversing a type while modifying a context.
 /// This is supposed to be implemented on TyKind<B>.

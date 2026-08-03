@@ -4,13 +4,14 @@
 /// - Runtime bytes (e.g., `[104, 101, 108, 108, 111]` for "hello")
 /// - Melbi source code bytes literals (e.g., `b"hello"` or `b"\x68\x65\x6c\x6c\x6f"`)
 use alloc::string::ToString;
-use bumpalo::Bump;
 use core::fmt;
+
+use bumpalo::Bump;
 
 use crate::{String, format};
 
 /// Style for quoting bytes literals.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum QuoteStyle {
     /// Always use single quotes: `b'...'`
     AlwaysSingle,
@@ -19,13 +20,8 @@ pub enum QuoteStyle {
     /// Prefer single quotes, use double if content contains single quote
     PreferSingle,
     /// Prefer double quotes, use single if content contains double quote (but not single)
+    #[default]
     PreferDouble,
-}
-
-impl Default for QuoteStyle {
-    fn default() -> Self {
-        QuoteStyle::PreferDouble
-    }
 }
 
 /// Errors that can occur when unescaping bytes literals.

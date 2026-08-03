@@ -1,4 +1,5 @@
 use std::string::FromUtf8Error;
+
 use topiary_core::{FormatterError, Operation, TopiaryQuery};
 
 const QUERY: &str = include_str!("../../topiary-queries/queries/melbi.scm");
@@ -42,7 +43,12 @@ impl From<FormatterError> for FormatError {
             FormatterError::Idempotence | FormatterError::IdempotenceParsing(_) => {
                 FormatError::Idempotency
             }
-            FormatterError::Parsing(err) => FormatError::Internal(format!("{err:?}")),
+            FormatterError::Parsing(err) => FormatError::Parse {
+                start_line: err.start_point().row() as usize + 1,
+                start_column: err.start_point().column() as usize + 1,
+                end_line: err.end_point().row() as usize + 1,
+                end_column: err.end_point().column() as usize + 1,
+            },
             other => FormatError::Internal(other.to_string()),
         }
     }

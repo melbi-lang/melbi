@@ -15,6 +15,5 @@ pub use format_str_adapter::FormatStrAdapter;
 pub use function_adapter::FunctionAdapter;
 pub use generic_adapter::GenericAdapter;
 pub use instruction_set::Instruction;
-pub use vm::VM;
-
 pub(crate) use stack::Stack;
+pub use vm::VM;

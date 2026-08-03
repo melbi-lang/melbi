@@ -4,12 +4,10 @@ use alloc::vec;
 
 use bumpalo::Bump;
 use melbi_types::ty;
-use melbi_values::{
-    builders::{ArenaValueBuilder, BoxValueBuilder},
-    copy::copy_value,
-    dynamic::Value,
-    traits::{ArrayView, ValueBuilder, ValueView},
-};
+use melbi_values::builders::{ArenaValueBuilder, BoxValueBuilder};
+use melbi_values::copy::copy_value;
+use melbi_values::dynamic::Value;
+use melbi_values::traits::{ArrayView, ValueBuilder, ValueView};
 
 // In every test, the source builder lives in an inner scope and is dropped
 // before assertions. This validates that copied values don't dangle — they
@@ -159,7 +157,11 @@ fn array_of_ints_box_to_box() {
     let copied = {
         let src = box_builder();
         let src_tb = src.ty_builder().clone();
-        let elements = vec![Value::int(&src, 4), Value::int(&src, 5), Value::int(&src, 6)];
+        let elements = vec![
+            Value::int(&src, 4),
+            Value::int(&src, 5),
+            Value::int(&src, 6),
+        ];
         let v = Value::array(&src, ty!(src_tb, Int), elements);
         copy_value(&v, &dst)
     };
@@ -243,7 +245,11 @@ fn array_of_ints_box_to_arena() {
     let copied = {
         let src = box_builder();
         let src_tb = src.ty_builder().clone();
-        let elements = vec![Value::int(&src, 10), Value::int(&src, 20), Value::int(&src, 30)];
+        let elements = vec![
+            Value::int(&src, 10),
+            Value::int(&src, 20),
+            Value::int(&src, 30),
+        ];
         let v = Value::array(&src, ty!(src_tb, Int), elements);
         copy_value(&v, &dst)
     };
@@ -343,8 +349,16 @@ fn nested_array_box_to_arena() {
         let src = box_builder();
         let src_tb = src.ty_builder().clone();
         let int_ty = ty!(src_tb, Int);
-        let inner1 = Value::array(&src, int_ty.clone(), vec![Value::int(&src, 1), Value::int(&src, 2)]);
-        let inner2 = Value::array(&src, int_ty.clone(), vec![Value::int(&src, 3), Value::int(&src, 4)]);
+        let inner1 = Value::array(
+            &src,
+            int_ty.clone(),
+            vec![Value::int(&src, 1), Value::int(&src, 2)],
+        );
+        let inner2 = Value::array(
+            &src,
+            int_ty.clone(),
+            vec![Value::int(&src, 3), Value::int(&src, 4)],
+        );
         let inner_ty = ty!(src_tb, Array[Int]);
         let outer = Value::array(&src, inner_ty, vec![inner1, inner2]);
         copy_value(&outer, &dst)
@@ -372,7 +386,11 @@ fn nested_array_arena_to_box() {
         let src = ArenaValueBuilder::new(&arena);
         let src_tb = *src.ty_builder();
         let int_ty = ty!(src_tb, Int);
-        let inner1 = Value::array(&src, int_ty.clone(), vec![Value::int(&src, 10), Value::int(&src, 20)]);
+        let inner1 = Value::array(
+            &src,
+            int_ty.clone(),
+            vec![Value::int(&src, 10), Value::int(&src, 20)],
+        );
         let inner2 = Value::array(&src, int_ty.clone(), vec![Value::int(&src, 30)]);
         let inner_ty = ty!(src_tb, Array[Int]);
         let outer = Value::array(&src, inner_ty, vec![inner1, inner2]);

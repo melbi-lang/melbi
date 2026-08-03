@@ -117,6 +117,7 @@ pub fn validate_cast<'types>(
 /// In strict mode, Float→Int should fail on:
 /// - Non-exact conversions (e.g., 3.7 → error)
 /// - NaN, Infinity (currently wraps to 0 or MAX/MIN)
+///
 /// See docs/TODO.md for details.
 pub fn perform_cast<'types, 'arena>(
     arena: &'arena bumpalo::Bump,
@@ -221,8 +222,9 @@ impl core::fmt::Display for CastError {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bumpalo::Bump;
+
+    use super::*;
 
     // ========================================================================
     // Validation Tests (Analyzer)

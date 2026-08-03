@@ -2,14 +2,11 @@
 //!
 //! This tests the new dynamic API that doesn't require compile-time type knowledge.
 
-use crate::{
-    types::manager::TypeManager,
-    values::{
-        binder::{Binder, Error as BindError},
-        dynamic::Value,
-    },
-};
 use bumpalo::Bump;
+
+use crate::types::manager::TypeManager;
+use crate::values::binder::{Binder, Error as BindError};
+use crate::values::dynamic::Value;
 
 #[test]
 fn test_dynamic_int() {

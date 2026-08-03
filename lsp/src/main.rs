@@ -173,7 +173,7 @@ impl LanguageServer for Backend {
                     let formatted = doc.format();
                     let source = doc.source.clone();
                     (formatted, source)
-                },
+                }
                 None => return Ok(None),
             }
         }; // DashMap reference dropped here

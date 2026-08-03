@@ -57,9 +57,10 @@ impl<'types, 'arena> TypeScheme<'types, 'arena> {
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::types::manager::TypeManager;
-    use bumpalo::Bump;
 
     #[test]
     fn test_monomorphic_scheme() {

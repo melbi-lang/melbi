@@ -166,25 +166,16 @@ fn surrogate_and_out_of_range_scalars_are_rejected() {
 fn unpaired_brace_in_a_format_string_is_rejected() {
     assert_eq!(
         string_error("a{b", true),
-        StringError::UnpairedBrace {
-            pos: 1,
-            brace: '{'
-        }
+        StringError::UnpairedBrace { pos: 1, brace: '{' }
     );
     assert_eq!(
         string_error("a}b", true),
-        StringError::UnpairedBrace {
-            pos: 1,
-            brace: '}'
-        }
+        StringError::UnpairedBrace { pos: 1, brace: '}' }
     );
     // A brace at the very end has nothing to pair with.
     assert_eq!(
         string_error("a{", true),
-        StringError::UnpairedBrace {
-            pos: 1,
-            brace: '{'
-        }
+        StringError::UnpairedBrace { pos: 1, brace: '{' }
     );
 }
 
@@ -266,7 +257,10 @@ fn bytes_trailing_backslash_is_rejected() {
 
 #[test]
 fn truncated_hex_escape_is_rejected() {
-    assert_eq!(bytes_error(r"\x"), BytesError::IncompleteHexEscape { pos: 0 });
+    assert_eq!(
+        bytes_error(r"\x"),
+        BytesError::IncompleteHexEscape { pos: 0 }
+    );
     assert_eq!(
         bytes_error(r"a\x0"),
         BytesError::IncompleteHexEscape { pos: 1 }

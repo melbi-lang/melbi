@@ -5,9 +5,11 @@
 //! - Collect information (`Output = HashSet<u16>`)
 //! - Perform side effects (`Output = ()`)
 
-use alloc::{vec, vec::Vec};
+use alloc::vec;
+use alloc::vec::Vec;
 
-use crate::{Ty, core::TyBuilder};
+use crate::Ty;
+use crate::core::TyBuilder;
 
 /// Control flow for the fold traversal.
 ///
@@ -171,12 +173,8 @@ pub trait TypeFolder<In: TyBuilder, Out: TyBuilder = In> {
     /// - `FoldStep::Recurse` to process children and rebuild in the output builder
     /// - `FoldStep::Done(ty)` to skip children and use `ty` as the result
     /// - `FoldStep::Replace(ty)` to visit `ty` instead (for chained substitution)
-    fn fold_ty(
-        &mut self,
-        builder_in: &In,
-        builder_out: &Out,
-        ty: &Ty<In>,
-    ) -> FoldStep<In, Ty<Out>>;
+    fn fold_ty(&mut self, builder_in: &In, builder_out: &Out, ty: &Ty<In>)
+    -> FoldStep<In, Ty<Out>>;
 }
 
 struct TypeFolderAdapter<'a, In: TyBuilder, Out: TyBuilder, F: TypeFolder<In, Out>> {

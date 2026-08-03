@@ -196,8 +196,9 @@ macro_rules! ty {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ArenaBuilder, Scalar, TyKind};
     use bumpalo::Bump;
+
+    use crate::{ArenaBuilder, Scalar, TyKind};
 
     #[test]
     fn test_scalar_int() {

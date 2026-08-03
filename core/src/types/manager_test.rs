@@ -1,6 +1,8 @@
-use super::manager::TypeManager;
 use alloc::string::ToString;
+
 use bumpalo::Bump;
+
+use super::manager::TypeManager;
 
 #[test]
 fn test_interning() {
@@ -450,9 +452,10 @@ fn test_symbol_with_strings_in_vec() {
 
 #[test]
 fn test_record_with_strings_in_vec() {
-    use crate::types::Type;
     use alloc::format;
     use alloc::string::String;
+
+    use crate::types::Type;
 
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);

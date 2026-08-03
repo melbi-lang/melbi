@@ -3,9 +3,10 @@
 //! This demonstrates the design we'll use for the analyzer expression tree visitors.
 //! The pattern is based on the existing TypeView/TypeBuilder/TypeVisitor traits.
 
-use bumpalo::Bump;
 use core::fmt::Debug;
 use core::hash::Hash;
+
+use bumpalo::Bump;
 
 // === Traits ===
 

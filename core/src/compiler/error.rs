@@ -40,15 +40,9 @@ impl CompileError {
         Diagnostic {
             severity: Severity::Error,
             message: String::from(match self {
-                CompileError::TooManyLocals => {
-                    "Too many local variables (limit: ~4 billion)"
-                }
-                CompileError::TooManyConstants => {
-                    "Too many constants (limit: ~4 billion)"
-                }
-                CompileError::JumpTooFar => {
-                    "Jump distance too large (limit: 65535 instructions)"
-                }
+                CompileError::TooManyLocals => "Too many local variables (limit: ~4 billion)",
+                CompileError::TooManyConstants => "Too many constants (limit: ~4 billion)",
+                CompileError::JumpTooFar => "Jump distance too large (limit: 65535 instructions)",
             }),
             span: Span::new(0, 0),
             related: Vec::new(),

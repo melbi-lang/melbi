@@ -1,11 +1,13 @@
 //! The Melbi compilation engine.
 
+use bumpalo::Bump;
+
 use super::{CompileOptionsOverride, CompiledExpression, EngineOptions, EnvironmentBuilder, Error};
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::values::binder::Binder;
 use crate::values::dynamic::Value;
 use crate::{Vec, analyzer, parser};
-use bumpalo::Bump;
 
 /// The Melbi compilation and execution engine.
 ///
@@ -189,7 +191,7 @@ impl<'arena> Engine<'arena> {
         let typed_expr = analyzer::analyze(
             self.type_manager,
             self.arena,
-            &parsed,
+            parsed,
             self.globals_for_analyzer,
             params_slice,
         )?;
@@ -200,7 +202,7 @@ impl<'arena> Engine<'arena> {
             self.type_manager,
             params_slice,
             self.environment,
-            self.options.default_run_options.clone(),
+            self.options.default_run_options,
         ))
     }
 }

@@ -2,13 +2,16 @@
 //!
 //! This module defines `EvalLambda` which represents Melbi lambdas as callable values.
 
+use alloc::vec::Vec;
+
 use super::dynamic::Value;
 use super::function::{FfiContext, Function};
 use crate::analyzer::typed_expr::TypedExpr;
 use crate::evaluator::{Evaluator, EvaluatorOptions, ExecutionError};
 use crate::scope_stack::CompleteScope;
-use crate::types::{Type, traits::TypeView, unification::Unification};
-use alloc::vec::Vec;
+use crate::types::Type;
+use crate::types::traits::TypeView;
+use crate::types::unification::Unification;
 
 /// A lambda function value.
 ///

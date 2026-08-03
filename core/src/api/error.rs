@@ -5,14 +5,13 @@
 //!
 //! See docs/design/error-handling.md for the complete design.
 
-use crate::parser::Span;
-use crate::{String, ToString, Vec, format};
-
+#[cfg(not(feature = "std"))]
+use core::fmt;
 #[cfg(feature = "std")]
 use std::fmt;
 
-#[cfg(not(feature = "std"))]
-use core::fmt;
+use crate::parser::Span;
+use crate::{Box, String, ToString, Vec, format};
 
 /// Public error type for all Melbi operations.
 ///
@@ -36,7 +35,7 @@ pub enum Error {
     ///
     /// Contains a diagnostic with source location for the error.
     Runtime {
-        diagnostic: Diagnostic,
+        diagnostic: Box<Diagnostic>,
         source: String,
         filename: Option<String>,
     },
@@ -63,9 +62,7 @@ impl Error {
                 filename,
             },
             Error::Runtime {
-                diagnostic,
-                source,
-                ..
+                diagnostic, source, ..
             } => Error::Runtime {
                 diagnostic,
                 source,
@@ -219,7 +216,7 @@ impl From<crate::evaluator::ExecutionError> for Error {
         use crate::evaluator::ExecutionErrorKind;
         match &err.kind {
             ExecutionErrorKind::Runtime(_) => Error::Runtime {
-                diagnostic: err.to_diagnostic(),
+                diagnostic: Box::new(err.to_diagnostic()),
                 source: err.source,
                 filename: None, // TODO: require caller to set via .with_filename()
             },

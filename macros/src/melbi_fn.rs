@@ -254,40 +254,40 @@ fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericPar
 
     // Collect all recognized trait bounds
     for bound in &type_param.bounds {
-        if let syn::TypeParamBound::Trait(trait_bound) = bound {
-            if let Some(last_seg) = trait_bound.path.segments.last() {
-                let trait_name = last_seg.ident.to_string();
-                match trait_name.as_str() {
-                    // Type must be a number.
-                    "Numeric" => traits.push("Numeric"),
-                    // Type doesn't have any special constraints.
-                    // So we don't even care about adding it.
-                    "Melbi" => {}
-                    other => {
-                        return Err(syn::Error::new_spanned(
-                            &trait_bound.path,
-                            format!(
-                                "[melbi] trait bound '{}' is not supported. \
+        if let syn::TypeParamBound::Trait(trait_bound) = bound
+            && let Some(last_seg) = trait_bound.path.segments.last()
+        {
+            let trait_name = last_seg.ident.to_string();
+            match trait_name.as_str() {
+                // Type must be a number.
+                "Numeric" => traits.push("Numeric"),
+                // Type doesn't have any special constraints.
+                // So we don't even care about adding it.
+                "Melbi" => {}
+                other => {
+                    return Err(syn::Error::new_spanned(
+                        &trait_bound.path,
+                        format!(
+                            "[melbi] trait bound '{}' is not supported. \
                                  Supported: Melbi, Numeric",
-                                other
-                            ),
-                        ));
-                    }
+                            other
+                        ),
+                    ));
                 }
             }
         }
     }
 
-    match traits.as_slice() {
-        &[] => Err(syn::Error::new_spanned(
+    match *traits.as_slice() {
+        [] => Err(syn::Error::new_spanned(
             type_param,
             "[melbi] generic type parameter must have a trait bound (e.g., T: Melbi or T: Numeric)",
         )),
-        &[trait_name] => Ok(ParsedGenericParam {
+        [trait_name] => Ok(ParsedGenericParam {
             ident: type_param.ident.clone(),
             trait_name: trait_name.to_string(),
         }),
-        &[..] => Err(syn::Error::new_spanned(
+        [..] => Err(syn::Error::new_spanned(
             type_param,
             "[melbi] multiple traits are not supported",
         )),
@@ -317,17 +317,13 @@ fn analyze_return_type(ty: &Type) -> (Box<Type>, bool) {
 
 /// Check if a type is `Result<T, E>` and extract the Ok type `T`.
 fn extract_result_ok_type(ty: &Type) -> Option<Box<Type>> {
-    if let Type::Path(type_path) = ty {
-        let segments = &type_path.path.segments;
-        if let Some(last_segment) = segments.last() {
-            if last_segment.ident == "Result" {
-                if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
-                    if let Some(GenericArgument::Type(ok_type)) = args.args.first() {
-                        return Some(Box::new(ok_type.clone()));
-                    }
-                }
-            }
-        }
+    if let Type::Path(type_path) = ty
+        && let Some(last_segment) = type_path.path.segments.last()
+        && last_segment.ident == "Result"
+        && let PathArguments::AngleBracketed(args) = &last_segment.arguments
+        && let Some(GenericArgument::Type(ok_type)) = args.args.first()
+    {
+        return Some(Box::new(ok_type.clone()));
     }
     None
 }
@@ -396,13 +392,13 @@ fn classify_type(ty: &Type, type_params: &[ParsedGenericParam]) -> syn::Result<T
         for seg in &type_path.path.segments {
             if let PathArguments::AngleBracketed(args) = &seg.arguments {
                 for arg in &args.args {
-                    if let GenericArgument::Type(inner_ty) = arg {
-                        if contains_type_var(inner_ty, type_params) {
-                            return Err(syn::Error::new_spanned(
-                                ty,
-                                "[melbi] type variables inside containers (e.g., Array<T>) not yet supported",
-                            ));
-                        }
+                    if let GenericArgument::Type(inner_ty) = arg
+                        && contains_type_var(inner_ty, type_params)
+                    {
+                        return Err(syn::Error::new_spanned(
+                            ty,
+                            "[melbi] type variables inside containers (e.g., Array<T>) not yet supported",
+                        ));
                     }
                 }
             }
@@ -425,10 +421,10 @@ fn contains_type_var(ty: &Type, type_params: &[ParsedGenericParam]) -> bool {
         for seg in &type_path.path.segments {
             if let PathArguments::AngleBracketed(args) = &seg.arguments {
                 for arg in &args.args {
-                    if let GenericArgument::Type(inner_ty) = arg {
-                        if contains_type_var(inner_ty, type_params) {
-                            return true;
-                        }
+                    if let GenericArgument::Type(inner_ty) = arg
+                        && contains_type_var(inner_ty, type_params)
+                    {
+                        return true;
                     }
                 }
             }
@@ -439,14 +435,14 @@ fn contains_type_var(ty: &Type, type_params: &[ParsedGenericParam]) -> bool {
 
 /// Check if a type looks like FfiContext (contains "FfiContext" in path).
 fn is_ffi_context_type(ty: &Type) -> bool {
-    if let Type::Reference(type_ref) = ty {
-        if let Type::Path(type_path) = &*type_ref.elem {
-            return type_path
-                .path
-                .segments
-                .iter()
-                .any(|s| s.ident == "FfiContext");
-        }
+    if let Type::Reference(type_ref) = ty
+        && let Type::Path(type_path) = &*type_ref.elem
+    {
+        return type_path
+            .path
+            .segments
+            .iter()
+            .any(|s| s.ident == "FfiContext");
     }
     false
 }

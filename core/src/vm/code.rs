@@ -2,12 +2,10 @@ use alloc::boxed::Box;
 
 use hashbrown::HashSet;
 
-use crate::{
-    Vec,
-    types::Type,
-    values::RawValue,
-    vm::{FunctionAdapter, GenericAdapter, Instruction},
-};
+use crate::Vec;
+use crate::types::Type;
+use crate::values::RawValue;
+use crate::vm::{FunctionAdapter, GenericAdapter, Instruction};
 
 pub struct Code<'t> {
     pub constants: Vec<RawValue>,
@@ -140,7 +138,7 @@ impl core::fmt::Debug for Code<'_> {
                     .generic_adapters
                     .get(full_idx)
                     .map(|a| a.name())
-                    .unwrap_or_else(|| alloc::format!("???"));
+                    .unwrap_or_else(|| alloc::string::String::from("???"));
                 writeln!(
                     f,
                     "    {:4} {:>4}  {:?}  [ {} ]",
@@ -215,7 +213,7 @@ impl core::fmt::Debug for LambdaCode<'_> {
                             .generic_adapters
                             .get(full_idx)
                             .map(|a| a.name())
-                            .unwrap_or_else(|| alloc::format!("???"));
+                            .unwrap_or_else(|| alloc::string::String::from("???"));
                         writeln!(f, "        {:4}  {:?}  [ {} ]", addr, instr, adapter_name)?;
                     } else {
                         writeln!(f, "        {:4}  {:?}", addr, instr)?;

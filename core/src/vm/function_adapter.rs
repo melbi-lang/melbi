@@ -1,12 +1,13 @@
 use bumpalo::Bump;
 
-use crate::{
-    Vec,
-    evaluator::ExecutionErrorKind,
-    types::{Type, manager::TypeManager},
-    values::{RawValue, dynamic::Value, function::FfiContext},
-    vm::GenericAdapter,
-};
+use crate::Vec;
+use crate::evaluator::ExecutionErrorKind;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::RawValue;
+use crate::values::dynamic::Value;
+use crate::values::function::FfiContext;
+use crate::vm::GenericAdapter;
 
 /// Melbi's VM doesn't have knowledge of types: it just executes instructions
 /// over data in memory. However, to provide a type-safe API to FFI authors

@@ -1,9 +1,7 @@
-use std::{
-    alloc::Layout,
-    marker::PhantomData,
-    ptr::{self, NonNull},
-    slice,
-};
+use std::alloc::Layout;
+use std::marker::PhantomData;
+use std::ptr::{self, NonNull};
+use std::slice;
 
 use bumpalo::Bump;
 

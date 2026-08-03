@@ -10,11 +10,9 @@
 extern crate alloc;
 
 use alloc::alloc::{Layout, alloc};
-use core::{
-    mem::ManuallyDrop,
-    ops::Add,
-    ptr::{self, NonNull},
-};
+use core::mem::ManuallyDrop;
+use core::ops::Add;
+use core::ptr::{self, NonNull};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TeenyVecKind {

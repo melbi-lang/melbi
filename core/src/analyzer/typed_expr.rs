@@ -1,19 +1,16 @@
-use crate::{
-    parser::{AnnotatedSource, BinaryOp, BoolOp, ComparisonOp, UnaryOp},
-    types::{
-        Type,
-        traits::{TypeKind, TypeView},
-        type_class::TypeClassId,
-    },
-    values::dynamic::Value,
-};
+use crate::parser::{AnnotatedSource, BinaryOp, BoolOp, ComparisonOp, UnaryOp};
+use crate::types::Type;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::types::type_class::TypeClassId;
+use crate::values::dynamic::Value;
 
 extern crate hashbrown;
-use hashbrown::{HashMap, HashSet, DefaultHashBuilder};
+use hashbrown::{DefaultHashBuilder, HashMap, HashSet};
 
 /// Substitution from generalized type variable ID to concrete type
 /// Uses arena allocation to avoid leaks when stored in arena-allocated structs
-pub type Substitution<'types, 'arena> = HashMap<u16, &'types Type<'types>, DefaultHashBuilder, &'arena bumpalo::Bump>;
+pub type Substitution<'types, 'arena> =
+    HashMap<u16, &'types Type<'types>, DefaultHashBuilder, &'arena bumpalo::Bump>;
 
 /// Track all instantiations of a specific polymorphic lambda
 #[derive(Debug)]
@@ -32,7 +29,12 @@ pub struct TypedExpr<'types, 'arena> {
     /// Map from lambda expression pointer to its instantiation info
     /// This tracks how polymorphic lambdas are instantiated at different call sites
     /// Uses arena allocation to avoid leaks since TypedExpr is arena-allocated
-    pub lambda_instantiations: HashMap<*const Expr<'types, 'arena>, LambdaInstantiations<'types, 'arena>, DefaultHashBuilder, &'arena bumpalo::Bump>,
+    pub lambda_instantiations: HashMap<
+        *const Expr<'types, 'arena>,
+        LambdaInstantiations<'types, 'arena>,
+        DefaultHashBuilder,
+        &'arena bumpalo::Bump,
+    >,
 }
 
 #[derive(Debug, Clone)]
@@ -195,7 +197,11 @@ impl<'types, 'arena> ExprBuilder<'types, 'arena> {
     }
 
     /// Allocate an expression in the arena.
-    pub fn build(&self, ty: &'types Type<'types>, inner: ExprInner<'types, 'arena>) -> &'arena Expr<'types, 'arena> {
+    pub fn build(
+        &self,
+        ty: &'types Type<'types>,
+        inner: ExprInner<'types, 'arena>,
+    ) -> &'arena Expr<'types, 'arena> {
         self.arena.alloc(Expr(ty, inner))
     }
 }

@@ -1,5 +1,7 @@
+use core::hash::Hash;
+use core::marker::PhantomData;
 use core::num::NonZeroU8;
-use core::{hash::Hash, marker::PhantomData, mem, ptr, slice};
+use core::{mem, ptr, slice};
 
 // === internal::SmallStrSize ===
 

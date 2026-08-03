@@ -1,6 +1,7 @@
 use bumpalo::Bump;
 
-use crate::{evaluator::ExecutionErrorKind, values::RawValue};
+use crate::evaluator::ExecutionErrorKind;
+use crate::values::RawValue;
 
 /// A generic adapter for VM operations that need type information at runtime.
 ///

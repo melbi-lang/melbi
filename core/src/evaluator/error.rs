@@ -20,10 +20,8 @@
 use alloc::string::ToString;
 use core::fmt;
 
-use crate::String;
-use crate::format;
 use crate::parser::Span;
-use crate::vec;
+use crate::{String, format, vec};
 
 /// Execution error.
 #[derive(Debug)]
@@ -157,7 +155,7 @@ impl ExecutionError {
             span: self.span.clone(),
             related: crate::Vec::new(),
             help,
-            code: code.map(|s| String::from(s)),
+            code: code.map(String::from),
         }
     }
 }

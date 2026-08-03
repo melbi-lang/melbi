@@ -9,16 +9,13 @@
 //! 3. serialization: Serializing types to bytes
 //! 4. deserialization: Deserializing types from bytes
 
+use std::hint::black_box;
+
 use bumpalo::Bump;
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use melbi_core::{
-    types::Type,
-    types::{
-        encoding::{decode, encode},
-        manager::TypeManager,
-    },
-};
-use pprof::criterion::{Output, PProfProfiler};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use melbi_core::types::Type;
+use melbi_core::types::encoding::{decode, encode};
+use melbi_core::types::manager::TypeManager;
 
 /// Helper function to create various complex types by name
 fn create_complex_type<'a>(manager: &'a TypeManager<'a>, name: &str) -> &'a Type<'a> {
@@ -455,12 +452,14 @@ fn bench_read_discriminant(c: &mut Criterion) {
     group.finish();
 }
 
-// Configure Criterion with profiling support
-criterion_group! {
-    name = benches;
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
-    targets = bench_record_creation, bench_record_interning, bench_type_serialization,
-              bench_type_deserialization, bench_type_equality_bytes, bench_type_equality_pointers,
-              bench_read_discriminant
-}
+criterion_group!(
+    benches,
+    bench_record_creation,
+    bench_record_interning,
+    bench_type_serialization,
+    bench_type_deserialization,
+    bench_type_equality_bytes,
+    bench_type_equality_pointers,
+    bench_read_discriminant
+);
 criterion_main!(benches);

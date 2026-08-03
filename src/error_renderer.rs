@@ -3,9 +3,11 @@
 //! This module provides utilities for rendering Melbi errors with
 //! rich formatting, source code snippets, and helpful annotations.
 
-use crate::{Diagnostic, Error, Severity};
-use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use std::io::Write;
+
+use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
+
+use crate::{Diagnostic, Error, Severity};
 
 /// Character set for rendering error messages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -100,10 +102,7 @@ pub fn render_error_to(
     config: &RenderConfig,
 ) -> std::io::Result<()> {
     // Prefer filename from error, fall back to config, then "<unknown>"
-    let filename = error
-        .filename()
-        .or(config.filename)
-        .unwrap_or("<unknown>");
+    let filename = error.filename().or(config.filename).unwrap_or("<unknown>");
 
     match error {
         Error::Compilation {
@@ -113,7 +112,13 @@ pub fn render_error_to(
         } => render_diagnostics(source, diagnostics, writer, config, filename),
         Error::Runtime {
             diagnostic, source, ..
-        } => render_diagnostics(source, &[diagnostic.clone()], writer, config, filename),
+        } => render_diagnostics(
+            source,
+            std::slice::from_ref(diagnostic),
+            writer,
+            config,
+            filename,
+        ),
         Error::ResourceExceeded(msg) => {
             writeln!(writer, "Resource limit exceeded: {}", msg)
         }
@@ -191,10 +196,11 @@ fn render_diagnostics(
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+    use expect_test::{Expect, expect};
+
     use super::*;
     use crate::{Engine, EngineOptions};
-    use bumpalo::Bump;
-    use expect_test::{expect, Expect};
 
     const UNICODE_CONFIG: RenderConfig = RenderConfig {
         color: false,

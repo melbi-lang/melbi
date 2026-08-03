@@ -9,20 +9,18 @@
 
 extern crate alloc;
 
-use bumpalo::Bump;
 use core::marker::PhantomData;
-use melbi_core::{
-    evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError},
-    parser::Span,
-    types::{Type, manager::TypeManager},
-    values::{
-        FfiContext,
-        dynamic::Value,
-        function::{AnnotatedFunction, Function},
-        raw::RawValue,
-        typed::{Array, Bridge, Optional, RawConvertible},
-    },
-};
+
+use bumpalo::Bump;
+use melbi_core::evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError};
+use melbi_core::parser::Span;
+use melbi_core::types::Type;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::FfiContext;
+use melbi_core::values::dynamic::Value;
+use melbi_core::values::function::{AnnotatedFunction, Function};
+use melbi_core::values::raw::RawValue;
+use melbi_core::values::typed::{Array, Bridge, Optional, RawConvertible};
 
 // ============================================================================
 // Helper for type mismatch errors

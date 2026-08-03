@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 #![allow(unsafe_code)]
 
-use core::{fmt, ptr::NonNull};
+use core::fmt;
+use core::ptr::NonNull;
 
 use bumpalo::Bump;
 
@@ -231,6 +232,9 @@ impl<'a> ArrayData<'a> {
         unsafe { (self.ptr as *const u8).add(data_offset) as *const RawValue }
     }
 
+    /// # Safety
+    ///
+    /// The caller must ensure that `index` is less than `self.length()`.
     pub unsafe fn get_unchecked(&self, index: usize) -> RawValue {
         debug_assert!(index < self.length(), "Index out of bounds");
         unsafe { *self.as_data_ptr().add(index) }
@@ -303,6 +307,9 @@ impl<'a> RecordData<'a> {
         unsafe { (self.ptr as *const u8).add(data_offset) as *const RawValue }
     }
 
+    /// # Safety
+    ///
+    /// The caller must ensure that `index` is less than `self.length()`.
     pub unsafe fn get(&self, index: usize) -> RawValue {
         debug_assert!(index < self.length(), "Index out of bounds");
         unsafe { *self.as_ptr().add(index) }
@@ -489,7 +496,8 @@ static_assertions::assert_eq_size!(
 );
 
 impl<T: ?Sized, U: AsDyn<T>> DynTraitNode<T, U> {
-    pub fn new<'a>(arena: &'a Bump, obj: U) -> NonNull<DynTraitHeader<T>> {
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(arena: &Bump, obj: U) -> NonNull<DynTraitHeader<T>> {
         // Two-phase init: allocate first, then create fat pointer from stable address
         let node: &mut DynTraitNode<T, U> = arena.alloc(DynTraitNode { dyn_ptr: None, obj });
         let fat_ref: &mut T = node.obj.as_dyn(); // Use AsDyn<T> trait.

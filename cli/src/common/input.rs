@@ -13,8 +13,7 @@ pub fn read_input(path: &str) -> Result<(String, String), String> {
             .map_err(|e| format!("<stdin>: {}", e))?;
         Ok((content, "<stdin>".to_string()))
     } else {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("{}: {}", path, e))?;
+        let content = std::fs::read_to_string(path).map_err(|e| format!("{}: {}", path, e))?;
         Ok((content, path.to_string()))
     }
 }

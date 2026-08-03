@@ -1,12 +1,12 @@
-use super::*;
-use crate::format;
-use crate::{
-    analyzer::error::{TypeError, TypeErrorKind},
-    parser,
-    types::{manager::TypeManager, TypeClassId},
-};
-use bumpalo::Bump;
 use std::sync::Once;
+
+use bumpalo::Bump;
+
+use super::*;
+use crate::analyzer::error::{TypeError, TypeErrorKind};
+use crate::types::TypeClassId;
+use crate::types::manager::TypeManager;
+use crate::{format, parser};
 
 // Global tracing initialization for tests
 static INIT_TRACING: Once = Once::new();
@@ -1481,22 +1481,13 @@ fn test_integer_suffix_not_supported() {
     let type_manager = TypeManager::new(&bump);
 
     let result = analyze_source("42`MB`", &type_manager, &bump);
-    assert!(result.is_err());
-    // Verify error message mentions suffixes
-    match result {
-        Err(TypeError { kind, .. }) => match kind {
-            TypeErrorKind::UnsupportedFeature {
-                feature,
-                suggestion,
-                ..
-            } => {
-                assert!(feature.contains("suffixes"));
-                assert!(suggestion.contains("units of measurement"));
-            }
-            _ => panic!("Expected UnsupportedFeature error"),
-        },
-        Ok(_) => panic!("Expected suffix to fail"),
-    }
+    assert_eq!(
+        result.unwrap_err().kind,
+        TypeErrorKind::UnsupportedFeature {
+            feature: "Integer suffixes are not yet supported".to_string(),
+            suggestion: "In the future, suffixes will support units of measurement (e.g., 10`MB`, 5`seconds`)".to_string(),
+        }
+    );
 }
 
 // ============================================================================
@@ -1596,22 +1587,13 @@ fn test_float_suffix_not_supported() {
     let type_manager = TypeManager::new(&bump);
 
     let result = analyze_source("3.14`meters`", &type_manager, &bump);
-    assert!(result.is_err());
-    // Verify error message mentions suffixes
-    match result {
-        Err(TypeError { kind, .. }) => match kind {
-            TypeErrorKind::UnsupportedFeature {
-                feature,
-                suggestion,
-                ..
-            } => {
-                assert!(feature.contains("suffixes"));
-                assert!(suggestion.contains("units of measurement"));
-            }
-            _ => panic!("Expected UnsupportedFeature error"),
-        },
-        Ok(_) => panic!("Expected suffix to fail"),
-    }
+    assert_eq!(
+        result.unwrap_err().kind,
+        TypeErrorKind::UnsupportedFeature {
+            feature: "Float suffixes are not yet supported".to_string(),
+            suggestion: "In the future, suffixes will support units of measurement (e.g., 3.14`meters`, 2.5`kg`)".to_string(),
+        }
+    );
 }
 
 // ============================================================================

@@ -1,20 +1,23 @@
 //! Core evaluation logic.
 
 use alloc::string::ToString;
+
 use bumpalo::Bump;
 
-use crate::{
-    Vec,
-    analyzer::typed_expr::{Expr, ExprInner, TypedExpr, TypedPattern},
-    evaluator::{
-        EvaluatorOptions, ExecutionError, ExecutionErrorKind, InternalError::*,
-        ResourceExceededError::*, RuntimeError::*,
-    },
-    parser::{BoolOp, ComparisonOp},
-    scope_stack::{self, ScopeStack},
-    types::{Type, manager::TypeManager, unification::Unification},
-    values::{EvalLambda, dynamic::Value, function::FfiContext},
-};
+use crate::Vec;
+use crate::analyzer::typed_expr::{Expr, ExprInner, TypedExpr, TypedPattern};
+use crate::evaluator::InternalError::*;
+use crate::evaluator::ResourceExceededError::*;
+use crate::evaluator::RuntimeError::*;
+use crate::evaluator::{EvaluatorOptions, ExecutionError, ExecutionErrorKind};
+use crate::parser::{BoolOp, ComparisonOp};
+use crate::scope_stack::{self, ScopeStack};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::unification::Unification;
+use crate::values::EvalLambda;
+use crate::values::dynamic::Value;
+use crate::values::function::FfiContext;
 
 /// Evaluator for type-checked expressions.
 pub struct Evaluator<'types, 'arena> {
@@ -676,7 +679,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                     lambda_instantiations: hashbrown::HashMap::new_in(self.arena),
                 });
 
-                let lambda = EvalLambda::new(expr.0, *params, body_typed, captures_slice);
+                let lambda = EvalLambda::new(expr.0, params, body_typed, captures_slice);
 
                 // Value::function returns Result, but should never fail because
                 // the type checker guarantees expr.0 is a Function type
@@ -757,9 +760,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
             }
             TypedPattern::Var(name) => {
                 // Variable always matches and binds the value
-                let mut bindings = Vec::new();
-                bindings.push((*name, value));
-                Ok(Some(bindings))
+                Ok(Some(crate::vec![(*name, value)]))
             }
             TypedPattern::Literal(pattern_value) => {
                 // Literal matches if values are equal

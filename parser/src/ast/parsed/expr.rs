@@ -1,9 +1,8 @@
 //! The parsed expression tree, plus the two small nodes reached only from it.
 
-use crate::{Tree, TreeBuilder};
-
 use super::super::operators::{BinaryOp, BoolOp, ComparisonOp, UnaryOp};
 use super::{Binding, Expr, LiteralKind, MapEntry, MatchArm, TypeExpr};
+use crate::{Tree, TreeBuilder};
 
 /// A node of the parsed expression tree.
 ///

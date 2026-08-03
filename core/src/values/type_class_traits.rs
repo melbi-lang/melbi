@@ -52,7 +52,7 @@ impl Melbi for i64 {}
 impl Melbi for f64 {}
 impl Melbi for bool {}
 impl<'a> Melbi for Str<'a> {}
-impl<'a> Melbi for &'a [u8] {}
+impl Melbi for &[u8] {}
 impl<'a, T: Bridge> Melbi for Optional<'a, T> {}
 impl<'a, T: Bridge> Melbi for Array<'a, T> {}
 impl<'a, K: Bridge, V: Bridge> Melbi for Map<'a, K, V> {}

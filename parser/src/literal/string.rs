@@ -52,7 +52,10 @@ impl core::fmt::Display for UnescapeError {
                 "incomplete Unicode escape at position {pos}: expected {expected} digits, got {got}"
             ),
             UnescapeError::InvalidUnicodeScalar { pos, value } => {
-                write!(f, "invalid Unicode scalar value U+{value:X} at position {pos}")
+                write!(
+                    f,
+                    "invalid Unicode scalar value U+{value:X} at position {pos}"
+                )
             }
             UnescapeError::UnpairedBrace { pos, brace } => write!(
                 f,
@@ -151,11 +154,7 @@ fn read_hex_digits(
 
     for got in 0..expected {
         let Some((_, ch)) = chars.next() else {
-            return Err(UnescapeError::IncompleteUnicodeEscape {
-                pos,
-                expected,
-                got,
-            });
+            return Err(UnescapeError::IncompleteUnicodeEscape { pos, expected, got });
         };
         let Some(digit) = ch.to_digit(16) else {
             return Err(UnescapeError::InvalidHexDigit {

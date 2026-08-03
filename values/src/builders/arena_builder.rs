@@ -1,6 +1,6 @@
-use bumpalo::Bump;
 use core::fmt;
 
+use bumpalo::Bump;
 use melbi_thin_ref::ThinRef;
 use melbi_types::ArenaBuilder;
 

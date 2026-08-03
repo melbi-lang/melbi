@@ -2,10 +2,8 @@
 
 use bumpalo::Bump;
 use hashbrown::{HashMap, HashSet};
-use melbi_types::{
-    core::traversal::{drive_fold, fold_type, Fold, FoldStep, TypeFolder},
-    ty, ArenaBuilder, BoxBuilder, Scalar, Ty, TyBuilder, TyKind,
-};
+use melbi_types::core::traversal::{Fold, FoldStep, TypeFolder, drive_fold, fold_type};
+use melbi_types::{ArenaBuilder, BoxBuilder, Scalar, Ty, TyBuilder, TyKind, ty};
 
 // ============================================================================
 // Identity Fold - rebuilds the same type
@@ -283,7 +281,12 @@ fn test_collect_type_vars_nested() {
     let mut collector = CollectTypeVars {
         vars: HashSet::new(),
     };
-    drive_fold(&b, ty!(b, [a, x] => Array[Map[a, Array[x]]]), &mut collector).unwrap();
+    drive_fold(
+        &b,
+        ty!(b, [a, x] => Array[Map[a, Array[x]]]),
+        &mut collector,
+    )
+    .unwrap();
 
     assert_eq!(collector.vars.len(), 2);
     assert!(collector.vars.contains(&0));
@@ -339,7 +342,12 @@ fn test_box_to_arena_array() {
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
 
-    let result = fold_type(&b_box, &b_arena, ty!(b_box, Array[Int]), &mut BoxToArenaFolder);
+    let result = fold_type(
+        &b_box,
+        &b_arena,
+        ty!(b_box, Array[Int]),
+        &mut BoxToArenaFolder,
+    );
     assert_eq!(result, ty!(b_arena, Array[Int]));
 }
 
@@ -349,7 +357,12 @@ fn test_box_to_arena_map() {
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
 
-    let result = fold_type(&b_box, &b_arena, ty!(b_box, Map[Str, Int]), &mut BoxToArenaFolder);
+    let result = fold_type(
+        &b_box,
+        &b_arena,
+        ty!(b_box, Map[Str, Int]),
+        &mut BoxToArenaFolder,
+    );
     assert_eq!(result, ty!(b_arena, Map[Str, Int]));
 }
 
@@ -451,7 +464,11 @@ fn test_error_propagation() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
-    let result = drive_fold(&b, ty!(b, [a, x] => Map[a, x]), FailingFolder { fail_on_var: 1 });
+    let result = drive_fold(
+        &b,
+        ty!(b, [a, x] => Map[a, x]),
+        FailingFolder { fail_on_var: 1 },
+    );
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Failed on TypeVar(1)");
 }

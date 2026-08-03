@@ -54,12 +54,11 @@
 //!
 //! See the design document for full specification.
 
-use crate::types::{
-    Type,
-    encoding::wire::{ChosenEncoding, Payload, WireEncoding, WireTag},
-    traits::{TypeKind, TypeTag, TypeView},
-};
 use smallvec::SmallVec;
+
+use crate::types::Type;
+use crate::types::encoding::wire::{ChosenEncoding, Payload, WireEncoding, WireTag};
+use crate::types::traits::{TypeKind, TypeTag, TypeView};
 
 // ============================================================================
 // Wire Format Encoding
@@ -273,7 +272,7 @@ mod wire {
         }
 
         /// Encode to wire byte
-        pub(super) fn to_byte(&self) -> u8 {
+        pub(super) fn as_byte(&self) -> u8 {
             self.wire_tag
         }
 
@@ -460,7 +459,7 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
         _ => WireTag::for_encoding(type_to_tag(ty), WireEncoding::Standard),
     };
     if let ChosenEncoding::WithoutPayload = tag.chosen_encoding() {
-        buf.push(tag.to_byte());
+        buf.push(tag.as_byte());
         return;
     }
     match ty {
@@ -468,28 +467,28 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
             unreachable!("types are always packed");
         }
         Type::TypeVar(id) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 write_u16_le(buf, *id);
             });
         }
         Type::Array(elem) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(elem, buf);
             });
         }
         Type::Map(key, val) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(key, buf);
                 encode_inner(val, buf);
             });
         }
         Type::Option(inner) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(inner, buf);
             });
         }
         Type::Record(fields) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 write_varint(buf, fields.len());
                 for (name, ty) in fields.iter() {
                     write_string(buf, name);
@@ -498,7 +497,7 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
             });
         }
         Type::Function { params, ret } => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(ret, buf); // return type FIRST
                 write_varint(buf, params.len()); // then count
                 for param in params.iter() {
@@ -507,7 +506,7 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
             });
         }
         Type::Symbol(parts) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 write_varint(buf, parts.len());
                 for part in parts.iter() {
                     write_string(buf, part);
@@ -813,9 +812,10 @@ pub fn decode<'a>(
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::types::manager::TypeManager;
-    use bumpalo::Bump;
 
     #[test]
     fn test_smallvec_size() {

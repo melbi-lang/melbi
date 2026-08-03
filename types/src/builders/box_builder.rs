@@ -1,7 +1,9 @@
-use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
+
 use string_cache::DefaultAtom;
+
+use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 
 /// Interner that uses reference counting (no deduplication).
 ///

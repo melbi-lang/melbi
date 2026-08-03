@@ -8,8 +8,9 @@
 //! enabled if we find a way to make reedline work with rexpect, or if we switch
 //! to a different testing approach.
 
-use rexpect::spawn;
 use std::time::Duration;
+
+use rexpect::spawn;
 
 const TIMEOUT: u64 = 5000; // 5 seconds
 

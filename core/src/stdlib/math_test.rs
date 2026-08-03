@@ -1,5 +1,7 @@
 //! Tests for the Math package
 
+use bumpalo::Bump;
+
 use super::{register_math_functions, register_math_package};
 use crate::{
     api::{CompileOptionsOverride, Engine, EngineOptions},
@@ -9,7 +11,6 @@ use crate::{
         dynamic::{RecordBuilder, Value},
     },
 };
-use bumpalo::Bump;
 
 #[test]
 fn test_math_package_builds() {

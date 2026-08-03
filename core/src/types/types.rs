@@ -1,9 +1,7 @@
-use serde::Serialize;
+use core::fmt::{self, Debug, Display};
+use core::hash::{Hash, Hasher};
 
-use core::{
-    fmt::{self, Debug, Display},
-    hash::{Hash, Hasher},
-};
+use serde::Serialize;
 
 use crate::types::traits::display_type;
 
@@ -38,7 +36,6 @@ pub enum Type<'a> {
 
     // Option type.
     Option(&'a Type<'a>) = 11,
-
     // TODO: More types to add later:
     //   Custom(&'a str),
     //   Union(&'a [&'a Type<'a>]),  // Must be sorted.

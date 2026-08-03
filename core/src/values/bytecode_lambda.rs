@@ -9,16 +9,15 @@
 //! instantiation observed at call sites. At runtime, `call_unchecked` selects the
 //! appropriate instantiation based on argument types.
 
+use bumpalo::Bump;
+
 use super::dynamic::Value;
 use super::function::{FfiContext, Function};
 use crate::evaluator::ExecutionError;
-use crate::types::{
-    Type,
-    traits::{TypeKind, TypeView},
-};
+use crate::types::Type;
+use crate::types::traits::{TypeKind, TypeView};
 use crate::values::RawValue;
 use crate::vm::{Code, VM};
-use bumpalo::Bump;
 
 /// A single compiled instantiation of a lambda.
 ///

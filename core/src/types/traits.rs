@@ -598,10 +598,12 @@ pub(super) fn display_type<'a, V: TypeView<'a>>(ty: V) -> alloc::string::String 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::types::{Type, manager::TypeManager};
     use bumpalo::Bump;
     use hashbrown::{HashMap, HashSet};
+
+    use super::*;
+    use crate::types::Type;
+    use crate::types::manager::TypeManager;
 
     #[test]
     fn test_closure_transformer_simple_remap() {

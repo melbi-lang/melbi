@@ -10,9 +10,8 @@
 //! `parser/tests/common/builders.rs` has a reference-counted one that exists to
 //! prove the passes stay generic.
 
-use core::fmt;
 use core::hash::{Hash, Hasher};
-use core::ptr;
+use core::{fmt, ptr};
 
 use bumpalo::Bump;
 

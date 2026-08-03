@@ -60,7 +60,12 @@
 
 #![no_std]
 
-use core::{alloc::Layout, error::Error, fmt, marker::PhantomData, ops::Deref, ptr::NonNull};
+use core::alloc::Layout;
+use core::error::Error;
+use core::fmt;
+use core::marker::PhantomData;
+use core::ops::Deref;
+use core::ptr::NonNull;
 
 use bumpalo::Bump;
 
@@ -318,11 +323,11 @@ mod tests {
     extern crate std;
 
     use alloc::boxed::Box;
-    use alloc::format;
     use alloc::string::ToString;
-    use alloc::vec;
-    use bumpalo::Bump;
+    use alloc::{format, vec};
     use std::fmt;
+
+    use bumpalo::Bump;
 
     use super::ThinRef;
 

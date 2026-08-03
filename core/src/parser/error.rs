@@ -142,19 +142,19 @@ pub fn convert_pest_error(err: pest::error::Error<Rule>, source: &str) -> ParseE
                     .or_else(|| extract_number_from_message(&message, "of"));
 
                 // If we found at least the max_depth, construct the error
-                if let Some(max_depth_str) = max_depth_opt {
-                    if let Ok(max_depth) = max_depth_str.parse::<usize>() {
-                        // Try to parse depth, or use max_depth as fallback (since we exceeded it)
-                        let depth = depth_opt
-                            .and_then(|s| s.parse::<usize>().ok())
-                            .unwrap_or(max_depth);
+                if let Some(max_depth_str) = max_depth_opt
+                    && let Ok(max_depth) = max_depth_str.parse::<usize>()
+                {
+                    // Try to parse depth, or use max_depth as fallback (since we exceeded it)
+                    let depth = depth_opt
+                        .and_then(|s| s.parse::<usize>().ok())
+                        .unwrap_or(max_depth);
 
-                        return ParseError::new(
-                            ParseErrorKind::MaxDepthExceeded { depth, max_depth },
-                            source.to_string(),
-                            span,
-                        );
-                    }
+                    return ParseError::new(
+                        ParseErrorKind::MaxDepthExceeded { depth, max_depth },
+                        source.to_string(),
+                        span,
+                    );
                 }
             }
 
@@ -249,8 +249,8 @@ fn extract_number_from_message(message: &str, keyword: &str) -> Option<String> {
 
     // Skip whitespace and "of"
     let trimmed = after_keyword.trim_start();
-    let trimmed = if trimmed.starts_with("of") {
-        trimmed[2..].trim_start()
+    let trimmed = if let Some(stripped) = trimmed.strip_prefix("of") {
+        stripped.trim_start()
     } else {
         trimmed
     };

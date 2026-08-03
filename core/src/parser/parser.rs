@@ -1,4 +1,5 @@
 use alloc::string::ToString;
+
 use bumpalo::Bump;
 use lazy_static::lazy_static;
 use pest::Parser;
@@ -8,10 +9,9 @@ use pest_derive::Parser;
 
 use crate::parser::error::{ParseError, convert_pest_error};
 use crate::parser::parsed_expr::TypeExpr;
-use crate::parser::syntax::AnnotatedSource;
+use crate::parser::syntax::{AnnotatedSource, Span};
 use crate::parser::{
     BinaryOp, BoolOp, ComparisonOp, Expr, Literal, MatchArm, ParsedExpr, Pattern, UnaryOp,
-    syntax::Span,
 };
 use crate::{Vec, format};
 
@@ -252,8 +252,8 @@ impl<'a, 'input> ParseContext<'a, 'input> {
         Ok(self.alloc_with_span(
             Expr::If {
                 cond,
-                then_branch: then_branch,
-                else_branch: else_branch,
+                then_branch,
+                else_branch,
             },
             span,
         ))
@@ -614,6 +614,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
     }
 
     // Helper functions for parsing pattern literals (without suffix support)
+    #[allow(clippy::from_str_radix_10)]
     fn parse_integer_literal(
         &self,
         pair: Pair<Rule>,
@@ -749,6 +750,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
         Ok(node)
     }
 
+    #[allow(clippy::from_str_radix_10)]
     fn parse_integer(&self, pair: Pair<Rule>) -> Result<&'a Expr<'a>, pest::error::Error<Rule>> {
         let pair_span = pair.as_span();
         let mut inner = pair.into_inner();

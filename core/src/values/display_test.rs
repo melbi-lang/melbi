@@ -3,8 +3,12 @@
 //! Display: User-facing output (strings without quotes, native formatting)
 //! Debug: Melbi literal representation (strings with quotes, decimal points on floats)
 
-use crate::{Vec, format, types::manager::TypeManager, values::{FfiContext, dynamic::Value}};
 use bumpalo::Bump;
+
+use crate::types::manager::TypeManager;
+use crate::values::FfiContext;
+use crate::values::dynamic::Value;
+use crate::{Vec, format};
 
 #[test]
 fn test_display_int_positive() {

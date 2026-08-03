@@ -1,6 +1,8 @@
-use bumpalo::Bump;
-use melbi_core::{analyzer, parser, types::manager::TypeManager};
 use std::env;
+
+use bumpalo::Bump;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::{analyzer, parser};
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();

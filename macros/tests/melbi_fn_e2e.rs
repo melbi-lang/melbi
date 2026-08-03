@@ -1,15 +1,11 @@
 use bumpalo::Bump;
-use melbi_core::{
-    evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError},
-    types::manager::TypeManager,
-    values::{
-        FfiContext,
-        binder::Binder,
-        dynamic::Value,
-        function::{AnnotatedFunction, Function},
-        typed::{Array, Optional, RawConvertible, Str},
-    },
-};
+use melbi_core::evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError};
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::FfiContext;
+use melbi_core::values::binder::Binder;
+use melbi_core::values::dynamic::Value;
+use melbi_core::values::function::{AnnotatedFunction, Function};
+use melbi_core::values::typed::{Array, Optional, RawConvertible, Str};
 use melbi_macros::melbi_fn;
 
 // ============================================================================

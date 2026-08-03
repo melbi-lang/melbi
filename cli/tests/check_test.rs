@@ -22,9 +22,13 @@ fn check_valid_expression() {
 
 #[test]
 fn check_from_stdin() {
-    check_stdout(&["check", "-"], Some("1 + 2"), expect![[r#"
+    check_stdout(
+        &["check", "-"],
+        Some("1 + 2"),
+        expect![[r#"
         <stdin>: OK
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]

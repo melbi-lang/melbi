@@ -38,7 +38,10 @@ fn test_hover_on_lambda() {
     let hover = doc.hover_at_position(Position::new(0, 0));
     if hover.is_some() {
         let hover_text = hover.unwrap();
-        assert!(hover_text.contains("=>") || hover_text.contains("Int"), "Should show function type");
+        assert!(
+            hover_text.contains("=>") || hover_text.contains("Int"),
+            "Should show function type"
+        );
     }
 }
 

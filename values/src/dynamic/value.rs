@@ -2,9 +2,8 @@ use alloc::vec::Vec;
 
 use melbi_types::{Scalar, Ty, TyKind};
 
-use crate::traits::{RawValue, Val, ValueBuilder, ValueView};
-
 use super::Array;
+use crate::traits::{RawValue, Val, ValueBuilder, ValueView};
 
 /// A dynamically typed value that provides a safe API for access.
 ///

@@ -1,7 +1,7 @@
-use crate::parser::Expr;
 use bumpalo::Bump;
 
 use super::parser::parse;
+use crate::parser::Expr;
 
 // Helper function to parse an expression and return the AST.
 //
@@ -473,14 +473,8 @@ fn test_not_in_operator_basic() {
 fn test_in_vs_logical_and() {
     let arena = Bump::new();
     // "in" should have higher precedence than "and"
-    assert_eq!(
-        ast(&arena, "a in b and c"),
-        ast(&arena, "(a in b) and c")
-    );
-    assert_eq!(
-        ast(&arena, "a and b in c"),
-        ast(&arena, "a and (b in c)")
-    );
+    assert_eq!(ast(&arena, "a in b and c"), ast(&arena, "(a in b) and c"));
+    assert_eq!(ast(&arena, "a and b in c"), ast(&arena, "a and (b in c)"));
 }
 
 #[test]
@@ -507,10 +501,7 @@ fn test_in_vs_arithmetic() {
         ast(&arena, "x in array + 1"),
         ast(&arena, "x in (array + 1)")
     );
-    assert_eq!(
-        ast(&arena, "a + b in c"),
-        ast(&arena, "(a + b) in c")
-    );
+    assert_eq!(ast(&arena, "a + b in c"), ast(&arena, "(a + b) in c"));
     assert_eq!(
         ast(&arena, "x in array * 2"),
         ast(&arena, "x in (array * 2)")
@@ -547,10 +538,7 @@ fn test_some_vs_binary() {
     // some should have same precedence as negation (prefix)
     assert_eq!(ast(&arena, "some a + b"), ast(&arena, "(some a) + b"));
     assert_eq!(ast(&arena, "a + some b"), ast(&arena, "a + (some b)"));
-    assert_eq!(
-        ast(&arena, "some a * b"),
-        ast(&arena, "(some a) * b")
-    );
+    assert_eq!(ast(&arena, "some a * b"), ast(&arena, "(some a) * b"));
 }
 
 #[test]
@@ -605,5 +593,8 @@ fn test_none_vs_binary() {
 fn test_some_vs_cast() {
     let arena = Bump::new();
     // Postfix `as` should bind tighter than prefix `some`
-    assert_eq!(ast(&arena, "some a as String"), ast(&arena, "some (a as String)"));
+    assert_eq!(
+        ast(&arena, "some a as String"),
+        ast(&arena, "some (a as String)")
+    );
 }

@@ -1,10 +1,12 @@
-use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
-use bumpalo::Bump;
 use core::cell::RefCell;
 use core::hash::Hash;
 use core::{fmt, hash};
+
+use bumpalo::Bump;
 use hashbrown::{Equivalent, HashSet};
 use melbi_small_str::SimpleSmallStr as SmallStr;
+
+use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 
 type StringSet<'arena> = HashSet<&'arena str, hashbrown::DefaultHashBuilder, &'arena Bump>;
 type TypeSet<'arena> =

@@ -1,10 +1,12 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use bumpalo::Bump;
-use melbi_core::{parser::parse, types::manager::TypeManager};
-use postcard::to_allocvec;
 use std::ops::Deref;
+
+use bumpalo::Bump;
+use melbi_core::parser::parse;
+use melbi_core::types::manager::TypeManager;
+use postcard::to_allocvec;
 
 #[test]
 fn test_postcard() {

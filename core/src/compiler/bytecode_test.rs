@@ -1,20 +1,17 @@
 //! Tests for the bytecode compiler.
 
-use crate::{
-    analyzer,
-    compiler::BytecodeCompiler,
-    evaluator::ExecutionError,
-    parser::{self, ComparisonOp},
-    stdlib::math::register_math_functions,
-    types::manager::TypeManager,
-    values::{
-        RawValue,
-        binder::Binder,
-        dynamic::{RecordBuilder, Value},
-    },
-    vm::{Code, Instruction, VM},
-};
 use bumpalo::Bump;
+
+use crate::analyzer;
+use crate::compiler::BytecodeCompiler;
+use crate::evaluator::ExecutionError;
+use crate::parser::{self, ComparisonOp};
+use crate::stdlib::math::register_math_functions;
+use crate::types::manager::TypeManager;
+use crate::values::RawValue;
+use crate::values::binder::Binder;
+use crate::values::dynamic::{RecordBuilder, Value};
+use crate::vm::{Code, Instruction, VM};
 
 /// Helper function to compile and run a source expression.
 /// Returns the compiled bytecode and the VM execution result as a safe Value.

@@ -1,16 +1,13 @@
 //! Tests for the Array package
 
-use super::register_array_functions;
-use crate::{
-    api::{CompileOptionsOverride, Engine, EngineOptions, Error},
-    stdlib::{register_array_package, register_math_package, register_string_package},
-    types::manager::TypeManager,
-    values::{
-        binder::Binder,
-        dynamic::{RecordBuilder, Value},
-    },
-};
 use bumpalo::Bump;
+
+use super::register_array_functions;
+use crate::api::{CompileOptionsOverride, Engine, EngineOptions, Error};
+use crate::stdlib::{register_array_package, register_math_package, register_string_package};
+use crate::types::manager::TypeManager;
+use crate::values::binder::Binder;
+use crate::values::dynamic::{RecordBuilder, Value};
 
 #[test]
 fn test_array_package_builds() {

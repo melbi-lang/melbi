@@ -8,8 +8,9 @@
 //! - `Div(a, b)`: Euclidean division (remainder always non-negative)
 //! - `Mod(a, b)`: Euclidean modulus (always non-negative)
 
-use crate::evaluator::RuntimeError;
 use melbi_macros::{melbi_fn, melbi_package};
+
+use crate::evaluator::RuntimeError;
 
 // ============================================================================
 // Error Handling

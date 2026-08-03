@@ -1,5 +1,7 @@
-use crate::parser::{BinaryOp, BoolOp, ComparisonOp, UnaryOp, syntax::AnnotatedSource};
 use serde::Serialize;
+
+use crate::parser::syntax::AnnotatedSource;
+use crate::parser::{BinaryOp, BoolOp, ComparisonOp, UnaryOp};
 
 #[derive(Debug)]
 pub struct ParsedExpr<'a> {

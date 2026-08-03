@@ -1,13 +1,11 @@
-use crate::{
-    Vec,
-    types::{
-        traits::{TypeKind, TypeView},
-        types::{CompareTypeArgs, Type},
-    },
-};
-use bumpalo::Bump;
 use core::cell::{Cell, Ref, RefCell};
+
+use bumpalo::Bump;
 use hashbrown::{DefaultHashBuilder, HashMap};
+
+use crate::Vec;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::types::types::{CompareTypeArgs, Type};
 
 pub struct TypeManager<'a> {
     // Arena holding all types from this TypeManager.
@@ -161,7 +159,7 @@ impl<'a> TypeManager<'a> {
         }
 
         // Not found - allocate directly from Vec into arena (zero-copy move)
-        let arena_fields = self.arena.alloc_slice_fill_iter(fields.into_iter());
+        let arena_fields = self.arena.alloc_slice_fill_iter(fields);
         self.alloc_and_intern(Type::Record(arena_fields))
     }
 
@@ -200,7 +198,7 @@ impl<'a> TypeManager<'a> {
         }
 
         // Not found - allocate directly from Vec into arena (zero-copy move)
-        let arena_parts = self.arena.alloc_slice_fill_iter(parts.into_iter());
+        let arena_parts = self.arena.alloc_slice_fill_iter(parts);
         self.alloc_and_intern(Type::Symbol(arena_parts))
     }
 
@@ -282,7 +280,7 @@ impl<'a> TypeManager<'a> {
                     this.function(&adopted_params, adopted_ret)
                 }
                 Type::Symbol(parts) => {
-                    let adopted_parts: Vec<&str> = (*parts).iter().copied().collect();
+                    let adopted_parts: Vec<&str> = parts.to_vec();
                     this.symbol(adopted_parts)
                 }
             }
@@ -344,7 +342,7 @@ impl<'a> TypeManager<'a> {
             }
         }
         let mut var_map = HashMap::new();
-        inner(&self, ty, &mut var_map)
+        inner(self, ty, &mut var_map)
     }
 }
 
@@ -447,9 +445,10 @@ impl<'a> TypeView<'a> for &'a Type<'a> {
 
 #[cfg(test)]
 mod type_view_tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::types::manager::TypeManager;
-    use bumpalo::Bump;
 
     #[test]
     fn test_primitives() {

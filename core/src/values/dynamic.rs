@@ -1,22 +1,19 @@
 #![allow(unsafe_code)] // TODO: Disallow unsafe code.
 
-use crate::{
-    String, ToString, Vec,
-    syntax::{
-        bytes_literal::{QuoteStyle as BytesQuoteStyle, escape_bytes},
-        string_literal::{QuoteStyle, escape_string},
-    },
-    types::{Type, manager::TypeManager, traits::TypeView},
-    values::{
-        binder::{self, Binder},
-        from_raw::TypeError,
-        function::Function,
-        raw::{ArrayData, MapData, MapEntry, RawValue, RecordData, Slice},
-    },
-};
-
 use alloc::collections::BTreeMap;
+
 use bumpalo::Bump;
+
+use crate::syntax::bytes_literal::{QuoteStyle as BytesQuoteStyle, escape_bytes};
+use crate::syntax::string_literal::{QuoteStyle, escape_string};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::traits::TypeView;
+use crate::values::binder::{self, Binder};
+use crate::values::from_raw::TypeError;
+use crate::values::function::Function;
+use crate::values::raw::{ArrayData, MapData, MapEntry, RawValue, RecordData, Slice};
+use crate::{String, ToString, Vec};
 
 #[derive(Clone, Copy)]
 pub struct Value<'ty_arena: 'value_arena, 'value_arena> {
@@ -142,8 +139,9 @@ impl<'ty_arena: 'value_arena, 'value_arena> PartialOrd for Value<'ty_arena, 'val
 
 impl<'ty_arena: 'value_arena, 'value_arena> Ord for Value<'ty_arena, 'value_arena> {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        use crate::types::traits::{TypeKind, TypeView};
         use core::cmp::Ordering;
+
+        use crate::types::traits::{TypeKind, TypeView};
 
         // Compare types first using TypeView
         let self_view = self.ty.view();
@@ -664,10 +662,10 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
         };
 
         // Validate inner value type if Some
-        if let Some(ref value) = inner {
-            if !core::ptr::eq(value.ty, *inner_ty) {
-                return Err(TypeError::Mismatch);
-            }
+        if let Some(ref value) = inner
+            && !core::ptr::eq(value.ty, *inner_ty)
+        {
+            return Err(TypeError::Mismatch);
         }
 
         // Use RawValue::make_optional to encapsulate memory layout
@@ -802,11 +800,11 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
             Value<'ty_arena, 'value_arena>,
         )> = Vec::new();
         for (key, value) in sorted_pairs {
-            if let Some(last) = deduplicated.last() {
-                if last.0 == key {
-                    // Same key as previous - replace the value
-                    deduplicated.pop();
-                }
+            if let Some(last) = deduplicated.last()
+                && last.0 == key
+            {
+                // Same key as previous - replace the value
+                deduplicated.pop();
             }
             deduplicated.push((key, value));
         }
@@ -979,7 +977,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
         match self.ty {
             Type::Option(inner_ty) => Ok(self.raw.as_optional_unchecked().map(|raw| Value {
                 ty: inner_ty,
-                raw: raw,
+                raw,
                 _phantom: core::marker::PhantomData,
             })),
             _ => Err(TypeError::Mismatch),

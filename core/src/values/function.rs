@@ -3,11 +3,13 @@
 //! This module defines the `Function` trait which represents callable values in Melbi.
 //! Supports native Rust functions, and will support closures, foreign language functions, etc.
 
+use bumpalo::Bump;
+
 use super::dynamic::Value;
 use crate::evaluator::ExecutionError;
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::values::binder::Binder;
-use bumpalo::Bump;
 
 // ============================================================================
 // FFI Context

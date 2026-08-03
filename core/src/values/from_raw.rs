@@ -1,10 +1,9 @@
 #![allow(unsafe_code)]
 use core::marker::PhantomData;
 
-use crate::{
-    types::{Type, manager::TypeManager},
-    values::raw::{ArrayData, RawValue},
-};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::raw::{ArrayData, RawValue};
 
 #[derive(Debug)]
 pub enum TypeError {
@@ -174,6 +173,10 @@ impl<'a, T: FromRawValue<'a>> Array<'a, T> {
 
     pub fn len(&self) -> usize {
         self.array_data.length()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn as_raw_value(&self) -> RawValue {

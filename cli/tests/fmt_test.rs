@@ -2,10 +2,11 @@
 
 mod common;
 
+use std::fs;
+
 use common::{check_output, check_stderr, check_stdout, melbi, temp_file};
 use expect_test::expect;
 use predicates::prelude::*;
-use std::fs;
 
 // ============================================================================
 // Success tests with full output verification
@@ -128,7 +129,11 @@ fn fmt_is_idempotent() {
         melbi().args(["fmt", "--write", path]).assert().success();
         let second = fs::read_to_string(file.path()).unwrap();
 
-        assert_eq!(first, second, "Formatting should be idempotent for: {}", input);
+        assert_eq!(
+            first, second,
+            "Formatting should be idempotent for: {}",
+            input
+        );
     }
 }
 
@@ -156,7 +161,11 @@ fn fmt_write_no_output_when_already_formatted() {
     let file = temp_file("1 + 2");
     let path = file.path().to_path_buf();
 
-    check_stdout(&["fmt", "--write", path.to_str().unwrap()], None, expect![""]);
+    check_stdout(
+        &["fmt", "--write", path.to_str().unwrap()],
+        None,
+        expect![""],
+    );
 
     // File unchanged
     let content = fs::read_to_string(&path).unwrap();
@@ -389,7 +398,12 @@ fn fmt_write_quiet() {
 
 #[test]
 fn fmt_quiet_stdin() {
-    check_output(&["fmt", "--quiet", "-"], Some("1   +   2"), expect![""], expect![""]);
+    check_output(
+        &["fmt", "--quiet", "-"],
+        Some("1   +   2"),
+        expect![""],
+        expect![""],
+    );
 }
 
 #[test]

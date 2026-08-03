@@ -1,6 +1,7 @@
+use bumpalo::Bump;
+
 use super::parser::parse;
 use crate::parser::{BinaryOp, Expr, Literal, UnaryOp};
-use bumpalo::Bump;
 
 #[test]
 fn test_decimal_integers() {

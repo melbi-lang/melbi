@@ -8,14 +8,11 @@
 //! - For full Unicode support, use the Unicode package
 //! - Format strings (f"...") are built into the language, not library functions
 
-use crate::{
-    Vec,
-    values::{
-        FfiContext,
-        typed::{Array, Optional, Str},
-    },
-};
 use melbi_macros::{melbi_fn, melbi_package};
+
+use crate::Vec;
+use crate::values::FfiContext;
+use crate::values::typed::{Array, Optional, Str};
 
 #[melbi_package]
 mod string {

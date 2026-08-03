@@ -1,9 +1,8 @@
 //! Binary and unary operator implementations.
 
-use crate::{
-    evaluator::{ExecutionErrorKind, RuntimeError::*},
-    parser::{BinaryOp, ComparisonOp, UnaryOp},
-};
+use crate::evaluator::ExecutionErrorKind;
+use crate::evaluator::RuntimeError::*;
+use crate::parser::{BinaryOp, ComparisonOp, UnaryOp};
 
 /// Evaluate a binary operation on two integers.
 ///

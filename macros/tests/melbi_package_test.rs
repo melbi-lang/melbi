@@ -3,10 +3,10 @@
 extern crate alloc;
 
 use bumpalo::Bump;
-use melbi_core::{
-    types::manager::TypeManager,
-    values::{FfiContext, binder::Binder, dynamic::Value},
-};
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::FfiContext;
+use melbi_core::values::binder::Binder;
+use melbi_core::values::dynamic::Value;
 use melbi_macros::{melbi_const, melbi_fn, melbi_package};
 
 // ============================================================================
@@ -191,7 +191,8 @@ fn test_custom_package_name() {
     let type_mgr = TypeManager::new(&arena);
 
     // register_custom_pkg_package should bind the package as "Custom"
-    let env = custom_pkg::register_custom_pkg_package(&arena, type_mgr, EnvironmentBuilder::new(&arena));
+    let env =
+        custom_pkg::register_custom_pkg_package(&arena, type_mgr, EnvironmentBuilder::new(&arena));
     let env = env.build().unwrap();
 
     // Should have one entry named "Custom"

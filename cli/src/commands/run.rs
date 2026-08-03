@@ -5,11 +5,10 @@ use std::process::ExitCode;
 use bumpalo::Bump;
 use melbi_core::types::manager::TypeManager;
 
+use super::eval::interpret_input;
 use crate::cli::RunArgs;
 use crate::common::engine::build_stdlib;
 use crate::common::input::{read_input, strip_shebang};
-
-use super::eval::interpret_input;
 
 /// Run the run command.
 pub fn run(args: RunArgs, no_color: bool) -> ExitCode {

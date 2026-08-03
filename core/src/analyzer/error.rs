@@ -4,15 +4,34 @@ use crate::api::{Diagnostic, Severity};
 use crate::diagnostics::context::Context;
 use crate::parser::Span;
 use crate::types::{Type, TypeClassId};
-use crate::{String, Vec, format, vec};
+use crate::{Box, String, Vec, format, vec};
 
-/// Type error with context
+/// Inner data payload for type errors
 #[derive(Debug)]
-pub struct TypeError {
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub struct TypeErrorData {
     pub kind: TypeErrorKind,
     pub source: String,
     pub span: Span,
     pub context: Vec<Context>,
+}
+
+/// Type error with context (boxed for 8-byte stack size)
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub struct TypeError(pub Box<TypeErrorData>);
+
+impl core::ops::Deref for TypeError {
+    type Target = TypeErrorData;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl core::ops::DerefMut for TypeError {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl core::fmt::Display for TypeError {
@@ -34,6 +53,7 @@ impl core::fmt::Display for TypeError {
 
 /// Specific kinds of type errors
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum TypeErrorKind {
     /// Type mismatch between expected and found types.
     /// `context` provides additional help about what the expected type is for.
@@ -101,12 +121,12 @@ pub enum TypeErrorKind {
 impl TypeError {
     /// Create a new TypeError with no context
     pub fn new(kind: TypeErrorKind, source: String, span: Span) -> Self {
-        Self {
+        Self(Box::new(TypeErrorData {
             kind,
             source,
             span,
             context: Vec::new(),
-        }
+        }))
     }
 
     /// Convert to a Diagnostic for API boundary
@@ -132,7 +152,7 @@ impl TypeError {
                 Some("E002"),
                 vec!["Make sure the variable is declared before use".to_string()],
             ),
-            TypeErrorKind::UnhandledError { .. } => (
+            TypeErrorKind::UnhandledError => (
                 "Unhandled error type".to_string(),
                 Some("E003"),
                 vec!["Use 'otherwise' to handle potential errors".to_string()],
@@ -273,7 +293,7 @@ impl TypeError {
                 suggestion,
                 ..
             } => (
-                format!("{}", feature),
+                feature.to_string(),
                 Some("E018"),
                 vec![suggestion.clone()],
             ),
@@ -356,9 +376,9 @@ impl TypeError {
 
         // Add call site spans as related context (spans[1..] are instantiation sites)
         for span in err.spans.iter().skip(1) {
-            error.context.push(Context::InstantiatedHere {
-                span: span.clone(),
-            });
+            error
+                .context
+                .push(Context::InstantiatedHere { span: span.clone() });
         }
 
         error

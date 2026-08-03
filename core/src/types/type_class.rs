@@ -137,9 +137,10 @@ pub fn has_instance<'a>(ty: &'a Type<'a>, class: TypeClassId) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::types::manager::TypeManager;
-    use bumpalo::Bump;
 
     #[test]
     fn test_numeric_instances() {

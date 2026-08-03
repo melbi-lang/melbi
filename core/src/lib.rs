@@ -12,7 +12,10 @@ extern crate alloc;
 // Exports some symbols publicly basically so that macros can always refer to these.
 #[doc(hidden)]
 pub mod shim {
-    pub use alloc::{boxed::Box, fmt, format, string::String, string::ToString, vec, vec::Vec};
+    pub use alloc::boxed::Box;
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec::Vec;
+    pub use alloc::{fmt, format, vec};
 }
 
 // Re-export (crate only) for convenience so other modules don't need alloc:: prefix

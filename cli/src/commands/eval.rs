@@ -5,15 +5,14 @@ use std::time::{Duration, Instant};
 
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
-use melbi_core::{
-    analyzer::analyze,
-    compiler::BytecodeCompiler,
-    evaluator::{Evaluator, EvaluatorOptions, ExecutionError},
-    parser,
-    types::{Type, manager::TypeManager},
-    values::dynamic::Value,
-    vm::VM,
-};
+use melbi_core::analyzer::analyze;
+use melbi_core::compiler::BytecodeCompiler;
+use melbi_core::evaluator::{Evaluator, EvaluatorOptions, ExecutionError};
+use melbi_core::parser;
+use melbi_core::types::Type;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::dynamic::Value;
+use melbi_core::vm::VM;
 use nu_ansi_term::Style;
 
 use crate::cli::{EvalArgs, Runtime};
@@ -121,9 +120,10 @@ pub fn interpret_input<'types>(
     }
 
     let exit_code = match runtime {
-        Runtime::Evaluator => {
-            output_single_result(eval_result.expect("Evaluator result should exist"), &render_err)
-        }
+        Runtime::Evaluator => output_single_result(
+            eval_result.expect("Evaluator result should exist"),
+            &render_err,
+        ),
         Runtime::Vm => {
             output_single_result(vm_result.expect("VM result should exist"), &render_err)
         }

@@ -119,7 +119,8 @@ impl DocumentState {
 
     /// Analyze the document for type errors
     fn type_check(&mut self) -> Vec<Diagnostic> {
-        use melbi_core::{analyzer, parser, types::manager::TypeManager};
+        use melbi_core::types::manager::TypeManager;
+        use melbi_core::{analyzer, parser};
 
         // Create arena for this analysis
         let arena = Bump::new();
@@ -232,7 +233,8 @@ impl DocumentState {
 
     /// Get hover information at a position
     pub fn hover_at_position(&self, position: Position) -> Option<String> {
-        use melbi_core::{analyzer, parser, types::manager::TypeManager};
+        use melbi_core::types::manager::TypeManager;
+        use melbi_core::{analyzer, parser};
 
         // Only provide hover if type checking succeeded
         if !self.type_checked {
@@ -388,7 +390,8 @@ impl DocumentState {
 
     /// Get completion items at a position
     pub fn completions_at_position(&self, position: Position) -> Vec<CompletionItem> {
-        use melbi_core::{analyzer, parser, types::manager::TypeManager};
+        use melbi_core::types::manager::TypeManager;
+        use melbi_core::{analyzer, parser};
 
         // Convert position to offset to check context
         let offset = match self.position_to_offset(position) {

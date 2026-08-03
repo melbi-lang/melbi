@@ -1,16 +1,17 @@
 //! Format string adapter for f-string interpolation in the VM.
 
 use alloc::boxed::Box;
-use bumpalo::Bump;
 use core::fmt::Write;
 
-use crate::{
-    String, Vec,
-    evaluator::ExecutionErrorKind,
-    types::{Type, manager::TypeManager},
-    values::{RawValue, dynamic::Value},
-    vm::GenericAdapter,
-};
+use bumpalo::Bump;
+
+use crate::evaluator::ExecutionErrorKind;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::RawValue;
+use crate::values::dynamic::Value;
+use crate::vm::GenericAdapter;
+use crate::{String, Vec};
 
 /// Adapter for format string operations (`f"Hello {name}"`).
 ///
@@ -66,7 +67,11 @@ impl<'t> GenericAdapter for FormatStrAdapter<'t> {
         if self.expr_types.is_empty() {
             String::from("FormatStr()")
         } else {
-            let types: Vec<_> = self.expr_types.iter().map(|t| alloc::format!("{}", t)).collect();
+            let types: Vec<_> = self
+                .expr_types
+                .iter()
+                .map(|t| alloc::format!("{}", t))
+                .collect();
             alloc::format!("FormatStr({})", types.join(", "))
         }
     }

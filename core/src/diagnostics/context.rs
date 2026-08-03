@@ -1,7 +1,8 @@
+use alloc::string::ToString;
+
 use crate::api::RelatedInfo;
 use crate::parser::Span;
 use crate::{String, format};
-use alloc::string::ToString;
 
 /// Context information for error messages.
 ///
@@ -9,36 +10,20 @@ use alloc::string::ToString;
 /// such as "in function call", "while unifying types", etc.
 /// Each context entry can be converted to a RelatedInfo for diagnostic display.
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum Context {
     /// In a function call
-    InFunctionCall {
-        name: Option<String>,
-        span: Span,
-    },
+    InFunctionCall { name: Option<String>, span: Span },
     /// While unifying types
-    WhileUnifying {
-        what: String,
-        span: Span,
-    },
+    WhileUnifying { what: String, span: Span },
     /// Where something was defined
-    DefinedHere {
-        what: String,
-        span: Span,
-    },
+    DefinedHere { what: String, span: Span },
     /// Where a type was inferred
-    InferredHere {
-        type_name: String,
-        span: Span,
-    },
+    InferredHere { type_name: String, span: Span },
     /// In an expression
-    InExpression {
-        kind: String,
-        span: Span,
-    },
+    InExpression { kind: String, span: Span },
     /// Where a polymorphic function was instantiated
-    InstantiatedHere {
-        span: Span,
-    },
+    InstantiatedHere { span: Span },
 }
 
 impl Context {

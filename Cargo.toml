@@ -21,6 +21,12 @@ members = [
     "values", # WIP: new value foundation based on "builder traits"
 ]
 
+[workspace.lints.clippy]
+module_inception = "allow"
+
+[lints]
+workspace = true
+
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
