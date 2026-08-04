@@ -9,25 +9,23 @@ use melbi_core::analyzer::analyze;
 use melbi_core::compiler::BytecodeCompiler;
 use melbi_core::evaluator::{Evaluator, EvaluatorOptions, ExecutionError};
 use melbi_core::parser;
-use melbi_core::types::Type;
 use melbi_core::types::manager::TypeManager;
 use melbi_core::values::dynamic::Value;
 use melbi_core::vm::VM;
 use nu_ansi_term::Style;
 
 use crate::cli::{EvalArgs, Runtime};
-use crate::common::engine::build_stdlib;
+use crate::common::engine::{StdlibEnv, build_stdlib};
 
 /// Run the eval command.
 pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     interpret_input(
         type_manager,
-        globals_types,
-        globals_values,
+        &env,
         &args.expression,
         None, // eval command has no filename
         args.runtime,
@@ -39,8 +37,7 @@ pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
 /// Interpret a single expression and print the result.
 pub fn interpret_input<'types>(
     type_manager: &'types TypeManager<'types>,
-    globals_types: &[(&'types str, &'types Type<'types>)],
-    globals_values: &'types [(&'types str, Value<'types, 'types>)],
+    env: &StdlibEnv<'types>,
     input: &str,
     filename: Option<&str>,
     runtime: Runtime,
@@ -68,7 +65,7 @@ pub fn interpret_input<'types>(
     };
 
     // Type check
-    let typed = match analyze(type_manager, &arena, &ast, globals_types, &[]) {
+    let typed = match analyze(type_manager, &arena, ast, env.types, &[]) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into());
@@ -91,8 +88,8 @@ pub fn interpret_input<'types>(
             EvaluatorOptions::default(),
             &arena,
             type_manager,
-            &typed,
-            globals_values,
+            typed,
+            env.values,
             &[],
         );
         let start = Instant::now();
@@ -102,8 +99,7 @@ pub fn interpret_input<'types>(
 
     // VM
     if run_vm {
-        let bytecode = match BytecodeCompiler::compile(type_manager, &arena, globals_values, &typed)
-        {
+        let bytecode = match BytecodeCompiler::compile(type_manager, &arena, env.values, typed) {
             Ok(code) => code,
             Err(e) => {
                 render_err(e.into());

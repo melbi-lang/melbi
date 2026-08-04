@@ -174,7 +174,7 @@ impl DocumentState {
         Diagnostic {
             range,
             severity: Some(severity),
-            code: diag.code.map(|c| NumberOrString::String(c)),
+            code: diag.code.map(NumberOrString::String),
             source: Some("melbi".to_string()),
             message: diag.message,
             ..Default::default()

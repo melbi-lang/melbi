@@ -355,7 +355,6 @@ fn test_display_complex_types() {
 
 #[test]
 fn test_record_with_dynamic_strings() {
-    use alloc::format;
     use alloc::string::String;
 
     let bump = Bump::new();
@@ -363,7 +362,7 @@ fn test_record_with_dynamic_strings() {
 
     // Create field names dynamically (simulating real-world usage like parsing JSON)
     let field1_name = String::from("name");
-    let field2_name = format!("age");
+    let field2_name = "age".to_string();
 
     // Create record with dynamic strings
     let record1 = manager.record(vec![
@@ -373,7 +372,7 @@ fn test_record_with_dynamic_strings() {
 
     // Create same record again with fresh dynamic strings
     let field1_name_2 = String::from("name");
-    let field2_name_2 = format!("age");
+    let field2_name_2 = "age".to_string();
 
     let record2 = manager.record(vec![
         (field1_name_2.as_str(), manager.str()),
@@ -389,7 +388,6 @@ fn test_record_with_dynamic_strings() {
 
 #[test]
 fn test_symbol_with_dynamic_strings() {
-    use alloc::format;
     use alloc::string::String;
 
     let bump = Bump::new();
@@ -397,14 +395,14 @@ fn test_symbol_with_dynamic_strings() {
 
     // Create symbol parts dynamically
     let part1 = String::from("success");
-    let part2 = format!("error");
+    let part2 = "error".to_string();
     let part3 = String::from("pending");
 
     let symbol1 = manager.symbol(vec![part1.as_str(), part2.as_str(), part3.as_str()]);
 
     // Create same symbol with fresh dynamic strings
     let part1_2 = String::from("success");
-    let part2_2 = format!("error");
+    let part2_2 = "error".to_string();
     let part3_2 = String::from("pending");
 
     let symbol2 = manager.symbol(vec![part1_2.as_str(), part2_2.as_str(), part3_2.as_str()]);
@@ -452,7 +450,6 @@ fn test_symbol_with_strings_in_vec() {
 
 #[test]
 fn test_record_with_strings_in_vec() {
-    use alloc::format;
     use alloc::string::String;
 
     use crate::types::Type;
@@ -464,7 +461,7 @@ fn test_record_with_strings_in_vec() {
     // We receive (String, Type) pairs and need to intern the strings
     let field_data: crate::Vec<(crate::String, &Type)> = vec![
         (String::from("name"), manager.str()),
-        (format!("age"), manager.int()),
+        ("age".to_string(), manager.int()),
     ];
 
     // Build Vec<(&str, &Type)> by interning strings (like line 206 in serialization.rs)
@@ -477,7 +474,7 @@ fn test_record_with_strings_in_vec() {
     // Do it again with fresh Strings
     let field_data_2: crate::Vec<(crate::String, &Type)> = vec![
         (String::from("name"), manager.str()),
-        (format!("age"), manager.int()),
+        ("age".to_string(), manager.int()),
     ];
     let mut fields_2: crate::Vec<(&str, &Type)> = crate::Vec::new();
     for (s, t) in &field_data_2 {

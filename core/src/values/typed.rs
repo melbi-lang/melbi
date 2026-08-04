@@ -952,8 +952,8 @@ mod tests {
         let raw_true = bool::to_raw_value(&arena, true);
         let raw_false = bool::to_raw_value(&arena, false);
         unsafe {
-            assert_eq!(bool::from_raw_value(raw_true), true);
-            assert_eq!(bool::from_raw_value(raw_false), false);
+            assert!(bool::from_raw_value(raw_true));
+            assert!(!bool::from_raw_value(raw_false));
         }
     }
 
@@ -1032,7 +1032,7 @@ mod tests {
         let arena = Bump::new();
         let arr1 = Array::<i64>::new(&arena, &[1, 2, 3]);
         let arr2 = arr1;
-        let arr3 = arr1.clone();
+        let arr3 = arr1;
         assert_eq!(arr1.len(), 3);
         assert_eq!(arr2.len(), 3);
         assert_eq!(arr3.len(), 3);
@@ -1515,7 +1515,7 @@ mod tests {
         let arena = Bump::new();
         let map1 = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20)]);
         let map2 = map1;
-        let map3 = map1.clone();
+        let map3 = map1;
 
         assert_eq!(map1.get(&1), Some(10));
         assert_eq!(map2.get(&1), Some(10));

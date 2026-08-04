@@ -100,7 +100,7 @@ fn test_hexadecimal_integers() {
         ("0x_DEAD_BEEF", 0xDEAD_BEEF_u64 as i64), // underscore after prefix
         ("0xABCD_", 0xABCD),                      // trailing underscore
         ("0xabcd", 0xabcd),                       // lowercase
-        ("0xAbCd", 0xAbCd),                       // mixed case
+        ("0xAbCd", 0xABCD),                       // mixed case
     ];
 
     for (input, expected) in cases {

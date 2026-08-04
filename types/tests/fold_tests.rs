@@ -63,11 +63,11 @@ struct Substitution<'a, B: TyBuilder> {
 
 impl<'a, B: TyBuilder> TypeFolder<B> for Substitution<'a, B> {
     fn fold_ty(&mut self, _b_in: &B, _b_out: &B, ty: &Ty<B>) -> FoldStep<B, Ty<B>> {
-        if let TyKind::TypeVar(id) = ty.kind() {
-            if let Some(replacement) = self.mapping.get(id) {
-                // Use Replace to continue traversal into the replacement
-                return FoldStep::Replace(replacement.clone());
-            }
+        if let TyKind::TypeVar(id) = ty.kind()
+            && let Some(replacement) = self.mapping.get(id)
+        {
+            // Use Replace to continue traversal into the replacement
+            return FoldStep::Replace(replacement.clone());
         }
         FoldStep::Recurse
     }
@@ -441,10 +441,10 @@ impl<B: TyBuilder> Fold<B> for FailingFolder {
     type Error = String;
 
     fn visit(&mut self, _builder: &B, ty: &Ty<B>) -> Result<FoldStep<B, ()>, String> {
-        if let TyKind::TypeVar(id) = ty.kind() {
-            if *id == self.fail_on_var {
-                return Err(format!("Failed on TypeVar({})", id));
-            }
+        if let TyKind::TypeVar(id) = ty.kind()
+            && *id == self.fail_on_var
+        {
+            return Err(format!("Failed on TypeVar({})", id));
         }
         Ok(FoldStep::Recurse)
     }

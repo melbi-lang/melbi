@@ -48,7 +48,7 @@ fn run_parser(args: DebugInputArgs, no_color: bool) -> ExitCode {
 fn run_analyzer(args: DebugInputArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, _globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     let ast = match parser::parse(&arena, &args.expression) {
         Ok(ast) => ast,
@@ -58,7 +58,7 @@ fn run_analyzer(args: DebugInputArgs, no_color: bool) -> ExitCode {
         }
     };
 
-    let typed = match analyze(type_manager, &arena, &ast, globals_types, &[]) {
+    let typed = match analyze(type_manager, &arena, ast, env.types, &[]) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into(), no_color);
@@ -77,7 +77,7 @@ fn run_analyzer(args: DebugInputArgs, no_color: bool) -> ExitCode {
 fn run_bytecode(args: DebugInputArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     let ast = match parser::parse(&arena, &args.expression) {
         Ok(ast) => ast,
@@ -87,7 +87,7 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) -> ExitCode {
         }
     };
 
-    let typed = match analyze(type_manager, &arena, &ast, globals_types, &[]) {
+    let typed = match analyze(type_manager, &arena, ast, env.types, &[]) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into(), no_color);
@@ -95,7 +95,7 @@ fn run_bytecode(args: DebugInputArgs, no_color: bool) -> ExitCode {
         }
     };
 
-    let bytecode = match BytecodeCompiler::compile(type_manager, &arena, globals_values, &typed) {
+    let bytecode = match BytecodeCompiler::compile(type_manager, &arena, env.values, typed) {
         Ok(code) => code,
         Err(e) => {
             render_err(e.into(), no_color);

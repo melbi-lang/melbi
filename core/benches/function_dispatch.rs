@@ -119,7 +119,7 @@ fn bench_enum_dispatch(c: &mut Criterion) {
     });
 
     // Also benchmark with different variants to show realistic case
-    let funcs = vec![
+    let funcs = [
         FunctionData::Native(add),
         FunctionData::Native(mul),
         FunctionData::Native(sub),

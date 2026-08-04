@@ -48,10 +48,10 @@ impl MelbiExtension {
         _language_server_id: &zed::LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<String> {
-        if let Some(path) = &self.cached_binary_path {
-            if std::fs::metadata(path).map_or(false, |stat| stat.is_file()) {
-                return Ok(path.clone());
-            }
+        if let Some(path) = &self.cached_binary_path
+            && std::fs::metadata(path).is_ok_and(|stat| stat.is_file())
+        {
+            return Ok(path.clone());
         }
 
         // Option 1: Look for locally built binary (development)

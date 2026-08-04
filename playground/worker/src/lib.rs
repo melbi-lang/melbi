@@ -16,6 +16,12 @@ pub struct PlaygroundEngine {
     engine: Engine<'static>,
 }
 
+impl Default for PlaygroundEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[wasm_bindgen]
 impl PlaygroundEngine {
     #[wasm_bindgen(constructor)]
@@ -184,7 +190,7 @@ impl From<CoreDiagnostic> for DiagnosticPayload {
             severity: severity_to_str(diag.severity),
             message: diag.message,
             span: RangePayload::from(diag.span),
-            help: diag.help.get(0).map(|s| s.clone()),
+            help: diag.help.first().cloned(),
             code: diag.code,
             related: diag
                 .related
@@ -224,7 +230,7 @@ fn severity_to_str(severity: Severity) -> &'static str {
 fn to_js_value<T: Serialize>(value: &T) -> Result<JsValue, JsValue> {
     let serialized = serde_json::to_string(value)
         .map_err(|err| JsValue::from_str(&format!("serialization error: {}", err)))?;
-    JSON::parse(&serialized).map_err(|err| err)
+    JSON::parse(&serialized)
 }
 
 #[cfg(test)]

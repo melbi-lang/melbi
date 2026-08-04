@@ -849,7 +849,7 @@ mod tests {
         };
         let arena = Bump::new();
         let mut vm = VM::new(&arena, &code, Vec::new(), &[]);
-        assert_eq!(vm.run().unwrap().as_bool_unchecked(), true);
+        assert!(vm.run().unwrap().as_bool_unchecked());
 
         // Test ==
         let code = Code {
@@ -904,7 +904,7 @@ mod tests {
         };
         let arena = Bump::new();
         let mut vm = VM::new(&arena, &code, Vec::new(), &[]);
-        assert_eq!(vm.run().unwrap().as_bool_unchecked(), false);
+        assert!(!vm.run().unwrap().as_bool_unchecked());
 
         // Test OR
         let code = Code {

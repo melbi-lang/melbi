@@ -51,7 +51,7 @@ fn parse_error(source: &str) -> ParseError {
 /// This is the assertion that matters for spans: rather than checking offsets by
 /// hand, check that the span selects the text the reader would expect.
 #[track_caller]
-fn snippet<'s>(source: &'s str, span: Span) -> &'s str {
+fn snippet(source: &str, span: Span) -> &str {
     &source[span.start() as usize..span.end() as usize]
 }
 

@@ -209,7 +209,7 @@ fn test_with_lifetimes() {
     assert_eq!(upper_fn.name(), "DeclUpper");
 
     let result = ctx.call_ok(upper_fn, &[ctx.str("hello")]);
-    assert_eq!(&*result.as_str().unwrap(), "HELLO");
+    assert_eq!(result.as_str().unwrap(), "HELLO");
 }
 
 #[test]
@@ -558,11 +558,10 @@ fn test_mixed_types_with_false_flag() {
 fn test_returns_bool_true() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
-    assert_eq!(
+    assert!(
         ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(5)])
             .as_bool()
-            .unwrap(),
-        true
+            .unwrap()
     );
 }
 
@@ -570,11 +569,10 @@ fn test_returns_bool_true() {
 fn test_returns_bool_false() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
-    assert_eq!(
-        ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(-5)])
+    assert!(
+        !ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(-5)])
             .as_bool()
-            .unwrap(),
-        false
+            .unwrap()
     );
 }
 
@@ -583,11 +581,10 @@ fn test_returns_bool_zero_edge_case() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // 0 > 0 is false (boundary test)
-    assert_eq!(
-        ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(0)])
+    assert!(
+        !ctx.call_ok(DeclReturnsBool::new(ctx.type_mgr), &[ctx.int(0)])
             .as_bool()
-            .unwrap(),
-        false
+            .unwrap()
     );
 }
 
@@ -669,8 +666,7 @@ fn test_string_empty() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
-        &*ctx
-            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("")])
+        ctx.call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("")])
             .as_str()
             .unwrap(),
         ""
@@ -682,8 +678,7 @@ fn test_string_single_char() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
-        &*ctx
-            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("a")])
+        ctx.call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("a")])
             .as_str()
             .unwrap(),
         "A"
@@ -696,8 +691,7 @@ fn test_string_unicode() {
     let ctx = TestCtx::new(&arena);
     // to_ascii_uppercase only affects ASCII
     assert_eq!(
-        &*ctx
-            .call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("Γεια σας κόσμε")])
+        ctx.call_ok(DeclUpper::new(ctx.type_mgr), &[ctx.str("Γεια σας κόσμε")])
             .as_str()
             .unwrap(),
         "Γεια σας κόσμε"
@@ -821,13 +815,12 @@ fn test_result_with_lifetime_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
-        &*ctx
-            .call_ok(
-                DeclResultWithLifetime::new(ctx.type_mgr),
-                &[ctx.str("hello")]
-            )
-            .as_str()
-            .unwrap(),
+        ctx.call_ok(
+            DeclResultWithLifetime::new(ctx.type_mgr),
+            &[ctx.str("hello")]
+        )
+        .as_str()
+        .unwrap(),
         "HELLO"
     );
 }
@@ -981,7 +974,7 @@ fn test_array_first_success() {
         DeclArrayFirst::new(ctx.type_mgr),
         &[ctx.str_array(vec!["first", "second", "third"])],
     );
-    assert_eq!(&*result.as_str().unwrap(), "first");
+    assert_eq!(result.as_str().unwrap(), "first");
 }
 
 #[test]

@@ -371,11 +371,11 @@ fn check_optional_str(v: &Value, expected: Option<&str>) {
     match (opt, expected) {
         (None, None) => {}
         (Some(inner), Some(exp)) => {
-            assert_eq!(&*inner.as_str().unwrap(), exp);
+            assert_eq!(inner.as_str().unwrap(), exp);
         }
         (None, Some(exp)) => panic!("Expected Some({:?}), got None", exp),
         (Some(inner), None) => {
-            panic!("Expected None, got Some({:?})", &*inner.as_str().unwrap())
+            panic!("Expected None, got Some({:?})", inner.as_str().unwrap())
         }
     }
 }

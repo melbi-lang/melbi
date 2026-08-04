@@ -54,7 +54,7 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
 
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, _globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     // Parse
     let ast = match parser::parse(&arena, &content) {
@@ -66,7 +66,7 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
     };
 
     // Type check
-    if let Err(e) = analyze(type_manager, &arena, &ast, globals_types, &[]) {
+    if let Err(e) = analyze(type_manager, &arena, ast, env.types, &[]) {
         render_err(e.into());
         return false;
     }

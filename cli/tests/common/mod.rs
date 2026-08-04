@@ -1,6 +1,9 @@
 //! Shared test utilities for CLI integration tests.
 
-#![allow(dead_code, reason = "Shared test helpers used across integration test binaries")]
+#![allow(
+    dead_code,
+    reason = "Shared test helpers used across integration test binaries"
+)]
 
 use std::io::Write;
 use std::process::ExitStatus;

@@ -38,8 +38,8 @@ fn eval<'a>(arena: &'a Bump, source: &'a str) -> Result<Value<'a, 'a>, Error> {
     let engine = Engine::new(options, arena, |arena, type_mgr, env| {
         let env = register_array_package(arena, type_mgr, env);
         let env = register_math_package(arena, type_mgr, env);
-        let env = register_string_package(arena, type_mgr, env);
-        env
+
+        register_string_package(arena, type_mgr, env)
     });
 
     let compile_opts = CompileOptionsOverride::default();

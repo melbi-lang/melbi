@@ -37,14 +37,6 @@ pub mod values;
 pub mod visitor;
 pub mod vm;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert!(true);
-    }
-}
-
 /// Test utilities for enabling logging in tests
 #[cfg(test)]
 pub mod test_utils {

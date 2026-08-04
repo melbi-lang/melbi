@@ -156,7 +156,7 @@ fn array_of_ints_box_to_box() {
     let dst = box_builder();
     let copied = {
         let src = box_builder();
-        let src_tb = src.ty_builder().clone();
+        let src_tb = *src.ty_builder();
         let elements = vec![
             Value::int(&src, 4),
             Value::int(&src, 5),
@@ -178,7 +178,7 @@ fn empty_array_box_to_box() {
     let dst = box_builder();
     let copied = {
         let src = box_builder();
-        let src_tb = src.ty_builder().clone();
+        let src_tb = *src.ty_builder();
         let v = Value::array(&src, ty!(src_tb, Int), vec![]);
         copy_value(&v, &dst)
     };
@@ -244,7 +244,7 @@ fn array_of_ints_box_to_arena() {
     let dst = ArenaValueBuilder::new(&arena);
     let copied = {
         let src = box_builder();
-        let src_tb = src.ty_builder().clone();
+        let src_tb = *src.ty_builder();
         let elements = vec![
             Value::int(&src, 10),
             Value::int(&src, 20),
@@ -267,7 +267,7 @@ fn empty_array_box_to_arena() {
     let dst = ArenaValueBuilder::new(&arena);
     let copied = {
         let src = box_builder();
-        let src_tb = src.ty_builder().clone();
+        let src_tb = *src.ty_builder();
         let v = Value::array(&src, ty!(src_tb, Int), vec![]);
         copy_value(&v, &dst)
     };
@@ -347,7 +347,7 @@ fn nested_array_box_to_arena() {
     let dst = ArenaValueBuilder::new(&arena);
     let copied = {
         let src = box_builder();
-        let src_tb = src.ty_builder().clone();
+        let src_tb = *src.ty_builder();
         let int_ty = ty!(src_tb, Int);
         let inner1 = Value::array(
             &src,
@@ -388,10 +388,10 @@ fn nested_array_arena_to_box() {
         let int_ty = ty!(src_tb, Int);
         let inner1 = Value::array(
             &src,
-            int_ty.clone(),
+            int_ty,
             vec![Value::int(&src, 10), Value::int(&src, 20)],
         );
-        let inner2 = Value::array(&src, int_ty.clone(), vec![Value::int(&src, 30)]);
+        let inner2 = Value::array(&src, int_ty, vec![Value::int(&src, 30)]);
         let inner_ty = ty!(src_tb, Array[Int]);
         let outer = Value::array(&src, inner_ty, vec![inner1, inner2]);
         copy_value(&outer, &dst)
@@ -420,7 +420,7 @@ fn nested_array_arena_to_arena() {
         let src = ArenaValueBuilder::new(&arena_src);
         let src_tb = *src.ty_builder();
         let int_ty = ty!(src_tb, Int);
-        let inner = Value::array(&src, int_ty.clone(), vec![Value::int(&src, 77)]);
+        let inner = Value::array(&src, int_ty, vec![Value::int(&src, 77)]);
         let inner_ty = ty!(src_tb, Array[Int]);
         let outer = Value::array(&src, inner_ty, vec![inner]);
         copy_value(&outer, &dst)
@@ -479,7 +479,7 @@ fn round_trip_box_arena_box_array() {
         let a = ArenaValueBuilder::new(&arena);
         let via_arena = {
             let b1 = box_builder();
-            let tb1 = b1.ty_builder().clone();
+            let tb1 = *b1.ty_builder();
             let elements = vec![Value::int(&b1, 1), Value::int(&b1, 2), Value::int(&b1, 3)];
             let original = Value::array(&b1, ty!(tb1, Int), elements);
             copy_value(&original, &a)
@@ -542,7 +542,7 @@ fn type_preserved_int_box_to_arena() {
 #[test]
 fn type_preserved_array_arena_to_box() {
     let dst = box_builder();
-    let dst_tb = dst.ty_builder().clone();
+    let dst_tb = *dst.ty_builder();
     let copied = {
         let arena = Bump::new();
         let src = ArenaValueBuilder::new(&arena);
@@ -561,7 +561,7 @@ fn type_preserved_nested_array() {
     let dst_tb = *dst.ty_builder();
     let copied = {
         let src = box_builder();
-        let src_tb = src.ty_builder().clone();
+        let src_tb = *src.ty_builder();
         let int_ty = ty!(src_tb, Int);
         let inner = Value::array(&src, int_ty, vec![Value::int(&src, 1)]);
         let inner_ty = ty!(src_tb, Array[Int]);

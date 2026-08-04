@@ -319,7 +319,7 @@ impl PartialEq<&str> for SmallStr<'_> {
 
 impl PartialOrd for SmallStr<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.as_str().cmp(other.as_str()))
+        Some(self.cmp(other))
     }
 }
 
@@ -501,7 +501,7 @@ impl PartialEq<&str> for SimpleSmallStr<'_> {
 
 impl PartialOrd for SimpleSmallStr<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.as_str().cmp(other.as_str()))
+        Some(self.cmp(other))
     }
 }
 

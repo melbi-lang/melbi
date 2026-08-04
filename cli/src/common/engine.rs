@@ -6,6 +6,12 @@ use melbi_core::types::Type;
 use melbi_core::types::manager::TypeManager;
 use melbi_core::values::dynamic::Value;
 
+/// Environment containing stdlib types and values.
+pub struct StdlibEnv<'arena> {
+    pub types: &'arena [(&'arena str, &'arena Type<'arena>)],
+    pub values: &'arena [(&'arena str, Value<'arena, 'arena>)],
+}
+
 /// Build the standard library environment for Melbi evaluation.
 ///
 /// Initializes stdlib modules (Math, String, Array, etc.) and returns
@@ -15,19 +21,12 @@ use melbi_core::values::dynamic::Value;
 /// * `arena` - Bump allocator for stdlib values and types
 /// * `type_manager` - Type manager for creating and interning types
 ///
-/// # Returns
-/// * `globals_types` - Type bindings for `analyze()`
-/// * `globals_values` - Value bindings for `Evaluator` or `VM`
-///
 /// # Panics
 /// Panics if environment build fails (line 22-23 `.expect()`).
 pub fn build_stdlib<'arena>(
     arena: &'arena Bump,
     type_manager: &'arena TypeManager<'arena>,
-) -> (
-    &'arena [(&'arena str, &'arena Type<'arena>)],
-    &'arena [(&'arena str, Value<'arena, 'arena>)],
-) {
+) -> StdlibEnv<'arena> {
     use melbi_core::api::EnvironmentBuilder;
     use melbi_core::values::binder::Binder;
 
@@ -44,5 +43,8 @@ pub fn build_stdlib<'arena>(
         .collect();
     let globals_types = arena.alloc_slice_copy(&globals_types);
 
-    (globals_types, globals_values)
+    StdlibEnv {
+        types: globals_types,
+        values: globals_values,
+    }
 }

@@ -48,8 +48,8 @@ fn bench_eval_only(c: &mut Criterion) {
             let type_manager = TypeManager::new(&arena);
             let source = generate_arithmetic_chain(size);
             let parsed = parser::parse(&arena, &source).expect("Parse failed");
-            let typed = analyzer::analyze(type_manager, &arena, &parsed, &[], &[])
-                .expect("Analysis failed");
+            let typed =
+                analyzer::analyze(type_manager, &arena, parsed, &[], &[]).expect("Analysis failed");
 
             // Benchmark: Only the evaluation step
             b.iter(|| {
@@ -57,7 +57,7 @@ fn bench_eval_only(c: &mut Criterion) {
                     black_box(EvaluatorOptions::default()),
                     black_box(&arena),
                     black_box(type_manager),
-                    black_box(&typed),
+                    black_box(typed),
                     black_box(&[]),
                     black_box(&[]),
                 );
@@ -97,7 +97,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
                 let typed = analyzer::analyze(
                     black_box(type_manager),
                     black_box(&arena),
-                    black_box(&parsed),
+                    black_box(parsed),
                     black_box(&[]),
                     black_box(&[]),
                 )
@@ -107,7 +107,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
                     black_box(EvaluatorOptions::default()),
                     black_box(&arena),
                     black_box(type_manager),
-                    black_box(&typed),
+                    black_box(typed),
                     black_box(&[]),
                     black_box(&[]),
                 );

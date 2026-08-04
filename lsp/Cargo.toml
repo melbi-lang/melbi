@@ -22,3 +22,7 @@ tree-sitter.workspace = true
 tree-sitter-melbi.workspace = true
 bumpalo = "3.16.0"
 dashmap = "6.1.0"
+
+[lints]
+workspace = true
+

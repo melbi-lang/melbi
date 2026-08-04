@@ -821,8 +821,8 @@ mod tests {
 
         // Using ClosureTransformer - clean and concise
         let result1 = ClosureTransformer::new(mgr, |ty| match ty.view() {
-            TypeKind::TypeVar(id) if id == 0 => Some(mgr.type_var(100)),
-            TypeKind::TypeVar(id) if id == 1 => Some(mgr.type_var(101)),
+            TypeKind::TypeVar(0) => Some(mgr.type_var(100)),
+            TypeKind::TypeVar(1) => Some(mgr.type_var(101)),
             _ => None,
         })
         .transform(func);

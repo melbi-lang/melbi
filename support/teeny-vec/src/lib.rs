@@ -136,7 +136,7 @@ impl TeenyVec {
     }
 
     fn set_cap(&mut self, new_cap: usize) {
-        assert!(new_cap % 2 == 0);
+        assert!(new_cap.is_multiple_of(2));
         let heap = unsafe { &mut self.repr.heap };
         heap.cap = new_cap.try_into().expect("capacity overflow");
     }

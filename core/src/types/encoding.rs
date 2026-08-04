@@ -821,7 +821,7 @@ mod tests {
     fn test_smallvec_size() {
         let v = Vec::<u8>::with_capacity(32);
         let p = v.leak();
-        dbg!(std::mem::size_of_val(&p));
+        dbg!(std::mem::size_of_val(p));
         dbg!(std::any::type_name_of_val(&p));
 
         dbg!(core::mem::size_of::<SmallVec<[u8; 1]>>());
@@ -829,7 +829,6 @@ mod tests {
         dbg!(core::mem::size_of::<SmallVec<[u8; 16]>>());
         dbg!(core::mem::size_of::<SmallVec<[u8; 18]>>());
         dbg!(core::mem::size_of::<SmallVec<[u8; 24]>>());
-        assert!(true);
     }
 
     // ============================================================================
@@ -1020,23 +1019,23 @@ mod tests {
         let mgr = TypeManager::new(&arena);
 
         let int_bytes = encode(mgr.int());
-        let decoded = decode(&int_bytes, &mgr).unwrap();
+        let decoded = decode(&int_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.int(), decoded));
 
         let float_bytes = encode(mgr.float());
-        let decoded = decode(&float_bytes, &mgr).unwrap();
+        let decoded = decode(&float_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.float(), decoded));
 
         let bool_bytes = encode(mgr.bool());
-        let decoded = decode(&bool_bytes, &mgr).unwrap();
+        let decoded = decode(&bool_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bool(), decoded));
 
         let str_bytes = encode(mgr.str());
-        let decoded = decode(&str_bytes, &mgr).unwrap();
+        let decoded = decode(&str_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.str(), decoded));
 
         let bytes_bytes = encode(mgr.bytes());
-        let decoded = decode(&bytes_bytes, &mgr).unwrap();
+        let decoded = decode(&bytes_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bytes(), decoded));
     }
 
@@ -1049,7 +1048,7 @@ mod tests {
         let bytes = encode(ty);
 
         // decode() uses only TypeView navigation
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1062,7 +1061,7 @@ mod tests {
         let bytes = encode(ty);
 
         // decode() uses only TypeView navigation
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1080,7 +1079,7 @@ mod tests {
         );
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1098,7 +1097,7 @@ mod tests {
         let int_byte = TypeTag::Int as u8;
         let bytes = vec![array_byte, 1, 0, int_byte];
 
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         let expected = mgr.array(mgr.int());
 
         // Should intern to same pointer as canonical encoding
@@ -1116,7 +1115,7 @@ mod tests {
         let int_byte = TypeTag::Int as u8;
         let bytes = vec![map_byte, 2, 0, str_byte, int_byte];
 
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         let expected = mgr.map(mgr.str(), mgr.int());
 
         // Should intern to same pointer as canonical encoding
@@ -1138,8 +1137,8 @@ mod tests {
         let int_byte = TypeTag::Int as u8;
         let alternative_bytes = vec![array_byte, 1, 0, int_byte]; // Long format: [disc][size_lo][size_hi][elem]
 
-        let decoded_canonical = decode(&canonical_bytes, &mgr).unwrap();
-        let decoded_alternative = decode(&alternative_bytes, &mgr).unwrap();
+        let decoded_canonical = decode(&canonical_bytes, mgr).unwrap();
+        let decoded_alternative = decode(&alternative_bytes, mgr).unwrap();
 
         // Both should intern to same pointer (lenient decoding)
         assert!(core::ptr::eq(ty, decoded_canonical));
@@ -1157,23 +1156,23 @@ mod tests {
         let mgr = TypeManager::new(&arena);
 
         let int_bytes = encode(mgr.int());
-        let decoded = decode(&int_bytes, &mgr).unwrap();
+        let decoded = decode(&int_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.int(), decoded));
 
         let float_bytes = encode(mgr.float());
-        let decoded = decode(&float_bytes, &mgr).unwrap();
+        let decoded = decode(&float_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.float(), decoded));
 
         let bool_bytes = encode(mgr.bool());
-        let decoded = decode(&bool_bytes, &mgr).unwrap();
+        let decoded = decode(&bool_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bool(), decoded));
 
         let str_bytes = encode(mgr.str());
-        let decoded = decode(&str_bytes, &mgr).unwrap();
+        let decoded = decode(&str_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.str(), decoded));
 
         let bytes_bytes = encode(mgr.bytes());
-        let decoded = decode(&bytes_bytes, &mgr).unwrap();
+        let decoded = decode(&bytes_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bytes(), decoded));
     }
 
@@ -1185,32 +1184,32 @@ mod tests {
         // Test packed and non-packed
         let ty0 = mgr.type_var(0);
         let bytes0 = encode(ty0);
-        let decoded0 = decode(&bytes0, &mgr).unwrap();
+        let decoded0 = decode(&bytes0, mgr).unwrap();
         assert!(core::ptr::eq(ty0, decoded0));
 
         let ty15 = mgr.type_var(15);
         let bytes15 = encode(ty15);
-        let decoded15 = decode(&bytes15, &mgr).unwrap();
+        let decoded15 = decode(&bytes15, mgr).unwrap();
         assert!(core::ptr::eq(ty15, decoded15));
 
         let ty31 = mgr.type_var(31);
         let bytes31 = encode(ty31);
-        let decoded31 = decode(&bytes31, &mgr).unwrap();
+        let decoded31 = decode(&bytes31, mgr).unwrap();
         assert!(core::ptr::eq(ty31, decoded31));
 
         let ty32 = mgr.type_var(32);
         let bytes32 = encode(ty32);
-        let decoded32 = decode(&bytes32, &mgr).unwrap();
+        let decoded32 = decode(&bytes32, mgr).unwrap();
         assert!(core::ptr::eq(ty32, decoded32));
 
         let ty100 = mgr.type_var(100);
         let bytes100 = encode(ty100);
-        let decoded100 = decode(&bytes100, &mgr).unwrap();
+        let decoded100 = decode(&bytes100, mgr).unwrap();
         assert!(core::ptr::eq(ty100, decoded100));
 
         let ty1000 = mgr.type_var(1000);
         let bytes1000 = encode(ty1000);
-        let decoded1000 = decode(&bytes1000, &mgr).unwrap();
+        let decoded1000 = decode(&bytes1000, mgr).unwrap();
         assert!(core::ptr::eq(ty1000, decoded1000));
     }
 
@@ -1222,7 +1221,7 @@ mod tests {
         let ty = mgr.record(vec![("age", mgr.int()), ("name", mgr.str())]);
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1234,7 +1233,7 @@ mod tests {
         let ty = mgr.function(&[mgr.int(), mgr.str()], mgr.bool());
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1245,7 +1244,7 @@ mod tests {
 
         let ty = mgr.symbol(vec!["error", "pending", "success"]);
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1376,7 +1375,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let result = decode(&[], &mgr);
+        let result = decode(&[], mgr);
         assert!(matches!(result, Err(DecodeError::Truncated { .. })));
     }
 
@@ -1389,7 +1388,7 @@ mod tests {
         let mut bytes = encode(ty).to_vec();
         bytes.push(0xFF); // Extra byte
 
-        let result = decode(&bytes, &mgr);
+        let result = decode(&bytes, mgr);
         assert!(matches!(result, Err(DecodeError::TrailingBytes { .. })));
     }
 
@@ -1399,7 +1398,7 @@ mod tests {
         let mgr = TypeManager::new(&arena);
 
         let bytes = vec![37]; // Reserved slot
-        let result = decode(&bytes, &mgr);
+        let result = decode(&bytes, mgr);
         assert!(matches!(result, Err(DecodeError::InvalidWireTag { .. })));
     }
 
@@ -1410,7 +1409,7 @@ mod tests {
 
         let array_byte = TypeTag::Array as u8;
         let bytes = vec![array_byte, 5, 0]; // Claims 5 bytes but no payload
-        let result = decode(&bytes, &mgr);
+        let result = decode(&bytes, mgr);
         assert!(matches!(result, Err(DecodeError::Truncated { .. })));
     }
 
@@ -1425,7 +1424,7 @@ mod tests {
 
         let ty = mgr.record(vec![]);
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1436,7 +1435,7 @@ mod tests {
 
         let ty = mgr.function(&[], mgr.int());
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1451,7 +1450,7 @@ mod tests {
         }
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1467,7 +1466,7 @@ mod tests {
         ]);
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 

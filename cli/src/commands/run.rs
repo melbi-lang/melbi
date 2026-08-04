@@ -31,12 +31,11 @@ pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
 
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     interpret_input(
         type_manager,
-        globals_types,
-        globals_values,
+        &env,
         &content,
         Some(&display_name),
         args.runtime,

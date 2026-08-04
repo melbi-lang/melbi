@@ -762,7 +762,7 @@ mod manager_tests {
         let fun = mgr1.function(&[tuple], v);
 
         // Adopt into mgr2
-        let adopted = mgr2.adopt(&mgr1, fun);
+        let adopted = mgr2.adopt(mgr1, fun);
 
         // Extract adopted typevars
         if let Type::Function { params, ret } = adopted {

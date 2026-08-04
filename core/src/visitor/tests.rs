@@ -142,7 +142,7 @@ impl<'arena> ArenaTreeBuilder<'arena> {
     }
 }
 
-impl<'arena, B: TreeBuilder> TreeView<B> for &'arena TreeData<B> {
+impl<B: TreeBuilder> TreeView<B> for &TreeData<B> {
     type Kind = TreeKind<B>;
 
     fn view(self) -> TreeKind<B> {

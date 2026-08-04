@@ -5,7 +5,10 @@
 
 // Each test binary compiles this module separately and uses a different subset
 // of it, so unused items here are expected rather than a smell.
-#![allow(dead_code, reason = "Shared test helpers used across integration test binaries")]
+#![allow(
+    dead_code,
+    reason = "Shared test helpers used across integration test binaries"
+)]
 
 pub mod builders;
 pub mod sample_tree;

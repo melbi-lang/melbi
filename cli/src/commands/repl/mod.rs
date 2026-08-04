@@ -54,7 +54,7 @@ impl reedline::Validator for MelbiValidator {
                 };
                 if pos >= input.len() {
                     ValidationResult::Incomplete
-                } else if input[pos..].starts_with(&['"', '\'']) {
+                } else if input[pos..].starts_with(['"', '\'']) {
                     // Assume its an unterminated string literal.
                     ValidationResult::Incomplete
                 } else {
@@ -159,7 +159,7 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     let (mut line_editor, prompt) = setup_reedline();
 
@@ -181,11 +181,11 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
         match sig {
             Signal::Success(cmd) if cmd == "!indent" => {
                 let buffer = line_editor.current_buffer_contents();
-                if let Some(depth) = calculate_depth(buffer) {
-                    if depth > 0 {
-                        line_editor
-                            .run_edit_commands(&[EditCommand::InsertString("    ".repeat(depth))]);
-                    }
+                if let Some(depth) = calculate_depth(buffer)
+                    && depth > 0
+                {
+                    line_editor
+                        .run_edit_commands(&[EditCommand::InsertString("    ".repeat(depth))]);
                 }
                 continue;
             }
@@ -193,10 +193,10 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
                 let buffer = line_editor.current_buffer_contents();
 
                 // Check if line is effectively empty (only whitespace)
-                let is_blank_line = buffer.lines().last().map_or(false, |l| l.trim().is_empty());
+                let is_blank_line = buffer.lines().last().is_some_and(|l| l.trim().is_empty());
 
                 if is_blank_line {
-                    let Some(current_depth) = calculate_depth(&buffer) else {
+                    let Some(current_depth) = calculate_depth(buffer) else {
                         continue;
                     };
                     let target_depth = current_depth.saturating_sub(1); // Dedent level
@@ -221,8 +221,7 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
                 // In REPL mode, we continue even on errors
                 let _result = interpret_input(
                     type_manager,
-                    globals_types,
-                    globals_values,
+                    &env,
                     buffer.as_ref(),
                     None, // REPL has no filename
                     args.runtime,

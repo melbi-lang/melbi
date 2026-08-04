@@ -35,7 +35,7 @@ fn compile_and_run<'a>(
     let globals_values = arena.alloc_slice_copy(&[("Math", math)]);
 
     let parsed = parser::parse(arena, source).unwrap();
-    let typed = analyzer::analyze(type_manager, arena, &parsed, globals_types, &[]).unwrap();
+    let typed = analyzer::analyze(type_manager, arena, parsed, globals_types, &[]).unwrap();
     let result_type = typed.expr.0;
     let code = BytecodeCompiler::compile(type_manager, arena, globals_values, typed).unwrap();
     let result = VM::execute(arena, &code).map(|raw| Value::from_raw_unchecked(result_type, raw));
@@ -47,7 +47,7 @@ fn test_compile_simple_integer() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "42");
+    let (code, result) = compile_and_run(&arena, type_manager, "42");
 
     // Verify bytecode: ConstInt(42), Return
     assert_eq!(code.instructions.len(), 2);
@@ -63,7 +63,7 @@ fn test_compile_addition() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "2 + 3");
+    let (code, result) = compile_and_run(&arena, type_manager, "2 + 3");
 
     // Verify bytecode: ConstInt(2), ConstInt(3), IntBinOp('+'), Return
     assert_eq!(code.instructions.len(), 4);
@@ -84,7 +84,7 @@ fn test_compile_subtraction() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "10 - 3");
+    let (code, result) = compile_and_run(&arena, type_manager, "10 - 3");
 
     // Verify bytecode: ConstInt(10), ConstInt(3), IntBinOp('-'), Return
     assert_eq!(code.instructions.len(), 4);
@@ -102,7 +102,7 @@ fn test_compile_multiplication() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "5 * 7");
+    let (code, result) = compile_and_run(&arena, type_manager, "5 * 7");
 
     // Verify bytecode: ConstInt(5), ConstInt(7), IntBinOp('*'), Return
     assert_eq!(code.instructions.len(), 4);
@@ -120,7 +120,7 @@ fn test_compile_negation() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "-(5)");
+    let (code, result) = compile_and_run(&arena, type_manager, "-(5)");
 
     // Verify bytecode: ConstInt(5), NegInt, Return
     assert_eq!(code.instructions.len(), 3);
@@ -137,7 +137,7 @@ fn test_compile_complex_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "(2 + 3) * 4");
+    let (code, result) = compile_and_run(&arena, type_manager, "(2 + 3) * 4");
 
     // Verify bytecode:
     // ConstInt(2), ConstInt(3), IntBinOp('+'), ConstInt(4), IntBinOp('*'), Return
@@ -158,7 +158,7 @@ fn test_stack_depth_tracking() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "1 + 2 + 3");
+    let (code, result) = compile_and_run(&arena, type_manager, "1 + 2 + 3");
 
     // Stack never grows beyond 2 because we evaluate left-to-right
     assert_eq!(
@@ -174,7 +174,7 @@ fn test_debug_output() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "(2 + 3) * 4");
+    let (code, _result) = compile_and_run(&arena, type_manager, "(2 + 3) * 4");
 
     // Print debug output to demonstrate assembly-style listing
     println!("\n{:?}\n", code);
@@ -196,7 +196,7 @@ fn test_debug_output_with_jumps() {
             none -> 0
         }
     "#;
-    let (code, result) = compile_and_run(&arena, &type_manager, source);
+    let (code, result) = compile_and_run(&arena, type_manager, source);
 
     // Print debug output to demonstrate labels and jump annotations
     println!("\n=== Match expression with jumps ===\n{:?}\n", code);
@@ -206,13 +206,13 @@ fn test_debug_output_with_jumps() {
 
     // Test with short-circuit boolean (shows PopJumpIfFalse/PopJumpIfTrue)
     let source2 = "true and false or true";
-    let (code2, result2) = compile_and_run(&arena, &type_manager, source2);
+    let (code2, result2) = compile_and_run(&arena, type_manager, source2);
     println!("\n=== Short-circuit boolean ===\n{:?}\n", code2);
-    assert_eq!(result2.unwrap().as_bool().unwrap(), true);
+    assert!(result2.unwrap().as_bool().unwrap());
 
     // Test with otherwise (shows PushOtherwise and PopOtherwiseAndJump)
     let source3 = "[1, 2, 3][10] otherwise 42";
-    let (code3, result3) = compile_and_run(&arena, &type_manager, source3);
+    let (code3, result3) = compile_and_run(&arena, type_manager, source3);
     println!("\n=== Otherwise expression ===\n{:?}\n", code3);
     assert_eq!(result3.unwrap().as_int().unwrap(), 42);
 }
@@ -222,7 +222,7 @@ fn test_convenience_compile_method() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "10 - 3");
+    let (code, _result) = compile_and_run(&arena, type_manager, "10 - 3");
 
     // Verify it works the same as the manual approach
     // ConstInt(10), ConstInt(3), IntBinOp('-'), Return
@@ -239,7 +239,7 @@ fn test_constant_deduplication() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "1000 + 1000 + 1000");
+    let (code, _result) = compile_and_run(&arena, type_manager, "1000 + 1000 + 1000");
 
     // Verify that 1000 only appears once in the constant pool
     assert_eq!(
@@ -264,7 +264,7 @@ fn test_comparison_operations() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "5 < 10");
+    let (code, result) = compile_and_run(&arena, type_manager, "5 < 10");
 
     assert_eq!(code.instructions.len(), 4);
     assert_eq!(code.instructions[0], Instruction::ConstInt(5));
@@ -275,7 +275,7 @@ fn test_comparison_operations() {
     );
     assert_eq!(code.max_stack_size, 2);
     // Verify result
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -283,7 +283,7 @@ fn test_boolean_not() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "not (5 < 10)");
+    let (code, result) = compile_and_run(&arena, type_manager, "not (5 < 10)");
 
     // Expected: ConstInt(5), ConstInt(10), IntCmpOp('<'), Not
     assert_eq!(code.instructions.len(), 5);
@@ -296,7 +296,7 @@ fn test_boolean_not() {
     assert_eq!(code.instructions[3], Instruction::Not);
     assert_eq!(code.max_stack_size, 2);
     // Verify result
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -304,7 +304,7 @@ fn test_boolean_and() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "true and false");
+    let (code, result) = compile_and_run(&arena, type_manager, "true and false");
 
     println!("\nBoolean AND bytecode:\n{:?}\n", code);
 
@@ -330,7 +330,7 @@ fn test_boolean_and() {
     // Max stack is 1 (only one branch executes at runtime)
     assert_eq!(code.max_stack_size, 1);
     // Verify result (true and false = false)
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -338,7 +338,7 @@ fn test_if_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "if true then 42 else 99");
+    let (code, result) = compile_and_run(&arena, type_manager, "if true then 42 else 99");
 
     // Print debug output to see the generated bytecode
     println!("\n{:?}\n", code);
@@ -371,7 +371,7 @@ fn test_all_comparison_operators() {
     ];
 
     for (expr, expected_op) in tests {
-        let (code, _result) = compile_and_run(&arena, &type_manager, expr);
+        let (code, _result) = compile_and_run(&arena, type_manager, expr);
 
         assert_eq!(
             code.instructions[2],
@@ -387,7 +387,7 @@ fn test_boolean_or() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "false or true");
+    let (code, result) = compile_and_run(&arena, type_manager, "false or true");
 
     println!("\nBoolean OR bytecode:\n{:?}\n", code);
 
@@ -411,7 +411,7 @@ fn test_boolean_or() {
     assert_eq!(code.instructions[7], Instruction::Return);
     assert_eq!(code.max_stack_size, 1);
     // Verify result (false or true = true)
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -419,7 +419,7 @@ fn test_complex_boolean_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "(5 < 10) and (3 > 1)");
+    let (code, result) = compile_and_run(&arena, type_manager, "(5 < 10) and (3 > 1)");
 
     println!("\nComplex boolean expression bytecode:\n{:?}\n", code);
 
@@ -449,7 +449,7 @@ fn test_complex_boolean_expression() {
     // Stack depth is 2: first comparison uses 2 slots for operands
     assert_eq!(code.max_stack_size, 2);
     // Verify result: (5 < 10) and (3 > 1) = true and true = true
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -462,12 +462,12 @@ fn test_short_circuit_and_avoids_error() {
     // This would error without short-circuit: accessing index 999 on a 3-element array
     let (_, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "false and arr[999] == 0 where { arr = [1, 2, 3] }",
     );
 
     // Should succeed (not error) because right side is not evaluated
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -480,12 +480,12 @@ fn test_short_circuit_or_avoids_error() {
     // This would error without short-circuit: accessing index 999 on a 3-element array
     let (_, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "true or arr[999] == 0 where { arr = [1, 2, 3] }",
     );
 
     // Should succeed (not error) because right side is not evaluated
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -496,14 +496,10 @@ fn test_short_circuit_and_division_by_zero() {
     let type_manager = TypeManager::new(&arena);
 
     // Without short-circuit, this would error with division by zero
-    let (_, result) = compile_and_run(
-        &arena,
-        &type_manager,
-        "x != 0 and 1 / x > 0 where { x = 0 }",
-    );
+    let (_, result) = compile_and_run(&arena, type_manager, "x != 0 and 1 / x > 0 where { x = 0 }");
 
     // x == 0, so short-circuits to false (doesn't evaluate 1/x)
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -512,14 +508,10 @@ fn test_short_circuit_and_division_succeeds() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(
-        &arena,
-        &type_manager,
-        "x != 0 and 1 / x > 0 where { x = 2 }",
-    );
+    let (_, result) = compile_and_run(&arena, type_manager, "x != 0 and 1 / x > 0 where { x = 2 }");
 
     // x != 0, so evaluates 1/x = 0 (integer division), 0 > 0 = false
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -528,10 +520,10 @@ fn test_short_circuit_or_division_by_zero() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "x == 0 or 1 / x > 0 where { x = 0 }");
+    let (_, result) = compile_and_run(&arena, type_manager, "x == 0 or 1 / x > 0 where { x = 0 }");
 
     // x == 0 is true, so short-circuits to true (doesn't evaluate 1/x)
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -541,7 +533,7 @@ fn test_nested_if_expression() {
 
     let (code, _result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "if true then (if false then 1 else 2) else 3",
     );
 
@@ -565,7 +557,7 @@ fn test_if_with_complex_condition() {
 
     let (code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "if (5 < 10) and (3 > 1) then 100 else 200",
     );
 
@@ -586,7 +578,7 @@ fn test_chained_comparisons() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "1 < 2 and 2 < 3");
+    let (code, result) = compile_and_run(&arena, type_manager, "1 < 2 and 2 < 3");
 
     println!("\nChained comparisons:\n{:?}\n", code);
 
@@ -610,7 +602,7 @@ fn test_chained_comparisons() {
         Instruction::IntCmpOp(ComparisonOp::Lt)
     );
     // Verify result: 1 < 2 and 2 < 3 = true and true = true
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -618,7 +610,7 @@ fn test_not_equals() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "5 != 10");
+    let (code, _result) = compile_and_run(&arena, type_manager, "5 != 10");
 
     assert_eq!(code.instructions.len(), 4);
     assert_eq!(code.instructions[0], Instruction::ConstInt(5));
@@ -634,7 +626,7 @@ fn test_empty_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "[]");
+    let (code, _result) = compile_and_run(&arena, type_manager, "[]");
 
     // Should just be MakeArray(0)
     assert_eq!(code.instructions.len(), 2);
@@ -650,7 +642,7 @@ fn test_array_with_constants() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "[1, 2, 3]");
+    let (code, _result) = compile_and_run(&arena, type_manager, "[1, 2, 3]");
 
     // Should be: ConstInt(1), ConstInt(2), ConstInt(3), MakeArray(3)
     assert_eq!(code.instructions.len(), 5);
@@ -669,7 +661,7 @@ fn test_array_with_expressions() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "[1 + 2, 3 * 4]");
+    let (code, _result) = compile_and_run(&arena, type_manager, "[1 + 2, 3 * 4]");
 
     println!("\nArray with expressions:\n{:?}\n", code);
 
@@ -690,7 +682,7 @@ fn test_nested_arrays() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "[[1, 2], [3, 4]]");
+    let (code, _result) = compile_and_run(&arena, type_manager, "[[1, 2], [3, 4]]");
 
     println!("\nNested arrays:\n{:?}\n", code);
 
@@ -718,7 +710,7 @@ fn test_array_of_booleans() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "[true, false, 5 < 10]");
+    let (code, _result) = compile_and_run(&arena, type_manager, "[true, false, 5 < 10]");
 
     println!("\nArray of booleans:\n{:?}\n", code);
 
@@ -744,7 +736,7 @@ fn test_single_element_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "[42]");
+    let (code, _result) = compile_and_run(&arena, type_manager, "[42]");
 
     assert_eq!(code.instructions.len(), 3);
     assert_eq!(code.instructions[0], Instruction::ConstInt(42));
@@ -757,7 +749,7 @@ fn test_float_addition() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "1.5 + 2.5");
+    let (code, _result) = compile_and_run(&arena, type_manager, "1.5 + 2.5");
 
     println!("\nFloat addition:\n{:?}\n", code);
 
@@ -781,7 +773,7 @@ fn test_float_operations() {
     ];
 
     for (expr, expected_instr) in tests {
-        let (code, _result) = compile_and_run(&arena, &type_manager, expr);
+        let (code, _result) = compile_and_run(&arena, type_manager, expr);
 
         assert_eq!(
             code.instructions[2], expected_instr,
@@ -796,7 +788,7 @@ fn test_float_negation() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "-(3.14)");
+    let (code, _result) = compile_and_run(&arena, type_manager, "-(3.14)");
 
     println!("\nFloat negation:\n{:?}\n", code);
 
@@ -820,7 +812,7 @@ fn test_float_comparisons() {
     ];
 
     for (expr, expected_op) in tests {
-        let (code, _result) = compile_and_run(&arena, &type_manager, expr);
+        let (code, _result) = compile_and_run(&arena, type_manager, expr);
 
         assert_eq!(
             code.instructions[2],
@@ -836,7 +828,7 @@ fn test_mixed_float_expressions() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "(1.5 + 2.5) * 3.0");
+    let (code, _result) = compile_and_run(&arena, type_manager, "(1.5 + 2.5) * 3.0");
 
     println!("\nMixed float expression:\n{:?}\n", code);
 
@@ -852,7 +844,7 @@ fn test_float_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "[1.0, 2.0, 3.0]");
+    let (code, _result) = compile_and_run(&arena, type_manager, "[1.0, 2.0, 3.0]");
 
     println!("\nFloat array:\n{:?}\n", code);
 
@@ -869,7 +861,7 @@ fn test_simple_where_binding() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "x + 1 where { x = 5 }");
+    let (code, _result) = compile_and_run(&arena, type_manager, "x + 1 where { x = 5 }");
 
     println!("\nSimple where binding:\n{:?}\n", code);
 
@@ -892,7 +884,7 @@ fn test_multiple_where_bindings() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "x + y where { x = 10, y = 20 }");
+    let (code, _result) = compile_and_run(&arena, type_manager, "x + y where { x = 10, y = 20 }");
 
     println!("\nMultiple where bindings:\n{:?}\n", code);
 
@@ -927,7 +919,7 @@ fn test_nested_where_bindings() {
 
     let (code, _result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "y + 1 where { y = (x * 2 where { x = 5 }) }",
     );
 
@@ -945,7 +937,7 @@ fn test_where_with_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, _result) = compile_and_run(&arena, &type_manager, "result where { result = 2 + 3 }");
+    let (code, _result) = compile_and_run(&arena, type_manager, "result where { result = 2 + 3 }");
 
     println!("\nWhere with expression:\n{:?}\n", code);
 
@@ -973,7 +965,7 @@ fn test_where_in_array() {
     let type_manager = TypeManager::new(&arena);
 
     let (code, _result) =
-        compile_and_run(&arena, &type_manager, "[x, x + 1, x + 2] where { x = 10 }");
+        compile_and_run(&arena, type_manager, "[x, x + 1, x + 2] where { x = 10 }");
 
     println!("\nWhere in array:\n{:?}\n", code);
 
@@ -1005,7 +997,7 @@ fn test_where_with_shadowing() {
     let type_manager = TypeManager::new(&arena);
 
     let (code, _result) =
-        compile_and_run(&arena, &type_manager, "x where { x = (x where { x = 5 }) }");
+        compile_and_run(&arena, type_manager, "x where { x = (x where { x = 5 }) }");
 
     println!("\nWhere with shadowing:\n{:?}\n", code);
 
@@ -1025,7 +1017,7 @@ fn test_where_scope_unshadowing() {
 
     let (code, _result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x + (x where { x = 10 }) where { x = 5 }",
     );
 
@@ -1079,7 +1071,7 @@ fn test_where_scope_restoration() {
 
     let (code, _result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "[ x, x where { x = 10 }, x ] where { x = 1 }",
     );
 
@@ -1131,7 +1123,7 @@ fn test_vm_simple_integer() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "42");
+    let (_code, result) = compile_and_run(&arena, type_manager, "42");
 
     // Result should be 42
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
@@ -1142,7 +1134,7 @@ fn test_vm_arithmetic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "10 + 5 * 2");
+    let (_code, result) = compile_and_run(&arena, type_manager, "10 + 5 * 2");
 
     // Result should be 20 (10 + (5 * 2))
     assert_eq!(result.unwrap().as_int().unwrap(), 20);
@@ -1153,10 +1145,10 @@ fn test_vm_boolean_operations() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "(5 < 10) and (3 > 1)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "(5 < 10) and (3 > 1)");
 
     // Result should be true
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -1164,7 +1156,7 @@ fn test_vm_if_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "if true then 42 else 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "if true then 42 else 99");
 
     // Result should be 42
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
@@ -1175,7 +1167,7 @@ fn test_vm_where_binding() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "x + 1 where { x = 5 }");
+    let (_code, result) = compile_and_run(&arena, type_manager, "x + 1 where { x = 5 }");
 
     // Result should be 6 (5 + 1)
     assert_eq!(result.unwrap().as_int().unwrap(), 6);
@@ -1188,7 +1180,7 @@ fn test_vm_scope_restoration() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "[ x, x where { x = 10 }, x ] where { x = 1 }",
     );
 
@@ -1207,7 +1199,7 @@ fn test_vm_shadowing_unshadowing() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x + (x where { x = 10 }) where { x = 5 }",
     );
 
@@ -1224,7 +1216,7 @@ fn test_array_index_constant() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "[10, 20, 30][1]");
+    let (code, result) = compile_and_run(&arena, type_manager, "[10, 20, 30][1]");
 
     // Expected bytecode:
     // ConstInt(10), ConstInt(20), ConstInt(30), MakeArray(3), ArrayGetConst(1), Return
@@ -1245,7 +1237,7 @@ fn test_array_index_dynamic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "[10, 20, 30][x] where { x = 2 }");
+    let (code, result) = compile_and_run(&arena, type_manager, "[10, 20, 30][x] where { x = 2 }");
 
     // Expected bytecode:
     // ConstInt(2), StoreLocal(0),  -- where binding
@@ -1272,7 +1264,7 @@ fn test_vm_array_index_constant() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[100, 200, 300][0]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[100, 200, 300][0]");
 
     // Result should be 100
     assert_eq!(result.unwrap().as_int().unwrap(), 100);
@@ -1283,7 +1275,7 @@ fn test_vm_array_index_constant_last() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[100, 200, 300][2]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[100, 200, 300][2]");
 
     // Result should be 300
     assert_eq!(result.unwrap().as_int().unwrap(), 300);
@@ -1295,7 +1287,7 @@ fn test_vm_array_index_dynamic() {
     let type_manager = TypeManager::new(&arena);
 
     let (_code, result) =
-        compile_and_run(&arena, &type_manager, "[10, 20, 30, 40][i] where { i = 2 }");
+        compile_and_run(&arena, type_manager, "[10, 20, 30, 40][i] where { i = 2 }");
 
     // Result should be 30
     assert_eq!(result.unwrap().as_int().unwrap(), 30);
@@ -1306,7 +1298,7 @@ fn test_vm_array_index_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[5, 10, 15, 20][1 + 1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[5, 10, 15, 20][1 + 1]");
 
     // Result should be 15 (index 2)
     assert_eq!(result.unwrap().as_int().unwrap(), 15);
@@ -1321,7 +1313,7 @@ fn test_record_construction() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "{ x = 10, y = 20 }");
+    let (code, result) = compile_and_run(&arena, type_manager, "{ x = 10, y = 20 }");
 
     // Expected bytecode:
     // Fields are sorted by name, so 'x' comes before 'y'
@@ -1344,7 +1336,7 @@ fn test_field_access() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "{ x = 10, y = 20 }.x");
+    let (code, result) = compile_and_run(&arena, type_manager, "{ x = 10, y = 20 }.x");
 
     // Expected bytecode:
     // ConstInt(10), ConstInt(20), MakeRecord(2), RecordGet(0), Return
@@ -1365,7 +1357,7 @@ fn test_field_access_second_field() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "{ x = 10, y = 20 }.y");
+    let (code, result) = compile_and_run(&arena, type_manager, "{ x = 10, y = 20 }.y");
 
     // Expected bytecode:
     // ConstInt(10), ConstInt(20), MakeRecord(2), RecordGet(1), Return
@@ -1386,7 +1378,7 @@ fn test_vm_record_field_access() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{ x = 100, y = 200 }.x");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{ x = 100, y = 200 }.x");
 
     // Result should be 100
     assert_eq!(result.unwrap().as_int().unwrap(), 100);
@@ -1397,7 +1389,7 @@ fn test_vm_record_field_access_second() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{ a = 5, b = 10, c = 15 }.b");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{ a = 5, b = 10, c = 15 }.b");
 
     // Result should be 10
     assert_eq!(result.unwrap().as_int().unwrap(), 10);
@@ -1408,7 +1400,7 @@ fn test_vm_nested_record_field_access() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{ x = { y = 42 } }.x.y");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{ x = { y = 42 } }.x.y");
 
     // Result should be 42
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
@@ -1421,7 +1413,7 @@ fn test_vm_record_in_where() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "rec.x + rec.y where { rec = { x = 3, y = 4 } }",
     );
 
@@ -1438,7 +1430,7 @@ fn test_map_construction() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "{ 1: 10, 2: 20 }");
+    let (code, result) = compile_and_run(&arena, type_manager, "{ 1: 10, 2: 20 }");
 
     // Expected bytecode:
     // ConstInt(1), ConstInt(10), ConstInt(2), ConstInt(20), MakeMap(2), Return
@@ -1460,7 +1452,7 @@ fn test_map_indexing() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "{ 1: 100, 2: 200 }[1]");
+    let (code, result) = compile_and_run(&arena, type_manager, "{ 1: 100, 2: 200 }[1]");
 
     // Expected bytecode:
     // ConstInt(1), ConstInt(100), ConstInt(2), ConstUInt(200), MakeMap(2),
@@ -1484,7 +1476,7 @@ fn test_vm_map_indexing() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{ 1: 100, 2: 200, 3: 300 }[2]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{ 1: 100, 2: 200, 3: 300 }[2]");
 
     // Result should be 200
     assert_eq!(result.unwrap().as_int().unwrap(), 200);
@@ -1497,7 +1489,7 @@ fn test_vm_map_with_variable_key() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "m[k] where { m = { 10: 100, 20: 200 }, k = 20 }",
     );
 
@@ -1515,7 +1507,7 @@ fn test_vm_array_negative_index_last() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [10, 20, 30][-1] should return 30 (last element)
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[10, 20, 30][-1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[10, 20, 30][-1]");
     assert_eq!(result.unwrap().as_int().unwrap(), 30);
 }
 
@@ -1525,7 +1517,7 @@ fn test_vm_array_negative_index_first() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [10, 20, 30][-3] should return 10 (first element)
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[10, 20, 30][-3]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[10, 20, 30][-3]");
     assert_eq!(result.unwrap().as_int().unwrap(), 10);
 }
 
@@ -1536,7 +1528,7 @@ fn test_vm_map_string_keys() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: { "a": 100, "b": 200 }["a"] should return 100
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"{ "a": 100, "b": 200 }["a"]"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"{ "a": 100, "b": 200 }["a"]"#);
     assert_eq!(result.unwrap().as_int().unwrap(), 100);
 }
 
@@ -1549,7 +1541,7 @@ fn test_vm_map_string_to_string() {
     // Test: { "greeting": "hello", "farewell": "goodbye" }["greeting"]
     let (_code, _result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"{ "greeting": "hello", "farewell": "goodbye" }["greeting"]"#,
     );
     // Result should be the string "hello" but string extraction not implemented yet
@@ -1561,7 +1553,7 @@ fn test_vm_float_array_index() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [1.5, 2.5, 3.5][1] should return 2.5
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1.5, 2.5, 3.5][1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1.5, 2.5, 3.5][1]");
     assert_eq!(result.unwrap().as_float().unwrap(), 2.5);
 }
 
@@ -1571,7 +1563,7 @@ fn test_vm_string_array_index() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: ["a", "b", "c"][0] should return "a"
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"["a", "b", "c"][0]"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"["a", "b", "c"][0]"#);
     assert_eq!(result.unwrap().as_str().unwrap(), "a");
 }
 
@@ -1581,8 +1573,8 @@ fn test_vm_bool_array_index() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [true, false, true][2] should return true
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[true, false, true][2]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, "[true, false, true][2]");
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -1592,7 +1584,7 @@ fn test_vm_empty_map() {
 
     // Test: {} (in map context) should create empty map
     // Note: This may require type annotation to distinguish from empty record
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{}");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{}");
     let map = result.unwrap().as_map().unwrap();
     assert_eq!(map.len(), 0);
 }
@@ -1603,7 +1595,7 @@ fn test_vm_nested_map_access() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: { 1: { 2: 42 } }[1][2] should return 42
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{ 1: { 2: 42 } }[1][2]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{ 1: { 2: 42 } }[1][2]");
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
 }
 
@@ -1615,7 +1607,7 @@ fn test_vm_large_map() {
     // Test map with 10 entries
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "{ 1: 10, 2: 20, 3: 30, 4: 40, 5: 50, 6: 60, 7: 70, 8: 80, 9: 90, 10: 100 }[7]",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 70);
@@ -1629,7 +1621,7 @@ fn test_vm_array_of_records() {
     // Test: [{ x = 1 }, { x = 2 }, { x = 3 }][1].x should return 2
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "[{ x = 1 }, { x = 2 }, { x = 3 }][1].x",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 2);
@@ -1643,7 +1635,7 @@ fn test_vm_large_record() {
     // Test record with 10 fields
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "{ a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8, i = 9, j = 10 }.g",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 7);
@@ -1655,8 +1647,7 @@ fn test_vm_deeply_nested_records() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: { a = { b = { c = 42 } } }.a.b.c should return 42
-    let (_code, result) =
-        compile_and_run(&arena, &type_manager, "{ a = { b = { c = 42 } } }.a.b.c");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{ a = { b = { c = 42 } } }.a.b.c");
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
 }
 
@@ -1670,7 +1661,7 @@ fn test_vm_otherwise_array_out_of_bounds() {
     let type_manager = TypeManager::new(&arena);
 
     // Array index out of bounds should use fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2, 3][10] otherwise 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2, 3][10] otherwise 99");
     assert_eq!(result.unwrap().as_int().unwrap(), 99);
 }
 
@@ -1680,7 +1671,7 @@ fn test_vm_otherwise_array_negative_index() {
     let type_manager = TypeManager::new(&arena);
 
     // Negative array index should use fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2, 3][-5] otherwise 42");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2, 3][-5] otherwise 42");
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
 }
 
@@ -1690,7 +1681,7 @@ fn test_vm_otherwise_array_success() {
     let type_manager = TypeManager::new(&arena);
 
     // Valid array index should NOT use fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[10, 20, 30][1] otherwise 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[10, 20, 30][1] otherwise 99");
     assert_eq!(result.unwrap().as_int().unwrap(), 20);
 }
 
@@ -1700,7 +1691,7 @@ fn test_vm_otherwise_map_key_not_found() {
     let type_manager = TypeManager::new(&arena);
 
     // Map key not found should use fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{1: 10, 2: 20}[5] otherwise 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{1: 10, 2: 20}[5] otherwise 99");
     assert_eq!(result.unwrap().as_int().unwrap(), 99);
 }
 
@@ -1710,7 +1701,7 @@ fn test_vm_otherwise_map_success() {
     let type_manager = TypeManager::new(&arena);
 
     // Valid map key should NOT use fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{1: 10, 2: 20}[2] otherwise 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{1: 10, 2: 20}[2] otherwise 99");
     assert_eq!(result.unwrap().as_int().unwrap(), 20);
 }
 
@@ -1722,7 +1713,7 @@ fn test_vm_otherwise_complex_primary_expr() {
     // Complex expression as primary (with error)
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "([1, 2][0] + [3, 4][10]) otherwise 100",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 100);
@@ -1736,7 +1727,7 @@ fn test_vm_otherwise_complex_fallback_expr() {
     // Complex expression as fallback
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "[1, 2][10] otherwise ([5, 6][0] + [7, 8][1])",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 13); // 5 + 8
@@ -1750,7 +1741,7 @@ fn test_vm_otherwise_nested() {
     // Nested otherwise: inner error should be caught by inner otherwise
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "([1, 2][10] otherwise 50) otherwise 99",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 50);
@@ -1764,7 +1755,7 @@ fn test_vm_otherwise_nested_fallback_error() {
     // Nested otherwise: inner succeeds, outer catches error in fallback
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "[1, 2][5] otherwise ([3, 4][10] otherwise 77)",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 77);
@@ -1776,7 +1767,7 @@ fn test_vm_otherwise_in_arithmetic() {
     let type_manager = TypeManager::new(&arena);
 
     // Otherwise in arithmetic expression
-    let (_code, result) = compile_and_run(&arena, &type_manager, "10 + ([1, 2][5] otherwise 5)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "10 + ([1, 2][5] otherwise 5)");
     assert_eq!(result.unwrap().as_int().unwrap(), 15);
 }
 
@@ -1786,9 +1777,8 @@ fn test_vm_otherwise_bool_result() {
     let type_manager = TypeManager::new(&arena);
 
     // Otherwise with boolean result
-    let (_code, result) =
-        compile_and_run(&arena, &type_manager, "[true, false][10] otherwise true");
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, "[true, false][10] otherwise true");
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -1799,7 +1789,7 @@ fn test_vm_otherwise_chained() {
     // Multiple otherwise operators chained
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "[1][5] otherwise [2][5] otherwise [3][5] otherwise 42",
     );
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
@@ -1815,7 +1805,7 @@ fn test_vm_array_index_error_no_otherwise() {
     let type_manager = TypeManager::new(&arena);
 
     // Array index out of bounds without otherwise should return error
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2, 3][10]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2, 3][10]");
 
     assert!(result.is_err(), "Expected error for out of bounds access");
     let err = result.unwrap_err();
@@ -1837,7 +1827,7 @@ fn test_vm_map_key_error_no_otherwise() {
     let type_manager = TypeManager::new(&arena);
 
     // Map key not found without otherwise should return error
-    let (_code, result) = compile_and_run(&arena, &type_manager, "{1: 10, 2: 20}[99]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "{1: 10, 2: 20}[99]");
 
     assert!(result.is_err(), "Expected error for key not found");
     let err = result.unwrap_err();
@@ -1859,7 +1849,7 @@ fn test_vm_integer_division_by_zero_no_otherwise() {
     let type_manager = TypeManager::new(&arena);
 
     // Integer division by zero without otherwise should return error
-    let (_code, result) = compile_and_run(&arena, &type_manager, "10 / 0");
+    let (_code, result) = compile_and_run(&arena, type_manager, "10 / 0");
 
     assert!(result.is_err(), "Expected error for division by zero");
     let err = result.unwrap_err();
@@ -1881,7 +1871,7 @@ fn test_vm_float_division_by_zero_returns_inf() {
     let type_manager = TypeManager::new(&arena);
 
     // Float division by zero should return infinity (IEEE 754), not error
-    let (_code, result) = compile_and_run(&arena, &type_manager, "10.0 / 0.0");
+    let (_code, result) = compile_and_run(&arena, type_manager, "10.0 / 0.0");
 
     assert!(result.is_ok(), "Float division by zero should not error");
     let value = result.unwrap().as_float().unwrap();
@@ -1901,7 +1891,7 @@ fn test_vm_negative_index_last_element() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [1, 2, 3][-1] should return 3 (last element)
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2, 3][-1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2, 3][-1]");
     assert_eq!(result.unwrap().as_int().unwrap(), 3);
 }
 
@@ -1911,7 +1901,7 @@ fn test_vm_negative_index_second_to_last() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [1, 2, 3][-2] should return 2 (second to last)
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2, 3][-2]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2, 3][-2]");
     assert_eq!(result.unwrap().as_int().unwrap(), 2);
 }
 
@@ -1921,7 +1911,7 @@ fn test_vm_negative_index_first_element() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [10, 20, 30][-3] should return 10 (first element, counting from end)
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[10, 20, 30][-3]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[10, 20, 30][-3]");
     assert_eq!(result.unwrap().as_int().unwrap(), 10);
 }
 
@@ -1931,7 +1921,7 @@ fn test_vm_negative_index_out_of_bounds() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [1, 2][-3] should error (too negative)
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2][-3]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2][-3]");
 
     assert!(
         result.is_err(),
@@ -1956,7 +1946,7 @@ fn test_vm_negative_index_way_out_of_bounds() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: [1, 2][-100] should error (way too negative)
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2][-100]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2][-100]");
 
     assert!(
         result.is_err(),
@@ -1984,7 +1974,7 @@ fn test_vm_negative_index_dynamic() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Dynamic negative index via variable
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[10, 20][i] where { i = -1 }");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[10, 20][i] where { i = -1 }");
     assert_eq!(result.unwrap().as_int().unwrap(), 20);
 }
 
@@ -1994,7 +1984,7 @@ fn test_vm_negative_index_with_otherwise_success() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Valid negative index should NOT use fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2][-1] otherwise 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2][-1] otherwise 99");
     assert_eq!(result.unwrap().as_int().unwrap(), 2);
 }
 
@@ -2004,7 +1994,7 @@ fn test_vm_negative_index_with_otherwise_error() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Invalid negative index should use fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1, 2][-5] otherwise 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1, 2][-5] otherwise 99");
     assert_eq!(result.unwrap().as_int().unwrap(), 99);
 }
 
@@ -2014,7 +2004,7 @@ fn test_vm_negative_index_single_element_array() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Single element array with -1 should return that element
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[42][-1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[42][-1]");
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
 }
 
@@ -2024,7 +2014,7 @@ fn test_vm_negative_index_float_array() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Negative indexing works with Array[Float]
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[1.5, 2.5, 3.5][-1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[1.5, 2.5, 3.5][-1]");
     assert_eq!(result.unwrap().as_float().unwrap(), 3.5);
 }
 
@@ -2034,7 +2024,7 @@ fn test_vm_negative_index_string_array() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Negative indexing works with Array[Str]
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"["a", "b", "c"][-2]"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"["a", "b", "c"][-2]"#);
     assert_eq!(result.unwrap().as_str().unwrap(), "b");
 }
 
@@ -2044,8 +2034,8 @@ fn test_vm_negative_index_bool_array() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Negative indexing works with Array[Bool]
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[true, false, true][-1]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, "[true, false, true][-1]");
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -2054,7 +2044,7 @@ fn test_vm_negative_index_nested_arrays() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Negative indexing works with nested arrays
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[[1, 2], [3, 4]][-1][-1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[[1, 2], [3, 4]][-1][-1]");
     assert_eq!(result.unwrap().as_int().unwrap(), 4);
 }
 
@@ -2064,7 +2054,7 @@ fn test_vm_negative_index_boundary_last() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Boundary case - exactly at the first element via negative index
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[100, 200, 300, 400][-4]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[100, 200, 300, 400][-4]");
     assert_eq!(result.unwrap().as_int().unwrap(), 100);
 }
 
@@ -2078,7 +2068,7 @@ fn test_vm_empty_array_positive_index_error() {
     let type_manager = TypeManager::new(&arena);
 
     // Indexing empty array with positive index should error
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[][0]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[][0]");
 
     assert!(result.is_err(), "Expected error for indexing empty array");
     let err = result.unwrap_err();
@@ -2100,7 +2090,7 @@ fn test_vm_empty_array_negative_index_error() {
     let type_manager = TypeManager::new(&arena);
 
     // Indexing empty array with negative index should error
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[][-1]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[][-1]");
 
     assert!(
         result.is_err(),
@@ -2125,10 +2115,10 @@ fn test_vm_empty_array_with_otherwise() {
     let type_manager = TypeManager::new(&arena);
 
     // Empty array indexing should use otherwise fallback
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[][0] otherwise 42");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[][0] otherwise 42");
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "[][-1] otherwise 99");
+    let (_code, result) = compile_and_run(&arena, type_manager, "[][-1] otherwise 99");
     assert_eq!(result.unwrap().as_int().unwrap(), 99);
 }
 
@@ -2142,7 +2132,7 @@ fn test_vm_none_literal() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: none should compile to MakeOption(0)
-    let (code, result) = compile_and_run(&arena, &type_manager, "none");
+    let (code, result) = compile_and_run(&arena, type_manager, "none");
 
     // Bytecode: MakeOption(0), Return
     assert_eq!(code.instructions.len(), 2);
@@ -2159,7 +2149,7 @@ fn test_vm_some_integer() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some 42 should compile to ConstInt(42), MakeOption(1)
-    let (code, result) = compile_and_run(&arena, &type_manager, "some 42");
+    let (code, result) = compile_and_run(&arena, type_manager, "some 42");
 
     // Bytecode: ConstInt(42), MakeOption(1), Return
     assert_eq!(code.instructions.len(), 3);
@@ -2179,7 +2169,7 @@ fn test_vm_some_float() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some 3.14
-    let (_code, result) = compile_and_run(&arena, &type_manager, "some 3.14");
+    let (_code, result) = compile_and_run(&arena, type_manager, "some 3.14");
 
     let value = result.unwrap();
     let option_value = value.as_option().unwrap();
@@ -2193,12 +2183,12 @@ fn test_vm_some_bool() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some true
-    let (_code, result) = compile_and_run(&arena, &type_manager, "some true");
+    let (_code, result) = compile_and_run(&arena, type_manager, "some true");
 
     let value = result.unwrap();
     let option_value = value.as_option().unwrap();
     assert!(option_value.is_some(), "Expected Some value");
-    assert_eq!(option_value.unwrap().as_bool().unwrap(), true);
+    assert!(option_value.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -2207,7 +2197,7 @@ fn test_vm_some_string() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some "hello"
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"some "hello""#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"some "hello""#);
 
     let value = result.unwrap();
     let option_value = value.as_option().unwrap();
@@ -2221,7 +2211,7 @@ fn test_vm_nested_some() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some (some 10) - nested options
-    let (_code, result) = compile_and_run(&arena, &type_manager, "some (some 10)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "some (some 10)");
 
     let value = result.unwrap();
     let outer_option = value.as_option().unwrap();
@@ -2239,7 +2229,7 @@ fn test_vm_some_with_expression() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some (1 + 2) - some with complex expression
-    let (_code, result) = compile_and_run(&arena, &type_manager, "some (1 + 2)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "some (1 + 2)");
 
     let value = result.unwrap();
     let option_value = value.as_option().unwrap();
@@ -2253,7 +2243,7 @@ fn test_vm_some_with_array() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some [1, 2, 3]
-    let (_code, result) = compile_and_run(&arena, &type_manager, "some [1, 2, 3]");
+    let (_code, result) = compile_and_run(&arena, type_manager, "some [1, 2, 3]");
 
     let value = result.unwrap();
     let option_value = value.as_option().unwrap();
@@ -2270,7 +2260,7 @@ fn test_vm_some_with_record() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: some { x = 1, y = 2 }
-    let (_code, result) = compile_and_run(&arena, &type_manager, "some { x = 1, y = 2 }");
+    let (_code, result) = compile_and_run(&arena, type_manager, "some { x = 1, y = 2 }");
 
     let value = result.unwrap();
     let option_value = value.as_option().unwrap();
@@ -2290,7 +2280,7 @@ fn test_ffi_math_sin() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Sin(0.0) should return 0.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Sin(0.0)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Sin(0.0)");
     let value = result.unwrap().as_float().unwrap();
     assert!(value.abs() < 1e-10, "Expected ~0.0, got {}", value);
 }
@@ -2301,7 +2291,7 @@ fn test_ffi_math_sin_pi() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Sin(Math.PI) should return ~0.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Sin(Math.PI)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Sin(Math.PI)");
     let value = result.unwrap().as_float().unwrap();
     assert!(value.abs() < 1e-10, "Expected ~0.0, got {}", value);
 }
@@ -2312,7 +2302,7 @@ fn test_ffi_math_sqrt() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Sqrt(4.0) should return 2.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Sqrt(4.0)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Sqrt(4.0)");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 2.0).abs() < 1e-10, "Expected 2.0, got {}", value);
 }
@@ -2323,7 +2313,7 @@ fn test_ffi_math_sqrt_with_expression_arg() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Sqrt(2.0 + 2.0) should return 2.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Sqrt(2.0 + 2.0)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Sqrt(2.0 + 2.0)");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 2.0).abs() < 1e-10, "Expected 2.0, got {}", value);
 }
@@ -2334,7 +2324,7 @@ fn test_ffi_in_where_binding() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Sin(x) where { x = 0.0 }
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Sin(x) where { x = 0.0 }");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Sin(x) where { x = 0.0 }");
     let value = result.unwrap().as_float().unwrap();
     assert!(value.abs() < 1e-10, "Expected ~0.0, got {}", value);
 }
@@ -2345,7 +2335,7 @@ fn test_ffi_nested_calls() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Sqrt(Math.Abs(-4.0)) should return 2.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Sqrt(Math.Abs(-4.0))");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Sqrt(Math.Abs(-4.0))");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 2.0).abs() < 1e-10, "Expected 2.0, got {}", value);
 }
@@ -2356,7 +2346,7 @@ fn test_ffi_math_abs_positive() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Abs(5.0) should return 5.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Abs(5.0)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Abs(5.0)");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 5.0).abs() < 1e-10, "Expected 5.0, got {}", value);
 }
@@ -2367,7 +2357,7 @@ fn test_ffi_math_abs_negative() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Abs(-5.0) should return 5.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Abs(-5.0)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Abs(-5.0)");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 5.0).abs() < 1e-10, "Expected 5.0, got {}", value);
 }
@@ -2378,7 +2368,7 @@ fn test_ffi_math_min() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Min(3.0, 5.0) should return 3.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Min(3.0, 5.0)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Min(3.0, 5.0)");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 3.0).abs() < 1e-10, "Expected 3.0, got {}", value);
 }
@@ -2389,7 +2379,7 @@ fn test_ffi_math_max() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Max(3.0, 5.0) should return 5.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Max(3.0, 5.0)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Max(3.0, 5.0)");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 5.0).abs() < 1e-10, "Expected 5.0, got {}", value);
 }
@@ -2400,7 +2390,7 @@ fn test_ffi_result_in_arithmetic() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Sqrt(4.0) + 1.0 should return 3.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Sqrt(4.0) + 1.0");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Sqrt(4.0) + 1.0");
     let value = result.unwrap().as_float().unwrap();
     assert!((value - 3.0).abs() < 1e-10, "Expected 3.0, got {}", value);
 }
@@ -2413,7 +2403,7 @@ fn test_ffi_in_array() {
     // Test: [Math.Sqrt(1.0), Math.Sqrt(4.0), Math.Sqrt(9.0)]
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "[Math.Sqrt(1.0), Math.Sqrt(4.0), Math.Sqrt(9.0)]",
     );
     let array = result.unwrap().as_array().unwrap();
@@ -2431,7 +2421,7 @@ fn test_ffi_in_if_expression() {
     // Test: if Math.Sqrt(4.0) > 1.5 then 10.0 else 20.0
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "if Math.Sqrt(4.0) > 1.5 then 10.0 else 20.0",
     );
     let value = result.unwrap().as_float().unwrap();
@@ -2444,7 +2434,7 @@ fn test_ffi_chained_method_calls() {
     let type_manager = TypeManager::new(&arena);
 
     // Test: Math.Abs(Math.Sin(Math.PI)) should return ~0.0
-    let (_code, result) = compile_and_run(&arena, &type_manager, "Math.Abs(Math.Sin(Math.PI))");
+    let (_code, result) = compile_and_run(&arena, type_manager, "Math.Abs(Math.Sin(Math.PI))");
     let value = result.unwrap().as_float().unwrap();
     assert!(value.abs() < 1e-10, "Expected ~0.0, got {}", value);
 }
@@ -2457,7 +2447,7 @@ fn test_ffi_complex_expression() {
     // Test: Math.Sqrt(a * a + b * b) where { a = 3.0, b = 4.0 } should return 5.0 (Pythagorean triple)
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "Math.Sqrt(a * a + b * b) where { a = 3.0, b = 4.0 }",
     );
     let value = result.unwrap().as_float().unwrap();
@@ -2491,7 +2481,7 @@ fn test_wide_arg_many_constants() {
     }
     source.push_str("\n}");
 
-    let (code, result) = compile_and_run(&arena, &type_manager, &source);
+    let (code, result) = compile_and_run(&arena, type_manager, &source);
 
     // Verify that WideArg instructions are present for the large constant indices
     let has_wide_arg = code
@@ -2529,7 +2519,7 @@ fn test_wide_arg_many_locals() {
     }
     source.push_str("\n}");
 
-    let (code, result) = compile_and_run(&arena, &type_manager, &source);
+    let (code, result) = compile_and_run(&arena, type_manager, &source);
 
     // Verify we have 260 locals
     assert_eq!(
@@ -2571,7 +2561,7 @@ fn test_wide_arg_large_array() {
     }
     source.push_str("][256]");
 
-    let (code, result) = compile_and_run(&arena, &type_manager, &source);
+    let (code, result) = compile_and_run(&arena, type_manager, &source);
 
     // Verify that WideArg instructions are present
     let has_wide_arg = code
@@ -2689,7 +2679,7 @@ fn test_wide_jump_if_large_then_branch() {
     }
     source.push_str("][-1]) + 10");
 
-    let (code, result) = compile_and_run(&arena, &type_manager, &source);
+    let (code, result) = compile_and_run(&arena, type_manager, &source);
 
     // Verify that WideArg instructions are present for the large jumps
     let wide_arg_count = code
@@ -2734,7 +2724,7 @@ fn test_wide_jump_otherwise_large_primary() {
     make_array(&mut source);
     source.push_str("[999] otherwise 50) + 10");
 
-    let (code, result) = compile_and_run(&arena, &type_manager, &source);
+    let (code, result) = compile_and_run(&arena, type_manager, &source);
 
     // Verify that WideArg instructions are present
     let wide_arg_count = code
@@ -2779,7 +2769,7 @@ fn test_wide_jump_otherwise_large_fallback() {
     make_array(&mut source);
     source.push_str("[-1]) + 10");
 
-    let (code, result) = compile_and_run(&arena, &type_manager, &source);
+    let (code, result) = compile_and_run(&arena, type_manager, &source);
 
     // Verify that WideArg instructions are present
     let wide_arg_count = code
@@ -2824,7 +2814,7 @@ fn test_wide_jump_otherwise_large_both() {
     make_array(&mut source);
     source.push_str("[-2]) + 10");
 
-    let (code, result) = compile_and_run(&arena, &type_manager, &source);
+    let (code, result) = compile_and_run(&arena, type_manager, &source);
 
     // Verify that WideArg instructions are present for both jumps
     let wide_arg_count = code
@@ -2885,11 +2875,12 @@ fn test_wide_jump_pop_jump_if_false_vm_direct() {
     let arena = Bump::new();
 
     // Create bytecode that conditionally jumps over 300 Nop instructions
-    let mut instructions = alloc::vec::Vec::new();
-    instructions.push(Instruction::ConstBool(0)); // Push false - should jump
-    instructions.push(Instruction::WideArg(0x01)); // High byte of 300
-    instructions.push(Instruction::PopJumpIfFalse(0x2C)); // Low byte of 300
-    instructions.push(Instruction::ConstInt(1)); // Not reached (would be result if no jump)
+    let mut instructions = alloc::vec![
+        Instruction::ConstBool(0),         // Push false - should jump
+        Instruction::WideArg(0x01),        // High byte of 300
+        Instruction::PopJumpIfFalse(0x2C), // Low byte of 300
+        Instruction::ConstInt(1),          // Not reached (would be result if no jump)
+    ];
 
     // 298 Nop instructions (one less because we also have the ConstInt above)
     for _ in 0..298 {
@@ -2925,7 +2916,7 @@ fn test_bytes_indexing_first_element() {
     let type_manager = TypeManager::new(&arena);
 
     // b"hello"[0] should return 104 (ASCII 'h')
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"hello"[0]"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"hello"[0]"#);
     assert_eq!(result.unwrap().as_int().unwrap(), 104); // 'h' = 104
 }
 
@@ -2935,7 +2926,7 @@ fn test_bytes_indexing_last_element() {
     let type_manager = TypeManager::new(&arena);
 
     // b"hello"[4] should return 111 (ASCII 'o')
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"hello"[4]"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"hello"[4]"#);
     assert_eq!(result.unwrap().as_int().unwrap(), 111); // 'o' = 111
 }
 
@@ -2945,7 +2936,7 @@ fn test_bytes_indexing_negative_index() {
     let type_manager = TypeManager::new(&arena);
 
     // b"hello"[-1] should return 111 (ASCII 'o', last element)
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"hello"[-1]"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"hello"[-1]"#);
     assert_eq!(result.unwrap().as_int().unwrap(), 111); // 'o' = 111
 }
 
@@ -2955,7 +2946,7 @@ fn test_bytes_indexing_with_otherwise() {
     let type_manager = TypeManager::new(&arena);
 
     // b"hi"[10] otherwise 0 should return 0 (index out of bounds)
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"hi"[10] otherwise 0"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"hi"[10] otherwise 0"#);
     assert_eq!(result.unwrap().as_int().unwrap(), 0);
 }
 
@@ -2969,8 +2960,8 @@ fn test_string_less_than() {
     let type_manager = TypeManager::new(&arena);
 
     // "bar" < "foo" should be true (lexicographic comparison)
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#""bar" < "foo""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#""bar" < "foo""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -2979,8 +2970,8 @@ fn test_string_greater_than() {
     let type_manager = TypeManager::new(&arena);
 
     // "foo" > "bar" should be true
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#""foo" > "bar""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#""foo" > "bar""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -2989,8 +2980,8 @@ fn test_string_less_than_or_equal() {
     let type_manager = TypeManager::new(&arena);
 
     // "abc" <= "abc" should be true
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#""abc" <= "abc""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#""abc" <= "abc""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -2999,8 +2990,8 @@ fn test_string_greater_than_or_equal() {
     let type_manager = TypeManager::new(&arena);
 
     // "xyz" >= "abc" should be true
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#""xyz" >= "abc""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#""xyz" >= "abc""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 // ============================================================================
@@ -3013,8 +3004,8 @@ fn test_bytes_less_than() {
     let type_manager = TypeManager::new(&arena);
 
     // b"bar" < b"foo" should be true (lexicographic comparison)
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"bar" < b"foo""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"bar" < b"foo""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3023,8 +3014,8 @@ fn test_bytes_greater_than() {
     let type_manager = TypeManager::new(&arena);
 
     // b"foo" > b"bar" should be true
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"foo" > b"bar""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"foo" > b"bar""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3033,8 +3024,8 @@ fn test_bytes_less_than_or_equal() {
     let type_manager = TypeManager::new(&arena);
 
     // b"abc" <= b"abc" should be true
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"abc" <= b"abc""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"abc" <= b"abc""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3043,8 +3034,8 @@ fn test_bytes_greater_than_or_equal() {
     let type_manager = TypeManager::new(&arena);
 
     // b"xyz" >= b"abc" should be true
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"xyz" >= b"abc""#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"xyz" >= b"abc""#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 // ============================================================================
@@ -3056,7 +3047,7 @@ fn test_cast_int_to_float() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, "42 as Float");
+    let (code, result) = compile_and_run(&arena, type_manager, "42 as Float");
 
     // Verify we have a CallGenericAdapter instruction
     assert!(
@@ -3076,7 +3067,7 @@ fn test_cast_float_to_int() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "3.7 as Int");
+    let (_code, result) = compile_and_run(&arena, type_manager, "3.7 as Int");
 
     // Float to Int truncates toward zero
     assert_eq!(result.unwrap().as_int().unwrap(), 3);
@@ -3087,7 +3078,7 @@ fn test_cast_float_to_int_negative() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, "(-3.7) as Int");
+    let (_code, result) = compile_and_run(&arena, type_manager, "(-3.7) as Int");
 
     // Float to Int truncates toward zero
     assert_eq!(result.unwrap().as_int().unwrap(), -3);
@@ -3098,7 +3089,7 @@ fn test_cast_str_to_bytes() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#""hello" as Bytes"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#""hello" as Bytes"#);
 
     assert_eq!(result.unwrap().as_bytes().unwrap(), b"hello");
 }
@@ -3108,7 +3099,7 @@ fn test_cast_bytes_to_str_valid_utf8() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"hello" as String"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"hello" as String"#);
 
     assert_eq!(result.unwrap().as_str().unwrap(), "hello");
 }
@@ -3119,7 +3110,7 @@ fn test_cast_bytes_to_str_invalid_utf8() {
     let type_manager = TypeManager::new(&arena);
 
     // \xff\xfe is invalid UTF-8
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"b"\xff\xfe" as String"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"b"\xff\xfe" as String"#);
 
     // Should fail with a CastError
     let err = result.unwrap_err();
@@ -3145,7 +3136,7 @@ fn test_cast_bytes_to_str_invalid_utf8_with_otherwise() {
     // Invalid UTF-8 with otherwise fallback
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"b"\xff\xfe" as String otherwise "fallback""#,
     );
 
@@ -3159,7 +3150,7 @@ fn test_cast_utf8_roundtrip() {
     let type_manager = TypeManager::new(&arena);
 
     // String -> Bytes -> String should preserve the value
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"("hello" as Bytes) as String"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"("hello" as Bytes) as String"#);
 
     assert_eq!(result.unwrap().as_str().unwrap(), "hello");
 }
@@ -3170,7 +3161,7 @@ fn test_cast_in_expression() {
     let type_manager = TypeManager::new(&arena);
 
     // Use cast result in arithmetic
-    let (_code, result) = compile_and_run(&arena, &type_manager, "(42 as Float) + 0.5");
+    let (_code, result) = compile_and_run(&arena, type_manager, "(42 as Float) + 0.5");
 
     assert_eq!(result.unwrap().as_float().unwrap(), 42.5);
 }
@@ -3184,7 +3175,7 @@ fn test_format_str_no_interpolation() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (code, result) = compile_and_run(&arena, &type_manager, r#"f"hello world""#);
+    let (code, result) = compile_and_run(&arena, type_manager, r#"f"hello world""#);
 
     // Verify we have a CallGenericAdapter instruction
     assert!(
@@ -3201,7 +3192,7 @@ fn test_format_str_single_int() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(&arena, &type_manager, r#"f"x = {x}" where { x = 42 }"#);
+    let (_code, result) = compile_and_run(&arena, type_manager, r#"f"x = {x}" where { x = 42 }"#);
 
     assert_eq!(result.unwrap().as_str().unwrap(), "x = 42");
 }
@@ -3213,7 +3204,7 @@ fn test_format_str_multiple_values() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"f"{a} + {b} = {a + b}" where { a = 1, b = 2 }"#,
     );
 
@@ -3228,7 +3219,7 @@ fn test_format_str_with_string() {
     // String should be formatted without quotes (Display trait)
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"f"Hello, {name}!" where { name = "World" }"#,
     );
 
@@ -3241,7 +3232,7 @@ fn test_format_str_with_float() {
     let type_manager = TypeManager::new(&arena);
 
     let (_code, result) =
-        compile_and_run(&arena, &type_manager, r#"f"Pi = {pi}" where { pi = 3.14 }"#);
+        compile_and_run(&arena, type_manager, r#"f"Pi = {pi}" where { pi = 3.14 }"#);
 
     assert_eq!(result.unwrap().as_str().unwrap(), "Pi = 3.14");
 }
@@ -3253,7 +3244,7 @@ fn test_format_str_with_bool() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"f"Flag: {flag}" where { flag = true }"#,
     );
 
@@ -3268,7 +3259,7 @@ fn test_format_str_with_array() {
     // Arrays use Debug format (with brackets)
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"f"Array: {arr}" where { arr = [1, 2, 3] }"#,
     );
 
@@ -3281,7 +3272,7 @@ fn test_format_str_consecutive_expressions() {
     let type_manager = TypeManager::new(&arena);
 
     let (_code, result) =
-        compile_and_run(&arena, &type_manager, r#"f"{x}{y}" where { x = 1, y = 2 }"#);
+        compile_and_run(&arena, type_manager, r#"f"{x}{y}" where { x = 1, y = 2 }"#);
 
     assert_eq!(result.unwrap().as_str().unwrap(), "12");
 }
@@ -3293,7 +3284,7 @@ fn test_format_str_mixed_types() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"f"Int: {i}, Float: {f}, Bool: {b}" where { i = 42, f = 3.14, b = true }"#,
     );
 
@@ -3314,7 +3305,7 @@ fn test_match_wildcard() {
 
     // Wildcard pattern always matches
     let (_code, result) =
-        compile_and_run(&arena, &type_manager, "x match { _ -> 42 } where { x = 1 }");
+        compile_and_run(&arena, type_manager, "x match { _ -> 42 } where { x = 1 }");
 
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
 }
@@ -3327,7 +3318,7 @@ fn test_match_var() {
     // Variable pattern binds the matched value
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x match { y -> y + 1 } where { x = 10 }",
     );
 
@@ -3342,7 +3333,7 @@ fn test_match_literal_bool_true() {
     // Match true literal
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x match { true -> 1, false -> 0 } where { x = true }",
     );
 
@@ -3357,7 +3348,7 @@ fn test_match_literal_bool_false() {
     // Match false literal
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x match { true -> 1, false -> 0 } where { x = false }",
     );
 
@@ -3372,7 +3363,7 @@ fn test_match_literal_int() {
     // Match integer literal
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"x match { 1 -> "one", 2 -> "two", _ -> "other" } where { x = 2 }"#,
     );
 
@@ -3387,7 +3378,7 @@ fn test_match_literal_int_fallback() {
     // Match integer literal with fallback to wildcard
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"x match { 1 -> "one", 2 -> "two", _ -> "other" } where { x = 99 }"#,
     );
 
@@ -3402,7 +3393,7 @@ fn test_match_some_pattern() {
     // Match Some pattern, extract inner value
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "opt match { some x -> x, none -> 0 } where { opt = some 42 }",
     );
 
@@ -3417,7 +3408,7 @@ fn test_match_none_pattern() {
     // Match None pattern
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "opt match { some x -> x, none -> 0 } where { opt = none }",
     );
 
@@ -3432,7 +3423,7 @@ fn test_match_nested_some() {
     // Match nested Some pattern
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "opt match { some (some x) -> x, _ -> 0 } where { opt = some (some 5) }",
     );
 
@@ -3449,7 +3440,7 @@ fn test_match_nested_some_inner_none() {
     // Match nested Some pattern where inner is None
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "opt match { some (some x) -> x, some none -> -1, none -> 0 } where { opt = some none }",
     );
 
@@ -3467,7 +3458,7 @@ fn test_match_nested_outer_none_unresolved_type() {
     // provide enough information to infer the full Option[Option[Int]] type.
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "opt match { some (some x) -> x, some none -> -1, none -> 0 } where { opt = none }",
     );
 
@@ -3483,7 +3474,7 @@ fn test_match_nested_outer_none() {
     // Use `if true then none else some some 0` to force type resolution to Option[Option[Int]]
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "opt match { some (some x) -> x, some none -> -1, none -> 0 } where { opt = if true then none else some some 0 }",
     );
 
@@ -3498,7 +3489,7 @@ fn test_match_with_expression_body() {
     // Match with expression body that uses bound variable
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "opt match { some x -> x * 2 + 1, none -> 0 } where { opt = some 10 }",
     );
 
@@ -3513,7 +3504,7 @@ fn test_match_multiple_arms_first_matches() {
     // First arm matches
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x match { 1 -> 100, 2 -> 200, 3 -> 300, _ -> 0 } where { x = 1 }",
     );
 
@@ -3528,7 +3519,7 @@ fn test_match_multiple_arms_middle_matches() {
     // Middle arm matches
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x match { 1 -> 100, 2 -> 200, 3 -> 300, _ -> 0 } where { x = 2 }",
     );
 
@@ -3543,7 +3534,7 @@ fn test_match_multiple_arms_last_specific_matches() {
     // Last specific arm matches
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "x match { 1 -> 100, 2 -> 200, 3 -> 300, _ -> 0 } where { x = 3 }",
     );
 
@@ -3560,7 +3551,7 @@ fn test_lambda_identity() {
     let type_manager = TypeManager::new(&arena);
 
     // ((x) => x)(5) - identity lambda returns its argument
-    let (_code, result) = compile_and_run(&arena, &type_manager, "((x) => x)(5)");
+    let (_code, result) = compile_and_run(&arena, type_manager, "((x) => x)(5)");
 
     assert_eq!(result.unwrap().as_int().unwrap(), 5);
 }
@@ -3571,8 +3562,7 @@ fn test_lambda_in_where_clause() {
     let type_manager = TypeManager::new(&arena);
 
     // f(10) where { f = (x) => x + 1 }
-    let (_code, result) =
-        compile_and_run(&arena, &type_manager, "f(10) where { f = (x) => x + 1 }");
+    let (_code, result) = compile_and_run(&arena, type_manager, "f(10) where { f = (x) => x + 1 }");
 
     assert_eq!(result.unwrap().as_int().unwrap(), 11);
 }
@@ -3586,7 +3576,7 @@ fn test_lambda_generates_make_closure() {
 
     // Compile a lambda and verify it generates MakeClosure instruction
     // Note: (x) => x is polymorphic (identity function), so it gets Poly + Mono entries
-    let (code, _result) = compile_and_run(&arena, &type_manager, "f(1) where { f = (x) => x }");
+    let (code, _result) = compile_and_run(&arena, type_manager, "f(1) where { f = (x) => x }");
 
     // Should have a MakeClosure instruction
     assert!(
@@ -3617,7 +3607,7 @@ fn test_lambda_with_captures() {
     // f(10) where { y = 5, f = (x) => x + y }
     let (code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "f(10) where { y = 5, f = (x) => x + y }",
     );
 
@@ -3638,7 +3628,7 @@ fn test_lambda_multiple_params() {
     // f(3, 4) where { f = (x, y) => x * y }
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "f(3, 4) where { f = (x, y) => x * y }",
     );
 
@@ -3654,7 +3644,7 @@ fn test_lambda_numeric_poly() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "{ a = f(3, 4), b = f(1.1, 2.2) } where { f = (x, y) => x * y }",
     );
 
@@ -3669,7 +3659,7 @@ fn test_lambda_no_params() {
     let type_manager = TypeManager::new(&arena);
 
     // f() where { f = () => 42 }
-    let (_code, result) = compile_and_run(&arena, &type_manager, "f() where { f = () => 42 }");
+    let (_code, result) = compile_and_run(&arena, type_manager, "f() where { f = () => 42 }");
 
     assert_eq!(result.unwrap().as_int().unwrap(), 42);
 }
@@ -3681,7 +3671,7 @@ fn test_lambda_only_captures() {
 
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "f() where {c = 1, b = 2, a = 3, d = 0, f = () => c + b + a + d }",
     );
 
@@ -3702,7 +3692,7 @@ fn test_nested_lambda() {
     // }
     let (code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "f(5) where { a = 1, f = (x) => g(10) where { g = (y) => x + y + a } }",
     );
 
@@ -3729,7 +3719,7 @@ fn test_lambda_as_return_value() {
     // }
     let (_code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "add5(10) where { make_adder = (n) => (x) => x + n, add5 = make_adder(5) }",
     );
 
@@ -3746,7 +3736,7 @@ fn test_lambda_multiple_captures() {
     // f(1) where { a = 10, b = 20, c = 30, f = (x) => x + a + b + c }
     let (code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "f(1) where { a = 10, b = 20, c = 30, f = (x) => x + a + b + c }",
     );
 
@@ -3772,7 +3762,7 @@ fn test_polymorphic_lambda_numeric() {
     // Used with both Int and Float
     let (code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "{ int_sum = add(1, 2), float_sum = add(1.5, 2.5) } where { add = (a, b) => a + b }",
     );
 
@@ -3833,7 +3823,7 @@ fn test_polymorphic_lambda_indexable() {
     // Used with Array and Map
     let (code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"{ a = get([10, 20, 30], 1), b = get({"x": 100}, "x") } where { get = (c, k) => c[k] }"#,
     );
 
@@ -3865,7 +3855,7 @@ fn test_monomorphic_lambda_single_instantiation() {
     // Monomorphic lambda: only used with one type
     let (code, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         "{ a = double(5), b = double(10) } where { double = (x) => x * 2 }",
     );
 
@@ -3896,11 +3886,11 @@ fn test_int_in_array_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "5 in [1, 2, 3, 4, 5]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_, result) = compile_and_run(&arena, type_manager, "5 in [1, 2, 3, 4, 5]");
+    assert!(result.unwrap().as_bool().unwrap());
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "5 not in [1, 2, 3, 4, 5]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    let (_, result) = compile_and_run(&arena, type_manager, "5 not in [1, 2, 3, 4, 5]");
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3908,8 +3898,8 @@ fn test_int_in_array_not_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "6 in [1, 2, 3, 4, 5]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    let (_, result) = compile_and_run(&arena, type_manager, "6 in [1, 2, 3, 4, 5]");
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3917,8 +3907,8 @@ fn test_int_not_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "6 not in [1, 2, 3, 4, 5]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_, result) = compile_and_run(&arena, type_manager, "6 not in [1, 2, 3, 4, 5]");
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3926,8 +3916,8 @@ fn test_string_in_array_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, r#""foo" in ["foo", "bar", "baz"]"#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_, result) = compile_and_run(&arena, type_manager, r#""foo" in ["foo", "bar", "baz"]"#);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3935,8 +3925,8 @@ fn test_string_in_array_not_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, r#""qux" in ["foo", "bar", "baz"]"#);
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    let (_, result) = compile_and_run(&arena, type_manager, r#""qux" in ["foo", "bar", "baz"]"#);
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3944,8 +3934,8 @@ fn test_element_in_empty_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "1 in []");
-    assert_eq!(result.unwrap().as_bool().unwrap(), false);
+    let (_, result) = compile_and_run(&arena, type_manager, "1 in []");
+    assert!(!result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3955,7 +3945,7 @@ fn test_containment_in_if_condition() {
 
     let (_, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"if 5 in [1, 2, 3, 4, 5] then "yes" else "no""#,
     );
     assert_eq!(result.unwrap().as_str().unwrap(), "yes");
@@ -3968,10 +3958,10 @@ fn test_string_containment_in_where_binding() {
 
     let (_, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"found where { found = "lo" in "hello" }"#,
     );
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3979,8 +3969,8 @@ fn test_float_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "3.14 in [1.0, 2.0, 3.14, 4.0]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_, result) = compile_and_run(&arena, type_manager, "3.14 in [1.0, 2.0, 3.14, 4.0]");
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -3988,8 +3978,8 @@ fn test_bool_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_, result) = compile_and_run(&arena, &type_manager, "true in [false, true, false]");
-    assert_eq!(result.unwrap().as_bool().unwrap(), true);
+    let (_, result) = compile_and_run(&arena, type_manager, "true in [false, true, false]");
+    assert!(result.unwrap().as_bool().unwrap());
 }
 
 /// Regression test: polymorphic lambda with format string should resolve types correctly.
@@ -4007,7 +3997,7 @@ fn test_polymorphic_lambda_format_string() {
     // Used with both Int and String
     let (_, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"{ a = show(42), b = show("hello") } where { show = (x) => f"value: {x}" }"#,
     );
 
@@ -4039,7 +4029,7 @@ fn test_polymorphic_lambda_function_call() {
     // Used with different function/argument type combinations
     let (_, result) = compile_and_run(
         &arena,
-        &type_manager,
+        type_manager,
         r#"{
             a = apply(double, 21),
             b = apply(greet, "World")

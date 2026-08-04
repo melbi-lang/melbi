@@ -5,9 +5,6 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
-[lints]
-workspace = true
-
 [features]
 default = []
 std = []
@@ -56,3 +53,7 @@ harness = false
 
 [lib]
 proc-macro = false
+
+[lints]
+workspace = true
+

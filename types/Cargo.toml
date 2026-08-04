@@ -22,3 +22,7 @@ proc-macro = false
 default = []
 std = []
 experimental = []
+
+[lints]
+workspace = true
+

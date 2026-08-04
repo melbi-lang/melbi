@@ -71,7 +71,6 @@ impl LanguageServer for Backend {
                 name: "Melbi Language Server".to_string(),
                 version: Some(env!("CARGO_PKG_VERSION").to_string()),
             }),
-            ..Default::default()
         })
     }
 
@@ -236,6 +235,6 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| Backend::new(client));
+    let (service, socket) = LspService::new(Backend::new);
     Server::new(stdin, stdout, socket).serve(service).await;
 }

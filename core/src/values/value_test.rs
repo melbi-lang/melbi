@@ -48,7 +48,7 @@ fn test_primitives() {
     // Extract using dynamic API (no compile-time type knowledge)
     assert_eq!(int_val.as_int().unwrap(), 42);
     assert_eq!(float_val.as_float().unwrap(), 3.14);
-    assert_eq!(bool_val.as_bool().unwrap(), true);
+    assert!(bool_val.as_bool().unwrap());
 }
 
 #[test]
@@ -142,7 +142,7 @@ fn test_array_type_mismatch() {
     );
 
     assert!(result.is_err());
-    assert!(matches!(result, Err(TypeError::Mismatch { .. })));
+    assert!(matches!(result, Err(TypeError::Mismatch)));
 }
 
 #[test]

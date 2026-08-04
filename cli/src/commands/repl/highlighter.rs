@@ -90,6 +90,12 @@ pub struct Highlighter {
     config: HighlightConfiguration,
 }
 
+impl Default for Highlighter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Highlighter {
     /// Creates a new syntax highlighter.
     ///

@@ -116,7 +116,7 @@ impl<B: ValueBuilder, E: Marshal<B>> Marshal<B> for Array<B, E> {
 
     fn matches_ty_kind(kind: &TyKind<B::TB>) -> bool {
         match kind {
-            TyKind::Array(elem_ty) => E::matches_ty_kind(&elem_ty.kind()),
+            TyKind::Array(elem_ty) => E::matches_ty_kind(elem_ty.kind()),
             _ => false,
         }
     }

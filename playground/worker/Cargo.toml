@@ -25,3 +25,7 @@ wasm-opt = [
     "--enable-nontrapping-float-to-int",
     "--enable-mutable-globals",
 ]
+
+[lints]
+workspace = true
+

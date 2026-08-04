@@ -46,7 +46,7 @@ impl<'a> Runner<'a> {
         let typed = analyzer::analyze(
             self.type_mgr,
             self.arena,
-            &parsed,
+            parsed,
             &global_types,
             &argument_types,
         )
@@ -56,7 +56,7 @@ impl<'a> Runner<'a> {
             EvaluatorOptions::default(),
             self.arena,
             self.type_mgr,
-            &typed,
+            typed,
             globals,
             arguments,
         )
@@ -88,7 +88,7 @@ impl<'a> Runner<'a> {
         let typed = analyzer::analyze(
             self.type_mgr,
             self.arena,
-            &parsed,
+            parsed,
             &global_types,
             &argument_types,
         )
@@ -100,7 +100,7 @@ impl<'a> Runner<'a> {
             },
             self.arena,
             self.type_mgr,
-            &typed,
+            typed,
             globals,
             arguments,
         )
@@ -137,14 +137,14 @@ fn test_constant_float() {
 fn test_constant_bool_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
 fn test_constant_bool_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -334,21 +334,21 @@ fn test_float_power() {
 fn test_boolean_and_true_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true and true", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
 fn test_boolean_and_true_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true and false", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
 fn test_boolean_and_false_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false and true", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -357,14 +357,14 @@ fn test_boolean_and_false_false() {
     let result = Runner::new(&arena)
         .run("false and false", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
 fn test_boolean_or_true_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true or true", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -372,21 +372,21 @@ fn test_boolean_or_true_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true or false", &[], &[]).unwrap();
     // Right side not evaluated due to short-circuit
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
 fn test_boolean_or_false_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false or true", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
 fn test_boolean_or_false_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false or false", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -395,7 +395,7 @@ fn test_boolean_chain_and() {
     let result = Runner::new(&arena)
         .run("true and true and false", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -404,7 +404,7 @@ fn test_boolean_chain_or() {
     let result = Runner::new(&arena)
         .run("false or false or true", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -415,7 +415,7 @@ fn test_boolean_mixed_chain() {
     let result = Runner::new(&arena)
         .run("true and false or true", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -428,7 +428,7 @@ fn test_boolean_with_variables() {
         ("y", Value::bool(runner.type_mgr, false)),
     ];
     let result = runner.run("x and y", &[], &var_values).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -439,7 +439,7 @@ fn test_boolean_short_circuit_and_with_where() {
     let result = Runner::new(&arena)
         .run("false and (x where { x = true })", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -450,7 +450,7 @@ fn test_boolean_short_circuit_or_with_where() {
     let result = Runner::new(&arena)
         .run("true or (x where { x = false })", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 // ============================================================================
@@ -531,14 +531,14 @@ fn test_custom_stack_depth_limit() {
 
     let parsed = parser::parse(&arena, &source).expect("Parse failed");
     let typed =
-        analyzer::analyze(type_manager, &arena, &parsed, &[], &[]).expect("Type-check failed");
+        analyzer::analyze(type_manager, &arena, parsed, &[], &[]).expect("Type-check failed");
 
     // With custom limit of 100, this should succeed
     let result = Evaluator::new(
         EvaluatorOptions { max_depth: 100 },
         &arena,
         type_manager,
-        &typed,
+        typed,
         &[],
         &[],
     )
@@ -550,7 +550,7 @@ fn test_custom_stack_depth_limit() {
         EvaluatorOptions { max_depth: 40 },
         &arena,
         type_manager,
-        &typed,
+        typed,
         &[],
         &[],
     )
@@ -618,7 +618,7 @@ fn test_variable_bool() {
 
     let var_values = [("flag", Value::bool(runner.type_mgr, true))];
     let result = runner.run("flag", &[], &var_values).unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -993,14 +993,14 @@ fn test_unary_negation_float_expression() {
 fn test_unary_not_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("not true", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
 fn test_unary_not_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("not false", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -1009,7 +1009,7 @@ fn test_unary_not_expression() {
     let result = Runner::new(&arena)
         .run("not (true and false)", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -1124,7 +1124,7 @@ fn test_if_bool_branches() {
     let result = Runner::new(&arena)
         .run("if true then true else false", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -1184,9 +1184,9 @@ fn test_array_simple_bool() {
 
     let array = result.as_array().unwrap();
     assert_eq!(array.len(), 3);
-    assert_eq!(array.get(0).unwrap().as_bool().unwrap(), true);
-    assert_eq!(array.get(1).unwrap().as_bool().unwrap(), false);
-    assert_eq!(array.get(2).unwrap().as_bool().unwrap(), true);
+    assert!(array.get(0).unwrap().as_bool().unwrap());
+    assert!(!array.get(1).unwrap().as_bool().unwrap());
+    assert!(array.get(2).unwrap().as_bool().unwrap());
 }
 
 #[test]
@@ -1390,7 +1390,7 @@ fn test_index_bool_array() {
     let result = Runner::new(&arena)
         .run("[true, false, true][1]", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -1854,14 +1854,14 @@ fn test_otherwise_does_not_catch_stack_overflow() {
     let source = format!("({}) otherwise 999", expr);
 
     let parsed = parser::parse(&arena, &source).unwrap();
-    let typed = analyzer::analyze(type_manager, &arena, &parsed, &[], &[]).unwrap();
+    let typed = analyzer::analyze(type_manager, &arena, parsed, &[], &[]).unwrap();
 
     // Use a very small depth limit to trigger stack overflow
     let result = Evaluator::new(
         EvaluatorOptions { max_depth: 10 },
         &arena,
         type_manager,
-        &typed,
+        typed,
         &[],
         &[],
     )
@@ -2500,7 +2500,7 @@ fn test_lambda_polymorphic_bool() {
     let result = Runner::new(&arena)
         .run("id(true) where { id = (x) => x }", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2659,7 +2659,7 @@ fn test_ord_constraint_on_bool_fails() {
     let input = arena.alloc_str("lt(false, true) where { lt = (a, b) => a < b }");
 
     let parsed = parser::parse(&arena, input).expect("parsing should succeed");
-    let result = analyzer::analyze(&type_mgr, &arena, &parsed, &[], &[]);
+    let result = analyzer::analyze(type_mgr, &arena, parsed, &[], &[]);
 
     // Should fail during type checking, not during evaluation
     assert!(
@@ -2684,7 +2684,7 @@ fn test_ord_constraint_on_int_succeeds() {
     let result = Runner::new(&arena)
         .run("lt(1, 2) where { lt = (a, b) => a < b }", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2698,7 +2698,7 @@ fn test_ord_constraint_on_string_succeeds() {
             &[],
         )
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2709,7 +2709,7 @@ fn test_ord_constraint_direct_bool_fails() {
     let input = arena.alloc_str("false < true");
 
     let parsed = parser::parse(&arena, input).expect("parsing should succeed");
-    let result = analyzer::analyze(&type_mgr, &arena, &parsed, &[], &[]);
+    let result = analyzer::analyze(type_mgr, &arena, parsed, &[], &[]);
 
     // Should fail during type checking
     assert!(
@@ -2737,7 +2737,7 @@ fn test_numeric_constraint_on_bool_fails() {
     let input = arena.alloc_str("f(false, true) where { f = (a, b) => a + b }");
 
     let parsed = parser::parse(&arena, input).expect("parsing should succeed");
-    let result = analyzer::analyze(&type_mgr, &arena, &parsed, &[], &[]);
+    let result = analyzer::analyze(type_mgr, &arena, parsed, &[], &[]);
 
     // Should fail during type checking, not during evaluation
     assert!(
@@ -2763,7 +2763,7 @@ fn test_numeric_constraint_direct_bool_fails() {
     let input = arena.alloc_str("false + true");
 
     let parsed = parser::parse(&arena, input).expect("parsing should succeed");
-    let result = analyzer::analyze(&type_mgr, &arena, &parsed, &[], &[]);
+    let result = analyzer::analyze(type_mgr, &arena, parsed, &[], &[]);
 
     // Should fail during type checking
     assert!(
@@ -2802,7 +2802,7 @@ fn test_string_in_string_found() {
     let result = Runner::new(&arena)
         .run(r#""lo" in "hello""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2811,7 +2811,7 @@ fn test_string_in_string_not_found() {
     let result = Runner::new(&arena)
         .run(r#""x" in "hello""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -2820,7 +2820,7 @@ fn test_string_not_in_string() {
     let result = Runner::new(&arena)
         .run(r#""x" not in "hello""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2829,7 +2829,7 @@ fn test_string_in_string_empty_needle() {
     let result = Runner::new(&arena)
         .run(r#""" in "hello""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2838,7 +2838,7 @@ fn test_bytes_in_bytes_found() {
     let result = Runner::new(&arena)
         .run(r#"b"oob" in b"foobar""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2847,7 +2847,7 @@ fn test_bytes_in_bytes_not_found() {
     let result = Runner::new(&arena)
         .run(r#"b"xyz" in b"foobar""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -2856,7 +2856,7 @@ fn test_bytes_not_in_bytes() {
     let result = Runner::new(&arena)
         .run(r#"b"xyz" not in b"foobar""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2865,7 +2865,7 @@ fn test_bytes_in_bytes_empty_needle() {
     let result = Runner::new(&arena)
         .run(r#"b"" in b"foobar""#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2874,7 +2874,7 @@ fn test_int_in_array_found() {
     let result = Runner::new(&arena)
         .run("5 in [1, 2, 3, 4, 5]", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2883,7 +2883,7 @@ fn test_int_in_array_not_found() {
     let result = Runner::new(&arena)
         .run("6 in [1, 2, 3, 4, 5]", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -2892,7 +2892,7 @@ fn test_int_not_in_array() {
     let result = Runner::new(&arena)
         .run("6 not in [1, 2, 3, 4, 5]", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2901,14 +2901,14 @@ fn test_string_in_array_found() {
     let result = Runner::new(&arena)
         .run(r#""foo" in ["foo", "bar", "baz"]"#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
 fn test_element_in_empty_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("1 in []", &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -2917,7 +2917,7 @@ fn test_key_in_map_found() {
     let result = Runner::new(&arena)
         .run(r#""key" in {"key": 1, "other": 2}"#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2926,7 +2926,7 @@ fn test_key_in_map_not_found() {
     let result = Runner::new(&arena)
         .run(r#""missing" in {"key": 1, "other": 2}"#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -2935,7 +2935,7 @@ fn test_key_not_in_map() {
     let result = Runner::new(&arena)
         .run(r#""missing" not in {"key": 1, "other": 2}"#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
@@ -2944,14 +2944,14 @@ fn test_int_key_in_map() {
     let result = Runner::new(&arena)
         .run("42 in {42: true, 99: false}", &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]
 fn test_key_in_empty_map() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run(r#""key" in {}"#, &[], &[]).unwrap();
-    assert_eq!(result.as_bool().unwrap(), false);
+    assert!(!result.as_bool().unwrap());
 }
 
 #[test]
@@ -2960,7 +2960,7 @@ fn test_containment_in_where_binding() {
     let result = Runner::new(&arena)
         .run(r#"found where { found = "lo" in "hello" }"#, &[], &[])
         .unwrap();
-    assert_eq!(result.as_bool().unwrap(), true);
+    assert!(result.as_bool().unwrap());
 }
 
 #[test]

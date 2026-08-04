@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_interned_str_hash() {
-        use core::hash::{BuildHasher, Hash, Hasher};
+        use core::hash::BuildHasher;
 
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
@@ -204,17 +204,9 @@ mod tests {
         // Use the same hasher builder for both to ensure consistent hashing
         let hash_builder = hashbrown::DefaultHashBuilder::default();
 
-        let hash1 = {
-            let mut hasher = hash_builder.build_hasher();
-            id1.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash1 = { hash_builder.hash_one(id1) };
 
-        let hash2 = {
-            let mut hasher = hash_builder.build_hasher();
-            id2.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash2 = { hash_builder.hash_one(id2) };
 
         // Same interned string -> same hash
         assert_eq!(hash1, hash2);
@@ -261,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_type_interning_hash() {
-        use core::hash::{BuildHasher, Hash, Hasher};
+        use core::hash::BuildHasher;
 
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
@@ -271,17 +263,9 @@ mod tests {
 
         let hash_builder = hashbrown::DefaultHashBuilder::default();
 
-        let hash1 = {
-            let mut hasher = hash_builder.build_hasher();
-            int1.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash1 = { hash_builder.hash_one(int1) };
 
-        let hash2 = {
-            let mut hasher = hash_builder.build_hasher();
-            int2.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash2 = { hash_builder.hash_one(int2) };
 
         // Same interned type -> same hash
         assert_eq!(hash1, hash2);

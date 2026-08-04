@@ -40,7 +40,7 @@ fn test_dynamic_bool() {
     let value = Value::bool(type_mgr, true);
 
     let result = value.as_bool().unwrap();
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 #[test]
@@ -1473,7 +1473,7 @@ fn test_record_builder_mixed_types() {
     assert_eq!(record.len(), 4);
     assert_eq!(record.get("int_field").unwrap().as_int().unwrap(), 42);
     assert_eq!(record.get("float_field").unwrap().as_float().unwrap(), 3.14);
-    assert_eq!(record.get("bool_field").unwrap().as_bool().unwrap(), true);
+    assert!(record.get("bool_field").unwrap().as_bool().unwrap());
     assert_eq!(record.get("str_field").unwrap().as_str().unwrap(), "hello");
 }
 

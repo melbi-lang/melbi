@@ -71,44 +71,44 @@ fn test_string_len() {
 #[test]
 fn test_string_is_empty() {
     test_string_expr("String.IsEmpty(\"\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), true);
+        assert!(r.as_bool().unwrap());
     });
 
     test_string_expr("String.IsEmpty(\"hello\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), false);
+        assert!(!r.as_bool().unwrap());
     });
 }
 
 #[test]
 fn test_string_contains() {
     test_string_expr("String.Contains(\"hello world\", \"world\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), true);
+        assert!(r.as_bool().unwrap());
     });
 
     test_string_expr("String.Contains(\"hello\", \"goodbye\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), false);
+        assert!(!r.as_bool().unwrap());
     });
 }
 
 #[test]
 fn test_string_starts_with() {
     test_string_expr("String.StartsWith(\"hello\", \"hel\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), true);
+        assert!(r.as_bool().unwrap());
     });
 
     test_string_expr("String.StartsWith(\"hello\", \"llo\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), false);
+        assert!(!r.as_bool().unwrap());
     });
 }
 
 #[test]
 fn test_string_ends_with() {
     test_string_expr("String.EndsWith(\"hello\", \"llo\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), true);
+        assert!(r.as_bool().unwrap());
     });
 
     test_string_expr("String.EndsWith(\"hello\", \"hel\")", |r: Value| {
-        assert_eq!(r.as_bool().unwrap(), false);
+        assert!(!r.as_bool().unwrap());
     });
 }
 

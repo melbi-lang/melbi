@@ -23,6 +23,7 @@ members = [
 
 [workspace.lints.clippy]
 module_inception = "allow"
+approx_constant = "allow"
 
 [lints]
 workspace = true

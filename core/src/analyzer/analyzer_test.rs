@@ -38,7 +38,7 @@ where
             parser::Span::new(0, 0),
         )
     })?;
-    analyze(type_manager, arena, &parsed, &[], &[])
+    analyze(type_manager, arena, parsed, &[], &[])
 }
 
 /// Recursively collect all lambda expression pointers from an expression tree.
@@ -142,7 +142,7 @@ fn test_arithmetic_operators_integers() {
 
     for op in ["+", "-", "*", "/", "^"] {
         let source = format!("1 {} 2", op);
-        let result = analyze_source(&source, &type_manager, &bump);
+        let result = analyze_source(&source, type_manager, &bump);
         assert!(result.is_ok(), "Failed for operator {}", op);
         assert_eq!(result.unwrap().expr.0, type_manager.int());
     }
@@ -162,7 +162,7 @@ fn test_index_in_generic_lambda() {
     // With type classes: ((arr) => arr[0]) :: Indexable a => a -> element_type
     // When called with [1,2,3], unified to Array<Int> -> Int
     let source = "((arr) => arr[0])([1, 2, 3])";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -180,7 +180,7 @@ fn test_numeric_constraint_violation_with_source() {
     // This should fail: trying to add a boolean in a generic lambda
     // The lambda parameter gets unified with Bool, then Numeric constraint fails
     let source = "((x, y) => x + y)(true, false)";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_err(), "Should fail numeric constraint");
 
@@ -204,7 +204,7 @@ fn test_numeric_int_and_float() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "{ a = f(3, 4), b = f(1.1, 2.2) } where { f = (x, y) => x + y }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "{:?}", result);
 }
@@ -218,7 +218,7 @@ fn test_indexable_lambda_instantiations() {
 
     // Lambda with Indexable constraint used with different container types
     let source = r#"{ a = f({1:"one"}, 1), b = f([2, 2], 0) } where { f = (m, k) => m[k] }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "{:?}", result);
     let typed_expr = result.unwrap();
@@ -271,7 +271,7 @@ fn test_numeric_lambda_type_classes() {
 
     // Lambda with Numeric constraint
     let source = "{ a = f(3, 4), b = f(1.1, 2.2) } where { f = (x, y) => x + y }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "{:?}", result);
     let typed_expr = result.unwrap();
@@ -299,7 +299,7 @@ fn test_unconstrained_lambda_no_type_classes() {
 
     // Lambda with no type class constraints (identity function)
     let source = "{ a = f(3), b = f(\"hello\") } where { f = (x) => x }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "{:?}", result);
     let typed_expr = result.unwrap();
@@ -328,7 +328,7 @@ fn test_nested_indexing_polymorphic_lambda() {
 
     // Lambda with nested indexing - both levels should work with different container types
     let source = r#"{ a = f({true: {"abc": 0.5}}, true, "abc"), b = f({"": [false, true]}, "", 0) } where { f = (m, k1, k2) => m[k1][k2] }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "{:?}", result);
 }
@@ -344,7 +344,7 @@ fn test_nested_array_indexing_with_generic() {
     // Array[Array[_t]] where _t is later resolved to Int
     // Both Array levels are Indexable regardless of what _t resolves to
     let source = "((arr) => arr[0][0])([[1, 2], [3, 4]])";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -364,7 +364,7 @@ fn test_field_access_in_generic_lambda() {
     // With row polymorphism: ((r) => r.x) :: {x :: Int | r} -> Int
     // When called with {x: 42}, unified to Record{x: Int} -> Int
     let source = "((r) => r.x)({x: 42})";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -384,7 +384,7 @@ fn test_nested_generic_lambda_field_access() {
     // With row polymorphism: f :: {x :: Int | r} -> Int, result :: Int
     // Nested generic lambda composition
     let source = "((f) => f({x = 1}))((r) => r.x)";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -404,7 +404,7 @@ fn test_cast_on_lambda_parameter() {
     // With constraint system: generate cast constraint, validate after unification
     // When called with 42, x is unified to Int, then Int->Float cast validated
     let source = "((x) => x as Float)(42)";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -422,7 +422,7 @@ fn test_index_in_where_bound_variable() {
     // This should work - 'arr' in where clause gets proper type
     // But good regression test in case where-bound variables have similar issues
     let source = "arr[0] where { arr = if true then [1, 2, 3] else [4, 5, 6] }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -440,7 +440,7 @@ fn test_field_access_in_where_bound_variable() {
     // Similar to above - where-bound variable field access
     // Note: Records use '=' not ':' for field assignment
     let source = "r.x where { r = if true then {x = 1} else {x = 2} }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -457,7 +457,7 @@ fn test_arithmetic_operators_floats() {
 
     for op in ["+", "-", "*", "/", "^"] {
         let source = format!("1.0 {} 2.0", op);
-        let result = analyze_source(&source, &type_manager, &bump);
+        let result = analyze_source(&source, type_manager, &bump);
         assert!(result.is_ok(), "Failed for operator {}", op);
         assert_eq!(result.unwrap().expr.0, type_manager.float());
     }
@@ -468,7 +468,7 @@ fn test_arithmetic_mixed_types_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("1 + 2.0", &type_manager, &bump);
+    let result = analyze_source("1 + 2.0", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -479,7 +479,7 @@ fn test_logical_operators() {
 
     for op in ["and", "or"] {
         let source = format!("true {} false", op);
-        let result = analyze_source(&source, &type_manager, &bump);
+        let result = analyze_source(&source, type_manager, &bump);
         assert!(result.is_ok(), "Failed for operator {}", op);
         assert_eq!(result.unwrap().expr.0, type_manager.bool());
     }
@@ -490,7 +490,7 @@ fn test_logical_operators_non_boolean_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("1 and 2", &type_manager, &bump);
+    let result = analyze_source("1 and 2", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -501,7 +501,7 @@ fn test_plus_one_lambda() {
 
     let result = analyze_source(
         "plus_one(9) where { plus_one = (a) => a + 1 }",
-        &type_manager,
+        type_manager,
         &arena,
     );
     assert!(result.unwrap().expr.0 == type_manager.int());
@@ -521,7 +521,7 @@ fn test_type_resolution_simple_call() {
     // Simple polymorphic function call
     // Result should be resolved to concrete type
     let source = r#"double(5) where { double = (x) => x * 2 }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -548,7 +548,7 @@ fn test_type_resolution_array_simple() {
     // Array with multiple polymorphic calls
     // All should resolve to same concrete type
     let source = r#"[double(1), double(2)] where { double = (x) => x * 2 }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -589,7 +589,7 @@ fn test_type_resolution_map_indexing() {
     // pass in resolve_expr_types, which replaces all type variables with their concrete
     // types after constraint finalization.
     let source = r#"f({1: "hello"}, 1) where { f = (m, k) => m[k] }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -624,7 +624,7 @@ fn test_type_resolution_nested_structures() {
     // Nested structure with multiple call sites creating type variables
     // All should be resolved after analysis
     let source = r#"{a = g(1), b = g(2)} where { g = (n) => n + 10 }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -662,7 +662,7 @@ fn test_type_resolution_if_branches() {
         if true then f(1) else f(2)
         where { f = (x) => x + 10 }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -710,7 +710,7 @@ fn test_type_resolution_empty_array_unification() {
 
     // Simple case: empty array unified with concrete type
     let source = r#"if false then [1] else []"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -742,7 +742,7 @@ fn test_type_resolution_deeply_nested_unification() {
     // This gets unified with the then branch's Map[Int, Str]
     // Without type resolution, _0 would remain unresolved in the expression tree
     let source = r#"if false then [[[{1:"one"}]]] else [[[]]]"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -853,7 +853,7 @@ fn test_type_resolution_polymorphic_calls() {
     // Polymorphic lambda called multiple times with same type
     // All call sites should have resolved types (not type variables)
     let source = r#"[id(1), id(2), id(3)] where { id = (x) => x }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -892,7 +892,7 @@ fn test_type_resolution_map_construction() {
         {1: double(5), 2: double(10)}
         where { double = (x) => x * 2 }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -926,16 +926,16 @@ fn test_unary_negation() {
     let type_manager = TypeManager::new(&bump);
 
     // Note: -42 is a negative literal, not negation. Need -(42) to test the operator
-    let result = analyze_source("-(42)", &type_manager, &bump);
+    let result = analyze_source("-(42)", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 
-    let result = analyze_source("-(3.14)", &type_manager, &bump);
+    let result = analyze_source("-(3.14)", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.float());
 
     // Also test with a variable to ensure it works on non-literals
-    let result = analyze_source("-x where { x = 5 }", &type_manager, &bump);
+    let result = analyze_source("-x where { x = 5 }", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -945,7 +945,7 @@ fn test_unary_negation_non_numeric_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("-(true)", &type_manager, &bump);
+    let result = analyze_source("-(true)", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -954,7 +954,7 @@ fn test_unary_not() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("not true", &type_manager, &bump);
+    let result = analyze_source("not true", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.bool());
 }
@@ -964,7 +964,7 @@ fn test_unary_not_non_boolean_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("not 42", &type_manager, &bump);
+    let result = analyze_source("not 42", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -977,19 +977,19 @@ fn test_literals() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let int_result = analyze_source("42", &type_manager, &bump);
+    let int_result = analyze_source("42", type_manager, &bump);
     assert!(int_result.is_ok());
     assert_eq!(int_result.unwrap().expr.0, type_manager.int());
 
-    let float_result = analyze_source("3.14", &type_manager, &bump);
+    let float_result = analyze_source("3.14", type_manager, &bump);
     assert!(float_result.is_ok());
     assert_eq!(float_result.unwrap().expr.0, type_manager.float());
 
-    let bool_result = analyze_source("true", &type_manager, &bump);
+    let bool_result = analyze_source("true", type_manager, &bump);
     assert!(bool_result.is_ok());
     assert_eq!(bool_result.unwrap().expr.0, type_manager.bool());
 
-    let str_result = analyze_source("\"hello\"", &type_manager, &bump);
+    let str_result = analyze_source("\"hello\"", type_manager, &bump);
     assert!(str_result.is_ok());
     assert_eq!(str_result.unwrap().expr.0, type_manager.str());
 }
@@ -1001,7 +1001,7 @@ fn test_all_literal_types() {
 
     let result = analyze_source(
         "{ int = 42, float = 3.14, bool = false, str = \"foo\", bytes = b\"bar\" }",
-        &type_manager,
+        type_manager,
         &bump,
     );
     assert!(result.is_ok());
@@ -1028,15 +1028,15 @@ fn test_cast_identity_allowed() {
     let type_manager = TypeManager::new(&bump);
 
     // Identity casts are allowed (they're just no-ops)
-    let result = analyze_source("42 as Int", &type_manager, &bump);
+    let result = analyze_source("42 as Int", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 
-    let result = analyze_source("\"hello\" as String", &type_manager, &bump);
+    let result = analyze_source("\"hello\" as String", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.str());
 
-    let result = analyze_source("3.14 as Float", &type_manager, &bump);
+    let result = analyze_source("3.14 as Float", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.float());
 }
@@ -1046,7 +1046,7 @@ fn test_cast_unknown_type_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("42 as Foo", &type_manager, &bump);
+    let result = analyze_source("42 as Foo", type_manager, &bump);
     assert!(result.is_err());
 
     let err = result.unwrap_err();
@@ -1063,7 +1063,7 @@ fn test_undefined_variable_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("undefined_var", &type_manager, &bump);
+    let result = analyze_source("undefined_var", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1072,7 +1072,7 @@ fn test_where_binding() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("x where { x = 42 }", &type_manager, &bump);
+    let result = analyze_source("x where { x = 42 }", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -1082,7 +1082,7 @@ fn test_where_duplicate_binding_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("x where { x = 1, x = 2 }", &type_manager, &bump);
+    let result = analyze_source("x where { x = 1, x = 2 }", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1095,7 +1095,7 @@ fn test_lambda_basic() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("(x) => x", &type_manager, &bump);
+    let result = analyze_source("(x) => x", type_manager, &bump);
     assert!(result.is_ok());
 
     // Check it's a function type
@@ -1110,7 +1110,7 @@ fn test_lambda_duplicate_parameter_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("(x, x) => x", &type_manager, &bump);
+    let result = analyze_source("(x, x) => x", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1119,7 +1119,7 @@ fn test_function_call() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("((x) => x)(42)", &type_manager, &bump);
+    let result = analyze_source("((x) => x)(42)", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -1129,7 +1129,7 @@ fn test_call_non_function_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("42()", &type_manager, &bump);
+    let result = analyze_source("42()", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1142,7 +1142,7 @@ fn test_if_expression() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("if true then 1 else 2", &type_manager, &bump);
+    let result = analyze_source("if true then 1 else 2", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -1152,7 +1152,7 @@ fn test_if_non_boolean_condition_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("if 1 then 2 else 3", &type_manager, &bump);
+    let result = analyze_source("if 1 then 2 else 3", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1161,7 +1161,7 @@ fn test_if_mismatched_branches_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("if true then 1 else false", &type_manager, &bump);
+    let result = analyze_source("if true then 1 else false", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1174,7 +1174,7 @@ fn test_array_homogeneous() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("[1, 2, 3]", &type_manager, &bump);
+    let result = analyze_source("[1, 2, 3]", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(
         result.unwrap().expr.0,
@@ -1187,7 +1187,7 @@ fn test_array_heterogeneous_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("[1, true]", &type_manager, &bump);
+    let result = analyze_source("[1, true]", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1196,7 +1196,7 @@ fn test_array_empty() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("[]", &type_manager, &bump);
+    let result = analyze_source("[]", type_manager, &bump);
     assert!(result.is_ok());
 
     match result.unwrap().expr.0 {
@@ -1214,7 +1214,7 @@ fn test_array_indexing() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("[1, 2, 3][0]", &type_manager, &bump);
+    let result = analyze_source("[1, 2, 3][0]", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -1226,7 +1226,7 @@ fn test_array_indexing_with_variable() {
 
     let result = analyze_source(
         "arr[i] where { arr = [1, 2, 3], i = 0 }",
-        &type_manager,
+        type_manager,
         &bump,
     );
     assert!(result.is_ok());
@@ -1238,7 +1238,7 @@ fn test_array_indexing_non_integer_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("[1, 2, 3][true]", &type_manager, &bump);
+    let result = analyze_source("[1, 2, 3][true]", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1247,7 +1247,7 @@ fn test_indexing_non_indexable_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("42[0]", &type_manager, &bump);
+    let result = analyze_source("42[0]", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1260,7 +1260,7 @@ fn test_record_empty() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("Record{}", &type_manager, &bump);
+    let result = analyze_source("Record{}", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.record(vec![]));
 }
@@ -1270,7 +1270,7 @@ fn test_record_single_field() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ x = 42 }", &type_manager, &bump);
+    let result = analyze_source("{ x = 42 }", type_manager, &bump);
     assert!(result.is_ok());
     let result = result.unwrap();
     let expected = type_manager.record(vec![("x", type_manager.int())]);
@@ -1282,7 +1282,7 @@ fn test_record_multiple_fields() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ x = 42, y = true, z = \"hello\" }", &type_manager, &bump);
+    let result = analyze_source("{ x = 42, y = true, z = \"hello\" }", type_manager, &bump);
     assert!(result.is_ok());
     let result = result.unwrap();
     let expected = type_manager.record(vec![
@@ -1302,7 +1302,7 @@ fn test_record_field_access() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ x = 42 }.x", &type_manager, &bump);
+    let result = analyze_source("{ x = 42 }.x", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -1312,7 +1312,7 @@ fn test_record_field_access_multiple_fields() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ x = 42, y = \"hello\" }.y", &type_manager, &bump);
+    let result = analyze_source("{ x = 42, y = \"hello\" }.y", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.str());
 }
@@ -1322,7 +1322,7 @@ fn test_record_field_access_nonexistent_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ x = 42 }.y", &type_manager, &bump);
+    let result = analyze_source("{ x = 42 }.y", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1331,7 +1331,7 @@ fn test_field_access_non_record_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("42.x", &type_manager, &bump);
+    let result = analyze_source("42.x", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1344,7 +1344,7 @@ fn test_map_empty() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{}", &type_manager, &bump);
+    let result = analyze_source("{}", type_manager, &bump);
     assert!(result.is_ok());
     match result.unwrap().expr.0 {
         crate::types::Type::Map(..) => {}
@@ -1357,7 +1357,7 @@ fn test_map_homogeneous_types() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ \"a\": 1, \"b\": 2 }", &type_manager, &bump);
+    let result = analyze_source("{ \"a\": 1, \"b\": 2 }", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(
         result.unwrap().expr.0,
@@ -1370,7 +1370,7 @@ fn test_map_heterogeneous_keys_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ \"a\": 1, 2: 3 }", &type_manager, &bump);
+    let result = analyze_source("{ \"a\": 1, 2: 3 }", type_manager, &bump);
     let err = result.unwrap_err();
     // Should fail with type mismatch error (heterogeneous keys)
     assert!(matches!(err.kind, TypeErrorKind::TypeMismatch { .. }));
@@ -1381,7 +1381,7 @@ fn test_map_heterogeneous_values_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("{ \"a\": 1, \"b\": true }", &type_manager, &bump);
+    let result = analyze_source("{ \"a\": 1, \"b\": true }", type_manager, &bump);
     let err = result.unwrap_err();
     // Should fail with type mismatch error (heterogeneous values)
     assert!(matches!(err.kind, TypeErrorKind::TypeMismatch { .. }));
@@ -1396,7 +1396,7 @@ fn test_format_str_no_interpolations() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("f\"hello\"", &type_manager, &bump);
+    let result = analyze_source("f\"hello\"", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.str());
 }
@@ -1406,7 +1406,7 @@ fn test_format_str_with_interpolations() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("f\"x = {x}\" where { x = 42 }", &type_manager, &bump);
+    let result = analyze_source("f\"x = {x}\" where { x = 42 }", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.str());
 }
@@ -1418,7 +1418,7 @@ fn test_format_str_function_fails() {
 
     let result = analyze_source(
         "f\"func = {f}\" where { f = (x) => x }",
-        &type_manager,
+        type_manager,
         &bump,
     );
     assert!(result.is_err());
@@ -1429,7 +1429,7 @@ fn test_otherwise_same_types() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("1 otherwise 2", &type_manager, &bump);
+    let result = analyze_source("1 otherwise 2", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -1440,7 +1440,7 @@ fn test_otherwise_type_mismatch_fails() {
     let type_manager = TypeManager::new(&bump);
 
     // This should fail because Int and Str don't match
-    let result = analyze_source("1 otherwise \"error\"", &type_manager, &bump);
+    let result = analyze_source("1 otherwise \"error\"", type_manager, &bump);
     assert!(result.is_err());
 }
 
@@ -1451,7 +1451,7 @@ fn test_otherwise_with_array_indexing() {
 
     // This represents: array[0] otherwise "default" where array = ["foo"]
     // For now just test compatible types work
-    let result = analyze_source("\"foo\" otherwise \"bar\"", &type_manager, &bump);
+    let result = analyze_source("\"foo\" otherwise \"bar\"", type_manager, &bump);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().expr.0, type_manager.str());
 }
@@ -1466,7 +1466,7 @@ fn test_cast_invalid() {
     let type_manager = TypeManager::new(&bump);
 
     // Int → Str is not supported (use format strings instead)
-    let result = analyze_source("42 as Str", &type_manager, &bump);
+    let result = analyze_source("42 as Str", type_manager, &bump);
     assert!(result.is_err());
     // Should fail because Int → Str is not a valid cast
 }
@@ -1480,7 +1480,7 @@ fn test_integer_suffix_not_supported() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("42`MB`", &type_manager, &bump);
+    let result = analyze_source("42`MB`", type_manager, &bump);
     assert_eq!(
         result.unwrap_err().kind,
         TypeErrorKind::UnsupportedFeature {
@@ -1500,7 +1500,7 @@ fn test_span_tracking_binary_expr() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "1 + 2";
-    let result = analyze_source(source, &type_manager, &bump).unwrap();
+    let result = analyze_source(source, type_manager, &bump).unwrap();
 
     // Verify we have the annotation
     assert_eq!(result.ann.source, "1 + 2");
@@ -1530,7 +1530,7 @@ fn test_span_tracking_nested_expr() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "(1 + 2) * 3";
-    let result = analyze_source(source, &type_manager, &bump).unwrap();
+    let result = analyze_source(source, type_manager, &bump).unwrap();
 
     // Root multiplication should span from first operand to last (0..11)
     // Note: there is currently a bug in the span tracking logic.
@@ -1559,7 +1559,7 @@ fn test_span_tracking_boolean_expr() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "true and false";
-    let result = analyze_source(source, &type_manager, &bump).unwrap();
+    let result = analyze_source(source, type_manager, &bump).unwrap();
 
     // Root should span the whole expression
     assert_eq!(
@@ -1586,7 +1586,7 @@ fn test_float_suffix_not_supported() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let result = analyze_source("3.14`meters`", &type_manager, &bump);
+    let result = analyze_source("3.14`meters`", type_manager, &bump);
     assert_eq!(
         result.unwrap_err().kind,
         TypeErrorKind::UnsupportedFeature {
@@ -1607,7 +1607,7 @@ fn test_polymorphic_identity_function() {
 
     // The identity function should work with both Int and Str
     let source = "{ a = id(1), b = id(\"foo\") } where { id = (x) => x }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1629,7 +1629,7 @@ fn test_polymorphic_inline_lambda() {
 
     // Inline lambda with polymorphic parameters
     let source = "((a, b) => [b, a])(10, 42)";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1658,7 +1658,7 @@ fn test_polymorphic_pair_function() {
             pair = (x, y) => [x, y]
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1682,7 +1682,7 @@ fn test_polymorphic_const_function() {
             konst = (x, y) => x
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1713,7 +1713,7 @@ fn test_sequential_polymorphic_bindings() {
             wrap = (x) => [x],
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1745,7 +1745,7 @@ fn test_higher_rank_polymorphism() {
             apply = (f, x) => f(x)
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1766,7 +1766,7 @@ fn test_polymorphic_in_array_literal() {
     let source = r#"
         [id(1), id(2), id(3)] where { id = (x) => x }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1792,7 +1792,7 @@ fn test_nested_where_with_polymorphism() {
             }
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1811,7 +1811,7 @@ fn test_polymorphic_function_type_error() {
     let source = r#"
         [id(1), id("mixed")] where { id = (x) => x }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     // Arrays are homogeneous, so id(1) fixes the array element type to Int,
     // then id("mixed") should fail because Str != Int
@@ -1837,7 +1837,7 @@ fn test_polymorphic_map_function() {
             apply_twice = (f, x) => f(f(x))
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1871,7 +1871,7 @@ fn test_polymorphic_compose() {
             wrap = (x) => [id(x)]
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -1904,7 +1904,7 @@ fn test_closure_capturing_lambda_param_should_not_be_polymorphic() {
           result = capture() + 1
         })(true)
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     // Should fail with specific type mismatch: Bool vs Int
     match result {
@@ -1933,7 +1933,7 @@ fn test_error_unbound_variable() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "unknown_var";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -1956,7 +1956,7 @@ fn test_error_not_indexable() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "true[0]";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -1979,7 +1979,7 @@ fn test_error_unknown_field() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "{ a = 1, b = 2 }.c";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2004,7 +2004,7 @@ fn test_error_not_a_record() {
 
     // Access field on an array (not a record)
     let source = "[1, 2, 3].field";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2023,7 +2023,7 @@ fn test_error_duplicate_parameter() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "(x, x) => x + 1";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2041,7 +2041,7 @@ fn test_error_duplicate_binding() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "x + y where { x = 1, x = 2 }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2059,7 +2059,7 @@ fn test_error_not_formattable() {
     let type_manager = TypeManager::new(&bump);
 
     let source = r#"f"Value: {func}" where { func = (x) => x }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2081,7 +2081,7 @@ fn test_error_constraint_violation_numeric() {
     // To get ConstraintViolation, we need a type variable with a Numeric constraint
     // For now, just check that we get a type error
     let source = "\"text\" + 1";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2106,7 +2106,7 @@ fn test_error_constraint_violation_ord() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "[1, 2] < [3, 4]";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2124,7 +2124,7 @@ fn test_error_type_mismatch_binary_op() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "1 + \"text\"";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2144,7 +2144,7 @@ fn test_error_function_param_count_mismatch() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "((x, y) => x + y)(1)";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2169,7 +2169,7 @@ fn test_error_invalid_cast() {
 
     // Try to cast array to int (invalid)
     let source = "[1, 2, 3] as Int";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2188,7 +2188,7 @@ fn test_error_polymorphic_cast() {
 
     // Try to cast a polymorphic value (lambda parameter)
     let source = "f(1) where { f = (x) => x as Float }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2214,7 +2214,7 @@ fn test_error_unsupported_feature_integer_suffix() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "100`MB`";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2238,7 +2238,7 @@ fn test_error_unsupported_feature_float_suffix() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "3.14`meters`";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     match result {
         Err(err) => {
@@ -2264,7 +2264,7 @@ fn test_lambda_body_type_variables_after_resolution() {
     // Lambda stored in where binding - body has type variables _0, _1, _2
     let source = r#"id where { id = (x) => x }"#;
 
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
     assert!(result.is_ok());
 
     let typed_expr = result.unwrap();
@@ -2302,7 +2302,7 @@ fn test_array_lambda_body_unified_types() {
     // Lambda with array - requires a and b to unify
     let source = r#"f(10, 42) where { f = (a, b) => [b, a] }"#;
 
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
     assert!(result.is_ok());
 
     let typed_expr = result.unwrap();
@@ -2358,7 +2358,7 @@ fn test_inline_array_lambda_works() {
     // Inline version - this works
     let source = r#"((a, b) => [b, a])(10, 42)"#;
 
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
     assert!(result.is_ok());
 
     let typed_expr = result.unwrap();
@@ -2410,7 +2410,7 @@ fn test_instantiation_tracking_simple() {
 
     // Simple polymorphic lambda with one call site
     let source = r#"f(10) where { f = (x) => x }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
     let typed_expr = result.unwrap();
@@ -2452,7 +2452,7 @@ fn test_instantiation_tracking_multiple_calls() {
 
     // Polymorphic lambda called with different types (using record to allow mixed types)
     let source = r#"{a = f(10), b = f("hello")} where { f = (x) => x }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
     let typed_expr = result.unwrap();
@@ -2493,7 +2493,7 @@ fn test_instantiation_tracking_multi_param() {
 
     // Lambda with multiple parameters
     let source = r#"f(10, 42) where { f = (a, b) => [b, a] }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
     let typed_expr = result.unwrap();
@@ -2510,7 +2510,7 @@ fn test_instantiation_tracking_multi_param() {
     // The lambda has type scheme ∀[0,1]. (_0, _1) -> Array[_1] where _0 = _1
     // So we should see mappings for the quantified variables
     assert!(
-        subst.len() >= 1,
+        !subst.is_empty(),
         "Should have at least 1 mapping for the unified type variable"
     );
 
@@ -2532,7 +2532,7 @@ fn test_instantiation_tracking_map_indexing() {
 
     // Polymorphic map indexing with multiple key types
     let source = r#"[f({1: "one"}, 1), f({"two": "dos"}, "two")] where { f = (m, k) => m[k] }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
     let typed_expr = result.unwrap();
@@ -2568,7 +2568,7 @@ fn test_no_instantiation_for_monomorphic() {
 
     // Monomorphic lambda - usage constrains it to a specific type (Int)
     let source = r#"f(10) where { f = (x) => x + 1 }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
     let typed_expr = result.unwrap();
@@ -2588,7 +2588,7 @@ fn test_no_instantiation_for_inline_lambda() {
 
     // Inline lambda - not bound in a where clause
     let source = r#"((x) => x)(10)"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
     let typed_expr = result.unwrap();
@@ -2618,7 +2618,7 @@ fn test_instantiation_tracking_with_shadowing() {
             }
         }
     "#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -2667,7 +2667,7 @@ fn test_lambda_instantiations_pointer_remapping() {
 
     // Use a map indexing example like the original test
     let source = r#"[f({1: "one"}, 1), f({"two": "2"}, "two")] where { f = (m, k) => m[k] }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -2712,7 +2712,7 @@ fn test_some_literal_int() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "some 1";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -2740,7 +2740,7 @@ fn test_none_polymorphic() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "none";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -2768,7 +2768,7 @@ fn test_if_none_some_string() {
     let type_manager = TypeManager::new(&bump);
 
     let source = r#"if true then none else some "foo""#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -2797,7 +2797,7 @@ fn test_option_in_lambda() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "f(true) where { f = (x) => some x }";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -2826,7 +2826,7 @@ fn test_array_of_options() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "[none, none, none, some 3.14]";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -2857,7 +2857,7 @@ fn test_nested_option() {
     let type_manager = TypeManager::new(&bump);
 
     let source = "some some 42";
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -2888,7 +2888,7 @@ fn test_option_in_record() {
     let type_manager = TypeManager::new(&bump);
 
     let source = r#"{ x = some 42, y = none }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
 
@@ -2931,7 +2931,7 @@ fn test_exhaustiveness_option_with_catch_all() {
 
     // This should be exhaustive: some _ and none
     let source = r#"some(42) match { some x -> x, none -> 0 }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
@@ -2947,7 +2947,7 @@ fn test_exhaustiveness_option_specific_pattern_fails() {
 
     // This should NOT be exhaustive: some 1 only matches Some(1), not all Some values
     let source = r#"some(42) match { some 1 -> 1, none -> 0 }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_err(), "Should fail: some 1 is not exhaustive");
 
@@ -2971,7 +2971,7 @@ fn test_exhaustiveness_nested_option_with_catch_all() {
 
     // Nested pattern with catch-all should be exhaustive
     let source = r#"some(some(42)) match { some (some x) -> x, some none -> 0, none -> 0 }"#;
-    let result = analyze_source(source, &type_manager, &bump);
+    let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
