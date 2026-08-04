@@ -14,9 +14,9 @@ pub struct Stack<T> {
     max_size: usize,
 }
 
-#[allow(
+#[expect(
     dead_code,
-    reason = "Preserve the full Stack API. All methods are tested."
+    reason = "Preserves the complete public Stack API for VM consumers"
 )]
 impl<T> Stack<T> {
     pub fn new(max_size: usize) -> Self {
@@ -105,10 +105,6 @@ impl<T> Stack<T> {
     }
 }
 
-#[allow(
-    dead_code,
-    reason = "Preserve the full Stack API. All methods are tested."
-)]
 impl<T: Clone> Stack<T> {
     #[inline]
     pub fn peek_at(&self, offset: usize) -> Option<&T> {
@@ -121,6 +117,13 @@ impl<T: Clone> Stack<T> {
     }
 
     #[inline]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "Preserves dup in public Stack API for VM consumers"
+        )
+    )]
     pub fn dup(&mut self) -> bool {
         if let Some(value) = self.peek().cloned() {
             self.push(value);

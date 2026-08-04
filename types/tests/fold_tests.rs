@@ -532,8 +532,7 @@ impl<B: TyBuilder> Fold<B> for ChildOrderCollector {
             TyKind::Scalar(Scalar::Int) => "int",
             TyKind::Scalar(Scalar::Str) => "str",
             TyKind::Scalar(Scalar::Bool) => "bool",
-            TyKind::Array(_) => return Ok(FoldStep::Recurse),
-            TyKind::Map(_, _) => return Ok(FoldStep::Recurse),
+            TyKind::Array(_) | TyKind::Map(_, _) => return Ok(FoldStep::Recurse),
             _ => "other",
         };
         self.order.push(label);

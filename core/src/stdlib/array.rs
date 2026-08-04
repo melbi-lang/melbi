@@ -82,9 +82,8 @@ fn array_slice<'types, 'arena>(
     let end_idx = end.min(len);
 
     // Get element type from the array's type
-    let elem_ty = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
 
     if start_idx >= end_idx {
@@ -134,9 +133,8 @@ fn array_concat<'types, 'arena>(
     result.extend(arr2.iter());
 
     // Get element type from the first array's type
-    let elem_ty = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
 
     Ok(
@@ -205,13 +203,11 @@ fn array_zip<'types, 'arena>(
     let arr2 = args[1].as_array().expect("Expected array");
 
     // Get element types
-    let elem_ty1 = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty1) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
-    let elem_ty2 = match args[1].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty2) = args[1].ty.view() else {
+        panic!("Expected array type");
     };
 
     let mut result = Vec::new();
@@ -263,9 +259,8 @@ fn array_reverse<'types, 'arena>(
     result.reverse();
 
     // Get element type from the array's type
-    let elem_ty = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
 
     Ok(
@@ -301,9 +296,12 @@ fn array_map<'types, 'arena>(
     }
 
     // Get result element type from function's return type
-    let result_elem_ty = match args[1].ty.view() {
-        TypeKind::Function { ret, .. } => ret,
-        _ => panic!("Expected function type"),
+    let TypeKind::Function {
+        ret: result_elem_ty,
+        ..
+    } = args[1].ty.view()
+    else {
+        panic!("Expected function type");
     };
 
     Ok(

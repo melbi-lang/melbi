@@ -46,7 +46,7 @@ fn create_complex_type<'a>(manager: &'a TypeManager<'a>, name: &str) -> &'a Type
             let params = vec![manager.int(), manager.str(), manager.bool()];
             manager.function(&params, manager.int())
         }
-        _ => manager.int(),
+        _ => panic!("Unknown type name: {name}"),
     }
 }
 

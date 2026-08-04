@@ -142,10 +142,7 @@ impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ArgumentCountMismatch { expected, got } => {
-                write!(
-                    f,
-                    "Argument count mismatch: expected {expected}, got {got}"
-                )
+                write!(f, "Argument count mismatch: expected {expected}, got {got}")
             }
             Self::TypeMismatch { param_index } => {
                 write!(f, "Type mismatch for parameter {param_index}")

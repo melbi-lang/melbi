@@ -8,8 +8,8 @@ use crate::parser::Expr;
 // We test precedence by comparing whether two expressions parenthesized in
 // different ways yield the same AST.
 fn ast<'a>(arena: &'a Bump, source: &'a str) -> &'a Expr<'a> {
-    let parsed = parse(arena, source)
-        .unwrap_or_else(|e| panic!("Expression parsing failed: {source}\n{e}"));
+    let parsed =
+        parse(arena, source).unwrap_or_else(|e| panic!("Expression parsing failed: {source}\n{e}"));
     parsed.expr
 }
 

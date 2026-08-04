@@ -1,4 +1,4 @@
-use tower_lsp::lsp_types::{SemanticTokensLegend, SemanticTokenType};
+use tower_lsp::lsp_types::{SemanticTokenType, SemanticTokensLegend};
 
 /// Token type indices - order matters!
 pub const KEYWORD: u32 = 0;

@@ -37,7 +37,7 @@ pub enum TyKind<B: TyBuilder> {
     /// Symbol (tagged union) with sorted parts.
     ///
     /// Parts are interned strings stored in sorted order.
-    /// Example: Symbol["error", "pending", "success"]
+    /// Example: `Symbol["error", "pending", "success"]`
     Symbol(IdentList<B>),
 }
 
@@ -47,7 +47,7 @@ impl<B: TyBuilder> TyKind<B> {
     pub(super) fn compute_flags(&self) -> TyFlags {
         match self {
             Self::TypeVar(_) => TyFlags::HAS_TYPE_VARS,
-            Self::Scalar(_) => TyFlags::empty(),
+            Self::Scalar(_) | Self::Symbol(_) => TyFlags::empty(),
             Self::Array(elem) => B::resolve_ty_node(elem).flags(),
             Self::Map(k, v) => B::resolve_ty_node(k).flags() | B::resolve_ty_node(v).flags(),
             Self::Record(fields) => fields.iter().fold(TyFlags::empty(), |acc, (_, ty)| {
@@ -59,7 +59,6 @@ impl<B: TyBuilder> TyKind<B> {
                 });
                 param_flags | B::resolve_ty_node(ret).flags()
             }
-            Self::Symbol(_) => TyFlags::empty(),
         }
     }
 
@@ -73,9 +72,7 @@ impl<B: TyBuilder> TyKind<B> {
         // TODO: Consider using a custom iterator to avoid copying a few references?
         type VecType<'a, T> = SmallVec<[&'a Ty<T>; 6]>;
         match self {
-            Self::TypeVar(_) | Self::Scalar(_) | Self::Symbol(_) => {
-                VecType::new().into_iter()
-            }
+            Self::TypeVar(_) | Self::Scalar(_) | Self::Symbol(_) => VecType::new().into_iter(),
             Self::Array(e) => VecType::from_slice(&[e]).into_iter(),
             Self::Map(k, v) => VecType::from_slice(&[k, v]).into_iter(),
             Self::Record(fields) => fields

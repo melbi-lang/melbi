@@ -167,9 +167,11 @@ impl<'types, 'arena> Function<'types, 'arena> for BytecodeLambda<'types, 'arena>
         tracing::trace!(result = ?result, "call_unchecked: result raw");
 
         // Convert RawValue back to Value using the instantiation's return type
-        let return_type = match inst.fn_type.view() {
-            TypeKind::Function { ret, .. } => ret,
-            _ => unreachable!("BytecodeLambda type must be Function"),
+        let TypeKind::Function {
+            ret: return_type, ..
+        } = inst.fn_type.view()
+        else {
+            unreachable!("BytecodeLambda type must be Function");
         };
 
         tracing::trace!(return_type = %return_type, "call_unchecked: return type");

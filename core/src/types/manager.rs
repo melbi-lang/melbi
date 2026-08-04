@@ -224,10 +224,9 @@ impl<'a> TypeManager<'a> {
 
     /// Recursively copies a type from another `TypeManager` into this `TypeManager`'s arena,
     /// returning the interned equivalent in this manager.
-    pub fn adopt<'b>(&self, other: &TypeManager<'b>, ty: &'b Type<'b>) -> &'a Type<'a> {
+    pub fn adopt<'b>(&self, _other: &TypeManager<'b>, ty: &'b Type<'b>) -> &'a Type<'a> {
         fn inner<'a, 'b>(
             this: &TypeManager<'a>,
-            _other: &TypeManager<'b>,
             ty: &'b Type<'b>,
             var_map: &mut HashMap<*const Type<'b>, &'a Type<'a>>,
         ) -> &'a Type<'a> {
@@ -249,34 +248,32 @@ impl<'a> TypeManager<'a> {
                     }
                 }
                 Type::Array(elem_ty) => {
-                    let elem = inner(this, _other, elem_ty, var_map);
+                    let elem = inner(this, elem_ty, var_map);
                     this.array(elem)
                 }
                 Type::Map(key_ty, val_ty) => {
-                    let key = inner(this, _other, key_ty, var_map);
-                    let val = inner(this, _other, val_ty, var_map);
+                    let key = inner(this, key_ty, var_map);
+                    let val = inner(this, val_ty, var_map);
                     this.map(key, val)
                 }
                 Type::Option(inner_ty) => {
-                    let inner_adopted = inner(this, _other, inner_ty, var_map);
+                    let inner_adopted = inner(this, inner_ty, var_map);
                     this.option(inner_adopted)
                 }
                 Type::Record(fields) => {
                     let adopted_fields: Vec<(&str, &'a Type<'a>)> = fields
                         .iter()
                         .map(|(name, t)| {
-                            let t = inner(this, _other, t, var_map);
+                            let t = inner(this, t, var_map);
                             (*name, t)
                         })
                         .collect();
                     this.record(adopted_fields)
                 }
                 Type::Function { params, ret } => {
-                    let adopted_params: Vec<&'a Type<'a>> = params
-                        .iter()
-                        .map(|p| inner(this, _other, p, var_map))
-                        .collect();
-                    let adopted_ret = inner(this, _other, ret, var_map);
+                    let adopted_params: Vec<&'a Type<'a>> =
+                        params.iter().map(|p| inner(this, p, var_map)).collect();
+                    let adopted_ret = inner(this, ret, var_map);
                     this.function(&adopted_params, adopted_ret)
                 }
                 Type::Symbol(parts) => {
@@ -286,7 +283,7 @@ impl<'a> TypeManager<'a> {
             }
         }
         let mut var_map = HashMap::new();
-        inner(self, other, ty, &mut var_map)
+        inner(self, ty, &mut var_map)
     }
 
     /// Performs alpha conversion (renaming) of type variables in a type.

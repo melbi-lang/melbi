@@ -112,12 +112,18 @@ fn collect_crash_context(info: &PanicHookInfo<'_>) -> CrashContext {
         .payload()
         .downcast_ref::<&str>()
         .copied()
-        .or_else(|| info.payload().downcast_ref::<String>().map(std::string::String::as_str))
+        .or_else(|| {
+            info.payload()
+                .downcast_ref::<String>()
+                .map(std::string::String::as_str)
+        })
         .unwrap_or("unknown")
         .to_string();
 
-    let location = info
-        .location().map_or_else(|| "unknown".to_string(), |l| format!("{}:{}:{}", l.file(), l.line(), l.column()));
+    let location = info.location().map_or_else(
+        || "unknown".to_string(),
+        |l| format!("{}:{}:{}", l.file(), l.line(), l.column()),
+    );
 
     // Collect command line args (skip program name)
     let command_line = {
@@ -126,7 +132,8 @@ fn collect_crash_context(info: &PanicHookInfo<'_>) -> CrashContext {
             None
         } else {
             Some(
-                shlex::try_join(args.iter().map(std::string::String::as_str)).unwrap_or_else(|_| args.join(" ")),
+                shlex::try_join(args.iter().map(std::string::String::as_str))
+                    .unwrap_or_else(|_| args.join(" ")),
             )
         }
     };

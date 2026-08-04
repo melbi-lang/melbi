@@ -368,9 +368,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
                 self.emit_with_arg(Instruction::ConstLoad, const_index);
             }
             None => {
-                panic!(
-                    "Undefined variable '{name}' (should be caught by type checker)"
-                );
+                panic!("Undefined variable '{name}' (should be caught by type checker)");
             }
         }
         self.push_stack();
@@ -617,11 +615,10 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
                 self.push_stack();
 
                 // Get the inner type for recursive pattern matching
-                let inner_type = match value_type.view() {
-                    TypeKind::Option(inner) => inner,
-                    _ => panic!(
+                let TypeKind::Option(inner_type) = value_type.view() else {
+                    panic!(
                         "Some pattern on non-Option type (type checker bug): value_type = {value_type:?}"
-                    ),
+                    );
                 };
 
                 // Recursively compile the inner pattern
@@ -669,15 +666,12 @@ where
                     // Use immediate encoding for small integers
                     if i8::try_from(i).is_ok() {
                         self.emit(Instruction::ConstInt(i as i8));
-                        self.push_stack();
                     } else if u8::try_from(i).is_ok() {
                         self.emit(Instruction::ConstUInt(i as u8));
-                        self.push_stack();
                     } else {
                         // Large integer - use constant pool
                         let const_index = self.add_constant(value)?;
                         self.emit_with_arg(Instruction::ConstLoad, const_index);
-                        self.push_stack();
                     }
                 } else if let Ok(b) = value.as_bool() {
                     // Use immediate encoding for booleans
@@ -686,13 +680,12 @@ where
                     } else {
                         self.emit(Instruction::ConstBool(0));
                     }
-                    self.push_stack();
                 } else {
                     // Other types (float, string, etc.) - use constant pool
                     let const_index = self.add_constant(value)?;
                     self.emit_with_arg(Instruction::ConstLoad, const_index);
-                    self.push_stack();
                 }
+                self.push_stack();
             }
 
             // === Binary Operations ===
@@ -1142,12 +1135,11 @@ where
                     // MakeOption(1) pops 1 value and pushes 1 option
                     self.pop_stack();
                     self.emit(Instruction::MakeOption(1));
-                    self.push_stack();
                 } else {
                     // none: just create a None value with MakeOption(0)
                     self.emit(Instruction::MakeOption(0));
-                    self.push_stack();
                 }
+                self.push_stack();
             }
 
             // === Function Calls ===

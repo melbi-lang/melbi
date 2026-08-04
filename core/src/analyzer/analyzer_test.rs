@@ -773,9 +773,7 @@ fn type_resolution_deeply_nested_unification() {
             );
         }
         TypeKind::TypeVar(var_id) => {
-            panic!(
-                "Innermost type should be Map[Int, Str], not type variable _{var_id}"
-            );
+            panic!("Innermost type should be Map[Int, Str], not type variable _{var_id}");
         }
         _ => panic!("Expected Map at innermost level, got: {current_ty:?}"),
     }

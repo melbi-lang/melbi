@@ -3416,13 +3416,13 @@ fn match_nested_some() {
     let type_manager = TypeManager::new(&arena);
 
     // Match nested Some pattern
-    let (_code, result) = compile_and_run(
+    let (code, result) = compile_and_run(
         &arena,
         type_manager,
         "opt match { some (some x) -> x, _ -> 0 } where { opt = some (some 5) }",
     );
 
-    println!("Code: {_code:?}");
+    println!("Code: {code:?}");
 
     assert_eq!(result.unwrap().as_int().unwrap(), 5);
 }
@@ -3637,13 +3637,13 @@ fn lambda_numeric_poly() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
-    let (_code, result) = compile_and_run(
+    let (code, result) = compile_and_run(
         &arena,
         type_manager,
         "{ a = f(3, 4), b = f(1.1, 2.2) } where { f = (x, y) => x * y }",
     );
 
-    println!("{result:?}\nCode: {_code:?}");
+    println!("{result:?}\nCode: {code:?}");
 
     assert!(result.is_ok(), "{result:?}");
 }

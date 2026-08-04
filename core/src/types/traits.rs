@@ -337,13 +337,14 @@ pub trait TypeVisitor<'a> {
     /// This recursively visits all sub-types in depth-first order.
     fn visit_default(&mut self, ty: Self::Input) {
         match ty.view() {
-            // Primitives - nothing to visit
+            // Primitives & Symbol - nothing to visit
             TypeKind::Int
             | TypeKind::Float
             | TypeKind::Bool
             | TypeKind::Str
             | TypeKind::Bytes
-            | TypeKind::TypeVar(_) => {}
+            | TypeKind::TypeVar(_)
+            | TypeKind::Symbol(_) => {}
 
             // Collections - recursively visit elements
             TypeKind::Array(elem) => {
@@ -368,9 +369,6 @@ pub trait TypeVisitor<'a> {
                     self.visit(param);
                 }
                 self.visit(ret);
-            }
-            TypeKind::Symbol(_) => {
-                // Symbol parts are just strings, nothing to visit
             }
         }
     }

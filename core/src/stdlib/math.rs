@@ -13,7 +13,7 @@ use crate::values::dynamic::Value;
 
 #[melbi_package]
 mod math {
-    use super::{melbi_fn, melbi_const, TypeManager, Value};
+    use super::{TypeManager, Value, melbi_const, melbi_fn};
 
     // ========================================================================
     // Constants

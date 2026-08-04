@@ -135,9 +135,7 @@ impl ExecutionError {
                 depth,
                 max_depth,
             }) => (
-                format!(
-                    "Stack overflow: depth {depth} exceeds maximum of {max_depth}"
-                ),
+                format!("Stack overflow: depth {depth} exceeds maximum of {max_depth}"),
                 Some("R005"),
                 vec!["Reduce recursion depth or increase stack limit".to_string()],
             ),

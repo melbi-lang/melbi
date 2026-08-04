@@ -57,14 +57,11 @@ fn generate_package(
     mut input_mod: ItemMod,
 ) -> syn::Result<TokenStream2> {
     // Get the module content
-    let content = match &mut input_mod.content {
-        Some((_, items)) => items,
-        None => {
-            return Err(syn::Error::new_spanned(
-                &input_mod,
-                "[melbi] melbi_package requires a module with inline content (not a file module)",
-            ));
-        }
+    let Some((_, content)) = &mut input_mod.content else {
+        return Err(syn::Error::new_spanned(
+            &input_mod,
+            "[melbi] melbi_package requires a module with inline content (not a file module)",
+        ));
     };
 
     // Collect melbi_fn and melbi_const items

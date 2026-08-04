@@ -77,8 +77,9 @@ impl Error {
     #[must_use]
     pub fn filename(&self) -> Option<&str> {
         match self {
-            Self::Compilation { filename, .. } => filename.as_deref(),
-            Self::Runtime { filename, .. } => filename.as_deref(),
+            Self::Compilation { filename, .. } | Self::Runtime { filename, .. } => {
+                filename.as_deref()
+            }
             _ => None,
         }
     }

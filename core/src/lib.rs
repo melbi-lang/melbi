@@ -19,8 +19,12 @@ pub mod shim {
 }
 
 // Re-export (crate only) for convenience so other modules don't need alloc:: prefix
-#[allow(unused_imports)]
-pub(crate) use shim::{String, Vec, format, Box, vec, ToString};
+#[allow(
+    clippy::allow_attributes,
+    unused_imports,
+    reason = "Re-exports macro shims for internal crate convenience in #![no_std] mode"
+)]
+pub(crate) use shim::{Box, String, ToString, Vec, format, vec};
 
 pub mod analyzer;
 pub mod api;

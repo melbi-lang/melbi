@@ -16,7 +16,7 @@ use crate::values::typed::{Array, Optional, Str};
 
 #[melbi_package]
 mod string {
-    use super::{melbi_fn, Str, FfiContext, Array, Vec, Optional};
+    use super::{Array, FfiContext, Optional, Str, Vec, melbi_fn};
 
     // ========================================================================
     // Inspection Functions
@@ -194,9 +194,8 @@ mod string {
         }
 
         // If start is beyond the string, return empty
-        let byte_start = match byte_start {
-            Some(pos) => pos,
-            None => return Str::from_str(ctx.arena(), ""),
+        let Some(byte_start) = byte_start else {
+            return Str::from_str(ctx.arena(), "");
         };
 
         // If start >= end, return empty

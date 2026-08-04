@@ -159,7 +159,9 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
 
             ExprInner::Ident(name) => {
                 // Look up variable in scope stack
-                if let Some(value) = self.scope_stack.lookup(name) { Ok(*value) } else {
+                if let Some(value) = self.scope_stack.lookup(name) {
+                    Ok(*value)
+                } else {
                     // This should never happen if the expression was type-checked
                     debug_assert!(
                         false,
@@ -574,8 +576,8 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                             tracing::debug!(error = %runtime_error, "Handled by `otherwise` block");
                             self.eval_expr(fallback)
                         }
-                        crate::evaluator::ExecutionErrorKind::ResourceExceeded(_) => Err(e),
-                        crate::evaluator::ExecutionErrorKind::Internal(_) => Err(e),
+                        crate::evaluator::ExecutionErrorKind::ResourceExceeded(_)
+                        | crate::evaluator::ExecutionErrorKind::Internal(_) => Err(e),
                     },
                 }
             }

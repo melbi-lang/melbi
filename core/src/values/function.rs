@@ -108,7 +108,10 @@ pub trait Function<'types, 'arena> {
     ///
     /// # Returns
     /// Result containing the return value, or an error that can be caught with `otherwise`.
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for host function execution"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,
@@ -168,7 +171,10 @@ impl<'types, 'arena> Function<'types, 'arena> for NativeFunction<'types> {
         self.ty
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for host function execution"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,

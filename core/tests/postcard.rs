@@ -41,10 +41,7 @@ fn postcard() {
     // Test Record
     let record_ty = type_mgr.record(vec![("name", type_mgr.str()), ("age", type_mgr.int())]);
     let v = to_allocvec(record_ty).unwrap();
-    assert_eq!(
-        &[8, 2, 3, 97, 103, 101, 1, 4, 110, 97, 109, 101, 4],
-        &*v
-    );
+    assert_eq!(&[8, 2, 3, 97, 103, 101, 1, 4, 110, 97, 109, 101, 4], &*v);
     let deserialized = type_mgr.deserialize_type(&v).unwrap();
     assert!(core::ptr::eq(deserialized, record_ty));
     println!("✓ Record round-trip");

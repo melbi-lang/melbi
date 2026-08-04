@@ -20,7 +20,7 @@ impl zed::Extension for MelbiExtension {
         let command = zed::Command {
             command: self.language_server_binary_path(language_server_id, worktree)?,
             args: vec![],
-            env: Default::default(),
+            env: Vec::default(),
         };
         Ok(command)
     }

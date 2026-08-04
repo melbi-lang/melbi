@@ -1,4 +1,7 @@
-#![allow(unsafe_code)]
+#![allow(
+    unsafe_code,
+    reason = "low-level FFI type-casting and pointer conversions from raw representation"
+)]
 use core::marker::PhantomData;
 
 use crate::types::Type;

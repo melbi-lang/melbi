@@ -136,10 +136,7 @@ impl core::fmt::Debug for Literal<'_> {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum TypeExpr<'a> {
     Path(&'a str),
-    Parametrized {
-        path: &'a str,
-        params: &'a [Self],
-    },
+    Parametrized { path: &'a str, params: &'a [Self] },
     Record(&'a [(&'a str, Self)]),
 }
 

@@ -52,7 +52,7 @@ impl fmt::Debug for ArenaRaw<'_> {
     }
 }
 
-#[allow(
+#[expect(
     unsafe_code,
     reason = "Union field access requires unsafe; each use has a SAFETY comment."
 )]

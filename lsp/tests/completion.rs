@@ -105,9 +105,7 @@ fn scope_completions_with_lambda() {
 
     // Lambda expressions may have parsing issues in tree-sitter
     if !diagnostics.is_empty() {
-        eprintln!(
-            "Skipping lambda completion test due to parse errors: {diagnostics:?}"
-        );
+        eprintln!("Skipping lambda completion test due to parse errors: {diagnostics:?}");
         return;
     }
 

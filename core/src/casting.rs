@@ -60,13 +60,11 @@ pub fn is_cast_valid<'types>(
     }
 
     match (source_type.view(), target_type.view()) {
-        // Numeric conversions
-        (TypeKind::Int, TypeKind::Float) => true,
-        (TypeKind::Float, TypeKind::Int) => true,
-
-        // Bytes ↔ String (UTF-8)
-        (TypeKind::Str, TypeKind::Bytes) => true,
-        (TypeKind::Bytes, TypeKind::Str) => true,
+        // Numeric & Bytes ↔ String conversions
+        (TypeKind::Int, TypeKind::Float)
+        | (TypeKind::Float, TypeKind::Int)
+        | (TypeKind::Str, TypeKind::Bytes)
+        | (TypeKind::Bytes, TypeKind::Str) => true,
 
         // All other casts are invalid
         _ => false,
@@ -126,7 +124,7 @@ pub fn perform_cast<'types, 'arena>(
     target_type: &'types Type<'types>,
     type_manager: &'types TypeManager<'types>,
 ) -> Result<Value<'types, 'arena>, CastError> {
-    use Type::{Int, Float, Str, Bytes};
+    use Type::{Bytes, Float, Int, Str};
 
     // Identity cast - just return the value unchanged
     if core::ptr::eq(value.ty, target_type) {

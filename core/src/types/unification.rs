@@ -186,7 +186,9 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
     ///
     /// Prevents creating infinite types like `a = Array[a]`.
     fn occurs_in(&self, id: u16, t: B::Repr) -> bool {
-        use TypeKind::{TypeVar, Array, Map, Option, Record, Function, Symbol, Int, Float, Bool, Str, Bytes};
+        use TypeKind::{
+            Array, Bool, Bytes, Float, Function, Int, Map, Option, Record, Str, Symbol, TypeVar,
+        };
 
         let resolved = self.resolve(t).view();
 
@@ -239,8 +241,13 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
             return Ok(t1);
         }
 
-        use Error::{OccursCheckFailed, FieldCountMismatch, FieldNameMismatch, FunctionParamCountMismatch, TypeMismatch};
-        use TypeKind::{TypeVar, Int, Float, Bool, Str, Bytes, Array, Map, Option, Record, Function, Symbol};
+        use Error::{
+            FieldCountMismatch, FieldNameMismatch, FunctionParamCountMismatch, OccursCheckFailed,
+            TypeMismatch,
+        };
+        use TypeKind::{
+            Array, Bool, Bytes, Float, Function, Int, Map, Option, Record, Str, Symbol, TypeVar,
+        };
 
         match (t1.view(), t2.view()) {
             // Type variable cases - bind variable to the other type
@@ -871,14 +878,9 @@ mod tests {
         if let crate::types::Type::Array(inner) = result {
             if let crate::types::Type::Array(innermost) = inner {
                 if let crate::types::Type::TypeVar(id) = innermost {
-                    assert_eq!(
-                        *id, 50,
-                        "Expected innermost type var to be _50, got _{id}"
-                    );
+                    assert_eq!(*id, 50, "Expected innermost type var to be _50, got _{id}");
                 } else {
-                    panic!(
-                        "Expected TypeVar(_50) as innermost type, got {innermost:?}"
-                    );
+                    panic!("Expected TypeVar(_50) as innermost type, got {innermost:?}");
                 }
             } else {
                 panic!("Expected Array as inner type, got {inner:?}");

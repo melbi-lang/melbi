@@ -685,11 +685,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
         // Push incomplete scope with parameter names
         self.scope_stack.push(
-            scope_stack::IncompleteScope::new(self.arena, params).map_err(|e| {
-                self.type_error(TypeErrorKind::DuplicateParameter {
-                    name: e.0,
-                })
-            })?,
+            scope_stack::IncompleteScope::new(self.arena, params)
+                .map_err(|e| self.type_error(TypeErrorKind::DuplicateParameter { name: e.0 }))?,
         );
 
         // Create fresh type variables for parameters
@@ -792,11 +789,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
         // Push incomplete scope with all binding names
         self.scope_stack.push(
-            scope_stack::IncompleteScope::new(self.arena, &names).map_err(|e| {
-                self.type_error(TypeErrorKind::DuplicateBinding {
-                    name: e.0,
-                })
-            })?,
+            scope_stack::IncompleteScope::new(self.arena, &names)
+                .map_err(|e| self.type_error(TypeErrorKind::DuplicateBinding { name: e.0 }))?,
         );
 
         // Analyze and bind each expression sequentially
@@ -909,11 +903,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
             // Create a new scope with the pattern variables pre-declared
             self.scope_stack.push(
-                scope_stack::IncompleteScope::new(self.arena, &pattern_vars).map_err(|e| {
-                    self.type_error(TypeErrorKind::DuplicateBinding {
-                        name: e.0,
-                    })
-                })?,
+                scope_stack::IncompleteScope::new(self.arena, &pattern_vars)
+                    .map_err(|e| self.type_error(TypeErrorKind::DuplicateBinding { name: e.0 }))?,
             );
 
             // Analyze pattern and bind variables
@@ -1069,12 +1060,11 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         pattern: &'arena parser::Pattern<'arena>,
         vars: &mut Vec<&'arena str>,
     ) {
+        use parser::Pattern::*;
         match pattern {
-            parser::Pattern::Wildcard => {}
-            parser::Pattern::Var(name) => vars.push(name),
-            parser::Pattern::Literal(_) => {}
-            parser::Pattern::Some(inner) => self.collect_pattern_vars(inner, vars),
-            parser::Pattern::None => {}
+            Var(name) => vars.push(name),
+            Some(inner) => self.collect_pattern_vars(inner, vars),
+            Wildcard | Literal(_) | None => {}
         }
     }
 
@@ -1331,7 +1321,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_format_str(
         &mut self,
-        _strs: &'arena [&'arena str],
+        strs: &'arena [&'arena str],
         exprs: &'arena [&'arena parser::Expr<'arena>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         // Analyze all interpolated expressions
@@ -1352,7 +1342,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         Ok(self.alloc(
             self.type_manager.str(),
             ExprInner::FormatStr {
-                strs: _strs,
+                strs,
                 exprs: self
                     .arena
                     .alloc_slice_fill_iter(exprs_typed.into_iter().map(|e| &*e)),
@@ -1651,7 +1641,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                 let resolved_arms: Vec<_> = arms
                     .iter()
                     .map(|arm| typed_expr::TypedMatchArm {
-                        pattern: self.resolve_pattern_types(arm.pattern, ptr_remap),
+                        pattern: self.resolve_pattern_types(arm.pattern),
                         body: self.resolve_expr_types(arm.body, ptr_remap),
                         vars: arm.vars,
                     })
@@ -1725,10 +1715,6 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     fn resolve_pattern_types(
         &self,
         pattern: &'arena typed_expr::TypedPattern<'types, 'arena>,
-        _ptr_remap: &mut hashbrown::HashMap<
-            *const Expr<'types, 'arena>,
-            *const Expr<'types, 'arena>,
-        >,
     ) -> &'arena typed_expr::TypedPattern<'types, 'arena> {
         match pattern {
             typed_expr::TypedPattern::Wildcard => {
@@ -1742,7 +1728,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                 self.arena.alloc(typed_expr::TypedPattern::Literal(*value))
             }
             typed_expr::TypedPattern::Some(inner) => {
-                let resolved_inner = self.resolve_pattern_types(inner, _ptr_remap);
+                let resolved_inner = self.resolve_pattern_types(inner);
                 self.arena
                     .alloc(typed_expr::TypedPattern::Some(resolved_inner))
             }

@@ -128,7 +128,10 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let history: Box<dyn reedline::History> = if let Some(h) = dirs::config_dir()
         .map(|p| p.join("melbi/history"))
-        .and_then(|p| FileBackedHistory::with_file(10000, p).ok()) { Box::new(h) } else {
+        .and_then(|p| FileBackedHistory::with_file(10000, p).ok())
+    {
+        Box::new(h)
+    } else {
         eprintln!("Warning: Could not initialize history file, using in-memory history");
         Box::new(FileBackedHistory::new(1000).unwrap())
     };
@@ -232,9 +235,6 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
             Signal::CtrlD => {
                 println!("\nGoodbye!");
                 return ExitCode::SUCCESS;
-            }
-            Signal::CtrlC => {
-                continue;
             }
             _ => {
                 continue;

@@ -248,7 +248,7 @@ fn parse_generics(
 ///
 /// We only accept one trait, except for the `Melbi` trait, which doesn't impose
 /// any constraints on the type, so we ignore it. For compound bounds like
-/// `T: Numeric + Ord, for instance, we'll return an error.
+/// `T: Numeric + Ord`, for instance, we'll return an error.
 fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericParam> {
     let mut traits = Vec::new();
 
@@ -493,7 +493,7 @@ fn generate_output(
                 self.__fn_type
             }
 
-            #[allow(unused_variables, reason = "macro generated code")]
+            #[allow(clippy::allow_attributes, unused_variables, reason = "macro generated code")]
             unsafe fn call_unchecked(
                 &self,
                 __ctx: &::melbi_core::values::function::FfiContext<#lt, #lt>,
@@ -701,15 +701,15 @@ fn generate_numeric_dispatch_arms(sig: &ParsedSignature, type_var: &syn::Ident) 
         sig,
         type_var,
         "Int",
-        quote!(i64),
-        quote!(__ctx.type_mgr().int()),
+        &quote!(i64),
+        &quote!(__ctx.type_mgr().int()),
     );
     let float_arm = generate_dispatch_arm(
         sig,
         type_var,
         "Float",
-        quote!(f64),
-        quote!(__ctx.type_mgr().float()),
+        &quote!(f64),
+        &quote!(__ctx.type_mgr().float()),
     );
 
     quote! {
@@ -723,8 +723,8 @@ fn generate_dispatch_arm(
     sig: &ParsedSignature,
     type_var: &syn::Ident,
     _type_name: &str,
-    rust_type: TokenStream2,
-    type_constructor: TokenStream2,
+    rust_type: &TokenStream2,
+    type_constructor: &TokenStream2,
 ) -> TokenStream2 {
     let fn_name = &sig.fn_name;
     let ok_ty = &sig.ok_return_type;

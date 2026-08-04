@@ -154,7 +154,8 @@ impl TeenyVec {
         match self.kind() {
             TeenyVecKind::Stack => {
                 let stack = unsafe { &mut self.repr.stack };
-                stack.len = (2 * new_len + 1) as u16;
+                stack.len =
+                    u16::try_from(2 * new_len + 1).expect("TeenyVec inline capacity overflow");
             }
             TeenyVecKind::Heap => {
                 let heap = unsafe { &mut self.repr.heap };

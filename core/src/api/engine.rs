@@ -179,8 +179,8 @@ impl<'arena> Engine<'arena> {
         params: &[(&'arena str, &'arena Type<'arena>)],
     ) -> Result<CompiledExpression<'arena>, Error> {
         // Merge compilation options (defaults + provided)
-        let mut _options = self.options.default_compile_options.clone();
-        _options.override_with(&options_override);
+        let mut options = self.options.default_compile_options.clone();
+        options.override_with(&options_override);
         // TODO: Use merged_options when CompileOptions has fields
 
         // Parse the source

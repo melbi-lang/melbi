@@ -38,7 +38,7 @@ fn check_overflow(a: i64, b: i64) -> Result<(), RuntimeError> {
 
 #[melbi_package]
 mod int {
-    use super::{melbi_fn, RuntimeError, check_division_by_zero, check_overflow};
+    use super::{RuntimeError, check_division_by_zero, check_overflow, melbi_fn};
 
     // ========================================================================
     // Truncated Division (C-style)

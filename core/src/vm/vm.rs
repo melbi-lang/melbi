@@ -1,4 +1,7 @@
-#![allow(unsafe_code)]
+#![allow(
+    unsafe_code,
+    reason = "VM execution loop performs raw pointer arithmetic and unchecked stack accesses for performance"
+)]
 
 use core::cmp::Ordering;
 
@@ -103,7 +106,18 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
         loop {
             self.ip = unsafe { self.ip.add(1) };
 
-            use Instruction::{ConstLoad, ConstInt, ConstUInt, ConstBool, WideArg, IntBinOp, NegInt, IntCmpOp, FloatBinOp, NegFloat, FloatCmpOp, BytesGet, BytesGetConst, BytesCmpOp, StringCmpOp, And, Or, Not, EqBool, DupN, Pop, Swap, LoadLocal, StoreLocal, JumpForward, PopJumpIfFalse, PopJumpIfTrue, Halt, Return, PushOtherwise, PopOtherwise, PopOtherwiseAndJump, Nop, MakeArray, Call, CallGenericAdapter, LoadCapture, MakeClosure, ArrayGet, ArrayGetConst, ArrayLen, ArrayConcat, ArraySlice, ArrayAppend, MapGet, MakeMap, MapHas, MapLen, MapInsert, MapRemove, MapKeys, MapValues, MakeRecord, RecordGet, RecordMerge, MakeOption, StringFormat, BytesSlice, StringToBytes, BytesToString, Eq, NotEq, MatchSomeOrJump, MatchNoneOrJump, Breakpoint, CheckLimits, Trace, InlineCache};
+            use Instruction::{
+                And, ArrayAppend, ArrayConcat, ArrayGet, ArrayGetConst, ArrayLen, ArraySlice,
+                Breakpoint, BytesCmpOp, BytesGet, BytesGetConst, BytesSlice, BytesToString, Call,
+                CallGenericAdapter, CheckLimits, ConstBool, ConstInt, ConstLoad, ConstUInt, DupN,
+                Eq, EqBool, FloatBinOp, FloatCmpOp, Halt, InlineCache, IntBinOp, IntCmpOp,
+                JumpForward, LoadCapture, LoadLocal, MakeArray, MakeClosure, MakeMap, MakeOption,
+                MakeRecord, MapGet, MapHas, MapInsert, MapKeys, MapLen, MapRemove, MapValues,
+                MatchNoneOrJump, MatchSomeOrJump, NegFloat, NegInt, Nop, Not, NotEq, Or, Pop,
+                PopJumpIfFalse, PopJumpIfTrue, PopOtherwise, PopOtherwiseAndJump, PushOtherwise,
+                RecordGet, RecordMerge, Return, StoreLocal, StringCmpOp, StringFormat,
+                StringToBytes, Swap, Trace, WideArg,
+            };
             match unsafe { *self.ip } {
                 ConstLoad(arg) => {
                     let index = wide_arg | arg as usize;
@@ -425,10 +439,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                     }
                 }
 
-                Halt => {
-                    return Ok(());
-                }
-                Return => {
+                Halt | Return => {
                     return Ok(());
                 }
 
@@ -536,9 +547,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                             self.arena.alloc_slice_fill_iter(monos.iter().map(|&idx| {
                                 let mono = &self.code.lambdas[idx as usize];
                                 let LambdaKind::Mono { code } = &mono.kind else {
-                                    panic!(
-                                        "Poly lambda references non-Mono lambda at index {idx}"
-                                    )
+                                    panic!("Poly lambda references non-Mono lambda at index {idx}")
                                 };
                                 LambdaInstantiation {
                                     fn_type: mono.lambda_type,
@@ -620,7 +629,9 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                         }
                     }
 
-                    if let Some(value) = found { self.stack.push(value) } else {
+                    if let Some(value) = found {
+                        self.stack.push(value);
+                    } else {
                         // Format key for error message (simple int display for now)
                         let key_display = format!("{}", key.as_int_unchecked());
                         return Err(RuntimeError::KeyNotFound { key_display }.into());

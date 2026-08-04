@@ -397,8 +397,7 @@ impl<'types> TypeClassResolver<'types> {
         // Check that the final type is numeric (if resolved to concrete type)
         let final_ty = unification.resolve(unified_operand);
         match final_ty.view() {
-            TypeKind::Int | TypeKind::Float => Ok(()),
-            TypeKind::TypeVar(_) => Ok(()), // Still polymorphic, OK
+            TypeKind::Int | TypeKind::Float | TypeKind::TypeVar(_) => Ok(()),
             _ => Err(ConstraintError {
                 ty: format!("{final_ty}"),
                 type_class: TypeClassId::Numeric,
@@ -736,10 +735,7 @@ impl<'types> TypeClassResolver<'types> {
                 self.collect_vars_from_type(index, unification, subst);
                 self.collect_vars_from_type(result, unification, subst);
             }
-            TypeClassConstraint::Hashable { ty, .. } => {
-                self.collect_vars_from_type(ty, unification, subst);
-            }
-            TypeClassConstraint::Ord { ty, .. } => {
+            TypeClassConstraint::Hashable { ty, .. } | TypeClassConstraint::Ord { ty, .. } => {
                 self.collect_vars_from_type(ty, unification, subst);
             }
             TypeClassConstraint::Containable {
@@ -833,10 +829,7 @@ impl<'types> TypeClassResolver<'types> {
                     || self.type_mentions_var_resolved(index, var_id, unification)
                     || self.type_mentions_var_resolved(result, var_id, unification)
             }
-            TypeClassConstraint::Hashable { ty, .. } => {
-                self.type_mentions_var_resolved(ty, var_id, unification)
-            }
-            TypeClassConstraint::Ord { ty, .. } => {
+            TypeClassConstraint::Hashable { ty, .. } | TypeClassConstraint::Ord { ty, .. } => {
                 self.type_mentions_var_resolved(ty, var_id, unification)
             }
             TypeClassConstraint::Containable {

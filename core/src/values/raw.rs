@@ -1,4 +1,7 @@
-#![allow(unsafe_code)]
+#![allow(
+    unsafe_code,
+    reason = "low-level arena memory layout and raw pointer representations for dynamic values"
+)]
 
 use core::fmt;
 use core::ptr::NonNull;
@@ -190,8 +193,8 @@ impl fmt::Debug for RawValue {
 
 #[repr(C)]
 pub struct ArrayDataRepr {
-    _length: usize,
-    _data: [RawValue; 0],
+    length: usize,
+    data: [RawValue; 0],
 }
 
 #[derive(Clone, Copy)]
@@ -233,7 +236,7 @@ impl<'a> ArrayData<'a> {
 
     #[must_use]
     pub fn length(&self) -> usize {
-        unsafe { (*self.ptr)._length }
+        unsafe { (*self.ptr).length }
         // unsafe { *(self.ptr as *const ArrayDataRepr as *const usize) }
     }
 
@@ -267,8 +270,8 @@ impl<'a> ArrayData<'a> {
 
 #[repr(C)]
 pub struct RecordDataRepr {
-    _length: usize,
-    _data: [RawValue; 0],
+    length: usize,
+    data: [RawValue; 0],
 }
 
 #[derive(Clone, Copy)]
@@ -313,7 +316,7 @@ impl<'a> RecordData<'a> {
 
     #[must_use]
     pub fn length(&self) -> usize {
-        unsafe { (*self.ptr)._length }
+        unsafe { (*self.ptr).length }
     }
 
     pub(self) fn as_ptr(&self) -> *const RawValue {
@@ -382,8 +385,8 @@ pub struct MapEntry {
 
 #[repr(C)]
 pub struct MapDataRepr {
-    _length: usize, // Number of key-value pairs
-    _data: [MapEntry; 0],
+    length: usize, // Number of key-value pairs
+    data: [MapEntry; 0],
 }
 
 #[derive(Clone, Copy)]
@@ -435,7 +438,7 @@ impl<'a> MapData<'a> {
     /// Returns the number of key-value pairs in the map.
     #[must_use]
     pub fn length(&self) -> usize {
-        unsafe { (*self.ptr)._length }
+        unsafe { (*self.ptr).length }
     }
 
     pub(crate) fn as_ptr(&self) -> *const MapEntry {
@@ -539,11 +542,11 @@ mod tests {
         }
     }
 
-    struct MyStruct<'a>(#[allow(dead_code)] &'a str);
+    struct MyStruct<'a>(&'a str);
 
     impl MyTrait for MyStruct<'_> {
         fn foo(&self) -> i32 {
-            42
+            self.0.len() as i32
         }
     }
 
@@ -555,6 +558,6 @@ mod tests {
         let header: &DynTraitHeader<dyn MyTrait> = unsafe { header_ptr.as_ref() };
         let result = unsafe { header.dyn_ptr.as_ref() }.foo();
 
-        assert_eq!(result, 42);
+        assert_eq!(result, 5);
     }
 }

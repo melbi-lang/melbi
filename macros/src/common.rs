@@ -104,9 +104,8 @@ pub(crate) fn get_name_from_tokens(
 
     // If no explicit name, derive it based on the attribute type
     let derived_name_str = match attr_name {
-        "melbi_fn" => to_pascal_case(&item_name.to_string()),
+        "melbi_fn" | "melbi_package" => to_pascal_case(&item_name.to_string()),
         "melbi_const" => to_screaming_snake_case(&item_name.to_string()),
-        "melbi_package" => to_pascal_case(&item_name.to_string()), // math -> Math (package name)
         _ => item_name.to_string(), // Should not happen given the key match above
     };
     Ok(format_ident!(

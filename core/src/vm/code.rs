@@ -123,7 +123,8 @@ impl core::fmt::Debug for Code<'_> {
                 let full_offset = wide_arg | (offset as usize);
                 let target = addr + 1 + full_offset;
                 let target_label = label_map
-                    .get(&target).map_or_else(|| alloc::format!("@{target}"), |l| alloc::format!("L{l}"));
+                    .get(&target)
+                    .map_or_else(|| alloc::format!("@{target}"), |l| alloc::format!("L{l}"));
                 writeln!(
                     f,
                     "    {addr:4} {label_prefix:>4}  {instr:?} (to {target_label})"
@@ -133,7 +134,8 @@ impl core::fmt::Debug for Code<'_> {
                 let full_idx = wide_arg | (*idx as usize);
                 let adapter_name = self
                     .generic_adapters
-                    .get(full_idx).map_or_else(|| alloc::string::String::from("???"), |a| a.name());
+                    .get(full_idx)
+                    .map_or_else(|| alloc::string::String::from("???"), |a| a.name());
                 writeln!(
                     f,
                     "    {addr:4} {label_prefix:>4}  {instr:?}  [ {adapter_name} ]"
@@ -205,7 +207,8 @@ impl core::fmt::Debug for LambdaCode<'_> {
                         let full_idx = wide_arg | (*idx as usize);
                         let adapter_name = code
                             .generic_adapters
-                            .get(full_idx).map_or_else(|| alloc::string::String::from("???"), |a| a.name());
+                            .get(full_idx)
+                            .map_or_else(|| alloc::string::String::from("???"), |a| a.name());
                         writeln!(f, "        {addr:4}  {instr:?}  [ {adapter_name} ]")?;
                     } else {
                         writeln!(f, "        {addr:4}  {instr:?}")?;

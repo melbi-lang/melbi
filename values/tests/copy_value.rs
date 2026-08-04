@@ -354,11 +354,7 @@ fn nested_array_box_to_arena() {
             int_ty.clone(),
             vec![Value::int(&src, 1), Value::int(&src, 2)],
         );
-        let inner2 = Value::array(
-            &src,
-            int_ty,
-            vec![Value::int(&src, 3), Value::int(&src, 4)],
-        );
+        let inner2 = Value::array(&src, int_ty, vec![Value::int(&src, 3), Value::int(&src, 4)]);
         let inner_ty = ty!(src_tb, Array[Int]);
         let outer = Value::array(&src, inner_ty, vec![inner1, inner2]);
         copy_value(&outer, &dst)

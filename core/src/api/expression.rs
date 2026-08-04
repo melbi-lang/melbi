@@ -168,7 +168,7 @@ impl<'arena> CompiledExpression<'arena> {
         }
 
         // Execute with validation complete
-        #[allow(unsafe_code, reason = "run must eventually call run_unchecked")]
+        #[expect(unsafe_code, reason = "run must eventually call run_unchecked")]
         unsafe {
             self.run_unchecked(options_override, arena, args)
         }
@@ -227,7 +227,7 @@ impl<'arena> CompiledExpression<'arena> {
     /// }.unwrap();
     /// assert_eq!(result.as_int().unwrap(), 42);
     /// ```
-    #[allow(
+    #[expect(
         unsafe_code,
         reason = "low-level building block for safe expression evaluation"
     )]

@@ -1,5 +1,3 @@
-#![allow(unsafe_code)] // TODO: Disallow unsafe code.
-
 use alloc::collections::BTreeMap;
 
 use bumpalo::Bump;
@@ -769,10 +767,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     pub fn map(
         arena: &'value_arena bumpalo::Bump,
         ty: &'ty_arena Type<'ty_arena>,
-        pairs: &[(
-            Self,
-            Self,
-        )],
+        pairs: &[(Self, Self)],
     ) -> Result<Self, TypeError> {
         // Validate: ty must be Map(key_ty, value_ty)
         let Type::Map(key_ty, value_ty) = ty else {
@@ -1060,6 +1055,17 @@ impl<'ty_arena, 'value_arena> Array<'ty_arena, 'value_arena> {
     }
 }
 
+impl<'a, 'ty_arena: 'value_arena, 'value_arena> IntoIterator
+    for &'a Array<'ty_arena, 'value_arena>
+{
+    type Item = Value<'ty_arena, 'value_arena>;
+    type IntoIter = ArrayIter<'a, 'ty_arena, 'value_arena>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// Iterator over Array elements.
 ///
 /// Uses start/end pointer strategy like C++ iterators for efficient iteration
@@ -1071,9 +1077,7 @@ pub struct ArrayIter<'a, 'ty_arena, 'value_arena> {
     _phantom: core::marker::PhantomData<&'a Array<'ty_arena, 'value_arena>>,
 }
 
-impl<'ty_arena: 'value_arena, 'value_arena> Iterator
-    for ArrayIter<'_, 'ty_arena, 'value_arena>
-{
+impl<'ty_arena: 'value_arena, 'value_arena> Iterator for ArrayIter<'_, 'ty_arena, 'value_arena> {
     type Item = Value<'ty_arena, 'value_arena>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1165,6 +1169,17 @@ impl<'ty_arena, 'value_arena> Record<'ty_arena, 'value_arena> {
     }
 }
 
+impl<'a, 'ty_arena: 'value_arena, 'value_arena> IntoIterator
+    for &'a Record<'ty_arena, 'value_arena>
+{
+    type Item = (&'ty_arena str, Value<'ty_arena, 'value_arena>);
+    type IntoIter = RecordIter<'a, 'ty_arena, 'value_arena>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// Iterator over Record fields.
 ///
 /// Yields (`field_name`, `field_value`) pairs in sorted order by field name.
@@ -1175,9 +1190,7 @@ pub struct RecordIter<'a, 'ty_arena, 'value_arena> {
     _phantom: core::marker::PhantomData<&'a Record<'ty_arena, 'value_arena>>,
 }
 
-impl<'ty_arena: 'value_arena, 'value_arena> Iterator
-    for RecordIter<'_, 'ty_arena, 'value_arena>
-{
+impl<'ty_arena: 'value_arena, 'value_arena> Iterator for RecordIter<'_, 'ty_arena, 'value_arena> {
     type Item = (&'ty_arena str, Value<'ty_arena, 'value_arena>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1310,6 +1323,18 @@ impl<'ty_arena, 'value_arena> Map<'ty_arena, 'value_arena> {
             index: 0,
             _phantom: core::marker::PhantomData,
         }
+    }
+}
+
+impl<'a, 'ty_arena: 'value_arena, 'value_arena> IntoIterator for &'a Map<'ty_arena, 'value_arena> {
+    type Item = (
+        Value<'ty_arena, 'value_arena>,
+        Value<'ty_arena, 'value_arena>,
+    );
+    type IntoIter = MapIter<'a, 'ty_arena, 'value_arena>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 

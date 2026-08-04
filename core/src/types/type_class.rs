@@ -105,36 +105,31 @@ pub fn has_instance<'a>(ty: &'a Type<'a>, class: TypeClassId) -> bool {
 
     match (ty.view(), class) {
         // Numeric: Int, Float
-        (TypeKind::Int | TypeKind::Float, TypeClassId::Numeric) => true,
-
+        (TypeKind::Int | TypeKind::Float, TypeClassId::Numeric)
         // Indexable: Array, Map, Bytes
-        (TypeKind::Array(_), TypeClassId::Indexable) => true,
-        (TypeKind::Map(_, _), TypeClassId::Indexable) => true,
-        (TypeKind::Bytes, TypeClassId::Indexable) => true,
-
+        | (TypeKind::Array(_) | TypeKind::Map(_, _) | TypeKind::Bytes, TypeClassId::Indexable)
         // Hashable: Most types except Function, Record, Map
-        (TypeKind::Int, TypeClassId::Hashable) => true,
-        (TypeKind::Float, TypeClassId::Hashable) => true,
-        (TypeKind::Bool, TypeClassId::Hashable) => true,
-        (TypeKind::Str, TypeClassId::Hashable) => true,
-        (TypeKind::Bytes, TypeClassId::Hashable) => true,
-        (TypeKind::Symbol(_), TypeClassId::Hashable) => true,
+        | (
+            TypeKind::Int
+            | TypeKind::Float
+            | TypeKind::Bool
+            | TypeKind::Str
+            | TypeKind::Bytes
+            | TypeKind::Symbol(_),
+            TypeClassId::Hashable,
+        )
+        // Ord: Int, Float, Str, Bytes
+        | (
+            TypeKind::Int | TypeKind::Float | TypeKind::Str | TypeKind::Bytes,
+            TypeClassId::Ord,
+        ) => true,
 
         // Array[e] is Hashable if e is Hashable (recursive check)
         (TypeKind::Array(elem_ty), TypeClassId::Hashable) => {
             has_instance(elem_ty, TypeClassId::Hashable)
         }
 
-        // Ord: Int, Float, Str, Bytes
-        (TypeKind::Int, TypeClassId::Ord) => true,
-        (TypeKind::Float, TypeClassId::Ord) => true,
-        (TypeKind::Str, TypeClassId::Ord) => true,
-        (TypeKind::Bytes, TypeClassId::Ord) => true,
-
-        // Type variables should be resolved before checking instances
-        (TypeKind::TypeVar(_), _) => false,
-
-        // All other combinations don't have instances
+        // All other combinations (including unresolved TypeVars) don't have instances
         _ => false,
     }
 }

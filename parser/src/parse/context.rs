@@ -290,7 +290,7 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
                     Rule::not => self.node(span, unary(UnaryOp::Not, rhs.tree)),
                     Rule::some_op => self.node(span, ExprKind::Some(rhs.tree)),
                     Rule::if_op => self.parse_if(op, rhs.tree, span)?,
-                    Rule::lambda_op => self.parse_lambda(op, rhs.tree, span)?,
+                    Rule::lambda_op => self.parse_lambda(op, rhs.tree, span),
                     other => {
                         return Err(malformed(
                             span,
@@ -387,12 +387,7 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
 
     /// `lambda_op = { "(" ~ lambda_params? ~ ")" ~ "=>" }`, with the body
     /// arriving as the prefix operator's operand.
-    fn parse_lambda(
-        &self,
-        op: Pair<'_, Rule>,
-        body: Tree<B, Expr>,
-        span: Span,
-    ) -> Result<Tree<B, Expr>, ParseError> {
+    fn parse_lambda(&self, op: Pair<'_, Rule>, body: Tree<B, Expr>, span: Span) -> Tree<B, Expr> {
         let params = match op.into_inner().next() {
             Some(list) => {
                 let names = list
@@ -404,7 +399,7 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
             None => self.builder.alloc_str_list([]),
         };
 
-        Ok(self.node(span, ExprKind::Lambda { params, body }))
+        self.node(span, ExprKind::Lambda { params, body })
     }
 
     fn parse_call(

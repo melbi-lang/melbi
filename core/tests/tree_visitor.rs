@@ -47,8 +47,7 @@ impl<B: TreeBuilder> TreeKind<B> {
     {
         match (self, other) {
             (Self::Num(a), Self::Num(b)) => a == b,
-            (Self::Add(l1, r1), Self::Add(l2, r2))
-            | (Self::Mul(l1, r1), Self::Mul(l2, r2)) => {
+            (Self::Add(l1, r1), Self::Add(l2, r2)) | (Self::Mul(l1, r1), Self::Mul(l2, r2)) => {
                 l1.view().structural_eq(&l2.view()) && r1.view().structural_eq(&r2.view())
             }
             (Self::Neg(a), Self::Neg(b)) => a.view().structural_eq(&b.view()),

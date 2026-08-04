@@ -70,11 +70,11 @@ impl TypeClassConstraint<'_> {
         // spans[0] is always the original constraint location
         static DEFAULT_SPAN: Span = Span(0..0);
         match self {
-            TypeClassConstraint::Numeric { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Indexable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Hashable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Ord { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Containable { spans, .. } => {
+            TypeClassConstraint::Numeric { spans, .. }
+            | TypeClassConstraint::Indexable { spans, .. }
+            | TypeClassConstraint::Hashable { spans, .. }
+            | TypeClassConstraint::Ord { spans, .. }
+            | TypeClassConstraint::Containable { spans, .. } => {
                 spans.first().unwrap_or(&DEFAULT_SPAN)
             }
         }
@@ -84,11 +84,11 @@ impl TypeClassConstraint<'_> {
     #[must_use]
     pub fn spans(&self) -> &[Span] {
         match self {
-            TypeClassConstraint::Numeric { spans, .. } => spans,
-            TypeClassConstraint::Indexable { spans, .. } => spans,
-            TypeClassConstraint::Hashable { spans, .. } => spans,
-            TypeClassConstraint::Ord { spans, .. } => spans,
-            TypeClassConstraint::Containable { spans, .. } => spans,
+            TypeClassConstraint::Numeric { spans, .. }
+            | TypeClassConstraint::Indexable { spans, .. }
+            | TypeClassConstraint::Hashable { spans, .. }
+            | TypeClassConstraint::Ord { spans, .. }
+            | TypeClassConstraint::Containable { spans, .. } => spans,
         }
     }
 

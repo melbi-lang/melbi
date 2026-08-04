@@ -1001,7 +1001,8 @@ fn empty_parens_mul(a: i64, b: i64) -> i64 {
 
 /// Test derived name with underscores: `get_first_item` -> `GetFirstItem`
 #[melbi_fn]
-fn get_first_item(a: i64, _b: i64) -> i64 {
+fn get_first_item(a: i64, b: i64) -> i64 {
+    let _ = b;
     a
 }
 

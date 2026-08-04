@@ -63,9 +63,7 @@ impl ParseError {
                 vec!["Check the number format".to_string()],
             ),
             ParseErrorKind::MaxDepthExceeded { max_depth, .. } => (
-                format!(
-                    "Expression nesting depth exceeds maximum of {max_depth} levels"
-                ),
+                format!("Expression nesting depth exceeds maximum of {max_depth} levels"),
                 Some("P004"),
                 vec!["Reduce nesting or simplify the expression".to_string()],
             ),

@@ -37,7 +37,10 @@ impl GenericAdapter for FunctionAdapter<'_> {
         self.types.len() + 1
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "low-level FFI conversion between RawValue and typed Values"
+    )]
     fn call(&self, arena: &Bump, args: &[RawValue]) -> Result<RawValue, ExecutionErrorKind> {
         debug_assert_eq!(args.len(), self.num_args());
 

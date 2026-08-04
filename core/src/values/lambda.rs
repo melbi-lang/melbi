@@ -79,7 +79,10 @@ impl<'types, 'arena> Function<'types, 'arena> for EvalLambda<'types, 'arena> {
         self.ty
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for lambda evaluation"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,

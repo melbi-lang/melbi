@@ -106,9 +106,8 @@ macro_rules! handle_case {
             let engine = melbi::Engine::new(melbi::EngineOptions::default(), &arena, |_, _, env| env);
             let result = engine.compile(Default::default(), input(), &[]);
 
-            let err = match result {
-                Err(e) => e,
-                Ok(_) => panic!("Expected compilation error, but compilation succeeded"),
+            let Err(err) = result else {
+                panic!("Expected compilation error, but compilation succeeded");
             };
             let mut buf = Vec::new();
             let config = melbi::RenderConfig { color: false, ..Default::default() };
@@ -174,7 +173,7 @@ macro_rules! test_case {
         $($assertion_fields:tt)*
     ) => {
         mod $name {
-            #![allow(unused_imports, dead_code)]
+            #![allow(clippy::allow_attributes, unused_imports, dead_code, reason = "macro generated code")]
 
             use super::*;
             use once_cell::sync::OnceCell;

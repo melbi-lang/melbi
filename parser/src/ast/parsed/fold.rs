@@ -542,7 +542,7 @@ where
 fn rebuild_literal<In, Out, F>(
     literal: &LiteralKind<In>,
     results: &mut Results<Out>,
-    folder: &mut F,
+    folder: &F,
 ) -> Result<LiteralKind<Out>, F::Error>
 where
     In: TreeBuilder,
@@ -714,7 +714,7 @@ where
 fn rebuild_type_expr<In, Out, F>(
     kind: &TypeExprKind<In>,
     results: &mut Results<Out>,
-    folder: &mut F,
+    folder: &F,
 ) -> Result<TypeExprKind<Out>, F::Error>
 where
     In: TreeBuilder,

@@ -1,5 +1,8 @@
 use bumpalo::Bump;
-use tower_lsp::lsp_types::{Diagnostic, Range, Position, DiagnosticSeverity, NumberOrString, CompletionItem, CompletionItemKind, InsertTextFormat, SemanticToken};
+use tower_lsp::lsp_types::{
+    CompletionItem, CompletionItemKind, Diagnostic, DiagnosticSeverity, InsertTextFormat,
+    NumberOrString, Position, Range, SemanticToken,
+};
 
 use crate::semantic_tokens as st;
 
@@ -52,7 +55,7 @@ impl DocumentState {
             all_diagnostics.extend(type_diagnostics);
         }
 
-        self.diagnostics = all_diagnostics.clone();
+        self.diagnostics.clone_from(&all_diagnostics);
         all_diagnostics
     }
 
@@ -63,18 +66,15 @@ impl DocumentState {
             .set_language(&tree_sitter_melbi::LANGUAGE.into())
             .expect("Error loading Melbi grammar");
 
-        let tree = match parser.parse(&self.source, None) {
-            Some(tree) => tree,
-            None => {
-                return vec![Diagnostic {
-                    range: Range::new(Position::new(0, 0), Position::new(0, 0)),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    code: None,
-                    source: Some("melbi".to_string()),
-                    message: "Failed to parse document".to_string(),
-                    ..Default::default()
-                }];
-            }
+        let Some(tree) = parser.parse(&self.source, None) else {
+            return vec![Diagnostic {
+                range: Range::new(Position::new(0, 0), Position::new(0, 0)),
+                severity: Some(DiagnosticSeverity::ERROR),
+                code: None,
+                source: Some("melbi".to_string()),
+                message: "Failed to parse document".to_string(),
+                ..Default::default()
+            }];
         };
 
         let mut diagnostics = Vec::new();
@@ -127,12 +127,9 @@ impl DocumentState {
         let arena = Bump::new();
 
         // Parse with Pest
-        let parsed = match parser::parse(&arena, &self.source) {
-            Ok(p) => p,
-            Err(_) => {
-                // Parsing failed - tree-sitter already reported errors
-                return Vec::new();
-            }
+        let Ok(parsed) = parser::parse(&arena, &self.source) else {
+            // Parsing failed - tree-sitter already reported errors
+            return Vec::new();
         };
 
         // Create type manager
@@ -319,7 +316,9 @@ impl DocumentState {
             ExprInner::Comparison { left, right, .. } => self
                 .find_expr_at_offset(left, ann, offset)
                 .or_else(|| self.find_expr_at_offset(right, ann, offset)),
-            ExprInner::Unary { expr: inner, .. } => self.find_expr_at_offset(inner, ann, offset),
+            ExprInner::Unary { expr: inner, .. }
+            | ExprInner::Cast { expr: inner, .. }
+            | ExprInner::Lambda { body: inner, .. } => self.find_expr_at_offset(inner, ann, offset),
             ExprInner::Call { callable, args, .. } => {
                 self.find_expr_at_offset(callable, ann, offset).or_else(|| {
                     args.iter()
@@ -334,8 +333,6 @@ impl DocumentState {
                 .find_expr_at_offset(value, ann, offset)
                 .or_else(|| self.find_expr_at_offset(index, ann, offset)),
             ExprInner::Field { value, .. } => self.find_expr_at_offset(value, ann, offset),
-            ExprInner::Cast { expr: inner, .. } => self.find_expr_at_offset(inner, ann, offset),
-            ExprInner::Lambda { body, .. } => self.find_expr_at_offset(body, ann, offset),
             ExprInner::If {
                 cond,
                 then_branch,
@@ -397,9 +394,8 @@ impl DocumentState {
         use melbi_core::{analyzer, parser};
 
         // Convert position to offset to check context
-        let offset = match self.position_to_offset(position) {
-            Some(o) => o,
-            None => return Vec::new(),
+        let Some(offset) = self.position_to_offset(position) else {
+            return Vec::new();
         };
 
         // Check if we're after a dot (field completion)
@@ -546,9 +542,8 @@ impl DocumentState {
         use melbi_core::analyzer::typed_expr::ExprInner;
 
         // Check if this expression contains the cursor position
-        let span = match ann.span_of(expr) {
-            Some(s) => s,
-            None => return,
+        let Some(span) = ann.span_of(expr) else {
+            return;
         };
 
         // Only collect from expressions that contain the cursor
@@ -597,11 +592,7 @@ impl DocumentState {
 
         // Recursively search other expression types
         match &expr.1 {
-            ExprInner::Binary { left, right, .. } => {
-                self.collect_identifiers_in_scope(left, ann, offset, completions, seen);
-                self.collect_identifiers_in_scope(right, ann, offset, completions, seen);
-            }
-            ExprInner::Boolean { left, right, .. } => {
+            ExprInner::Binary { left, right, .. } | ExprInner::Boolean { left, right, .. } => {
                 self.collect_identifiers_in_scope(left, ann, offset, completions, seen);
                 self.collect_identifiers_in_scope(right, ann, offset, completions, seen);
             }
@@ -684,9 +675,9 @@ impl DocumentState {
         let start = node.start_position();
 
         // Check if we're inside a number suffix - if so, highlight the whole thing as a number
-        let is_in_suffix = node
-            .parent()
-            .is_some_and(|p| matches!(p.kind(), "integer" | "float") && node.kind() == "expression");
+        let is_in_suffix = node.parent().is_some_and(|p| {
+            matches!(p.kind(), "integer" | "float") && node.kind() == "expression"
+        });
 
         // Map tree-sitter node kinds to semantic token types
         let token_type = match kind {

@@ -134,10 +134,12 @@ impl PartialEq for CompareTypeArgs<'_> {
                 }
                 (Type::Symbol(parts1), Type::Symbol(parts2)) => {
                     parts1.len() == parts2.len()
-                        && parts1
-                            .iter()
-                            .zip(*parts2)
-                            .all(|(a, b)| core::ptr::eq(core::ptr::from_ref::<str>(*a), core::ptr::from_ref::<str>(*b)))
+                        && parts1.iter().zip(*parts2).all(|(a, b)| {
+                            core::ptr::eq(
+                                core::ptr::from_ref::<str>(*a),
+                                core::ptr::from_ref::<str>(*b),
+                            )
+                        })
                 }
                 (Type::Record(fields1), Type::Record(fields2)) => {
                     fields1.len() == fields2.len()
@@ -145,8 +147,10 @@ impl PartialEq for CompareTypeArgs<'_> {
                             .iter()
                             .zip(*fields2)
                             .all(|((name1, ty1), (name2, ty2))| {
-                                core::ptr::eq(core::ptr::from_ref::<str>(*name1), core::ptr::from_ref::<str>(*name2))
-                                    && core::ptr::eq(*ty1, *ty2)
+                                core::ptr::eq(
+                                    core::ptr::from_ref::<str>(*name1),
+                                    core::ptr::from_ref::<str>(*name2),
+                                ) && core::ptr::eq(*ty1, *ty2)
                             })
                 }
                 _ => false,
@@ -161,7 +165,10 @@ impl Eq for CompareTypeArgs<'_> {}
 // This enables fast O(1) equality checks via interning
 impl<'a> PartialEq for &'a Type<'a> {
     fn eq(&self, other: &Self) -> bool {
-        core::ptr::eq(core::ptr::from_ref::<Type<'a>>(*self), core::ptr::from_ref::<Type<'a>>(*other))
+        core::ptr::eq(
+            core::ptr::from_ref::<Type<'a>>(*self),
+            core::ptr::from_ref::<Type<'a>>(*other),
+        )
     }
 }
 

@@ -39,17 +39,10 @@ pub trait Bridge: RawConvertible {
 ///
 /// Implements `Deref<Target = str>` for seamless usage as a string slice.
 #[repr(transparent)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Str<'a> {
     slice: *const Slice,
     _phantom: PhantomData<&'a ()>,
-}
-
-impl Copy for Str<'_> {}
-impl Clone for Str<'_> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<'a> Str<'a> {
