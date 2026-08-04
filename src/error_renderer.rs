@@ -25,7 +25,7 @@ pub struct RenderConfig<'a> {
     /// Whether to use ANSI color codes in output.
     pub color: bool,
     /// The filename to display in error messages.
-    /// Defaults to "<unknown>" if not provided.
+    /// Defaults to `"<unknown>"` if not provided.
     pub filename: Option<&'a str>,
     /// The character set to use for rendering.
     /// Defaults to Unicode for rich visual output.
