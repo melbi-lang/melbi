@@ -21,7 +21,7 @@ pub struct FormatStrAdapter<'t> {
     type_mgr: &'t TypeManager<'t>,
     /// Types of each expression to format (for Display conversion)
     expr_types: Vec<&'t Type<'t>>,
-    /// String parts to interleave (len = expr_types.len() + 1), owned to avoid AST lifetime
+    /// String parts to interleave (len = `expr_types.len()` + 1), owned to avoid AST lifetime
     strs: Vec<Box<str>>,
 }
 
@@ -40,7 +40,7 @@ impl<'t> FormatStrAdapter<'t> {
     }
 }
 
-impl<'t> GenericAdapter for FormatStrAdapter<'t> {
+impl GenericAdapter for FormatStrAdapter<'_> {
     fn num_args(&self) -> usize {
         self.expr_types.len()
     }
@@ -54,7 +54,7 @@ impl<'t> GenericAdapter for FormatStrAdapter<'t> {
             // Convert RawValue to Value for formatting
             let value = Value::from_raw_unchecked(ty, *raw);
             // Use Display trait (outputs strings without quotes)
-            write!(result, "{}", value).expect("Writing to String should not fail");
+            write!(result, "{value}").expect("Writing to String should not fail");
             result.push_str(&self.strs[i + 1]);
         }
 
@@ -70,7 +70,7 @@ impl<'t> GenericAdapter for FormatStrAdapter<'t> {
             let types: Vec<_> = self
                 .expr_types
                 .iter()
-                .map(|t| alloc::format!("{}", t))
+                .map(|t| alloc::format!("{t}"))
                 .collect();
             alloc::format!("FormatStr({})", types.join(", "))
         }

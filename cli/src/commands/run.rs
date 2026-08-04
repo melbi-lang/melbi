@@ -11,11 +11,12 @@ use crate::common::engine::build_stdlib;
 use crate::common::input::{read_input, strip_shebang};
 
 /// Run the run command.
+#[must_use]
 pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
     let (content, display_name) = match read_input(&args.file) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("error: {}", e);
+            eprintln!("error: {e}");
             return ExitCode::FAILURE;
         }
     };
@@ -24,7 +25,7 @@ pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
     // Prefix with newline to preserve line numbers in error messages
     let (shebang, rest) = strip_shebang(&content);
     let content = if shebang.is_some() {
-        format!("\n{}", rest)
+        format!("\n{rest}")
     } else {
         rest.to_string()
     };

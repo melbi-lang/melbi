@@ -171,9 +171,7 @@ impl<T> core::ops::Index<usize> for Stack<T> {
         let len = self.items.len();
         assert!(
             index < len,
-            "Stack index out of bounds: index {} but stack has {} elements",
-            index,
-            len
+            "Stack index out of bounds: index {index} but stack has {len} elements"
         );
         &self.items[len - 1 - index]
     }
@@ -206,9 +204,7 @@ impl<T> core::ops::IndexMut<usize> for Stack<T> {
         let len = self.items.len();
         assert!(
             index < len,
-            "Stack index out of bounds: index {} but stack has {} elements",
-            index,
-            len
+            "Stack index out of bounds: index {index} but stack has {len} elements"
         );
         &mut self.items[len - 1 - index]
     }

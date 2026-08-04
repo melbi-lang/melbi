@@ -26,7 +26,7 @@ fn check_division_by_zero(b: i64) -> Result<(), RuntimeError> {
     }
 }
 
-/// Check for overflow in i64::MIN / -1 case and return an appropriate error
+/// Check for overflow in `i64::MIN` / -1 case and return an appropriate error
 #[inline]
 fn check_overflow(a: i64, b: i64) -> Result<(), RuntimeError> {
     if a == i64::MIN && b == -1 {
@@ -38,7 +38,7 @@ fn check_overflow(a: i64, b: i64) -> Result<(), RuntimeError> {
 
 #[melbi_package]
 mod int {
-    use super::*;
+    use super::{melbi_fn, RuntimeError, check_division_by_zero, check_overflow};
 
     // ========================================================================
     // Truncated Division (C-style)
@@ -52,8 +52,8 @@ mod int {
     /// Invariant: `a == (Int.Quot(a, b) * b) + Int.Rem(a, b)`
     ///
     /// Errors:
-    /// - DivisionByZero if `b == 0`
-    /// - IntegerOverflow if `a == i64::MIN && b == -1`
+    /// - `DivisionByZero` if `b == 0`
+    /// - `IntegerOverflow` if `a == i64::MIN && b == -1`
     ///
     /// Examples:
     /// - `Int.Quot(-7, 3)  -> -2`
@@ -73,8 +73,8 @@ mod int {
     /// but is useful for digit extraction or hardware emulation.
     ///
     /// Errors:
-    /// - DivisionByZero if `b == 0`
-    /// - IntegerOverflow if `a == i64::MIN && b == -1`
+    /// - `DivisionByZero` if `b == 0`
+    /// - `IntegerOverflow` if `a == i64::MIN && b == -1`
     ///
     /// Examples:
     /// - `Int.Rem(-7, 3)  -> -1`
@@ -102,8 +102,8 @@ mod int {
     /// Invariant: `a == (Int.Div(a, b) * b) + Int.Mod(a, b)`
     ///
     /// Errors:
-    /// - DivisionByZero if `b == 0`
-    /// - IntegerOverflow if `a == i64::MIN && b == -1`
+    /// - `DivisionByZero` if `b == 0`
+    /// - `IntegerOverflow` if `a == i64::MIN && b == -1`
     ///
     /// Examples:
     /// - `Int.Div(-7, 3)  -> -3`
@@ -123,8 +123,8 @@ mod int {
     /// array indexing, clock arithmetic, and cyclic wrapping.
     ///
     /// Errors:
-    /// - DivisionByZero if `b == 0`
-    /// - IntegerOverflow if `a == i64::MIN && b == -1`
+    /// - `DivisionByZero` if `b == 0`
+    /// - `IntegerOverflow` if `a == i64::MIN && b == -1`
     ///
     /// Examples:
     /// - `Int.Mod(-7, 3)  ->  2`

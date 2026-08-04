@@ -1,4 +1,4 @@
-//! Benchmarks for TeenyVec vs SmallVec vs Vec
+//! Benchmarks for `TeenyVec` vs `SmallVec` vs Vec
 //!
 //! Run with: `cargo bench --bench teeny_vec`
 

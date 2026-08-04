@@ -218,7 +218,7 @@ fn nested_array<B: ValueBuilder>(b: &B) {
     let int_ty = ty!(tb, Int);
 
     let inner1 = Value::array(b, int_ty.clone(), vec![Value::int(b, 1), Value::int(b, 2)]);
-    let inner2 = Value::array(b, int_ty.clone(), vec![Value::int(b, 3), Value::int(b, 4)]);
+    let inner2 = Value::array(b, int_ty, vec![Value::int(b, 3), Value::int(b, 4)]);
 
     let inner_ty = ty!(tb, Array[Int]);
     let outer = Value::array(b, inner_ty, vec![inner1, inner2]);

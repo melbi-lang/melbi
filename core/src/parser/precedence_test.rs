@@ -9,7 +9,7 @@ use crate::parser::Expr;
 // different ways yield the same AST.
 fn ast<'a>(arena: &'a Bump, source: &'a str) -> &'a Expr<'a> {
     let parsed = parse(arena, source)
-        .unwrap_or_else(|e| panic!("Expression parsing failed: {}\n{}", source, e));
+        .unwrap_or_else(|e| panic!("Expression parsing failed: {source}\n{e}"));
     parsed.expr
 }
 

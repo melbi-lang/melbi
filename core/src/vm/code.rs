@@ -11,7 +11,7 @@ pub struct Code<'t> {
     pub constants: Vec<RawValue>,
     /// Function call adapters (specialized for performance).
     pub adapters: Vec<FunctionAdapter<'t>>,
-    /// Generic adapters for other operations (Cast, FormatStr, etc.).
+    /// Generic adapters for other operations (Cast, `FormatStr`, etc.).
     pub generic_adapters: Vec<Box<dyn GenericAdapter + 't>>,
     pub instructions: Vec<Instruction>,
     pub num_locals: usize,
@@ -61,14 +61,14 @@ impl core::fmt::Debug for Code<'_> {
         writeln!(f, "  max_stack_size: {}", self.max_stack_size)?;
 
         // Print constants pool
-        if !self.constants.is_empty() {
+        if self.constants.is_empty() {
+            writeln!(f, "  constants: []")?;
+        } else {
             writeln!(f, "  constants: [")?;
             for (i, constant) in self.constants.iter().enumerate() {
-                writeln!(f, "    [{}] = {:?}", i, constant)?;
+                writeln!(f, "    [{i}] = {constant:?}")?;
             }
             writeln!(f, "  ]")?;
-        } else {
-            writeln!(f, "  constants: []")?;
         }
 
         // First pass: collect all jump targets to determine which addresses need labels
@@ -92,7 +92,7 @@ impl core::fmt::Debug for Code<'_> {
 
         // Assign label numbers to targets (sorted for deterministic output)
         let mut sorted_targets: Vec<_> = jump_targets.into_iter().collect();
-        sorted_targets.sort();
+        sorted_targets.sort_unstable();
         let label_map: hashbrown::HashMap<usize, usize> = sorted_targets
             .into_iter()
             .enumerate()
@@ -106,7 +106,7 @@ impl core::fmt::Debug for Code<'_> {
         for (addr, instr) in self.instructions.iter().enumerate() {
             // Print label if this address is a jump target
             let label_prefix = if let Some(&label_num) = label_map.get(&addr) {
-                alloc::format!("L{}:", label_num)
+                alloc::format!("L{label_num}:")
             } else {
                 alloc::string::String::new()
             };
@@ -114,7 +114,7 @@ impl core::fmt::Debug for Code<'_> {
             // Handle WideArg accumulation
             if let Instruction::WideArg(high) = instr {
                 wide_arg = (wide_arg | (*high as usize)) << 8;
-                writeln!(f, "    {:4} {:>4}  {:?}", addr, label_prefix, instr)?;
+                writeln!(f, "    {addr:4} {label_prefix:>4}  {instr:?}")?;
                 continue;
             }
 
@@ -123,29 +123,23 @@ impl core::fmt::Debug for Code<'_> {
                 let full_offset = wide_arg | (offset as usize);
                 let target = addr + 1 + full_offset;
                 let target_label = label_map
-                    .get(&target)
-                    .map(|l| alloc::format!("L{}", l))
-                    .unwrap_or_else(|| alloc::format!("@{}", target));
+                    .get(&target).map_or_else(|| alloc::format!("@{target}"), |l| alloc::format!("L{l}"));
                 writeln!(
                     f,
-                    "    {:4} {:>4}  {:?} (to {})",
-                    addr, label_prefix, instr, target_label
+                    "    {addr:4} {label_prefix:>4}  {instr:?} (to {target_label})"
                 )?;
             } else if let Instruction::CallGenericAdapter(idx) = instr {
                 // Show adapter name inline for CallGenericAdapter
                 let full_idx = wide_arg | (*idx as usize);
                 let adapter_name = self
                     .generic_adapters
-                    .get(full_idx)
-                    .map(|a| a.name())
-                    .unwrap_or_else(|| alloc::string::String::from("???"));
+                    .get(full_idx).map_or_else(|| alloc::string::String::from("???"), |a| a.name());
                 writeln!(
                     f,
-                    "    {:4} {:>4}  {:?}  [ {} ]",
-                    addr, label_prefix, instr, adapter_name
+                    "    {addr:4} {label_prefix:>4}  {instr:?}  [ {adapter_name} ]"
                 )?;
             } else {
-                writeln!(f, "    {:4} {:>4}  {:?}", addr, label_prefix, instr)?;
+                writeln!(f, "    {addr:4} {label_prefix:>4}  {instr:?}")?;
             }
             wide_arg = 0;
         }
@@ -154,7 +148,7 @@ impl core::fmt::Debug for Code<'_> {
         if !self.lambdas.is_empty() {
             writeln!(f, "  lambdas:")?;
             for (i, lambda) in self.lambdas.iter().enumerate() {
-                writeln!(f, "    [{}] {:?}", i, lambda)?;
+                writeln!(f, "    [{i}] {lambda:?}")?;
             }
         }
 
@@ -192,7 +186,7 @@ impl core::fmt::Debug for LambdaCode<'_> {
                 if !code.constants.is_empty() {
                     writeln!(f, "      constants: [")?;
                     for (i, constant) in code.constants.iter().enumerate() {
-                        writeln!(f, "        [{}] = {:?}", i, constant)?;
+                        writeln!(f, "        [{i}] = {constant:?}")?;
                     }
                     writeln!(f, "      ]")?;
                 }
@@ -203,7 +197,7 @@ impl core::fmt::Debug for LambdaCode<'_> {
                 for (addr, instr) in code.instructions.iter().enumerate() {
                     if let Instruction::WideArg(high) = instr {
                         wide_arg = (wide_arg | (*high as usize)) << 8;
-                        writeln!(f, "        {:4}  {:?}", addr, instr)?;
+                        writeln!(f, "        {addr:4}  {instr:?}")?;
                         continue;
                     }
 
@@ -211,12 +205,10 @@ impl core::fmt::Debug for LambdaCode<'_> {
                         let full_idx = wide_arg | (*idx as usize);
                         let adapter_name = code
                             .generic_adapters
-                            .get(full_idx)
-                            .map(|a| a.name())
-                            .unwrap_or_else(|| alloc::string::String::from("???"));
-                        writeln!(f, "        {:4}  {:?}  [ {} ]", addr, instr, adapter_name)?;
+                            .get(full_idx).map_or_else(|| alloc::string::String::from("???"), |a| a.name());
+                        writeln!(f, "        {addr:4}  {instr:?}  [ {adapter_name} ]")?;
                     } else {
-                        writeln!(f, "        {:4}  {:?}", addr, instr)?;
+                        writeln!(f, "        {addr:4}  {instr:?}")?;
                     }
                     wide_arg = 0;
                 }
@@ -225,12 +217,12 @@ impl core::fmt::Debug for LambdaCode<'_> {
                 if !code.lambdas.is_empty() {
                     writeln!(f, "      lambdas:")?;
                     for (i, lambda) in code.lambdas.iter().enumerate() {
-                        writeln!(f, "        [{}] {:?}", i, lambda)?;
+                        writeln!(f, "        [{i}] {lambda:?}")?;
                     }
                 }
             }
             LambdaKind::Poly { monos } => {
-                writeln!(f, "      kind: Poly {{ monos: {:?} }}", monos)?;
+                writeln!(f, "      kind: Poly {{ monos: {monos:?} }}")?;
             }
         }
 

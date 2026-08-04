@@ -66,7 +66,7 @@ impl<B: ValueBuilder> Value<B> {
             elements.iter().all(|e| *e.ty() == element_ty),
             "all array elements must match element_ty",
         );
-        let handles = elements.into_iter().map(|e| e.into_handle());
+        let handles = elements.into_iter().map(Self::into_handle);
         let array_handle = builder.alloc_array(handles);
         let val_handle = builder.alloc_val(B::Raw::from_array(array_handle));
         let ty = TyKind::Array(element_ty).alloc(builder.ty_builder());
@@ -116,7 +116,7 @@ impl<B: ValueBuilder> ValueView<B> for Value<B> {
         }
     }
 
-    fn as_array(&self) -> Option<impl crate::traits::ArrayView<Value<B>>> {
+    fn as_array(&self) -> Option<impl crate::traits::ArrayView<Self>> {
         let TyKind::Array(element_ty) = self.ty.kind() else {
             return None;
         };

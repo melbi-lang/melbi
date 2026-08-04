@@ -88,7 +88,7 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let completer = Box::new({
         let mut completions = DefaultCompleter::with_inclusions(&['-', '_']);
-        completions.insert(commands.clone());
+        completions.insert(commands);
         completions
     });
 
@@ -126,15 +126,11 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let edit_mode = Box::new(Emacs::new(keybindings));
 
-    let history: Box<dyn reedline::History> = match dirs::config_dir()
+    let history: Box<dyn reedline::History> = if let Some(h) = dirs::config_dir()
         .map(|p| p.join("melbi/history"))
-        .and_then(|p| FileBackedHistory::with_file(10000, p).ok())
-    {
-        Some(h) => Box::new(h),
-        None => {
-            eprintln!("Warning: Could not initialize history file, using in-memory history");
-            Box::new(FileBackedHistory::new(1000).unwrap())
-        }
+        .and_then(|p| FileBackedHistory::with_file(10000, p).ok()) { Box::new(h) } else {
+        eprintln!("Warning: Could not initialize history file, using in-memory history");
+        Box::new(FileBackedHistory::new(1000).unwrap())
     };
 
     let validator = Box::new(MelbiValidator);
@@ -156,6 +152,7 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 }
 
 /// Run the REPL command.
+#[must_use]
 pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);

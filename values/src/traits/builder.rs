@@ -181,8 +181,8 @@ impl<B: ValueBuilder> Val<B> {
     }
 }
 
-impl<B: ValueBuilder> AsRef<Val<B>> for Val<B> {
-    fn as_ref(&self) -> &Val<B> {
+impl<B: ValueBuilder> AsRef<Self> for Val<B> {
+    fn as_ref(&self) -> &Self {
         self
     }
 }

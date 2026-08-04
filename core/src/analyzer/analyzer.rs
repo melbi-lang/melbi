@@ -132,7 +132,7 @@ struct Analyzer<'types, 'arena> {
     polymorphic_lambdas:
         hashbrown::HashMap<*const Expr<'types, 'arena>, TypeScheme<'types, 'arena>>,
     /// Track instantiations as they occur (lambda pointer -> list of (fresh var ID -> generalized var ID) mappings)
-    /// These will be resolved to concrete types after finalize_constraints
+    /// These will be resolved to concrete types after `finalize_constraints`
     pending_instantiations:
         hashbrown::HashMap<*const Expr<'types, 'arena>, Vec<hashbrown::HashMap<u16, u16>>>,
 }
@@ -188,12 +188,12 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         self.parsed_ann.source.to_string()
     }
 
-    /// Helper to create a TypeError with the current span and source
+    /// Helper to create a `TypeError` with the current span and source
     fn type_error(&self, kind: TypeErrorKind) -> TypeError {
         TypeError::new(kind, self.get_source(), self.get_span())
     }
 
-    /// Helper to return a TypeError as an Err with the current span and source
+    /// Helper to return a `TypeError` as an Err with the current span and source
     fn error<T>(&self, kind: TypeErrorKind) -> Result<T, TypeError> {
         Err(self.type_error(kind))
     }
@@ -489,8 +489,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         // 6. Extract return type from unified function type.
         let TypeKind::Function { ret: result_ty, .. } = unified_fn_type.view() else {
             return Err(self.internal_error(format!(
-                "Internal error: Expected Function type after unification, got {}",
-                unified_fn_type
+                "Internal error: Expected Function type after unification, got {unified_fn_type}"
             )));
         };
 
@@ -640,14 +639,14 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         // Check if source type is a type variable (polymorphic)
         if matches!(source_type.view(), TypeKind::TypeVar(_)) {
             let mut err = self.type_error(TypeErrorKind::PolymorphicCast {
-                target_type: format!("{}", target_type),
+                target_type: format!("{target_type}"),
             });
 
             // Add context pointing to the expression with polymorphic type
             if let Some(expr_span) = self.typed_ann.span_of(analyzed_expr) {
                 err.context
                     .push(crate::diagnostics::context::Context::InferredHere {
-                        type_name: format!("{}", source_type),
+                        type_name: format!("{source_type}"),
                         span: expr_span,
                     });
             }
@@ -658,8 +657,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         // Validate the cast using casting library
         casting::validate_cast(source_type, target_type).map_err(|err| {
             self.type_error(TypeErrorKind::InvalidCast {
-                from: format!("{}", source_type),
-                to: format!("{}", target_type),
+                from: format!("{source_type}"),
+                to: format!("{target_type}"),
                 reason: err.to_string(),
             })
         })?;
@@ -688,14 +687,14 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         self.scope_stack.push(
             scope_stack::IncompleteScope::new(self.arena, params).map_err(|e| {
                 self.type_error(TypeErrorKind::DuplicateParameter {
-                    name: e.0.to_string(),
+                    name: e.0,
                 })
             })?,
         );
 
         // Create fresh type variables for parameters
         let mut param_types: Vec<&'types Type<'types>> = Vec::new();
-        for param in params.iter() {
+        for param in params {
             let param_ty = ty.fresh_type_var();
 
             // Wrap in monomorphic TypeScheme (lambda parameters are not polymorphic)
@@ -704,7 +703,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
             self.scope_stack
                 .bind_in_current(param, scheme)
-                .map_err(|e| self.internal_error(format!("Failed to bind parameter: {:?}", e)))?;
+                .map_err(|e| self.internal_error(format!("Failed to bind parameter: {e:?}")))?;
             param_types.push(param_ty);
         }
 
@@ -724,12 +723,12 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         // Pop parameter scope
         self.scope_stack
             .pop()
-            .map_err(|e| self.internal_error(format!("Failed to pop scope: {:?}", e)))?;
+            .map_err(|e| self.internal_error(format!("Failed to pop scope: {e:?}")))?;
 
         // Pop recording scope (we don't need the returned value)
         self.scope_stack
             .pop()
-            .map_err(|e| self.internal_error(format!("Failed to pop recording scope: {:?}", e)))?;
+            .map_err(|e| self.internal_error(format!("Failed to pop recording scope: {e:?}")))?;
 
         // Get recorded names from our Rc clone
         let captures = self
@@ -795,7 +794,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         self.scope_stack.push(
             scope_stack::IncompleteScope::new(self.arena, &names).map_err(|e| {
                 self.type_error(TypeErrorKind::DuplicateBinding {
-                    name: e.0.to_string(),
+                    name: e.0,
                 })
             })?,
         );
@@ -803,7 +802,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         // Analyze and bind each expression sequentially
         let mut analyzed_bindings: Vec<(&'arena str, &'arena mut Expr<'types, 'arena>)> =
             Vec::new();
-        for (name, value_expr) in bindings.iter() {
+        for (name, value_expr) in bindings {
             let analyzed = self.analyze(value_expr)?;
 
             // Generalize the type to a type scheme
@@ -821,7 +820,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
             self.scope_stack
                 .bind_in_current(name, scheme)
-                .map_err(|e| self.internal_error(format!("Failed to bind in where: {:?}", e)))?;
+                .map_err(|e| self.internal_error(format!("Failed to bind in where: {e:?}")))?;
             analyzed_bindings.push((*name, analyzed));
         }
 
@@ -829,7 +828,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
         self.scope_stack
             .pop()
-            .map_err(|e| self.internal_error(format!("Failed to pop scope: {:?}", e)))?;
+            .map_err(|e| self.internal_error(format!("Failed to pop scope: {e:?}")))?;
 
         Ok(self.alloc(
             expr_typed.0,
@@ -860,29 +859,26 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         &mut self,
         inner: Option<&'arena parser::Expr<'arena>>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
-        match inner {
-            Some(expr) => {
-                // Analyze inner expression
-                let typed_expr = self.analyze(expr)?;
-                let inner_ty = typed_expr.0;
+        if let Some(expr) = inner {
+            // Analyze inner expression
+            let typed_expr = self.analyze(expr)?;
+            let inner_ty = typed_expr.0;
 
-                // Wrap in Option type
-                let result_ty = self.type_manager.option(inner_ty);
+            // Wrap in Option type
+            let result_ty = self.type_manager.option(inner_ty);
 
-                Ok(self.alloc(
-                    result_ty,
-                    ExprInner::Option {
-                        inner: Some(typed_expr),
-                    },
-                ))
-            }
-            None => {
-                // Polymorphic none: Option[fresh type variable]
-                let fresh_var = self.type_manager.fresh_type_var();
-                let result_ty = self.type_manager.option(fresh_var);
+            Ok(self.alloc(
+                result_ty,
+                ExprInner::Option {
+                    inner: Some(typed_expr),
+                },
+            ))
+        } else {
+            // Polymorphic none: Option[fresh type variable]
+            let fresh_var = self.type_manager.fresh_type_var();
+            let result_ty = self.type_manager.option(fresh_var);
 
-                Ok(self.alloc(result_ty, ExprInner::Option { inner: None }))
-            }
+            Ok(self.alloc(result_ty, ExprInner::Option { inner: None }))
         }
     }
 
@@ -915,7 +911,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
             self.scope_stack.push(
                 scope_stack::IncompleteScope::new(self.arena, &pattern_vars).map_err(|e| {
                     self.type_error(TypeErrorKind::DuplicateBinding {
-                        name: e.0.to_string(),
+                        name: e.0,
                     })
                 })?,
             );
@@ -929,7 +925,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
             // Pop pattern binding scope
             self.scope_stack
                 .pop()
-                .map_err(|e| self.internal_error(format!("Failed to pop scope: {:?}", e)))?;
+                .map_err(|e| self.internal_error(format!("Failed to pop scope: {e:?}")))?;
 
             // Check that all arms have the same result type
             match result_ty {
@@ -1176,7 +1172,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                     .map_err(|_e| {
                         self.type_error(TypeErrorKind::TypeMismatch {
                             expected: "Option[T]".to_string(),
-                            found: format!("{}", expected_ty),
+                            found: format!("{expected_ty}"),
                             context: Some("'some' pattern requires an Option type".to_string()),
                         })
                     })?;
@@ -1202,7 +1198,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                     .map_err(|_e| {
                         self.type_error(TypeErrorKind::TypeMismatch {
                             expected: "Option[T]".to_string(),
-                            found: format!("{}", expected_ty),
+                            found: format!("{expected_ty}"),
                             context: Some("'none' pattern requires an Option type".to_string()),
                         })
                     })?;
@@ -1455,7 +1451,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     }
 
     /// Build final lambda instantiation substitutions by resolving fresh vars to concrete types.
-    /// This is called after finalize_constraints() so all type variables are resolved.
+    /// This is called after `finalize_constraints()` so all type variables are resolved.
     fn build_lambda_instantiations(
         &self,
         arena: &'arena Bump,
@@ -1510,9 +1506,9 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         result
     }
 
-    /// Remap lambda_instantiations keys from old expression pointers to new ones.
-    /// This is necessary because resolve_expr_types allocates new Expr nodes with
-    /// different pointers, but lambda_instantiations uses pointers as keys.
+    /// Remap `lambda_instantiations` keys from old expression pointers to new ones.
+    /// This is necessary because `resolve_expr_types` allocates new Expr nodes with
+    /// different pointers, but `lambda_instantiations` uses pointers as keys.
     fn remap_lambda_instantiations(
         old_instantiations: hashbrown::HashMap<
             *const Expr<'types, 'arena>,
@@ -1546,11 +1542,11 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     }
 
     /// Recursively resolve all type variables in an expression tree.
-    /// This is called after finalize_constraints() to replace type variables
+    /// This is called after `finalize_constraints()` to replace type variables
     /// with their fully resolved types (e.g., _5 → Str).
     ///
-    /// The ptr_remap parameter tracks old→new pointer mappings so that
-    /// lambda_instantiations keys can be remapped after resolution.
+    /// The `ptr_remap` parameter tracks old→new pointer mappings so that
+    /// `lambda_instantiations` keys can be remapped after resolution.
     ///
     /// Note: Type variables that aren't unified (e.g., generalized lambda body vars)
     /// will remain unchanged, which is the correct behavior.
@@ -1563,7 +1559,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         >,
     ) -> &'arena Expr<'types, 'arena> {
         let resolved_ty = self.unification.fully_resolve(expr.0);
-        let old_ptr = expr as *const _;
+        let old_ptr = core::ptr::from_ref(expr);
         let old_span = self.typed_ann.span_of(expr);
 
         let resolved_inner = match &expr.1 {
@@ -1721,7 +1717,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         }
 
         // Record old→new pointer mapping
-        ptr_remap.insert(old_ptr, new_expr as *const _);
+        ptr_remap.insert(old_ptr, core::ptr::from_ref(new_expr));
 
         new_expr
     }

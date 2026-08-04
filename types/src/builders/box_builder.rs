@@ -14,7 +14,7 @@ use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 /// - Comparing performance with/without interning
 ///
 /// Following Chalk's design, we compute type flags during interning and
-/// wrap the TyKind in TyData.
+/// wrap the `TyKind` in `TyData`.
 ///
 /// # Example
 ///
@@ -30,6 +30,7 @@ pub struct BoxBuilder;
 
 impl BoxBuilder {
     /// Create a new box builder.
+    #[must_use]
     pub fn new() -> Self {
         Self
     }

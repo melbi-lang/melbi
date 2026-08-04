@@ -69,6 +69,7 @@ pub struct Data {
 }
 
 impl Data {
+    #[must_use]
     pub fn new(span: Span) -> Self {
         Self { span }
     }

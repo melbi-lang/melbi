@@ -13,7 +13,7 @@ pub enum TypeError {
 
 impl core::fmt::Display for TypeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -171,14 +171,17 @@ impl<'a, T: FromRawValue<'a>> Array<'a, T> {
         T::from_raw(type_mgr, self.elem_ty, raw)
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.array_data.length()
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[must_use]
     pub fn as_raw_value(&self) -> RawValue {
         self.array_data.as_raw_value()
     }

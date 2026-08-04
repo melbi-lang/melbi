@@ -50,7 +50,7 @@ pub trait Fold<B: TyBuilder> {
     /// - `Map`: `[key, value]`
     /// - `Record`: `[field0, field1, ...]`
     /// - `Function`: `[param0, param1, ..., ret]`
-    /// - Leaves (TypeVar, Scalar, Symbol): `[]`
+    /// - Leaves (`TypeVar`, Scalar, Symbol): `[]`
     fn combine(
         &mut self,
         builder: &B,
@@ -183,7 +183,7 @@ struct TypeFolderAdapter<'a, In: TyBuilder, Out: TyBuilder, F: TypeFolder<In, Ou
     _marker: core::marker::PhantomData<(In, Out)>,
 }
 
-impl<'a, In, Out, F> Fold<In> for TypeFolderAdapter<'a, In, Out, F>
+impl<In, Out, F> Fold<In> for TypeFolderAdapter<'_, In, Out, F>
 where
     In: TyBuilder,
     Out: TyBuilder,

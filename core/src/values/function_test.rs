@@ -162,8 +162,8 @@ fn multiple_functions_same_arena() {
     assert!(not_value.as_function().is_ok());
 
     // Verify they're different functions (different trait object pointers)
-    let add_ptr = add_value.as_function().unwrap() as *const _;
-    let not_ptr = not_value.as_function().unwrap() as *const _;
+    let add_ptr = std::ptr::from_ref(add_value.as_function().unwrap());
+    let not_ptr = std::ptr::from_ref(not_value.as_function().unwrap());
 
     assert_ne!(
         add_ptr, not_ptr,

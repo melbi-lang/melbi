@@ -49,37 +49,40 @@ pub enum TypeClassId {
 
 impl TypeClassId {
     /// Returns a human-readable name for this type class.
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
-            TypeClassId::Numeric => "Numeric",
-            TypeClassId::Indexable => "Indexable",
-            TypeClassId::Hashable => "Hashable",
-            TypeClassId::Ord => "Ord",
-            TypeClassId::Containable => "Containable",
+            Self::Numeric => "Numeric",
+            Self::Indexable => "Indexable",
+            Self::Hashable => "Hashable",
+            Self::Ord => "Ord",
+            Self::Containable => "Containable",
         }
     }
 
     /// Returns a description of what operations this type class enables.
+    #[must_use]
     pub fn description(self) -> &'static str {
         match self {
-            TypeClassId::Numeric => "arithmetic operations (+, -, *, /, ^)",
-            TypeClassId::Indexable => "indexing operations (value[index])",
-            TypeClassId::Hashable => "use as Map keys",
-            TypeClassId::Ord => "comparison operations (<, >, <=, >=)",
-            TypeClassId::Containable => "containment operations (in, not in)",
+            Self::Numeric => "arithmetic operations (+, -, *, /, ^)",
+            Self::Indexable => "indexing operations (value[index])",
+            Self::Hashable => "use as Map keys",
+            Self::Ord => "comparison operations (<, >, <=, >=)",
+            Self::Containable => "containment operations (in, not in)",
         }
     }
 
     /// Returns which types implement this type class.
+    #[must_use]
     pub fn instances(self) -> &'static str {
         match self {
-            TypeClassId::Numeric => "Int, Float",
-            TypeClassId::Indexable => "Array, Map, Bytes",
-            TypeClassId::Hashable => {
+            Self::Numeric => "Int, Float",
+            Self::Indexable => "Array, Map, Bytes",
+            Self::Hashable => {
                 "Int, Float, Bool, Str, Bytes, Symbol, Array (if elements are Hashable)"
             }
-            TypeClassId::Ord => "Int, Float, Str, Bytes",
-            TypeClassId::Containable => "(Str, Str), (Bytes, Bytes), (element, Array), (key, Map)",
+            Self::Ord => "Int, Float, Str, Bytes",
+            Self::Containable => "(Str, Str), (Bytes, Bytes), (element, Array), (key, Map)",
         }
     }
 }
@@ -96,6 +99,7 @@ impl TypeClassId {
 ///
 /// Note: Type variables should be resolved before calling this function.
 /// If a type variable is passed, it will return `false`.
+#[must_use]
 pub fn has_instance<'a>(ty: &'a Type<'a>, class: TypeClassId) -> bool {
     use crate::types::traits::TypeKind;
 

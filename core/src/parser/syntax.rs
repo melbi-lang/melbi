@@ -21,11 +21,11 @@ impl<'a, T> AnnotatedSource<'a, T> {
         }
     }
     pub fn add_span(&self, expr: &T, span: Span) {
-        let p = expr as *const _;
+        let p = core::ptr::from_ref(expr);
         self.spans.borrow_mut().insert(p, span);
     }
     pub fn span_of(&self, expr: &T) -> Option<Span> {
-        let p = expr as *const _;
+        let p = core::ptr::from_ref(expr);
         self.spans.borrow().get(&p).cloned()
     }
     pub fn snippet(&self, span: Span) -> &str {
@@ -37,12 +37,15 @@ impl<'a, T> AnnotatedSource<'a, T> {
 pub struct Span(pub Range<usize>);
 
 impl Span {
+    #[must_use]
     pub fn new(start: usize, end: usize) -> Self {
         Self(start..end)
     }
-    pub fn combine(a: &Span, b: &Span) -> Span {
-        Span::new(a.0.start, b.0.end)
+    #[must_use]
+    pub fn combine(a: &Self, b: &Self) -> Self {
+        Self::new(a.0.start, b.0.end)
     }
+    #[must_use]
     pub fn str_of<'a>(&self, source: &'a str) -> &'a str {
         &source[self.0.start..self.0.end]
     }

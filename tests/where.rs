@@ -19,24 +19,24 @@ test_case! {
 
 test_case! {
     name: multi_line_where_newline_before,
-    input: { r#"
+    input: { r"
 0
-where{a=1 + 2,b=3*4}"#.trim_start() },
-    formatted: { r#"
+where{a=1 + 2,b=3*4}".trim_start() },
+    formatted: { r"
 0
-where { a = 1 + 2, b = 3 * 4 }"#.trim_start() },
+where { a = 1 + 2, b = 3 * 4 }".trim_start() },
 }
 
 test_case! {
     name: multi_line_where_bindings_on_separate_lines,
-    input: { r#"
+    input: { r"
 0 where {a=1,
-         b=2}"#.trim_start() },
-    formatted: { r#"
+         b=2}".trim_start() },
+    formatted: { r"
 0 where {
     a = 1,
     b = 2,
-}"#.trim_start() },
+}".trim_start() },
 }
 
 test_case! {
@@ -47,29 +47,29 @@ test_case! {
 
 test_case! {
     name: multi_line_where_respects_newlines,
-    input: { r#"
+    input: { r"
 0 where {
-a=1, b=2}"#.trim_start() },
-    formatted: { r#"
+a=1, b=2}".trim_start() },
+    formatted: { r"
 0 where {
     a = 1,
     b = 2,
-}"#.trim_start() },
+}".trim_start() },
 }
 
 test_case! {
     name: where_with_comments,
-    input: { r#"
+    input: { r"
 0 where {
     a = 1// first binding
     , b = 2   // second binding
     , c = 30 // third binding
-}"#.trim_start() },
-    formatted: { r#"
+}".trim_start() },
+    formatted: { r"
 0 where {
     a = 1, // first binding
     b = 2, // second binding
     c = 30, // third binding
-}"#.trim_start() },
+}".trim_start() },
     // Comments in where bindings - should align vertically and add trailing comma
 }

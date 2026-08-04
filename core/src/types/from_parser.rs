@@ -1,4 +1,4 @@
-//! Conversion from parser TypeExpr to type system Type.
+//! Conversion from parser `TypeExpr` to type system Type.
 
 use alloc::string::ToString;
 
@@ -6,7 +6,7 @@ use crate::types::Type;
 use crate::types::manager::TypeManager;
 use crate::{String, Vec, parser};
 
-/// Error returned when converting a TypeExpr to a Type.
+/// Error returned when converting a `TypeExpr` to a Type.
 #[derive(Debug)]
 pub enum TypeConversionError {
     UnknownType {
@@ -22,10 +22,10 @@ pub enum TypeConversionError {
 impl core::fmt::Display for TypeConversionError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            TypeConversionError::UnknownType { name } => {
-                write!(f, "Unknown type: {}", name)
+            Self::UnknownType { name } => {
+                write!(f, "Unknown type: {name}")
             }
-            TypeConversionError::WrongParameterCount {
+            Self::WrongParameterCount {
                 type_name,
                 expected,
                 got,
@@ -45,7 +45,7 @@ impl core::fmt::Display for TypeConversionError {
 
 impl core::error::Error for TypeConversionError {}
 
-/// Converts a parser TypeExpr into the type system's Type representation.
+/// Converts a parser `TypeExpr` into the type system's Type representation.
 ///
 /// Returns a `TypeConversionError` without span information. The caller should
 /// annotate this error with the appropriate source span using the Error type.

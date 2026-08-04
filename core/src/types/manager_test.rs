@@ -429,7 +429,7 @@ fn symbol_with_strings_in_vec() {
         format!("error"),
         String::from("pending"),
     ];
-    let parts_ref: crate::Vec<&str> = parts.iter().map(|s| s.as_str()).collect();
+    let parts_ref: crate::Vec<&str> = parts.iter().map(std::string::String::as_str).collect();
     let symbol1 = manager.symbol(parts_ref);
 
     // Do it again with fresh Strings
@@ -438,7 +438,7 @@ fn symbol_with_strings_in_vec() {
         format!("error"),
         String::from("pending"),
     ];
-    let parts_ref_2: crate::Vec<&str> = parts_2.iter().map(|s| s.as_str()).collect();
+    let parts_ref_2: crate::Vec<&str> = parts_2.iter().map(std::string::String::as_str).collect();
     let symbol2 = manager.symbol(parts_ref_2);
 
     // Should be interned to the same pointer

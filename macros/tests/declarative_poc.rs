@@ -1,4 +1,4 @@
-//! Proof of concept for declarative melbi_fn macro
+//! Proof of concept for declarative `melbi_fn` macro
 //!
 //! This module demonstrates how a declarative macro can generate the boilerplate
 //! for Melbi FFI functions. The proc macro would parse the function signature
@@ -19,7 +19,7 @@ use melbi_core::values::typed::Str;
 // The main declarative macro
 // ============================================================================
 
-/// Declarative macro that generates all the boilerplate for a melbi_fn.
+/// Declarative macro that generates all the boilerplate for a `melbi_fn`.
 ///
 /// The proc macro normalizes the function signature and calls this with
 /// pre-processed arguments, so no parsing is needed here.
@@ -124,7 +124,7 @@ macro_rules! melbi_fn_impl {
 // Test functions (what the user would write)
 // ============================================================================
 
-/// Legacy mode: arena + type_mgr + params
+/// Legacy mode: arena + `type_mgr` + params
 fn add_impl(_arena: &Bump, _type_mgr: &TypeManager, a: i64, b: i64) -> i64 {
     a + b
 }
@@ -390,13 +390,11 @@ fn function_type_unwraps_result() {
 
     assert!(
         fn_ty_str.contains("Int"),
-        "Function type should contain Int: {}",
-        fn_ty_str
+        "Function type should contain Int: {fn_ty_str}"
     );
     assert!(
         !fn_ty_str.contains("Result"),
-        "Function type should not contain Result: {}",
-        fn_ty_str
+        "Function type should not contain Result: {fn_ty_str}"
     );
 }
 
@@ -476,7 +474,7 @@ fn returns_float_impl(_arena: &Bump, _type_mgr: &TypeManager, x: i64) -> f64 {
 
 /// Function taking bool parameter
 fn takes_bool_impl(_arena: &Bump, _type_mgr: &TypeManager, flag: bool) -> i64 {
-    if flag { 1 } else { 0 }
+    i64::from(flag)
 }
 
 /// Function taking f64 parameter
@@ -1216,8 +1214,7 @@ fn zero_args_function_type() {
     let fn_ty_str = format!("{}", DeclZeroArgs::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
-        "Zero-arg function type should contain Int: {}",
-        fn_ty_str
+        "Zero-arg function type should contain Int: {fn_ty_str}"
     );
 }
 
@@ -1228,8 +1225,7 @@ fn many_args_function_type() {
     let fn_ty_str = format!("{}", DeclManyArgs::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
-        "Many-arg function type should contain Int: {}",
-        fn_ty_str
+        "Many-arg function type should contain Int: {fn_ty_str}"
     );
 }
 
@@ -1240,18 +1236,15 @@ fn mixed_types_function_type() {
     let fn_ty_str = format!("{}", DeclMixedTypes::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
-        "Mixed-types function should contain Int: {}",
-        fn_ty_str
+        "Mixed-types function should contain Int: {fn_ty_str}"
     );
     assert!(
         fn_ty_str.contains("Float"),
-        "Mixed-types function should contain Float: {}",
-        fn_ty_str
+        "Mixed-types function should contain Float: {fn_ty_str}"
     );
     assert!(
         fn_ty_str.contains("Bool"),
-        "Mixed-types function should contain Bool: {}",
-        fn_ty_str
+        "Mixed-types function should contain Bool: {fn_ty_str}"
     );
 }
 

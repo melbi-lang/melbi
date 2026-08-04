@@ -1,11 +1,11 @@
-//! Benchmarks for the TypeManager.
+//! Benchmarks for the `TypeManager`.
 //!
 //! This file contains benchmarks to measure type interning and serialization performance.
 //! Run with: `cargo bench --bench type_manager` in the core/ directory.
 //!
 //! Benchmark groups:
-//! 1. record_creation: Creating new record types (not yet interned)
-//! 2. record_interning: Getting already-interned record types
+//! 1. `record_creation`: Creating new record types (not yet interned)
+//! 2. `record_interning`: Getting already-interned record types
 //! 3. serialization: Serializing types to bytes
 //! 4. deserialization: Deserializing types from bytes
 
@@ -84,7 +84,7 @@ fn bench_record_creation(c: &mut Criterion) {
                     let fields: Vec<(&str, _)> = (0..num_fields)
                         .map(|i| {
                             // Make field names unique per iteration to avoid cache hits
-                            let name = arena.alloc_str(&format!("field_{}_{}", i, counter));
+                            let name = arena.alloc_str(&format!("field_{i}_{counter}"));
                             let type_name = type_names[i % type_names.len()];
                             let ty = create_complex_type(manager, type_name);
                             (name as &str, ty)
@@ -107,7 +107,7 @@ fn bench_record_creation(c: &mut Criterion) {
 /// Benchmark: Getting already-interned record types.
 ///
 /// Measures the cost of getting a record type that's already been interned.
-/// This should be fast - just a HashMap lookup.
+/// This should be fast - just a `HashMap` lookup.
 fn bench_record_interning(c: &mut Criterion) {
     let mut group = c.benchmark_group("record_interning");
 
@@ -131,7 +131,7 @@ fn bench_record_interning(c: &mut Criterion) {
 
                 let fields: Vec<(&str, _)> = (0..num_fields)
                     .map(|i| {
-                        let name = arena.alloc_str(&format!("field_{}", i));
+                        let name = arena.alloc_str(&format!("field_{i}"));
                         let type_name = type_names[i % type_names.len()];
                         let ty = create_complex_type(manager, type_name);
                         (name as &str, ty)
@@ -145,7 +145,7 @@ fn bench_record_interning(c: &mut Criterion) {
                 b.iter(|| {
                     let fields: Vec<(&str, _)> = (0..num_fields)
                         .map(|i| {
-                            let name = arena.alloc_str(&format!("field_{}", i));
+                            let name = arena.alloc_str(&format!("field_{i}"));
                             let type_name = type_names[i % type_names.len()];
                             let ty = create_complex_type(manager, type_name);
                             (name as &str, ty)
@@ -202,7 +202,7 @@ fn bench_type_serialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
@@ -224,7 +224,7 @@ fn bench_type_serialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
@@ -282,7 +282,7 @@ fn bench_type_deserialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
@@ -307,7 +307,7 @@ fn bench_type_deserialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
@@ -367,7 +367,7 @@ fn bench_type_equality_bytes(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..50)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
@@ -391,7 +391,7 @@ fn bench_type_equality_bytes(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..50)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();

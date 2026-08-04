@@ -63,7 +63,7 @@ fn valid_expressions() -> Result<(), Error<Rule>> {
 
     for expr in examples {
         ExpressionParser::parse(Rule::main, expr)
-            .unwrap_or_else(|e| panic!("Failed to parse '{}': {}", expr, e));
+            .unwrap_or_else(|e| panic!("Failed to parse '{expr}': {e}"));
     }
 
     Ok(())
@@ -105,8 +105,7 @@ fn invalid_expressions() {
     for expr in examples {
         assert!(
             ExpressionParser::parse(Rule::main, expr).is_err(),
-            "Expected failure parsing '{}'",
-            expr
+            "Expected failure parsing '{expr}'"
         );
     }
 }
@@ -145,6 +144,6 @@ fn pattern_matching_syntax() {
 
     let arena = Bump::new();
     for expr in examples {
-        parser::parse(&arena, expr).unwrap_or_else(|e| panic!("Failed to parse '{}': {}", expr, e));
+        parser::parse(&arena, expr).unwrap_or_else(|e| panic!("Failed to parse '{expr}': {e}"));
     }
 }

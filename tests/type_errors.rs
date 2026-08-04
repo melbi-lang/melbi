@@ -10,7 +10,7 @@ mod cases;
 test_case! {
     name: if_condition_must_be_boolean,
     input: "if 1 then 0 else 0",
-    error: { r#"
+    error: { r"
 [E001] Error: Type mismatch: expected Bool, found Int
    ╭─[ <unknown>:1:4 ]
    │
@@ -20,7 +20,7 @@ test_case! {
    │
    │ Help: Condition of 'if' must be Bool
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
@@ -42,7 +42,7 @@ test_case! {
 test_case! {
     name: undefined_variable,
     input: "x + 1",
-    error: { r#"
+    error: { r"
 [E002] Error: Undefined variable 'x'
    ╭─[ <unknown>:1:1 ]
    │
@@ -52,13 +52,13 @@ test_case! {
    │
    │ Help: Make sure the variable is declared before use
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: numeric_operation_on_bool,
     input: "true + false",
-    error: { r#"
+    error: { r"
 [E005] Error: Type 'Bool' does not implement Numeric
    ╭─[ <unknown>:1:1 ]
    │
@@ -70,13 +70,13 @@ test_case! {
    │
    │ Help 2: Numeric is implemented for: Int, Float
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: duplicate_binding_in_where,
     input: "x where { x = 1, x = 2 }",
-    error: { r#"
+    error: { r"
 [E016] Error: Duplicate binding name 'x'
    ╭─[ <unknown>:1:1 ]
    │
@@ -86,7 +86,7 @@ test_case! {
    │
    │ Help: Each binding in a where clause must have a unique name
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
@@ -108,7 +108,7 @@ test_case! {
 test_case! {
     name: unary_negation_on_bool,
     input: "-true",
-    error: { r#"
+    error: { r"
 [E005] Error: Type 'Bool' does not implement Numeric
    ╭─[ <unknown>:1:1 ]
    │
@@ -120,13 +120,13 @@ test_case! {
    │
    │ Help 2: Numeric is implemented for: Int, Float
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: logical_not_on_int,
     input: "not 42",
-    error: { r#"
+    error: { r"
 [E001] Error: Type mismatch: expected Bool, found Int
    ╭─[ <unknown>:1:5 ]
    │
@@ -136,13 +136,13 @@ test_case! {
    │
    │ Help: Operand of 'not' must be Bool
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: mixed_type_arithmetic,
     input: "1 + 2.5",
-    error: { r#"
+    error: { r"
 [E001] Error: Type mismatch: expected Int, found Float
    ╭─[ <unknown>:1:5 ]
    │
@@ -152,13 +152,13 @@ test_case! {
    │
    │ Help: Types must match in this context
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: duplicate_lambda_parameter,
     input: "(x, x) => x + 1",
-    error: { r#"
+    error: { r"
 [E015] Error: Duplicate parameter name 'x'
    ╭─[ <unknown>:1:1 ]
    │
@@ -168,13 +168,13 @@ test_case! {
    │
    │ Help: Each parameter must have a unique name
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: ordering_comparison_on_bool,
     input: "lt(false, true) where { lt = (a, b) => a < b }",
-    error: { r#"
+    error: { r"
 [E005] Error: Type 'Bool' does not implement Ord
    ╭─[ <unknown>:1:40 ]
    │
@@ -188,13 +188,13 @@ test_case! {
    │
    │ Help 2: Ord is implemented for: Int, Float, Str, Bytes
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: numeric_operation_on_bool_polymorphic,
     input: "f(false, true) where { f = (a, b) => a + b }",
-    error: { r#"
+    error: { r"
 [E005] Error: Type 'Bool' does not implement Numeric
    ╭─[ <unknown>:1:38 ]
    │
@@ -208,7 +208,7 @@ test_case! {
    │
    │ Help 2: Numeric is implemented for: Int, Float
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
@@ -245,8 +245,8 @@ test_case! {
 
 test_case! {
     name: fails_indexable_constraint_polymorphic,
-    input: r#"f([1, 2, 3], false) where { f = (container, index) => container[index] }"#,
-    error: { r#"
+    input: r"f([1, 2, 3], false) where { f = (container, index) => container[index] }",
+    error: { r"
 [E005] Error: Indexable constraint not satisfied for 'Array[Int]': array indexing requires Int index, found Bool
    ╭─[ <unknown>:1:55 ]
    │
@@ -260,7 +260,7 @@ test_case! {
    │
    │ Help 2: Indexable is implemented for: Array, Map, Bytes
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
@@ -286,7 +286,7 @@ test_case! {
 test_case! {
     name: fails_containable_not_implemented,
     input: "((x) => 1 in x)(true)",
-    error: { r#"
+    error: { r"
 [E005] Error: Type 'Bool' does not implement Containable
    ╭─[ <unknown>:1:9 ]
    │
@@ -298,7 +298,7 @@ test_case! {
    │
    │ Help 2: Containable is implemented for: (Str, Str), (Bytes, Bytes), (element, Array), (key, Map)
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
@@ -323,8 +323,8 @@ test_case! {
 
 test_case! {
     name: fails_nested_polymorphic_instantiation_chain,
-    input: r#"h([1,2,3], false) where { f = (container, index) => container[index], g = (c, i) => f(c, i), h = (x, y) => g(x, y) }"#,
-    error: { r#"
+    input: r"h([1,2,3], false) where { f = (container, index) => container[index], g = (c, i) => f(c, i), h = (x, y) => g(x, y) }",
+    error: { r"
 [E005] Error: Indexable constraint not satisfied for 'Array[Int]': array indexing requires Int index, found Bool
    ╭─[ <unknown>:1:53 ]
    │
@@ -342,19 +342,19 @@ test_case! {
    │
    │ Help 2: Indexable is implemented for: Array, Map, Bytes
 ───╯
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: fails_nested_polymorphic_instantiation_chain_multiline,
-    input: r#"
+    input: r"
 h([1,2,3], false)
 where {
     f = (container, index) => container[index],
     g = (c, i) => f(c, i),
     h = (x, y) => g(x, y),
-}"#.trim_start(),
-    error: { r#"
+}".trim_start(),
+    error: { r"
 [E005] Error: Indexable constraint not satisfied for 'Array[Int]': array indexing requires Int index, found Bool
    ╭─[ <unknown>:3:31 ]
    │
@@ -378,5 +378,5 @@ where {
    │
    │ Help 2: Indexable is implemented for: Array, Map, Bytes
 ───╯
-"#.trim_start() },
+".trim_start() },
 }

@@ -20,7 +20,7 @@ pub mod shim {
 
 // Re-export (crate only) for convenience so other modules don't need alloc:: prefix
 #[allow(unused_imports)]
-pub(crate) use shim::*;
+pub(crate) use shim::{String, Vec, format, Box, vec, ToString};
 
 pub mod analyzer;
 pub mod api;

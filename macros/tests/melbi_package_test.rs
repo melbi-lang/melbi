@@ -1,4 +1,4 @@
-//! Test the #[melbi_package] macro
+//! Test the #[`melbi_package`] macro
 
 extern crate alloc;
 

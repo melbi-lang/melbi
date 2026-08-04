@@ -47,7 +47,7 @@ pub struct Array<B: ValueBuilder, E> {
 
 impl<B: ValueBuilder, E> Clone for Array<B, E> {
     fn clone(&self) -> Self {
-        Array {
+        Self {
             handle: self.handle.clone(),
             _marker: PhantomData,
         }
@@ -78,7 +78,7 @@ impl<B: ValueBuilder, E: Marshal<B>> Array<B, E> {
     ) -> Self {
         let handles = elements.into_iter().map(|e| e.into_val_handle(builder));
         let handle = builder.alloc_array(handles);
-        Array {
+        Self {
             handle,
             _marker: PhantomData,
         }
@@ -122,7 +122,7 @@ impl<B: ValueBuilder, E: Marshal<B>> Marshal<B> for Array<B, E> {
     }
 
     fn from_val_unchecked(val: &Val<B>) -> Self {
-        Array {
+        Self {
             handle: val.as_array_unchecked().clone(),
             _marker: PhantomData,
         }

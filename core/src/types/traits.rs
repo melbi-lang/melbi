@@ -1,4 +1,4 @@
-/// TypeView trait enables zero-copy pattern matching over type representations.
+/// `TypeView` trait enables zero-copy pattern matching over type representations.
 ///
 /// This trait abstracts over different type representations (arena-allocated,
 /// encoded bytes, indexed database) allowing generic algorithms to work with
@@ -40,7 +40,7 @@ impl<'a, T: TypeView<'a>> TypeKind<'a, T> {
     /// Get the type tag for this type kind.
     ///
     /// This provides a stable ordering across type kinds that can be used
-    /// for comparison and sorting. Returns a TypeTag which is Ord-comparable.
+    /// for comparison and sorting. Returns a `TypeTag` which is Ord-comparable.
     ///
     /// # Example
     ///
@@ -91,24 +91,24 @@ impl TryFrom<u8> for TypeTag {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(TypeTag::TypeVar),
-            1 => Ok(TypeTag::Int),
-            2 => Ok(TypeTag::Float),
-            3 => Ok(TypeTag::Bool),
-            4 => Ok(TypeTag::Str),
-            5 => Ok(TypeTag::Bytes),
-            6 => Ok(TypeTag::Array),
-            7 => Ok(TypeTag::Map),
-            8 => Ok(TypeTag::Record),
-            9 => Ok(TypeTag::Function),
-            10 => Ok(TypeTag::Symbol),
-            11 => Ok(TypeTag::Option),
+            0 => Ok(Self::TypeVar),
+            1 => Ok(Self::Int),
+            2 => Ok(Self::Float),
+            3 => Ok(Self::Bool),
+            4 => Ok(Self::Str),
+            5 => Ok(Self::Bytes),
+            6 => Ok(Self::Array),
+            7 => Ok(Self::Map),
+            8 => Ok(Self::Record),
+            9 => Ok(Self::Function),
+            10 => Ok(Self::Symbol),
+            11 => Ok(Self::Option),
             _ => Err(()),
         }
     }
 }
 
-/// TypeBuilder trait enables building type representations.
+/// `TypeBuilder` trait enables building type representations.
 ///
 /// This trait abstracts over type construction, allowing generic algorithms
 /// to build types in any representation (arena-allocated `&Type`, encoded bytes,
@@ -130,7 +130,7 @@ impl TryFrom<u8> for TypeTag {
 /// Used with `TypeTransformer` to enable generic type transformations:
 /// - Alpha-conversion (variable renaming)
 /// - Type substitution
-/// - Format conversion (EncodedType → &Type)
+/// - Format conversion (`EncodedType` → &Type)
 pub trait TypeBuilder<'a>: Copy {
     /// The type representation that is built by this builder.
     type Repr: TypeView<'a>;
@@ -176,7 +176,7 @@ pub trait TypeBuilder<'a>: Copy {
     fn symbol(&self, parts: impl Iterator<Item = &'a str>) -> Self::Repr;
 }
 
-/// TypeTransformer trait enables generic type transformations.
+/// `TypeTransformer` trait enables generic type transformations.
 ///
 /// This trait provides a framework for walking type structures and rebuilding them,
 /// optionally transforming parts along the way. The default `transform` method
@@ -284,7 +284,7 @@ pub trait TypeTransformer<'a, B: TypeBuilder<'a>> {
     }
 }
 
-/// TypeVisitor trait enables traversing type structures without building new types.
+/// `TypeVisitor` trait enables traversing type structures without building new types.
 ///
 /// This trait is similar to `TypeTransformer` but for read-only traversals where you
 /// don't need to construct new types. It's useful for algorithms that:
@@ -328,7 +328,7 @@ pub trait TypeVisitor<'a> {
     /// The default implementation recursively walks the type structure.
     /// Override this method to add custom logic before/after the default traversal.
     fn visit(&mut self, ty: Self::Input) {
-        self.visit_default(ty)
+        self.visit_default(ty);
     }
 
     /// Default visitation logic (used by default `visit` and available for
@@ -561,7 +561,7 @@ pub(super) fn display_type<'a, V: TypeView<'a>>(ty: V) -> alloc::string::String 
         TypeKind::Str => "Str".to_string(),
         TypeKind::Bytes => "Bytes".to_string(),
 
-        TypeKind::TypeVar(id) => alloc::format!("_{}", id),
+        TypeKind::TypeVar(id) => alloc::format!("_{id}"),
 
         TypeKind::Array(elem) => {
             alloc::format!("Array[{}]", display_type(elem))
@@ -590,7 +590,7 @@ pub(super) fn display_type<'a, V: TypeView<'a>>(ty: V) -> alloc::string::String 
 
         TypeKind::Symbol(parts) => {
             let part_strs: alloc::vec::Vec<alloc::string::String> =
-                parts.map(|p| p.to_string()).collect();
+                parts.map(alloc::string::ToString::to_string).collect();
             alloc::format!("Symbol[{}]", part_strs.join("|"))
         }
     }
@@ -627,7 +627,7 @@ mod tests {
         if let Type::TypeVar(id) = result {
             assert_eq!(*id, 100);
         } else {
-            panic!("Expected TypeVar(100), got {:?}", result);
+            panic!("Expected TypeVar(100), got {result:?}");
         }
     }
 
@@ -678,7 +678,7 @@ mod tests {
             // Verify pointer equality: params[0] and ret should be the same interned type
             assert!(core::ptr::eq(params[0], *ret));
         } else {
-            panic!("Expected Function type, got {:?}", result);
+            panic!("Expected Function type, got {result:?}");
         }
     }
 
@@ -724,7 +724,7 @@ mod tests {
                 panic!("Expected Array in val");
             }
         } else {
-            panic!("Expected Map type, got {:?}", result);
+            panic!("Expected Map type, got {result:?}");
         }
     }
 

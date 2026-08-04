@@ -18,11 +18,11 @@ test_case! {
 
 test_case! {
     name: empty_record_with_newlines,
-    input: { r#"
+    input: { r"
 Record
 
 {
-}"#.trim_start() },
+}".trim_start() },
     formatted: { "Record{}" },
 }
 
@@ -34,14 +34,14 @@ test_case! {
 
 test_case! {
     name: multi_line_record,
-    input: { r#"
+    input: { r"
 {x=1,
-y=2}"#.trim_start() },
-    formatted: { r#"
+y=2}".trim_start() },
+    formatted: { r"
 {
     x = 1,
     y = 2,
-}"#.trim_start() },
+}".trim_start() },
 }
 
 test_case! {
@@ -52,29 +52,29 @@ test_case! {
 
 test_case! {
     name: multi_line_record_respects_newlines,
-    input: { r#"
+    input: { r"
 {
-x=1,y={z=3}}"#.trim_start() },
-    formatted: { r#"
+x=1,y={z=3}}".trim_start() },
+    formatted: { r"
 {
     x = 1, y = { z = 3 },
-}"#.trim_start() },
+}".trim_start() },
 }
 
 test_case! {
     name: record_with_comments,
-    input: { r#"
+    input: { r"
 {
     x = 1, // first
 
     y = 10,// second
     z = 100     // third
-}"#.trim_start() },
-    formatted: { r#"
+}".trim_start() },
+    formatted: { r"
 {
     x = 1, // first
     y = 10, // second
     z = 100, // third
-}"#.trim_start() },
+}".trim_start() },
     // Comments in records - should align vertically and add trailing comma
 }

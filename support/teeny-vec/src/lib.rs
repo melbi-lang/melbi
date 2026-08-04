@@ -1,6 +1,6 @@
-//! TeenyVec: A 16-byte small vector optimized for inline storage.
+//! `TeenyVec`: A 16-byte small vector optimized for inline storage.
 //!
-//! TeenyVec provides a compact vector type that:
+//! `TeenyVec` provides a compact vector type that:
 //! - Is exactly 16 bytes (2 registers on x86-64/arm64)
 //! - Stores up to 14 bytes inline without heap allocation
 //! - Grows to heap seamlessly when needed
@@ -72,6 +72,7 @@ static_assertions::assert_eq_size!(TeenyVec, [usize; 2]);
     reason = "unsafe code is used to detect stack/heap usage and to access the data"
 )]
 impl TeenyVec {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             repr: TeenyVecRepr {
@@ -93,6 +94,7 @@ impl TeenyVec {
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn len(&self) -> usize {
         match self.kind() {
             TeenyVecKind::Stack => (unsafe { (self.repr.stack.len - 1) / 2 }) as usize,
@@ -100,11 +102,13 @@ impl TeenyVec {
         }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn cap(&self) -> usize {
         match self.kind() {
             TeenyVecKind::Stack => 14usize,
@@ -208,6 +212,7 @@ impl TeenyVec {
         }
     }
 
+    #[must_use]
     pub fn as_slice(&self) -> &[u8] {
         match self.kind() {
             TeenyVecKind::Stack => {

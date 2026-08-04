@@ -89,5 +89,5 @@ fn trim_trailing_whitespace(s: &str) -> String {
         result.pop();
     }
 
-    result.to_string()
+    result.clone()
 }

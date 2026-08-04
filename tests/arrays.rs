@@ -24,15 +24,15 @@ test_case! {
 
 test_case! {
     name: multi_line_array,
-    input: {r#"
+    input: {r"
 [1,
- 2,3]"#.trim_start()},
-    formatted: { r#"
+ 2,3]".trim_start()},
+    formatted: { r"
 [
     1,
     2,
     3,
-]"#.trim_start() },
+]".trim_start() },
 }
 
 test_case! {
@@ -43,13 +43,13 @@ test_case! {
 
 test_case! {
     name: multi_line_array_respects_newlines,
-    input: {r#"
+    input: {r"
 [
-1,2,3]"#.trim_start()},
-    formatted: {r#"
+1,2,3]".trim_start()},
+    formatted: {r"
 [
     1, 2, 3,
-]"#.trim_start()},
+]".trim_start()},
 }
 
 test_case! {
@@ -78,30 +78,30 @@ test_case! {
 \t2,3   ]
 "},
     // Normalize weird whitespace and newline implies multi-line
-    formatted: { r#"
+    formatted: { r"
 [
     1,
     2,
     3,
 ]
-"#.trim_start() },
+".trim_start() },
 }
 
 test_case! {
     name: array_with_comments,
-    input: {r#"
+    input: {r"
 [
     1,     // first
     2,// second
     3 // third
-]"#.trim_start()},
+]".trim_start()},
     // Comments in arrays - should align vertically and add trailing comma
-    formatted: {r#"
+    formatted: {r"
 [
     1, // first
     2, // second
     3, // third
-]"#.trim_start()},
+]".trim_start()},
 }
 
 test_case! {
@@ -127,7 +127,7 @@ test_case! {
                     c = 6
                 }, 7^8]".trim_start()},
     // Complex expressions with operator precedence
-    formatted: {r#"
+    formatted: {r"
 [
     1 + 2 * 3,
     (a - b) / c where {
@@ -136,7 +136,7 @@ test_case! {
         c = 6,
     },
     7 ^ 8,
-]"#.trim_start()},
+]".trim_start()},
 }
 
 test_case! {

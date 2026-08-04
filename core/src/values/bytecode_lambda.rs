@@ -39,7 +39,7 @@ pub struct LambdaInstantiation<'types, 'arena> {
 /// # Closure Support
 ///
 /// Lambdas can capture variables from their enclosing scope. Captured variables are stored
-/// as a slice of RawValues and passed to the VM when the lambda is called.
+/// as a slice of `RawValues` and passed to the VM when the lambda is called.
 ///
 /// # Polymorphism
 ///
@@ -67,6 +67,7 @@ impl<'types, 'arena> BytecodeLambda<'types, 'arena> {
     /// - `ty`: The function's type (must be a Function type)
     /// - `instantiations`: All compiled instantiations (concrete type + Code)
     /// - `captures`: Captured values from the enclosing scope
+    #[must_use]
     pub fn new(
         ty: &'types Type<'types>,
         instantiations: &'arena [LambdaInstantiation<'types, 'arena>],
@@ -157,7 +158,7 @@ impl<'types, 'arena> Function<'types, 'arena> for BytecodeLambda<'types, 'arena>
         tracing::trace!(fn_type = %inst.fn_type, code = ?inst.code, "call_unchecked: selected instantiation");
 
         // Collect arguments as locals
-        let locals = args.iter().map(|arg| arg.as_raw()).collect();
+        let locals = args.iter().map(super::dynamic::Value::as_raw).collect();
 
         // Create VM with locals and captures, then execute
         let mut vm = VM::new(ctx.arena(), inst.code, locals, self.captures);

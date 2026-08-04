@@ -71,17 +71,17 @@ pub enum Instruction {
 
     /// Push small signed integer (-128 to 127)
     /// Operand: i8 value | Stack: [...] -> [..., int]
-    /// Does not support WideArg.
+    /// Does not support `WideArg`.
     ConstInt(i8) = 0x02,
 
     /// Push unsigned byte (0 to 255)
     /// Operand: u8 value | Stack: [...] -> [..., int]
-    /// Does not support WideArg.
+    /// Does not support `WideArg`.
     ConstUInt(u8) = 0x03,
 
     /// Push the Bool value (arg != 0)
     /// Stack: [...] -> [..., arg != 0]
-    /// Does not support WideArg.
+    /// Does not support `WideArg`.
     ConstBool(u8) = 0x04,
 
     /// Wide argument prefix - modifies next instruction's operand
@@ -98,7 +98,7 @@ pub enum Instruction {
 
     /// Duplicate value at depth N (top is N=0)
     /// Operand: u8 depth | Stack: [..., aN, ...] -> [..., aN, ..., aN]
-    /// Does not support WideArg.
+    /// Does not support `WideArg`.
     DupN(u8) = 0x07,
 
     /// Pop top value
@@ -165,7 +165,7 @@ pub enum Instruction {
     // ========================================================================
     /// Float binary operation
     ///
-    /// Same operand encoding as IntBinOp:
+    /// Same operand encoding as `IntBinOp`:
     /// - `b'+'`: Addition
     /// - `b'-'`: Subtraction
     /// - `b'*'`: Multiplication
@@ -239,17 +239,17 @@ pub enum Instruction {
 
     /// Push otherwise error handler
     /// Operand: u8 offset (forward) to fallback code
-    /// Pushes OtherwiseBlock { fallback: ip + offset, stack_size: current_stack_size } to otherwise_stack
+    /// Pushes `OtherwiseBlock` { fallback: ip + offset, `stack_size`: `current_stack_size` } to `otherwise_stack`
     PushOtherwise(u8) = 0x42,
 
     /// Pop otherwise error handler (normal cleanup)
-    /// Pops the top OtherwiseBlock from otherwise_stack
+    /// Pops the top `OtherwiseBlock` from `otherwise_stack`
     /// Used in fallback code to clean up handler
     PopOtherwise = 0x43,
 
     /// Pop otherwise handler and jump (success case)
     /// Operand: u8 offset (forward) to done label
-    /// Pops OtherwiseBlock and jumps past fallback code
+    /// Pops `OtherwiseBlock` and jumps past fallback code
     /// Used when primary expression succeeds
     PopOtherwiseAndJump(u8) = 0x44,
 
@@ -269,7 +269,7 @@ pub enum Instruction {
     /// 3. Creating closure object with function + captured upvalues
     /// 4. Pushing closure object onto stack
     ///
-    /// The number of upvalues is stored in the FunctionConstant.
+    /// The number of upvalues is stored in the `FunctionConstant`.
     MakeClosure(u8) = 0x50,
 
     // 0x51-0x5F reserved for function operations
@@ -302,7 +302,7 @@ pub enum Instruction {
     ArraySlice = 0x65,
 
     /// Append element to array (creates new array)
-    /// Stack: [..., array: Array[T], elem: T] -> [..., new_array: Array[T]]
+    /// Stack: [..., array: Array[T], elem: T] -> [..., `new_array`: Array[T]]
     ArrayAppend = 0x66,
 
     // 0x67-0x6F reserved for array operations
@@ -327,11 +327,11 @@ pub enum Instruction {
     MapHas = 0x73,
 
     /// Insert key-value (creates new map)
-    /// Stack: [..., map: Map[K,V], key: K, val: V] -> [..., new_map: Map[K,V]]
+    /// Stack: [..., map: Map[K,V], key: K, val: V] -> [..., `new_map`: Map[K,V]]
     MapInsert = 0x74,
 
     /// Remove key (creates new map)
-    /// Stack: [..., map: Map[K,V], key: K] -> [..., new_map: Map[K,V]]
+    /// Stack: [..., map: Map[K,V], key: K] -> [..., `new_map`: Map[K,V]]
     MapRemove = 0x75,
 
     /// Get all keys as array
@@ -411,7 +411,7 @@ pub enum Instruction {
     // ========================================================================
     // Type & Error Operations (0xB0 - 0xBF)
     // ========================================================================
-    /// Call a generic adapter (Cast, FormatStr, etc.)
+    /// Call a generic adapter (Cast, `FormatStr`, etc.)
     /// Operand: u8 adapter index | Stack: [..., args...] -> [..., result(!)]
     ///
     /// The number of args popped depends on the adapter's `num_args()`.
@@ -441,7 +441,7 @@ pub enum Instruction {
     /// if None, jump forward by offset.
     ///
     /// Operand: u8 offset (forward jump if None)
-    /// Stack on Some: [..., option] -> [..., inner_value] (falls through)
+    /// Stack on Some: [..., option] -> [..., `inner_value`] (falls through)
     /// Stack on None: [..., option] -> [...] (jumps forward)
     MatchSomeOrJump(u8) = 0xC0,
 
@@ -494,44 +494,44 @@ impl fmt::Debug for Instruction {
             Self::FloatBinOp(op) => write!(f, "FloatBinOp({})", *op as char),
 
             // Comparisons - use ComparisonOp's Debug
-            Self::IntCmpOp(op) => write!(f, "IntCmpOp({:?})", op),
-            Self::FloatCmpOp(op) => write!(f, "FloatCmpOp({:?})", op),
-            Self::StringCmpOp(op) => write!(f, "StringCmpOp({:?})", op),
-            Self::BytesCmpOp(op) => write!(f, "BytesCmpOp({:?})", op),
+            Self::IntCmpOp(op) => write!(f, "IntCmpOp({op:?})"),
+            Self::FloatCmpOp(op) => write!(f, "FloatCmpOp({op:?})"),
+            Self::StringCmpOp(op) => write!(f, "StringCmpOp({op:?})"),
+            Self::BytesCmpOp(op) => write!(f, "BytesCmpOp({op:?})"),
 
             // Default formatting for everything else
             Self::Halt => write!(f, "Halt"),
-            Self::ConstLoad(idx) => write!(f, "ConstLoad({})", idx),
-            Self::ConstInt(val) => write!(f, "ConstInt({})", val),
-            Self::ConstUInt(val) => write!(f, "ConstUInt({})", val),
-            Self::ConstBool(val) => write!(f, "ConstBool({})", val),
-            Self::WideArg(high) => write!(f, "WideArg(0x{:02X})", high),
-            Self::DupN(depth) => write!(f, "DupN({})", depth),
+            Self::ConstLoad(idx) => write!(f, "ConstLoad({idx})"),
+            Self::ConstInt(val) => write!(f, "ConstInt({val})"),
+            Self::ConstUInt(val) => write!(f, "ConstUInt({val})"),
+            Self::ConstBool(val) => write!(f, "ConstBool({val})"),
+            Self::WideArg(high) => write!(f, "WideArg(0x{high:02X})"),
+            Self::DupN(depth) => write!(f, "DupN({depth})"),
             Self::Pop => write!(f, "Pop"),
             Self::Swap => write!(f, "Swap"),
-            Self::LoadLocal(idx) => write!(f, "LoadLocal({})", idx),
-            Self::StoreLocal(idx) => write!(f, "StoreLocal({})", idx),
-            Self::LoadCapture(idx) => write!(f, "LoadCapture({})", idx),
+            Self::LoadLocal(idx) => write!(f, "LoadLocal({idx})"),
+            Self::StoreLocal(idx) => write!(f, "StoreLocal({idx})"),
+            Self::LoadCapture(idx) => write!(f, "LoadCapture({idx})"),
             Self::NegInt => write!(f, "NegInt"),
             Self::NegFloat => write!(f, "NegFloat"),
             Self::And => write!(f, "And"),
             Self::Or => write!(f, "Or"),
             Self::Not => write!(f, "Not"),
             Self::EqBool => write!(f, "EqBool"),
-            Self::JumpForward(offset) => write!(f, "JumpForward({})", offset),
+            Self::JumpForward(offset) => write!(f, "JumpForward({offset})"),
             Self::PopJumpIfFalse(offset) => write!(f, "{:18} {}", "PopJumpIfFalse", offset),
             Self::PopJumpIfTrue(offset) => write!(f, "{:18} {}", "PopJumpIfTrue", offset),
             Self::Return => write!(f, "Return"),
-            Self::Call(argc) => write!(f, "Call({})", argc),
-            Self::MakeClosure(idx) => write!(f, "MakeClosure({})", idx),
-            Self::MakeArray(count) => write!(f, "MakeArray({})", count),
+            Self::Call(argc) => write!(f, "Call({argc})"),
+            Self::MakeClosure(idx) => write!(f, "MakeClosure({idx})"),
+            Self::MakeArray(count) => write!(f, "MakeArray({count})"),
             Self::ArrayLen => write!(f, "ArrayLen"),
             Self::ArrayGet => write!(f, "ArrayGet"),
-            Self::ArrayGetConst(idx) => write!(f, "ArrayGetConst({})", idx),
+            Self::ArrayGetConst(idx) => write!(f, "ArrayGetConst({idx})"),
             Self::ArrayConcat => write!(f, "ArrayConcat"),
             Self::ArraySlice => write!(f, "ArraySlice"),
             Self::ArrayAppend => write!(f, "ArrayAppend"),
-            Self::MakeMap(count) => write!(f, "MakeMap({})", count),
+            Self::MakeMap(count) => write!(f, "MakeMap({count})"),
             Self::MapLen => write!(f, "MapLen"),
             Self::MapGet => write!(f, "MapGet"),
             Self::MapHas => write!(f, "MapHas"),
@@ -539,31 +539,31 @@ impl fmt::Debug for Instruction {
             Self::MapRemove => write!(f, "MapRemove"),
             Self::MapKeys => write!(f, "MapKeys"),
             Self::MapValues => write!(f, "MapValues"),
-            Self::MakeRecord(ty_idx) => write!(f, "MakeRecord({})", ty_idx),
-            Self::RecordGet(idx) => write!(f, "RecordGet({})", idx),
+            Self::MakeRecord(ty_idx) => write!(f, "MakeRecord({ty_idx})"),
+            Self::RecordGet(idx) => write!(f, "RecordGet({idx})"),
             Self::RecordMerge => write!(f, "RecordMerge"),
-            Self::StringFormat(argc) => write!(f, "StringFormat({})", argc),
+            Self::StringFormat(argc) => write!(f, "StringFormat({argc})"),
             Self::BytesGet => write!(f, "BytesGet"),
-            Self::BytesGetConst(idx) => write!(f, "BytesGetConst({})", idx),
+            Self::BytesGetConst(idx) => write!(f, "BytesGetConst({idx})"),
             Self::BytesSlice => write!(f, "BytesSlice"),
             Self::StringToBytes => write!(f, "StringToBytes"),
             Self::BytesToString => write!(f, "BytesToString"),
-            Self::CallGenericAdapter(idx) => write!(f, "CallGenericAdapter({})", idx),
+            Self::CallGenericAdapter(idx) => write!(f, "CallGenericAdapter({idx})"),
             Self::Eq => write!(f, "Eq"),
             Self::NotEq => write!(f, "NotEq"),
-            Self::MatchSomeOrJump(offset) => write!(f, "MatchSomeOrJump({})", offset),
-            Self::MatchNoneOrJump(offset) => write!(f, "MatchNoneOrJump({})", offset),
+            Self::MatchSomeOrJump(offset) => write!(f, "MatchSomeOrJump({offset})"),
+            Self::MatchNoneOrJump(offset) => write!(f, "MatchNoneOrJump({offset})"),
             Self::Nop => write!(f, "Nop"),
-            Self::Breakpoint(id) => write!(f, "Breakpoint({})", id),
+            Self::Breakpoint(id) => write!(f, "Breakpoint({id})"),
             Self::CheckLimits => write!(f, "CheckLimits"),
-            Self::Trace(id) => write!(f, "Trace({})", id),
-            Self::InlineCache(id) => write!(f, "InlineCache({})", id),
-            Self::PushOtherwise(offset) => write!(f, "PushOtherwise({:+})", offset),
+            Self::Trace(id) => write!(f, "Trace({id})"),
+            Self::InlineCache(id) => write!(f, "InlineCache({id})"),
+            Self::PushOtherwise(offset) => write!(f, "PushOtherwise({offset:+})"),
             Self::PopOtherwise => write!(f, "PopOtherwise"),
-            Self::PopOtherwiseAndJump(offset) => write!(f, "PopOtherwiseAndJump({:+})", offset),
+            Self::PopOtherwiseAndJump(offset) => write!(f, "PopOtherwiseAndJump({offset:+})"),
             Self::MakeOption(0) => write!(f, "MakeOption(none)"),
             Self::MakeOption(1) => write!(f, "MakeOption(some)"),
-            Self::MakeOption(n) => write!(f, "MakeOption({})", n),
+            Self::MakeOption(n) => write!(f, "MakeOption({n})"),
         }
     }
 }
@@ -600,11 +600,11 @@ mod tests {
     #[test]
     fn debug_formatting() {
         let inst = Instruction::IntBinOp(b'+');
-        let debug = format!("{:?}", inst);
+        let debug = format!("{inst:?}");
         assert_eq!(debug, "IntBinOp(+)");
 
         let cmp = Instruction::IntCmpOp(ComparisonOp::Lt);
-        let debug = format!("{:?}", cmp);
+        let debug = format!("{cmp:?}");
         assert_eq!(debug, "IntCmpOp(Lt)");
     }
 }

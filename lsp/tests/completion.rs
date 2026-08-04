@@ -3,7 +3,7 @@ use tower_lsp::lsp_types::*;
 
 #[test]
 fn keyword_completions_always_available() {
-    let doc = DocumentState::new("".to_string());
+    let doc = DocumentState::new(String::new());
     // Don't analyze - should still get keyword completions
 
     let completions = doc.completions_at_position(Position::new(0, 0));
@@ -30,7 +30,7 @@ fn keyword_completions_always_available() {
 
 #[test]
 fn keyword_snippet_completions() {
-    let doc = DocumentState::new("".to_string());
+    let doc = DocumentState::new(String::new());
     let completions = doc.completions_at_position(Position::new(0, 0));
 
     // Find 'where' completion
@@ -50,7 +50,7 @@ fn keyword_snippet_completions() {
 
 #[test]
 fn if_snippet_completion() {
-    let doc = DocumentState::new("".to_string());
+    let doc = DocumentState::new(String::new());
     let completions = doc.completions_at_position(Position::new(0, 0));
 
     let if_completion = completions.iter().find(|c| c.label == "if");
@@ -63,7 +63,7 @@ fn if_snippet_completion() {
 
 #[test]
 fn operator_completions() {
-    let doc = DocumentState::new("".to_string());
+    let doc = DocumentState::new(String::new());
     let completions = doc.completions_at_position(Position::new(0, 0));
 
     let operators: Vec<_> = completions
@@ -106,8 +106,7 @@ fn scope_completions_with_lambda() {
     // Lambda expressions may have parsing issues in tree-sitter
     if !diagnostics.is_empty() {
         eprintln!(
-            "Skipping lambda completion test due to parse errors: {:?}",
-            diagnostics
+            "Skipping lambda completion test due to parse errors: {diagnostics:?}"
         );
         return;
     }

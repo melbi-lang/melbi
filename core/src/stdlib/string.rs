@@ -16,7 +16,7 @@ use crate::values::typed::{Array, Optional, Str};
 
 #[melbi_package]
 mod string {
-    use super::*;
+    use super::{melbi_fn, Str, FfiContext, Array, Vec, Optional};
 
     // ========================================================================
     // Inspection Functions

@@ -63,8 +63,9 @@ pub enum TypeClassConstraint<'types> {
     },
 }
 
-impl<'types> TypeClassConstraint<'types> {
+impl TypeClassConstraint<'_> {
     /// Returns the primary span (original constraint location).
+    #[must_use]
     pub fn primary_span(&self) -> &Span {
         // spans[0] is always the original constraint location
         static DEFAULT_SPAN: Span = Span(0..0);
@@ -80,6 +81,7 @@ impl<'types> TypeClassConstraint<'types> {
     }
 
     /// Returns all spans (original + instantiation sites).
+    #[must_use]
     pub fn spans(&self) -> &[Span] {
         match self {
             TypeClassConstraint::Numeric { spans, .. } => spans,
@@ -91,6 +93,7 @@ impl<'types> TypeClassConstraint<'types> {
     }
 
     /// Returns the type class ID for this constraint.
+    #[must_use]
     pub fn type_class_id(&self) -> crate::types::type_class::TypeClassId {
         use crate::types::type_class::TypeClassId;
         match self {
@@ -115,6 +118,7 @@ pub struct ConstraintSet<'types> {
 
 impl<'types> ConstraintSet<'types> {
     /// Creates a new empty constraint set.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             constraints: Vec::new(),
@@ -189,11 +193,13 @@ impl<'types> ConstraintSet<'types> {
     }
 
     /// Returns true if there are no constraints.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.constraints.is_empty()
     }
 
     /// Returns the number of constraints.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.constraints.len()
     }
@@ -209,7 +215,7 @@ impl<'types> ConstraintSet<'types> {
     }
 }
 
-impl<'types> Default for ConstraintSet<'types> {
+impl Default for ConstraintSet<'_> {
     fn default() -> Self {
         Self::new()
     }

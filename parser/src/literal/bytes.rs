@@ -28,16 +28,16 @@ pub enum UnescapeError {
 impl core::fmt::Display for UnescapeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            UnescapeError::InvalidEscape { pos, seq } => {
+            Self::InvalidEscape { pos, seq } => {
                 write!(f, "invalid escape sequence '{seq}' at position {pos}")
             }
-            UnescapeError::InvalidHexDigit { pos, seq } => {
+            Self::InvalidHexDigit { pos, seq } => {
                 write!(f, "invalid hex digit in '{seq}' at position {pos}")
             }
-            UnescapeError::IncompleteHexEscape { pos } => {
+            Self::IncompleteHexEscape { pos } => {
                 write!(f, "incomplete hex escape at position {pos}")
             }
-            UnescapeError::NonAsciiCharacter { pos, character } => write!(
+            Self::NonAsciiCharacter { pos, character } => write!(
                 f,
                 "non-ASCII character '{character}' at position {pos} (use \\xNN escapes)"
             ),

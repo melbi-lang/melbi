@@ -34,7 +34,7 @@ fn get_current_expression() -> Option<String> {
 
 /// Install the custom panic handler.
 ///
-/// This should be called early in main() before any other initialization.
+/// This should be called early in `main()` before any other initialization.
 pub fn install_handler() {
     std::panic::set_hook(Box::new(panic_hook));
 }
@@ -64,7 +64,7 @@ fn panic_hook(info: &PanicHookInfo<'_>) {
     );
     if let Some(ref cmd) = context.command_line {
         if cmd.contains('\n') {
-            let cmd = format!("\n{}", cmd).replace('\n', "\n     | ");
+            let cmd = format!("\n{cmd}").replace('\n', "\n     | ");
             eprintln!("  {}:\n     | melbi {cmd}", style.paint("Command"));
         } else {
             eprintln!("  {}: melbi {}", style.paint("Command"), cmd);
@@ -112,14 +112,12 @@ fn collect_crash_context(info: &PanicHookInfo<'_>) -> CrashContext {
         .payload()
         .downcast_ref::<&str>()
         .copied()
-        .or_else(|| info.payload().downcast_ref::<String>().map(|s| s.as_str()))
+        .or_else(|| info.payload().downcast_ref::<String>().map(std::string::String::as_str))
         .unwrap_or("unknown")
         .to_string();
 
     let location = info
-        .location()
-        .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
-        .unwrap_or_else(|| "unknown".to_string());
+        .location().map_or_else(|| "unknown".to_string(), |l| format!("{}:{}:{}", l.file(), l.line(), l.column()));
 
     // Collect command line args (skip program name)
     let command_line = {
@@ -128,7 +126,7 @@ fn collect_crash_context(info: &PanicHookInfo<'_>) -> CrashContext {
             None
         } else {
             Some(
-                shlex::try_join(args.iter().map(|s| s.as_str())).unwrap_or_else(|_| args.join(" ")),
+                shlex::try_join(args.iter().map(std::string::String::as_str)).unwrap_or_else(|_| args.join(" ")),
             )
         }
     };

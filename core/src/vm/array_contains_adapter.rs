@@ -30,13 +30,14 @@ pub struct ArrayContainsAdapter<'t> {
 }
 
 impl<'t> ArrayContainsAdapter<'t> {
+    #[must_use]
     pub fn new(element_type: &'t Type<'t>, op: ComparisonOp) -> Self {
         debug_assert!(matches!(op, ComparisonOp::In | ComparisonOp::NotIn));
         ArrayContainsAdapter { element_type, op }
     }
 }
 
-impl<'t> GenericAdapter for ArrayContainsAdapter<'t> {
+impl GenericAdapter for ArrayContainsAdapter<'_> {
     fn num_args(&self) -> usize {
         2 // elem and array
     }

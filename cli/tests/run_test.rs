@@ -43,11 +43,11 @@ fn run_where_binding() {
 #[test]
 fn run_multiline_expression() {
     let file = temp_file(
-        r#"result where {
+        r"result where {
     a = 1,
     b = 2,
     result = a + b,
-}"#,
+}",
     );
     check_stdout(
         &["run", file.path().to_str().unwrap()],
@@ -184,7 +184,7 @@ fn run_from_stdin_error() {
     check_stderr(
         &["--no-color", "run", "-"],
         Some("1 + true"),
-        expect![[r#"
+        expect![[r"
             [E001] Error: Type mismatch: expected Int, found Bool
                ╭─[ <stdin>:1:5 ]
                │
@@ -194,7 +194,7 @@ fn run_from_stdin_error() {
                │
                │ Help: Types must match in this context
             ───╯
-        "#]],
+        "]],
     );
 }
 

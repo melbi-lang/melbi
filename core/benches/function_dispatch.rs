@@ -31,9 +31,9 @@ enum BuiltinFunction {
 impl FunctionData {
     fn call(&self, a: i64, b: i64) -> i64 {
         match self {
-            FunctionData::Native(f) => f(a, b),
-            FunctionData::Closure(f) => f(a, b),
-            FunctionData::Builtin(bf) => match bf {
+            Self::Native(f) => f(a, b),
+            Self::Closure(f) => f(a, b),
+            Self::Builtin(bf) => match bf {
                 BuiltinFunction::Add => a + b,
                 BuiltinFunction::Sub => a - b,
                 BuiltinFunction::Mul => a * b,
@@ -62,7 +62,7 @@ where
     F: Fn(i64, i64) -> i64,
 {
     fn new(f: F) -> Self {
-        NativeFunction { func: f }
+        Self { func: f }
     }
 }
 
@@ -104,7 +104,7 @@ fn bench_enum_dispatch(c: &mut Criterion) {
                 sum = func_native.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 
     let func_closure = FunctionData::Closure(Box::new(|a, b| a - b));
@@ -115,7 +115,7 @@ fn bench_enum_dispatch(c: &mut Criterion) {
                 sum = func_closure.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 
     // Also benchmark with different variants to show realistic case
@@ -136,7 +136,7 @@ fn bench_enum_dispatch(c: &mut Criterion) {
                 sum = func.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 }
 
@@ -150,7 +150,7 @@ fn bench_trait_dispatch(c: &mut Criterion) {
                 sum = func.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 
     // Mixed variants
@@ -169,7 +169,7 @@ fn bench_trait_dispatch(c: &mut Criterion) {
                 sum = func.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 }
 
@@ -182,7 +182,7 @@ fn bench_direct_call(c: &mut Criterion) {
                 sum = add(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 }
 

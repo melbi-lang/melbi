@@ -43,53 +43,62 @@ impl RawValue {
     // TODO: This is not as efficient as it could be. Ideally, we want to box unboxed values,
     // but values already boxed do not need to be boxed again.
     #[inline]
-    pub fn make_optional(arena: &Bump, value: Option<RawValue>) -> RawValue {
+    pub fn make_optional(arena: &Bump, value: Option<Self>) -> Self {
         RawValue {
             option: value.map(|v| NonNull::from(arena.alloc(v))),
         }
     }
 
     #[inline(always)]
-    pub fn make_bool(value: bool) -> RawValue {
+    #[must_use]
+    pub fn make_bool(value: bool) -> Self {
         RawValue { bool_value: value }
     }
 
     #[inline(always)]
-    pub fn make_int(value: i64) -> RawValue {
+    #[must_use]
+    pub fn make_int(value: i64) -> Self {
         RawValue { int_value: value }
     }
 
     #[inline(always)]
-    pub fn make_float(value: f64) -> RawValue {
+    #[must_use]
+    pub fn make_float(value: f64) -> Self {
         RawValue { float_value: value }
     }
 
     #[inline(always)]
-    pub fn as_optional_unchecked(&self) -> Option<RawValue> {
+    #[must_use]
+    pub fn as_optional_unchecked(&self) -> Option<Self> {
         unsafe { self.option.map(|p| *p.as_ref()) }
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn as_int_unchecked(self) -> i64 {
         unsafe { self.int_value }
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn as_float_unchecked(self) -> f64 {
         unsafe { self.float_value }
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn as_bool_unchecked(self) -> bool {
         unsafe { self.bool_value }
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn as_bytes_unchecked<'a>(self) -> &'a [u8] {
         unsafe { (*self.slice).as_slice() }
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn as_str_unchecked<'a>(self) -> &'a str {
         unsafe { core::str::from_utf8_unchecked(self.as_bytes_unchecked()) }
     }
@@ -112,8 +121,8 @@ impl RawValue {
     /// * `func` - The function value to store (will be moved into the allocation)
     ///
     /// # Returns
-    /// A RawValue representing the allocated function.
-    pub fn make_function<'a, 'b, F: Function<'a, 'b> + 'b>(arena: &'b Bump, func: F) -> RawValue {
+    /// A `RawValue` representing the allocated function.
+    pub fn make_function<'a, 'b, F: Function<'a, 'b> + 'b>(arena: &'b Bump, func: F) -> Self {
         let (layout, value_offset) = {
             let ptr_layout = core::alloc::Layout::new::<*const dyn Function<'a, 'b>>();
             let value_layout = core::alloc::Layout::new::<F>();
@@ -132,7 +141,7 @@ impl RawValue {
             // Create fat pointer: Rust constructs vtable when casting T* to dyn Function*
             let fat_ptr: *const dyn Function<'a, 'b> = func_ptr;
             core::ptr::write(
-                storage.as_ptr() as *mut *const dyn Function<'a, 'b>,
+                storage.as_ptr().cast::<*const dyn Function<'a, 'b>>(),
                 fat_ptr,
             );
         };
@@ -150,22 +159,24 @@ impl RawValue {
     //     }
     // }
 
-    /// Extract a function trait object reference from this RawValue.
+    /// Extract a function trait object reference from this `RawValue`.
     ///
     /// # Safety
     ///
-    /// The caller must ensure this RawValue was created with `make_function`
+    /// The caller must ensure this `RawValue` was created with `make_function`
     /// and contains a valid function pointer.
     #[inline(always)]
+    #[must_use]
     pub fn as_function_unchecked<'a, 'b>(self) -> &'a dyn Function<'b, 'a> {
-        let storage_ptr = unsafe { self.function as *const *const dyn Function<'b, 'a> };
+        let storage_ptr = unsafe { self.function.cast::<*const dyn Function<'b, 'a>>() };
         unsafe { &**storage_ptr }
     }
 
-    /// Returns an id associated with this RawValue.
+    /// Returns an id associated with this `RawValue`.
     ///
     /// For boxed values, if `id(a) == id(b)` then `a == b`.
     #[inline(always)]
+    #[must_use]
     pub fn id(&self) -> usize {
         unsafe { self.ptr as usize }
     }
@@ -195,14 +206,14 @@ impl<'a> ArrayData<'a> {
 
         unsafe {
             let ptr = arena.alloc_layout(layout).as_ptr();
-            core::ptr::write::<usize>(ptr as *mut usize, length);
-            let data = ptr.add(data_offset) as *mut RawValue;
-            let array_data_ptr = ptr as *mut ArrayDataRepr;
+            core::ptr::write::<usize>(ptr.cast::<usize>(), length);
+            let data = ptr.add(data_offset).cast::<RawValue>();
+            let array_data_ptr = ptr.cast::<ArrayDataRepr>();
             (array_data_ptr, data)
         }
     }
 
-    pub fn new_with(arena: &'a Bump, values: &[RawValue]) -> ArrayData<'a> {
+    pub fn new_with(arena: &'a Bump, values: &[RawValue]) -> Self {
         let (arr, data_ptr) = Self::new_uninitialized_in(arena, values.len());
         for (i, &val) in values.iter().enumerate() {
             unsafe { core::ptr::write(data_ptr.add(i), val) };
@@ -220,20 +231,23 @@ impl<'a> ArrayData<'a> {
         (layout.pad_to_align(), data_offset)
     }
 
+    #[must_use]
     pub fn length(&self) -> usize {
         unsafe { (*self.ptr)._length }
         // unsafe { *(self.ptr as *const ArrayDataRepr as *const usize) }
     }
 
     /// Returns a pointer to the first element of the `data` array.
+    #[must_use]
     pub fn as_data_ptr(&self) -> *const RawValue {
         let (_, data_offset) = Self::layout(self.length());
-        unsafe { (self.ptr as *const u8).add(data_offset) as *const RawValue }
+        unsafe { self.ptr.cast::<u8>().add(data_offset).cast::<RawValue>() }
     }
 
     /// # Safety
     ///
     /// The caller must ensure that `index` is less than `self.length()`.
+    #[must_use]
     pub unsafe fn get_unchecked(&self, index: usize) -> RawValue {
         debug_assert!(index < self.length(), "Index out of bounds");
         unsafe { *self.as_data_ptr().add(index) }
@@ -272,14 +286,14 @@ impl<'a> RecordData<'a> {
 
         unsafe {
             let ptr = arena.alloc_layout(layout).as_ptr();
-            core::ptr::write::<usize>(ptr as *mut usize, length);
-            let data = ptr.add(data_offset) as *mut RawValue;
-            let record_data_ptr = ptr as *mut RecordDataRepr;
+            core::ptr::write::<usize>(ptr.cast::<usize>(), length);
+            let data = ptr.add(data_offset).cast::<RawValue>();
+            let record_data_ptr = ptr.cast::<RecordDataRepr>();
             (record_data_ptr, data)
         }
     }
 
-    pub fn new_with(arena: &'a Bump, values: &[RawValue]) -> RecordData<'a> {
+    pub fn new_with(arena: &'a Bump, values: &[RawValue]) -> Self {
         let (rec, data_ptr) = Self::new_uninitialized_in(arena, values.len());
         for (i, &val) in values.iter().enumerate() {
             unsafe { core::ptr::write(data_ptr.add(i), val) };
@@ -297,18 +311,20 @@ impl<'a> RecordData<'a> {
         (layout.pad_to_align(), data_offset)
     }
 
+    #[must_use]
     pub fn length(&self) -> usize {
         unsafe { (*self.ptr)._length }
     }
 
     pub(self) fn as_ptr(&self) -> *const RawValue {
         let (_, data_offset) = Self::layout(self.length());
-        unsafe { (self.ptr as *const u8).add(data_offset) as *const RawValue }
+        unsafe { self.ptr.cast::<u8>().add(data_offset).cast::<RawValue>() }
     }
 
     /// # Safety
     ///
     /// The caller must ensure that `index` is less than `self.length()`.
+    #[must_use]
     pub unsafe fn get(&self, index: usize) -> RawValue {
         debug_assert!(index < self.length(), "Index out of bounds");
         unsafe { *self.as_ptr().add(index) }
@@ -334,23 +350,25 @@ pub struct Slice {
 
 impl Slice {
     pub fn new<'a>(arena: &'a Bump, value: &[u8]) -> &'a Self {
-        arena.alloc(Slice {
+        arena.alloc(Self {
             data: value.as_ptr(),
             length: value.len(),
         })
     }
 
+    #[must_use]
     pub fn length(&self) -> usize {
         self.length
     }
 
+    #[must_use]
     pub fn as_slice(&self) -> &[u8] {
         unsafe { core::slice::from_raw_parts(self.data, self.length) }
     }
 
     pub(crate) fn as_raw_value(&self) -> RawValue {
         RawValue {
-            slice: self as *const Slice,
+            slice: core::ptr::from_ref::<Self>(self),
         }
     }
 }
@@ -380,9 +398,9 @@ impl<'a> MapData<'a> {
 
         unsafe {
             let ptr = arena.alloc_layout(layout).as_ptr();
-            core::ptr::write::<usize>(ptr as *mut usize, length);
-            let data = ptr.add(data_offset) as *mut MapEntry;
-            let map_data_ptr = ptr as *mut MapDataRepr;
+            core::ptr::write::<usize>(ptr.cast::<usize>(), length);
+            let data = ptr.add(data_offset).cast::<MapEntry>();
+            let map_data_ptr = ptr.cast::<MapDataRepr>();
             (map_data_ptr, data)
         }
     }
@@ -392,8 +410,8 @@ impl<'a> MapData<'a> {
     /// # Safety
     ///
     /// The caller must ensure that:
-    /// - Keys are sorted in ascending order according to Value::cmp
-    pub fn new_with_sorted(arena: &'a Bump, entries: &[MapEntry]) -> MapData<'a> {
+    /// - Keys are sorted in ascending order according to `Value::cmp`
+    pub fn new_with_sorted(arena: &'a Bump, entries: &[MapEntry]) -> Self {
         let length = entries.len();
         let (map, data_ptr) = Self::new_uninitialized_in(arena, length);
 
@@ -415,20 +433,22 @@ impl<'a> MapData<'a> {
     }
 
     /// Returns the number of key-value pairs in the map.
+    #[must_use]
     pub fn length(&self) -> usize {
         unsafe { (*self.ptr)._length }
     }
 
     pub(crate) fn as_ptr(&self) -> *const MapEntry {
         let (_, data_offset) = Self::layout(self.length());
-        unsafe { (self.ptr as *const u8).add(data_offset) as *const MapEntry }
+        unsafe { self.ptr.cast::<u8>().add(data_offset).cast::<MapEntry>() }
     }
 
     /// Get the key at the given index.
     ///
     /// # Safety
     ///
-    /// The caller must ensure index < length().
+    /// The caller must ensure index < `length()`.
+    #[must_use]
     pub unsafe fn get_key(&self, index: usize) -> RawValue {
         debug_assert!(index < self.length(), "Index out of bounds");
         unsafe { (*self.as_ptr().add(index)).key }
@@ -438,7 +458,8 @@ impl<'a> MapData<'a> {
     ///
     /// # Safety
     ///
-    /// The caller must ensure index < length().
+    /// The caller must ensure index < `length()`.
+    #[must_use]
     pub unsafe fn get_value(&self, index: usize) -> RawValue {
         debug_assert!(index < self.length(), "Index out of bounds");
         unsafe { (*self.as_ptr().add(index)).value }
@@ -501,7 +522,7 @@ mod tests {
         )]
         pub fn new(arena: &Bump, obj: U) -> NonNull<DynTraitHeader<T>> {
             // Two-phase init: allocate first, then create fat pointer from stable address
-            let node: &mut DynTraitNode<T, U> = arena.alloc(DynTraitNode { dyn_ptr: None, obj });
+            let node: &mut Self = arena.alloc(Self { dyn_ptr: None, obj });
             let fat_ref: &mut T = node.obj.as_dyn(); // Use AsDyn<T> trait.
             node.dyn_ptr = Some(NonNull::from(fat_ref));
             NonNull::from(node).cast()

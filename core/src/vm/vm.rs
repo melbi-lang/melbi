@@ -103,17 +103,17 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
         loop {
             self.ip = unsafe { self.ip.add(1) };
 
-            use Instruction::*;
+            use Instruction::{ConstLoad, ConstInt, ConstUInt, ConstBool, WideArg, IntBinOp, NegInt, IntCmpOp, FloatBinOp, NegFloat, FloatCmpOp, BytesGet, BytesGetConst, BytesCmpOp, StringCmpOp, And, Or, Not, EqBool, DupN, Pop, Swap, LoadLocal, StoreLocal, JumpForward, PopJumpIfFalse, PopJumpIfTrue, Halt, Return, PushOtherwise, PopOtherwise, PopOtherwiseAndJump, Nop, MakeArray, Call, CallGenericAdapter, LoadCapture, MakeClosure, ArrayGet, ArrayGetConst, ArrayLen, ArrayConcat, ArraySlice, ArrayAppend, MapGet, MakeMap, MapHas, MapLen, MapInsert, MapRemove, MapKeys, MapValues, MakeRecord, RecordGet, RecordMerge, MakeOption, StringFormat, BytesSlice, StringToBytes, BytesToString, Eq, NotEq, MatchSomeOrJump, MatchNoneOrJump, Breakpoint, CheckLimits, Trace, InlineCache};
             match unsafe { *self.ip } {
                 ConstLoad(arg) => {
                     let index = wide_arg | arg as usize;
                     self.stack.push(self.code.constants[index]);
                 }
                 ConstInt(value) => {
-                    self.stack.push(RawValue::make_int(value as i64));
+                    self.stack.push(RawValue::make_int(i64::from(value)));
                 }
                 ConstUInt(value) => {
-                    self.stack.push(RawValue::make_int(value as i64));
+                    self.stack.push(RawValue::make_int(i64::from(value)));
                 }
                 ConstBool(value) => {
                     self.stack.push(RawValue::make_bool(value != 0));
@@ -180,7 +180,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                 IntBinOp(b'^') => {
                     let b = self.stack.pop().as_int_unchecked();
                     let a = self.stack.pop().as_int_unchecked();
-                    let result = if b < 0 || b > u32::MAX as i64 {
+                    let result = if b < 0 || b > i64::from(u32::MAX) {
                         0
                     } else {
                         a.wrapping_pow(b as u32)
@@ -279,7 +279,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                         }
                         .into());
                     };
-                    self.stack.push(RawValue::make_int(bytes[index] as i64));
+                    self.stack.push(RawValue::make_int(i64::from(bytes[index])));
                 }
 
                 BytesGetConst(arg) => {
@@ -292,7 +292,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                         }
                         .into());
                     }
-                    self.stack.push(RawValue::make_int(bytes[index] as i64));
+                    self.stack.push(RawValue::make_int(i64::from(bytes[index])));
                 }
 
                 BytesCmpOp(op) => {
@@ -537,8 +537,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                                 let mono = &self.code.lambdas[idx as usize];
                                 let LambdaKind::Mono { code } = &mono.kind else {
                                     panic!(
-                                        "Poly lambda references non-Mono lambda at index {}",
-                                        idx
+                                        "Poly lambda references non-Mono lambda at index {idx}"
                                     )
                                 };
                                 LambdaInstantiation {
@@ -621,13 +620,10 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                         }
                     }
 
-                    match found {
-                        Some(value) => self.stack.push(value),
-                        None => {
-                            // Format key for error message (simple int display for now)
-                            let key_display = format!("{}", key.as_int_unchecked());
-                            return Err(RuntimeError::KeyNotFound { key_display }.into());
-                        }
+                    if let Some(value) = found { self.stack.push(value) } else {
+                        // Format key for error message (simple int display for now)
+                        let key_display = format!("{}", key.as_int_unchecked());
+                        return Err(RuntimeError::KeyNotFound { key_display }.into());
                     }
                 }
 
@@ -714,7 +710,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                             let value = self.stack.pop();
                             Some(value)
                         }
-                        _ => panic!("Invalid MakeOption operand: {}", is_some),
+                        _ => panic!("Invalid MakeOption operand: {is_some}"),
                     };
                     self.stack
                         .push(RawValue::make_optional(self.arena, option_value));
@@ -746,14 +742,11 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                 MatchNoneOrJump(arg) => {
                     let delta = wide_arg | arg as usize;
                     let option = self.stack.pop();
-                    match option.as_optional_unchecked() {
-                        Some(_) => {
-                            // Some: jump forward
-                            self.ip = unsafe { self.ip.add(delta) };
-                        }
-                        None => {
-                            // None: fall through (value already popped)
-                        }
+                    if option.as_optional_unchecked().is_some() {
+                        // Some: jump forward
+                        self.ip = unsafe { self.ip.add(delta) };
+                    } else {
+                        // None: fall through (value already popped)
                     }
                 }
                 Breakpoint(_) | CheckLimits | Trace(_) | InlineCache(_) => {

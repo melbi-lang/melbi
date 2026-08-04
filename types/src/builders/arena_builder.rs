@@ -52,27 +52,27 @@ pub struct ArenaBuilder<'arena> {
     interned_types: &'arena RefCell<TypeSet<'arena>>,
 }
 
-impl<'arena> fmt::Debug for ArenaBuilder<'arena> {
+impl fmt::Debug for ArenaBuilder<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ArenaBuilder")
-            .field("arena", &(self.arena as *const Bump))
+            .field("arena", &core::ptr::from_ref::<Bump>(self.arena))
             .finish_non_exhaustive()
     }
 }
 
 // Manual implementations since Bump doesn't implement PartialEq/Eq/Hash
 // We use pointer equality - two builders are equal if they point to the same arena
-impl<'arena> PartialEq for ArenaBuilder<'arena> {
+impl PartialEq for ArenaBuilder<'_> {
     fn eq(&self, other: &Self) -> bool {
         core::ptr::eq(self.arena, other.arena)
     }
 }
 
-impl<'arena> Eq for ArenaBuilder<'arena> {}
+impl Eq for ArenaBuilder<'_> {}
 
-impl<'arena> hash::Hash for ArenaBuilder<'arena> {
+impl hash::Hash for ArenaBuilder<'_> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        core::ptr::hash(self.arena, state)
+        core::ptr::hash(self.arena, state);
     }
 }
 
@@ -158,7 +158,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn ty_hash<H: hash::Hasher>(ty: &Ty<Self>, state: &mut H) {
-        (ty.handle() as *const TyNode<Self>).hash(state)
+        core::ptr::from_ref::<TyNode<Self>>(ty.handle()).hash(state);
     }
 
     fn ident_eq(a: &Ident<Self>, b: &Ident<Self>) -> bool {
@@ -166,7 +166,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn ident_hash<H: hash::Hasher>(ident: &Ident<Self>, state: &mut H) {
-        ident.handle().interned_hash(state)
+        ident.handle().interned_hash(state);
     }
 }
 

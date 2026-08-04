@@ -8,6 +8,7 @@ use clap_complete::generate;
 use crate::cli::{Cli, CompletionsArgs};
 
 /// Run the completions command.
+#[must_use]
 pub fn run(args: CompletionsArgs) -> ExitCode {
     let mut cmd = Cli::command();
     generate(args.shell, &mut cmd, "melbi", &mut std::io::stdout());

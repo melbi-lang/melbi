@@ -8,7 +8,7 @@ use crate::{String, format};
 ///
 /// Provides additional information about where an error occurred,
 /// such as "in function call", "while unifying types", etc.
-/// Each context entry can be converted to a RelatedInfo for diagnostic display.
+/// Each context entry can be converted to a `RelatedInfo` for diagnostic display.
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum Context {
@@ -27,33 +27,34 @@ pub enum Context {
 }
 
 impl Context {
-    /// Convert to a RelatedInfo for diagnostic display
+    /// Convert to a `RelatedInfo` for diagnostic display
+    #[must_use]
     pub fn to_related_info(&self) -> RelatedInfo {
         match self {
-            Context::InFunctionCall { name, span } => RelatedInfo {
+            Self::InFunctionCall { name, span } => RelatedInfo {
                 span: span.clone(),
                 message: match name {
-                    Some(n) => format!("in call to function '{}'", n),
+                    Some(n) => format!("in call to function '{n}'"),
                     None => "in function call".to_string(),
                 },
             },
-            Context::WhileUnifying { what, span } => RelatedInfo {
+            Self::WhileUnifying { what, span } => RelatedInfo {
                 span: span.clone(),
-                message: format!("while checking {}", what),
+                message: format!("while checking {what}"),
             },
-            Context::DefinedHere { what, span } => RelatedInfo {
+            Self::DefinedHere { what, span } => RelatedInfo {
                 span: span.clone(),
-                message: format!("{} defined here", what),
+                message: format!("{what} defined here"),
             },
-            Context::InferredHere { type_name, span } => RelatedInfo {
+            Self::InferredHere { type_name, span } => RelatedInfo {
                 span: span.clone(),
-                message: format!("type '{}' inferred here", type_name),
+                message: format!("type '{type_name}' inferred here"),
             },
-            Context::InExpression { kind, span } => RelatedInfo {
+            Self::InExpression { kind, span } => RelatedInfo {
                 span: span.clone(),
-                message: format!("in {}", kind),
+                message: format!("in {kind}"),
             },
-            Context::InstantiatedHere { span } => RelatedInfo {
+            Self::InstantiatedHere { span } => RelatedInfo {
                 span: span.clone(),
                 message: "when instantiated here".to_string(),
             },

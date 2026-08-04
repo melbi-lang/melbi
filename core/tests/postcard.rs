@@ -1,7 +1,6 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use std::ops::Deref;
 
 use bumpalo::Bump;
 use melbi_core::parser::parse;
@@ -19,16 +18,14 @@ fn postcard() {
     let deserialized = type_mgr.deserialize_type(&v).unwrap();
     assert!(
         core::ptr::eq(deserialized, int_ty),
-        "{} vs {}",
-        deserialized,
-        int_ty
+        "{deserialized} vs {int_ty}"
     );
     println!("✓ Int round-trip");
 
     // Test Map
     let map_ty = type_mgr.map(type_mgr.int(), type_mgr.float());
     let v = to_allocvec(map_ty).unwrap();
-    assert_eq!(&[7, 1, 2], v.deref());
+    assert_eq!(&[7, 1, 2], &*v);
     let deserialized = type_mgr.deserialize_type(&v).unwrap();
     assert!(core::ptr::eq(deserialized, map_ty));
     println!("✓ Map round-trip");
@@ -36,7 +33,7 @@ fn postcard() {
     // Test TypeVar
     let var_ty = type_mgr.map(type_mgr.fresh_type_var(), type_mgr.fresh_type_var());
     let v = to_allocvec(var_ty).unwrap();
-    assert_eq!(&[7, 0, 0, 0, 1], v.deref());
+    assert_eq!(&[7, 0, 0, 0, 1], &*v);
     let deserialized = type_mgr.deserialize_type(&v).unwrap();
     assert!(core::ptr::eq(deserialized, var_ty));
     println!("✓ TypeVar round-trip");
@@ -46,7 +43,7 @@ fn postcard() {
     let v = to_allocvec(record_ty).unwrap();
     assert_eq!(
         &[8, 2, 3, 97, 103, 101, 1, 4, 110, 97, 109, 101, 4],
-        v.deref()
+        &*v
     );
     let deserialized = type_mgr.deserialize_type(&v).unwrap();
     assert!(core::ptr::eq(deserialized, record_ty));

@@ -25,8 +25,7 @@ fn decimal_integers() {
                 value: expected,
                 suffix: None,
             }),
-            "Failed for input: {}",
-            input
+            "Failed for input: {input}"
         );
     }
 }
@@ -54,8 +53,7 @@ fn binary_integers() {
                 value: expected,
                 suffix: None,
             }),
-            "Failed for input: {}",
-            input
+            "Failed for input: {input}"
         );
     }
 }
@@ -81,8 +79,7 @@ fn octal_integers() {
                 value: expected,
                 suffix: None,
             }),
-            "Failed for input: {}",
-            input
+            "Failed for input: {input}"
         );
     }
 }
@@ -111,8 +108,7 @@ fn hexadecimal_integers() {
                 value: expected,
                 suffix: None,
             }),
-            "Failed for input: {}",
-            input
+            "Failed for input: {input}"
         );
     }
 }
@@ -231,8 +227,7 @@ fn float_literals() {
                 value: expected,
                 suffix: None,
             }),
-            "Failed for input: {}",
-            input
+            "Failed for input: {input}"
         );
     }
 }
@@ -263,8 +258,7 @@ fn float_with_exponent() {
                 value: expected,
                 suffix: None,
             }),
-            "Failed for input: {}",
-            input
+            "Failed for input: {input}"
         );
     }
 }

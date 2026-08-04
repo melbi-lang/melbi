@@ -1,8 +1,8 @@
 //! Tier 1: Statically-typed, compile-time safe value API
 //!
 //! This module provides zero-overhead, compile-time type-safe wrappers around
-//! the untyped RawValue representation. Types are guaranteed at compile time,
-//! eliminating the need for runtime type checking or TypeManager.
+//! the untyped `RawValue` representation. Types are guaranteed at compile time,
+//! eliminating the need for runtime type checking or `TypeManager`.
 
 use core::marker::PhantomData;
 use core::ops::Deref;
@@ -45,8 +45,8 @@ pub struct Str<'a> {
     _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> Copy for Str<'a> {}
-impl<'a> Clone for Str<'a> {
+impl Copy for Str<'_> {}
+impl Clone for Str<'_> {
     fn clone(&self) -> Self {
         *self
     }
@@ -59,7 +59,7 @@ impl<'a> Str<'a> {
         let bytes: &'a [u8] = arena.alloc_slice_copy(s.as_bytes());
         let slice = Slice::new(arena, bytes);
         Str {
-            slice: slice as *const Slice,
+            slice: core::ptr::from_ref::<Slice>(slice),
             _phantom: PhantomData,
         }
     }
@@ -90,12 +90,13 @@ impl<'a> Str<'a> {
         let bytes: &'a [u8] = s.as_bytes();
         let slice = Slice::new(arena, bytes);
         Str {
-            slice: slice as *const Slice,
+            slice: core::ptr::from_ref::<Slice>(slice),
             _phantom: PhantomData,
         }
     }
 
     /// Get the underlying &str
+    #[must_use]
     pub fn as_str(&self) -> &'a str {
         unsafe {
             let slice = &*self.slice;
@@ -105,17 +106,19 @@ impl<'a> Str<'a> {
     }
 
     /// Get the length in bytes
+    #[must_use]
     pub fn len(&self) -> usize {
         unsafe { (*self.slice).length() }
     }
 
     /// Check if the string is empty
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 }
 
-impl<'a> Deref for Str<'a> {
+impl Deref for Str<'_> {
     type Target = str;
     fn deref(&self) -> &str {
         self.as_str()
@@ -128,31 +131,31 @@ impl<'a> From<Str<'a>> for &'a str {
     }
 }
 
-impl<'a> AsRef<str> for Str<'a> {
+impl AsRef<str> for Str<'_> {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
 }
 
-impl<'a> PartialEq for Str<'a> {
+impl PartialEq for Str<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
 
-impl<'a> PartialEq<str> for Str<'a> {
+impl PartialEq<str> for Str<'_> {
     fn eq(&self, other: &str) -> bool {
         self.as_str() == other
     }
 }
 
-impl<'a> PartialEq<&str> for Str<'a> {
+impl PartialEq<&str> for Str<'_> {
     fn eq(&self, other: &&str) -> bool {
         self.as_str() == *other
     }
 }
 
-impl<'a> Eq for Str<'a> {}
+impl Eq for Str<'_> {}
 
 impl RawConvertible for i64 {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
@@ -165,7 +168,7 @@ impl RawConvertible for i64 {
 }
 
 impl Bridge for i64 {
-    type Raw = i64;
+    type Raw = Self;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.int()
     }
@@ -182,7 +185,7 @@ impl RawConvertible for f64 {
 }
 
 impl Bridge for f64 {
-    type Raw = f64;
+    type Raw = Self;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.float()
     }
@@ -199,13 +202,13 @@ impl RawConvertible for bool {
 }
 
 impl Bridge for bool {
-    type Raw = bool;
+    type Raw = Self;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.bool()
     }
 }
 
-impl<'a> RawConvertible for Str<'a> {
+impl RawConvertible for Str<'_> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue { slice: value.slice }
     }
@@ -218,7 +221,7 @@ impl<'a> RawConvertible for Str<'a> {
     }
 }
 
-impl<'a> Bridge for Str<'a> {
+impl Bridge for Str<'_> {
     type Raw = *const Slice;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.str()
@@ -272,8 +275,8 @@ pub struct Optional<'a, T: Bridge> {
     _phantom: PhantomData<(&'a (), T)>,
 }
 
-impl<'a, T: Bridge> Copy for Optional<'a, T> {}
-impl<'a, T: Bridge> Clone for Optional<'a, T> {
+impl<T: Bridge> Copy for Optional<'_, T> {}
+impl<T: Bridge> Clone for Optional<'_, T> {
     fn clone(&self) -> Self {
         *self
     }
@@ -281,6 +284,7 @@ impl<'a, T: Bridge> Clone for Optional<'a, T> {
 
 impl<'a, T: Bridge> Optional<'a, T> {
     /// Create None value (null pointer optimization)
+    #[must_use]
     pub const fn none() -> Self {
         Self {
             ptr: core::ptr::null(),
@@ -288,18 +292,20 @@ impl<'a, T: Bridge> Optional<'a, T> {
         }
     }
 
-    /// Create Some(value) by boxing the RawValue in the arena
+    /// Create Some(value) by boxing the `RawValue` in the arena
     pub fn some(arena: &'a Bump, value: T) -> Self {
         let raw = T::to_raw_value(arena, value);
         unsafe { Self::from_raw_value(RawValue::make_optional(arena, Some(raw))) }
     }
 
     /// Check if this is None
+    #[must_use]
     pub fn is_none(&self) -> bool {
         self.ptr.is_null()
     }
 
     /// Check if this is Some
+    #[must_use]
     pub fn is_some(&self) -> bool {
         !self.ptr.is_null()
     }
@@ -308,15 +314,15 @@ impl<'a, T: Bridge> Optional<'a, T> {
     ///
     /// # Panics
     /// Panics if the value is None.
+    #[must_use]
     pub fn unwrap(&self) -> T {
-        if self.is_none() {
-            panic!("Called unwrap on None");
-        }
+        assert!(!self.is_none(), "Called unwrap on None");
         let raw = unsafe { *self.ptr };
         unsafe { T::from_raw_value(raw) }
     }
 
     /// Get the value as an Option
+    #[must_use]
     pub fn as_option(&self) -> Option<T> {
         if self.is_none() {
             None
@@ -337,7 +343,7 @@ impl<'a, T: Bridge> Optional<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> RawConvertible for Optional<'a, T> {
+impl<T: Bridge> RawConvertible for Optional<'_, T> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue { boxed: value.ptr }
     }
@@ -350,7 +356,7 @@ impl<'a, T: Bridge> RawConvertible for Optional<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> Bridge for Optional<'a, T> {
+impl<T: Bridge> Bridge for Optional<'_, T> {
     type Raw = *const RawValue;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         let inner_ty = T::type_from(type_mgr);
@@ -389,7 +395,7 @@ pub struct Array<'a, T: Bridge> {
 }
 
 // Array<T> - Same size as pointer
-impl<'a, T: Bridge> RawConvertible for Array<'a, T> {
+impl<T: Bridge> RawConvertible for Array<'_, T> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         value.as_raw_value()
     }
@@ -406,7 +412,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// Create a new array from a slice of values.
     ///
     /// This is the primary user-facing constructor for creating typed arrays.
-    /// Values are converted to RawValue representation and stored in the arena.
+    /// Values are converted to `RawValue` representation and stored in the arena.
     ///
     /// # Example
     ///
@@ -490,6 +496,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// assert_eq!(arr.get(1), Some(20));
     /// assert_eq!(arr.get(5), None);
     /// ```
+    #[must_use]
     pub fn get(&self, index: usize) -> Option<T> {
         unsafe {
             if index >= self.array_data.length() {
@@ -514,6 +521,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     ///     assert_eq!(arr.get_unchecked(1), 20);
     /// }
     /// ```
+    #[must_use]
     pub unsafe fn get_unchecked(&self, index: usize) -> T {
         unsafe {
             debug_assert!(index < self.array_data.length(), "Index out of bounds");
@@ -523,18 +531,21 @@ impl<'a, T: Bridge> Array<'a, T> {
     }
 
     /// Returns the number of elements in the array.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.array_data.length()
     }
 
     /// Returns `true` if the array is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Get a pointer to the underlying ArrayData for FFI/VM use.
+    /// Get a pointer to the underlying `ArrayData` for FFI/VM use.
     ///
-    /// This is useful for bridging to Tier 2 (DynamicValue) or Tier 3 (RawValue).
+    /// This is useful for bridging to Tier 2 (`DynamicValue`) or Tier 3 (`RawValue`).
+    #[must_use]
     pub fn as_raw_value(&self) -> RawValue {
         self.array_data.as_raw_value()
     }
@@ -544,10 +555,11 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// # Safety
     ///
     /// Caller must ensure:
-    /// - RawValue holds a variant pointing to ArrayData
-    /// - The ArrayData pointed to by the RawValue is valid
-    /// - The ArrayData contains values of type T
-    /// - The ArrayData lives for at least 'a
+    /// - `RawValue` holds a variant pointing to `ArrayData`
+    /// - The `ArrayData` pointed to by the `RawValue` is valid
+    /// - The `ArrayData` contains values of type T
+    /// - The `ArrayData` lives for at least 'a
+    #[must_use]
     pub unsafe fn from_raw_value(raw: RawValue) -> Self {
         Self {
             array_data: ArrayData::from_raw_value(raw),
@@ -564,6 +576,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// let sum: i64 = arr.iter().sum();
     /// assert_eq!(sum, 15);
     /// ```
+    #[must_use]
     pub fn iter(&self) -> ArrayIter<'a, T> {
         unsafe {
             let start = self.array_data.as_data_ptr();
@@ -577,13 +590,13 @@ impl<'a, T: Bridge> Array<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> Clone for Array<'a, T> {
+impl<T: Bridge> Clone for Array<'_, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, T: Bridge> Copy for Array<'a, T> {}
+impl<T: Bridge> Copy for Array<'_, T> {}
 
 /// Iterator over typed Array elements.
 ///
@@ -594,7 +607,7 @@ pub struct ArrayIter<'a, T: Bridge> {
     _phantom: PhantomData<(&'a (), T)>,
 }
 
-impl<'a, T: Bridge> Iterator for ArrayIter<'a, T> {
+impl<T: Bridge> Iterator for ArrayIter<'_, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -614,7 +627,7 @@ impl<'a, T: Bridge> Iterator for ArrayIter<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> ExactSizeIterator for ArrayIter<'a, T> {
+impl<T: Bridge> ExactSizeIterator for ArrayIter<'_, T> {
     fn len(&self) -> usize {
         unsafe { self.end.offset_from(self.current) as usize }
     }
@@ -661,7 +674,7 @@ pub struct Map<'a, K: Bridge, V: Bridge> {
     _phantom: PhantomData<(&'a (), K, V)>,
 }
 
-impl<'a, K: Bridge, V: Bridge> RawConvertible for Map<'a, K, V> {
+impl<K: Bridge, V: Bridge> RawConvertible for Map<'_, K, V> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         const {
             assert!(core::mem::size_of::<Self>() == core::mem::size_of::<RawValue>());
@@ -682,16 +695,19 @@ impl<'a, K: Bridge, V: Bridge> RawConvertible for Map<'a, K, V> {
 
 impl<'a, K: Bridge, V: Bridge> Map<'a, K, V> {
     /// Returns the number of key-value pairs in the map.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.map_data.length()
     }
 
     /// Returns `true` if the map is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Get a pointer to the underlying MapData for FFI/VM use.
+    /// Get a pointer to the underlying `MapData` for FFI/VM use.
+    #[must_use]
     pub fn as_raw_value(&self) -> RawValue {
         self.map_data.as_raw_value()
     }
@@ -701,10 +717,11 @@ impl<'a, K: Bridge, V: Bridge> Map<'a, K, V> {
     /// # Safety
     ///
     /// Caller must ensure:
-    /// - RawValue holds a variant pointing to MapData
-    /// - The MapData pointed to by the RawValue is valid
-    /// - The MapData contains keys of type K and values of type V
-    /// - The MapData lives for at least 'a
+    /// - `RawValue` holds a variant pointing to `MapData`
+    /// - The `MapData` pointed to by the `RawValue` is valid
+    /// - The `MapData` contains keys of type K and values of type V
+    /// - The `MapData` lives for at least 'a
+    #[must_use]
     pub unsafe fn from_raw_value(raw: RawValue) -> Self {
         Self {
             map_data: MapData::from_raw_value(raw),
@@ -722,6 +739,7 @@ impl<'a, K: Bridge, V: Bridge> Map<'a, K, V> {
     ///     println!("{} -> {}", key, value);
     /// }
     /// ```
+    #[must_use]
     pub fn iter(&self) -> MapIter<'a, K, V> {
         MapIter {
             map_data: self.map_data,
@@ -827,13 +845,13 @@ where
     }
 }
 
-impl<'a, K: Bridge, V: Bridge> Clone for Map<'a, K, V> {
+impl<K: Bridge, V: Bridge> Clone for Map<'_, K, V> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, K: Bridge, V: Bridge> Copy for Map<'a, K, V> {}
+impl<K: Bridge, V: Bridge> Copy for Map<'_, K, V> {}
 
 /// Iterator over typed Map key-value pairs.
 pub struct MapIter<'a, K: Bridge, V: Bridge> {
@@ -842,7 +860,7 @@ pub struct MapIter<'a, K: Bridge, V: Bridge> {
     _phantom: PhantomData<(&'a (), K, V)>,
 }
 
-impl<'a, K: Bridge, V: Bridge> Iterator for MapIter<'a, K, V> {
+impl<K: Bridge, V: Bridge> Iterator for MapIter<'_, K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -865,7 +883,7 @@ impl<'a, K: Bridge, V: Bridge> Iterator for MapIter<'a, K, V> {
     }
 }
 
-impl<'a, K: Bridge, V: Bridge> ExactSizeIterator for MapIter<'a, K, V> {
+impl<K: Bridge, V: Bridge> ExactSizeIterator for MapIter<'_, K, V> {
     fn len(&self) -> usize {
         self.map_data.length() - self.index
     }

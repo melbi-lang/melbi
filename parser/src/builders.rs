@@ -40,6 +40,7 @@ impl<'arena> ArenaBuilder<'arena> {
     }
 
     /// The arena this builder allocates from.
+    #[must_use]
     pub fn arena(&self) -> &'arena Bump {
         self.arena
     }

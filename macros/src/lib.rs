@@ -42,7 +42,7 @@ mod melbi_package;
 ///
 /// # Naming
 ///
-/// By default, the struct name is derived from the function name in PascalCase:
+/// By default, the struct name is derived from the function name in `PascalCase`:
 /// - `add` → `Add`
 /// - `safe_div` → `SafeDiv`
 /// - `get_first_element` → `GetFirstElement`
@@ -114,7 +114,7 @@ pub fn melbi_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// # Naming
 ///
-/// By default, the constant name is derived from the function name in SCREAMING_SNAKE_CASE:
+/// By default, the constant name is derived from the function name in `SCREAMING_SNAKE_CASE`:
 /// - `fn pi` → `"PI"`
 /// - `fn euler_constant` → `"EULER_CONSTANT"`
 /// - `fn speed_of_light` → `"SPEED_OF_LIGHT"`

@@ -32,7 +32,7 @@ where
     let parsed = parser::parse(arena, source).map_err(|e| {
         TypeError::new(
             TypeErrorKind::Other {
-                message: format!("Failed to parse source: {}", e),
+                message: format!("Failed to parse source: {e}"),
             },
             source.to_string(),
             parser::Span::new(0, 0),
@@ -49,7 +49,7 @@ fn collect_lambda_pointers<'types, 'arena>(
 ) {
     match &expr.1 {
         typed_expr::ExprInner::Lambda { body, .. } => {
-            lambdas.insert(expr as *const _);
+            lambdas.insert(std::ptr::from_ref(expr));
             collect_lambda_pointers(body, lambdas);
         }
         typed_expr::ExprInner::Binary { left, right, .. }
@@ -141,9 +141,9 @@ fn arithmetic_operators_integers() {
     let type_manager = TypeManager::new(&bump);
 
     for op in ["+", "-", "*", "/", "^"] {
-        let source = format!("1 {} 2", op);
+        let source = format!("1 {op} 2");
         let result = analyze_source(&source, type_manager, &bump);
-        assert!(result.is_ok(), "Failed for operator {}", op);
+        assert!(result.is_ok(), "Failed for operator {op}");
         assert_eq!(result.unwrap().expr.0, type_manager.int());
     }
 }
@@ -166,8 +166,7 @@ fn index_in_generic_lambda() {
 
     assert!(
         result.is_ok(),
-        "Index on generic lambda parameter should work with type classes: {:?}",
-        result
+        "Index on generic lambda parameter should work with type classes: {result:?}"
     );
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -206,7 +205,7 @@ fn numeric_int_and_float() {
     let source = "{ a = f(3, 4), b = f(1.1, 2.2) } where { f = (x, y) => x + y }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "{:?}", result);
+    assert!(result.is_ok(), "{result:?}");
 }
 
 #[test]
@@ -220,7 +219,7 @@ fn indexable_lambda_instantiations() {
     let source = r#"{ a = f({1:"one"}, 1), b = f([2, 2], 0) } where { f = (m, k) => m[k] }"#;
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "{:?}", result);
+    assert!(result.is_ok(), "{result:?}");
     let typed_expr = result.unwrap();
 
     // Check that lambda instantiations are fully resolved
@@ -230,7 +229,7 @@ fn indexable_lambda_instantiations() {
         "Should have one polymorphic lambda"
     );
 
-    for (_ptr, insts) in typed_expr.lambda_instantiations.iter() {
+    for (_ptr, insts) in &typed_expr.lambda_instantiations {
         assert_eq!(
             insts.substitutions.len(),
             2,
@@ -247,15 +246,13 @@ fn indexable_lambda_instantiations() {
         // Print the instantiations for debugging
         for (i, subst) in insts.substitutions.iter().enumerate() {
             tracing::debug!("Instantiation {}:", i);
-            for (gen_id, ty) in subst.iter() {
+            for (gen_id, ty) in subst {
                 tracing::debug!("  {}: {}", gen_id, ty);
                 // All types should be fully resolved (no type variables)
                 use crate::types::traits::{TypeKind, TypeView};
                 assert!(
                     !matches!(ty.view(), TypeKind::TypeVar(_)),
-                    "Type variable {} should be resolved, got: {}",
-                    gen_id,
-                    ty
+                    "Type variable {gen_id} should be resolved, got: {ty}"
                 );
             }
         }
@@ -273,7 +270,7 @@ fn numeric_lambda_type_classes() {
     let source = "{ a = f(3, 4), b = f(1.1, 2.2) } where { f = (x, y) => x + y }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "{:?}", result);
+    assert!(result.is_ok(), "{result:?}");
     let typed_expr = result.unwrap();
 
     assert_eq!(
@@ -282,7 +279,7 @@ fn numeric_lambda_type_classes() {
         "Should have one polymorphic lambda"
     );
 
-    for (_ptr, insts) in typed_expr.lambda_instantiations.iter() {
+    for (_ptr, insts) in &typed_expr.lambda_instantiations {
         // Check that the Numeric type class is recorded
         assert!(
             insts.type_classes.contains(&TypeClassId::Numeric),
@@ -301,7 +298,7 @@ fn unconstrained_lambda_no_type_classes() {
     let source = "{ a = f(3), b = f(\"hello\") } where { f = (x) => x }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "{:?}", result);
+    assert!(result.is_ok(), "{result:?}");
     let typed_expr = result.unwrap();
 
     assert_eq!(
@@ -310,7 +307,7 @@ fn unconstrained_lambda_no_type_classes() {
         "Should have one polymorphic lambda"
     );
 
-    for (_ptr, insts) in typed_expr.lambda_instantiations.iter() {
+    for (_ptr, insts) in &typed_expr.lambda_instantiations {
         // Unconstrained lambda should have no type classes
         assert!(
             insts.type_classes.is_empty(),
@@ -330,7 +327,7 @@ fn nested_indexing_polymorphic_lambda() {
     let source = r#"{ a = f({true: {"abc": 0.5}}, true, "abc"), b = f({"": [false, true]}, "", 0) } where { f = (m, k1, k2) => m[k1][k2] }"#;
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "{:?}", result);
+    assert!(result.is_ok(), "{result:?}");
 }
 
 #[test]
@@ -348,8 +345,7 @@ fn nested_array_indexing_with_generic() {
 
     assert!(
         result.is_ok(),
-        "Nested array indexing should work even with partially resolved generic types: {:?}",
-        result
+        "Nested array indexing should work even with partially resolved generic types: {result:?}"
     );
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -368,8 +364,7 @@ fn field_access_in_generic_lambda() {
 
     assert!(
         result.is_ok(),
-        "Field access on generic lambda parameter should work with row polymorphism: {:?}",
-        result
+        "Field access on generic lambda parameter should work with row polymorphism: {result:?}"
     );
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -388,8 +383,7 @@ fn nested_generic_lambda_field_access() {
 
     assert!(
         result.is_ok(),
-        "Nested generic lambda with field access should work with row polymorphism: {:?}",
-        result
+        "Nested generic lambda with field access should work with row polymorphism: {result:?}"
     );
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -408,8 +402,7 @@ fn cast_on_lambda_parameter() {
 
     assert!(
         result.is_ok(),
-        "Cast on generic lambda parameter should work with delayed validation: {:?}",
-        result
+        "Cast on generic lambda parameter should work with delayed validation: {result:?}"
     );
     assert_eq!(result.unwrap().expr.0, type_manager.float());
 }
@@ -426,8 +419,7 @@ fn index_in_where_bound_variable() {
 
     assert!(
         result.is_ok(),
-        "Index on where-bound variable should work: {:?}",
-        result
+        "Index on where-bound variable should work: {result:?}"
     );
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -444,8 +436,7 @@ fn field_access_in_where_bound_variable() {
 
     assert!(
         result.is_ok(),
-        "Field access on where-bound variable should work: {:?}",
-        result
+        "Field access on where-bound variable should work: {result:?}"
     );
     assert_eq!(result.unwrap().expr.0, type_manager.int());
 }
@@ -456,9 +447,9 @@ fn arithmetic_operators_floats() {
     let type_manager = TypeManager::new(&bump);
 
     for op in ["+", "-", "*", "/", "^"] {
-        let source = format!("1.0 {} 2.0", op);
+        let source = format!("1.0 {op} 2.0");
         let result = analyze_source(&source, type_manager, &bump);
-        assert!(result.is_ok(), "Failed for operator {}", op);
+        assert!(result.is_ok(), "Failed for operator {op}");
         assert_eq!(result.unwrap().expr.0, type_manager.float());
     }
 }
@@ -478,9 +469,9 @@ fn logical_operators() {
     let type_manager = TypeManager::new(&bump);
 
     for op in ["and", "or"] {
-        let source = format!("true {} false", op);
+        let source = format!("true {op} false");
         let result = analyze_source(&source, type_manager, &bump);
-        assert!(result.is_ok(), "Failed for operator {}", op);
+        assert!(result.is_ok(), "Failed for operator {op}");
         assert_eq!(result.unwrap().expr.0, type_manager.bool());
     }
 }
@@ -520,10 +511,10 @@ fn type_resolution_simple_call() {
 
     // Simple polymorphic function call
     // Result should be resolved to concrete type
-    let source = r#"double(5) where { double = (x) => x * 2 }"#;
+    let source = r"double(5) where { double = (x) => x * 2 }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -547,10 +538,10 @@ fn type_resolution_array_simple() {
 
     // Array with multiple polymorphic calls
     // All should resolve to same concrete type
-    let source = r#"[double(1), double(2)] where { double = (x) => x * 2 }"#;
+    let source = r"[double(1), double(2)] where { double = (x) => x * 2 }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -591,7 +582,7 @@ fn type_resolution_map_indexing() {
     let source = r#"f({1: "hello"}, 1) where { f = (m, k) => m[k] }"#;
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -623,10 +614,10 @@ fn type_resolution_nested_structures() {
 
     // Nested structure with multiple call sites creating type variables
     // All should be resolved after analysis
-    let source = r#"{a = g(1), b = g(2)} where { g = (n) => n + 10 }"#;
+    let source = r"{a = g(1), b = g(2)} where { g = (n) => n + 10 }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -639,8 +630,7 @@ fn type_resolution_nested_structures() {
                 assert_eq!(
                     field_expr.0,
                     type_manager.int(),
-                    "Record field {} should have resolved Int type, not type variable",
-                    i
+                    "Record field {i} should have resolved Int type, not type variable"
                 );
             }
         } else {
@@ -658,13 +648,13 @@ fn type_resolution_if_branches() {
 
     // If expression with polymorphic calls in both branches
     // Both branches should resolve to same concrete type
-    let source = r#"
+    let source = r"
         if true then f(1) else f(2)
         where { f = (x) => x + 10 }
-    "#;
+    ";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -709,10 +699,10 @@ fn type_resolution_empty_array_unification() {
     let type_manager = TypeManager::new(&bump);
 
     // Simple case: empty array unified with concrete type
-    let source = r#"if false then [1] else []"#;
+    let source = r"if false then [1] else []";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -722,8 +712,7 @@ fn type_resolution_empty_array_unification() {
             assert_eq!(
                 elem_ty,
                 type_manager.int(),
-                "Array element type should be resolved to Int, not type variable. Got: {:?}",
-                elem_ty
+                "Array element type should be resolved to Int, not type variable. Got: {elem_ty:?}"
             );
         }
         _ => panic!("Expected Array type, got: {:?}", typed_expr.expr.0),
@@ -744,7 +733,7 @@ fn type_resolution_deeply_nested_unification() {
     let source = r#"if false then [[[{1:"one"}]]] else [[[]]]"#;
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -754,19 +743,19 @@ fn type_resolution_deeply_nested_unification() {
     // First level: Array
     match current_ty.view() {
         TypeKind::Array(elem_ty) => current_ty = elem_ty,
-        _ => panic!("Expected Array at first level, got: {:?}", current_ty),
+        _ => panic!("Expected Array at first level, got: {current_ty:?}"),
     }
 
     // Second level: Array
     match current_ty.view() {
         TypeKind::Array(elem_ty) => current_ty = elem_ty,
-        _ => panic!("Expected Array at second level, got: {:?}", current_ty),
+        _ => panic!("Expected Array at second level, got: {current_ty:?}"),
     }
 
     // Third level: Array
     match current_ty.view() {
         TypeKind::Array(elem_ty) => current_ty = elem_ty,
-        _ => panic!("Expected Array at third level, got: {:?}", current_ty),
+        _ => panic!("Expected Array at third level, got: {current_ty:?}"),
     }
 
     // Fourth level: Map[Int, Str] (not a type variable!)
@@ -785,11 +774,10 @@ fn type_resolution_deeply_nested_unification() {
         }
         TypeKind::TypeVar(var_id) => {
             panic!(
-                "Innermost type should be Map[Int, Str], not type variable _{}",
-                var_id
+                "Innermost type should be Map[Int, Str], not type variable _{var_id}"
             );
         }
-        _ => panic!("Expected Map at innermost level, got: {:?}", current_ty),
+        _ => panic!("Expected Map at innermost level, got: {current_ty:?}"),
     }
 
     // Also verify the else branch expression itself has resolved types
@@ -823,11 +811,10 @@ fn type_resolution_deeply_nested_unification() {
                             }
                             TypeKind::TypeVar(var_id) => {
                                 panic!(
-                                    "Empty array element type should be Map[Int, Str], not _{}",
-                                    var_id
+                                    "Empty array element type should be Map[Int, Str], not _{var_id}"
                                 );
                             }
-                            _ => panic!("Expected Map element type, got: {:?}", elem_ty),
+                            _ => panic!("Expected Map element type, got: {elem_ty:?}"),
                         },
                         _ => panic!("Expected Array type"),
                     }
@@ -852,10 +839,10 @@ fn type_resolution_polymorphic_calls() {
 
     // Polymorphic lambda called multiple times with same type
     // All call sites should have resolved types (not type variables)
-    let source = r#"[id(1), id(2), id(3)] where { id = (x) => x }"#;
+    let source = r"[id(1), id(2), id(3)] where { id = (x) => x }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -868,8 +855,7 @@ fn type_resolution_polymorphic_calls() {
                 assert_eq!(
                     elem.0,
                     type_manager.int(),
-                    "Array element {} should have resolved Int type, not type variable",
-                    i
+                    "Array element {i} should have resolved Int type, not type variable"
                 );
             }
         } else {
@@ -888,13 +874,13 @@ fn type_resolution_map_construction() {
     let type_manager = TypeManager::new(&bump);
 
     // Map with polymorphic function calls as values
-    let source = r#"
+    let source = r"
         {1: double(5), 2: double(10)}
         where { double = (x) => x * 2 }
-    "#;
+    ";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -1050,7 +1036,7 @@ fn cast_unknown_type_fails() {
     assert!(result.is_err());
 
     let err = result.unwrap_err();
-    let err_string = format!("{:?}", err);
+    let err_string = format!("{err:?}");
     assert!(err_string.contains("Unknown type: Foo"));
 }
 
@@ -1611,8 +1597,7 @@ fn polymorphic_identity_function() {
 
     assert!(
         result.is_ok(),
-        "Polymorphic identity function should typecheck: {:?}",
-        result
+        "Polymorphic identity function should typecheck: {result:?}"
     );
 
     let typed = result.unwrap();
@@ -1633,8 +1618,7 @@ fn polymorphic_inline_lambda() {
 
     assert!(
         result.is_ok(),
-        "Polymorphic inline lambda should typecheck: {:?}",
-        result
+        "Polymorphic inline lambda should typecheck: {result:?}"
     );
 
     // The result should be an Array[Int]
@@ -1662,8 +1646,7 @@ fn polymorphic_pair_function() {
 
     assert!(
         result.is_ok(),
-        "Polymorphic pair function should typecheck: {:?}",
-        result
+        "Polymorphic pair function should typecheck: {result:?}"
     );
 }
 
@@ -1686,8 +1669,7 @@ fn polymorphic_const_function() {
 
     assert!(
         result.is_ok(),
-        "Polymorphic const function should typecheck: {:?}",
-        result
+        "Polymorphic const function should typecheck: {result:?}"
     );
 
     let typed = result.unwrap();
@@ -1717,8 +1699,7 @@ fn sequential_polymorphic_bindings() {
 
     assert!(
         result.is_ok(),
-        "Sequential polymorphic bindings should typecheck: {:?}",
-        result
+        "Sequential polymorphic bindings should typecheck: {result:?}"
     );
 
     let typed = result.unwrap();
@@ -1739,18 +1720,17 @@ fn higher_rank_polymorphism() {
 
     // This requires passing a polymorphic function as an argument
     // Currently fails because we can't pass type schemes as values
-    let source = r#"
+    let source = r"
         apply(id, 42) where {
             id = (x) => x,
             apply = (f, x) => f(x)
         }
-    "#;
+    ";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
-        "Higher-rank polymorphism should typecheck: {:?}",
-        result
+        "Higher-rank polymorphism should typecheck: {result:?}"
     );
 
     let typed = result.unwrap();
@@ -1763,15 +1743,14 @@ fn polymorphic_in_array_literal() {
     let type_manager = TypeManager::new(&bump);
 
     // Array containing results of polymorphic function calls
-    let source = r#"
+    let source = r"
         [id(1), id(2), id(3)] where { id = (x) => x }
-    "#;
+    ";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
-        "Polymorphic function in array literal should typecheck: {:?}",
-        result
+        "Polymorphic function in array literal should typecheck: {result:?}"
     );
 
     let typed = result.unwrap();
@@ -1796,8 +1775,7 @@ fn nested_where_with_polymorphism() {
 
     assert!(
         result.is_ok(),
-        "Nested where with polymorphism should typecheck: {:?}",
-        result
+        "Nested where with polymorphism should typecheck: {result:?}"
     );
 }
 
@@ -1841,8 +1819,7 @@ fn polymorphic_map_function() {
 
     assert!(
         result.is_ok(),
-        "Polymorphic apply_twice should typecheck: {:?}",
-        result
+        "Polymorphic apply_twice should typecheck: {result:?}"
     );
 
     let typed = result.unwrap();
@@ -1875,8 +1852,7 @@ fn polymorphic_compose() {
 
     assert!(
         result.is_ok(),
-        "Polymorphic composition should typecheck: {:?}",
-        result
+        "Polymorphic composition should typecheck: {result:?}"
     );
 
     let typed = result.unwrap();
@@ -1898,23 +1874,22 @@ fn closure_capturing_lambda_param_should_not_be_polymorphic() {
     // The parameter p has type Bool (from calling with true).
     // capture = () => p should have type () => Bool, NOT be polymorphic.
     // Therefore capture() + 1 should fail (can't add Bool + Int).
-    let source = r#"
+    let source = r"
         ((p) => result where {
           capture = () => p,
           result = capture() + 1
         })(true)
-    "#;
+    ";
     let result = analyze_source(source, type_manager, &bump);
 
     // Should fail with specific type mismatch: Bool vs Int
     match result {
         Err(err) => {
-            let err_str = format!("{:?}", err);
+            let err_str = format!("{err:?}");
             assert!(
                 err_str.contains("TypeMismatch")
                     && (err_str.contains("Bool") && err_str.contains("Int")),
-                "Expected TypeMismatch between Bool and Int, got: {:?}",
-                err
+                "Expected TypeMismatch between Bool and Int, got: {err:?}"
             );
         }
         Ok(_) => panic!(
@@ -1991,7 +1966,7 @@ fn error_unknown_field() {
                     .contains("Record does not have field 'c'")
             );
             assert!(diagnostic.message.contains("Available fields"));
-            assert!(diagnostic.message.contains("a") || diagnostic.message.contains("b"));
+            assert!(diagnostic.message.contains('a') || diagnostic.message.contains('b'));
         }
         Ok(_) => panic!("Expected UnknownField error"),
     }
@@ -2262,7 +2237,7 @@ fn lambda_body_type_variables_after_resolution() {
     let type_manager = TypeManager::new(&bump);
 
     // Lambda stored in where binding - body has type variables _0, _1, _2
-    let source = r#"id where { id = (x) => x }"#;
+    let source = r"id where { id = (x) => x }";
 
     let result = analyze_source(source, type_manager, &bump);
     assert!(result.is_ok());
@@ -2300,7 +2275,7 @@ fn array_lambda_body_unified_types() {
     let type_manager = TypeManager::new(&bump);
 
     // Lambda with array - requires a and b to unify
-    let source = r#"f(10, 42) where { f = (a, b) => [b, a] }"#;
+    let source = r"f(10, 42) where { f = (a, b) => [b, a] }";
 
     let result = analyze_source(source, type_manager, &bump);
     assert!(result.is_ok());
@@ -2356,7 +2331,7 @@ fn inline_array_lambda_works() {
     let type_manager = TypeManager::new(&bump);
 
     // Inline version - this works
-    let source = r#"((a, b) => [b, a])(10, 42)"#;
+    let source = r"((a, b) => [b, a])(10, 42)";
 
     let result = analyze_source(source, type_manager, &bump);
     assert!(result.is_ok());
@@ -2409,7 +2384,7 @@ fn instantiation_tracking_simple() {
     let type_manager = TypeManager::new(&bump);
 
     // Simple polymorphic lambda with one call site
-    let source = r#"f(10) where { f = (x) => x }"#;
+    let source = r"f(10) where { f = (x) => x }";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
@@ -2492,7 +2467,7 @@ fn instantiation_tracking_multi_param() {
     let type_manager = TypeManager::new(&bump);
 
     // Lambda with multiple parameters
-    let source = r#"f(10, 42) where { f = (a, b) => [b, a] }"#;
+    let source = r"f(10, 42) where { f = (a, b) => [b, a] }";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
@@ -2515,12 +2490,11 @@ fn instantiation_tracking_multi_param() {
     );
 
     // Check that the mapped types are Int
-    for (var_id, concrete_ty) in subst.iter() {
+    for (var_id, concrete_ty) in subst {
         assert_eq!(
             *concrete_ty,
             type_manager.int(),
-            "Var {} should map to Int",
-            var_id
+            "Var {var_id} should map to Int"
         );
     }
 }
@@ -2567,7 +2541,7 @@ fn no_instantiation_for_monomorphic() {
     let type_manager = TypeManager::new(&bump);
 
     // Monomorphic lambda - usage constrains it to a specific type (Int)
-    let source = r#"f(10) where { f = (x) => x + 1 }"#;
+    let source = r"f(10) where { f = (x) => x + 1 }";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
@@ -2587,7 +2561,7 @@ fn no_instantiation_for_inline_lambda() {
     let type_manager = TypeManager::new(&bump);
 
     // Inline lambda - not bound in a where clause
-    let source = r#"((x) => x)(10)"#;
+    let source = r"((x) => x)(10)";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_ok());
@@ -2646,7 +2620,7 @@ fn instantiation_tracking_with_shadowing() {
         .values()
         .map(|info| info.substitutions.len())
         .collect();
-    inst_counts.sort();
+    inst_counts.sort_unstable();
 
     // Inner f: 1 instantiation (both uses in array unified to same type)
     // Outer f (g): 2 instantiations (used with Int and Str)
@@ -2714,7 +2688,7 @@ fn some_literal_int() {
     let source = "some 1";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -2724,8 +2698,7 @@ fn some_literal_int() {
             assert_eq!(
                 inner_ty,
                 type_manager.int(),
-                "Option inner type should be Int. Got: {:?}",
-                inner_ty
+                "Option inner type should be Int. Got: {inner_ty:?}"
             );
         }
         _ => panic!("Expected Option type, got: {:?}", typed_expr.expr.0),
@@ -2742,7 +2715,7 @@ fn none_polymorphic() {
     let source = "none";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -2753,7 +2726,7 @@ fn none_polymorphic() {
                 TypeKind::TypeVar(_) => {
                     // Expected: polymorphic none
                 }
-                _ => panic!("Option inner should be type variable, got: {:?}", inner_ty),
+                _ => panic!("Option inner should be type variable, got: {inner_ty:?}"),
             }
         }
         _ => panic!("Expected Option type, got: {:?}", typed_expr.expr.0),
@@ -2770,7 +2743,7 @@ fn if_none_some_string() {
     let source = r#"if true then none else some "foo""#;
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -2781,8 +2754,7 @@ fn if_none_some_string() {
             assert_eq!(
                 inner_ty,
                 type_manager.str(),
-                "Option inner type should be String after unification. Got: {:?}",
-                inner_ty
+                "Option inner type should be String after unification. Got: {inner_ty:?}"
             );
         }
         _ => panic!("Expected Option type, got: {:?}", typed_expr.expr.0),
@@ -2799,7 +2771,7 @@ fn option_in_lambda() {
     let source = "f(true) where { f = (x) => some x }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -2810,8 +2782,7 @@ fn option_in_lambda() {
             assert_eq!(
                 inner_ty,
                 type_manager.bool(),
-                "Option inner type should be Bool. Got: {:?}",
-                inner_ty
+                "Option inner type should be Bool. Got: {inner_ty:?}"
             );
         }
         _ => panic!("Expected Option type, got: {:?}", typed_expr.expr.0),
@@ -2828,7 +2799,7 @@ fn array_of_options() {
     let source = "[none, none, none, some 3.14]";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -2839,11 +2810,10 @@ fn array_of_options() {
                 assert_eq!(
                     inner_ty,
                     type_manager.float(),
-                    "Option inner type should be Float. Got: {:?}",
-                    inner_ty
+                    "Option inner type should be Float. Got: {inner_ty:?}"
                 );
             }
-            _ => panic!("Array element should be Option type, got: {:?}", elem_ty),
+            _ => panic!("Array element should be Option type, got: {elem_ty:?}"),
         },
         _ => panic!("Expected Array type, got: {:?}", typed_expr.expr.0),
     }
@@ -2859,7 +2829,7 @@ fn nested_option() {
     let source = "some some 42";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -2870,11 +2840,10 @@ fn nested_option() {
                 assert_eq!(
                     inner_inner,
                     type_manager.int(),
-                    "Innermost type should be Int. Got: {:?}",
-                    inner_inner
+                    "Innermost type should be Int. Got: {inner_inner:?}"
                 );
             }
-            _ => panic!("Expected nested Option type, got: {:?}", outer_inner),
+            _ => panic!("Expected nested Option type, got: {outer_inner:?}"),
         },
         _ => panic!("Expected Option type, got: {:?}", typed_expr.expr.0),
     }
@@ -2887,10 +2856,10 @@ fn option_in_record() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
-    let source = r#"{ x = some 42, y = none }"#;
+    let source = r"{ x = some 42, y = none }";
     let result = analyze_source(source, type_manager, &bump);
 
-    assert!(result.is_ok(), "Analysis should succeed: {:?}", result);
+    assert!(result.is_ok(), "Analysis should succeed: {result:?}");
 
     let typed_expr = result.unwrap();
 
@@ -2907,7 +2876,7 @@ fn option_in_record() {
                 TypeKind::Option(inner) => {
                     assert_eq!(inner, type_manager.int());
                 }
-                _ => panic!("Field x should be Option[Int], got: {:?}", x_ty),
+                _ => panic!("Field x should be Option[Int], got: {x_ty:?}"),
             }
 
             // Check y field
@@ -2917,7 +2886,7 @@ fn option_in_record() {
                 TypeKind::Option(_) => {
                     // Polymorphic none, type variable is fine
                 }
-                _ => panic!("Field y should be Option type, got: {:?}", y_ty),
+                _ => panic!("Field y should be Option type, got: {y_ty:?}"),
             }
         }
         _ => panic!("Expected Record type, got: {:?}", typed_expr.expr.0),
@@ -2930,13 +2899,12 @@ fn exhaustiveness_option_with_catch_all() {
     let type_manager = TypeManager::new(&bump);
 
     // This should be exhaustive: some _ and none
-    let source = r#"some(42) match { some x -> x, none -> 0 }"#;
+    let source = r"some(42) match { some x -> x, none -> 0 }";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
-        "Should be exhaustive with catch-all pattern: {:?}",
-        result
+        "Should be exhaustive with catch-all pattern: {result:?}"
     );
 }
 
@@ -2946,7 +2914,7 @@ fn exhaustiveness_option_specific_pattern_fails() {
     let type_manager = TypeManager::new(&bump);
 
     // This should NOT be exhaustive: some 1 only matches Some(1), not all Some values
-    let source = r#"some(42) match { some 1 -> 1, none -> 0 }"#;
+    let source = r"some(42) match { some 1 -> 1, none -> 0 }";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(result.is_err(), "Should fail: some 1 is not exhaustive");
@@ -2970,12 +2938,11 @@ fn exhaustiveness_nested_option_with_catch_all() {
     let type_manager = TypeManager::new(&bump);
 
     // Nested pattern with catch-all should be exhaustive
-    let source = r#"some(some(42)) match { some (some x) -> x, some none -> 0, none -> 0 }"#;
+    let source = r"some(some(42)) match { some (some x) -> x, some none -> 0, none -> 0 }";
     let result = analyze_source(source, type_manager, &bump);
 
     assert!(
         result.is_ok(),
-        "Should be exhaustive with nested catch-all: {:?}",
-        result
+        "Should be exhaustive with nested catch-all: {result:?}"
     );
 }

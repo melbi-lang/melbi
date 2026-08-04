@@ -12,14 +12,17 @@
 pub struct Span(pub u32, pub u32);
 
 impl Span {
+    #[must_use]
     pub fn new(start: u32, end: u32) -> Self {
         Self(start, end)
     }
 
+    #[must_use]
     pub fn start(self) -> u32 {
         self.0
     }
 
+    #[must_use]
     pub fn end(self) -> u32 {
         self.1
     }

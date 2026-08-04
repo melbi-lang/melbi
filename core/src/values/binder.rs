@@ -11,13 +11,13 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::DuplicateBinding(names) => {
+            Self::DuplicateBinding(names) => {
                 write!(f, "Duplicate binding for ")?;
                 for (i, name) in names.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "'{}'", name)?;
+                    write!(f, "'{name}'")?;
                 }
                 Ok(())
             }

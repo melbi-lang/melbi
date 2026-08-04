@@ -43,19 +43,19 @@ mod internal {
         type Error = core::num::TryFromIntError;
 
         fn try_from(value: usize) -> Result<Self, Self::Error> {
-            Ok(SmallStrSize(u32::try_from(value)?))
+            Ok(Self(u32::try_from(value)?))
         }
     }
 
     impl From<SmallStrSize> for usize {
         fn from(size: SmallStrSize) -> Self {
-            size.0 as usize
+            size.0 as Self
         }
     }
 
     impl From<&SmallStrSize> for usize {
         fn from(size: &SmallStrSize) -> Self {
-            size.0 as usize
+            size.0 as Self
         }
     }
 }
@@ -98,8 +98,8 @@ struct StrSliceRepr {
 impl StrSliceRepr {
     fn from(s: &str) -> Self {
         let len = s.len();
-        let ptr = ptr::NonNull::new(s.as_ptr() as *mut u8).unwrap();
-        Self { len, ptr }
+        let ptr = ptr::NonNull::new(s.as_ptr().cast_mut()).unwrap();
+        Self { ptr, len }
     }
 
     fn as_str(&self) -> &str {
@@ -180,11 +180,12 @@ static_assertions::assert_eq_size!(SmallStr, &str);
 impl<'a> SmallStr<'a> {
     pub const INLINE_CAPACITY: usize = mem::size_of::<StrSliceRepr>() - 1;
 
+    #[must_use]
     pub fn can_be_inlined(s: &str) -> bool {
         s.len() <= Self::INLINE_CAPACITY
     }
 
-    /// Create a new SmallStr, either by inlining the string data (if it fits)
+    /// Create a new `SmallStr`, either by inlining the string data (if it fits)
     /// or by calling the provided closure to allocate it.
     ///
     /// If the string is short enough to be inlined, the data is copied and
@@ -209,6 +210,7 @@ impl<'a> SmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         unsafe {
             if self.repr.inline.is_inline() {
@@ -219,6 +221,7 @@ impl<'a> SmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn is_inline(&self) -> bool {
         unsafe { self.repr.inline.is_inline() }
     }
@@ -234,6 +237,7 @@ impl<'a> SmallStr<'a> {
     /// Panics in debug builds if two strings of the same length have different storage
     /// strategies (one inline, one arena-allocated), which indicates a bug in the
     /// interning logic.
+    #[must_use]
     pub fn interned_eq(&self, other: &Self) -> bool {
         let self_str = self.as_str();
         let other_str = other.as_str();
@@ -335,7 +339,7 @@ impl Ord for SmallStr<'_> {
 
 impl core::hash::Hash for SmallStr<'_> {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        self.as_str().hash(state)
+        self.as_str().hash(state);
     }
 }
 
@@ -356,11 +360,12 @@ impl core::fmt::Display for SmallStr<'_> {
 impl<'a> SimpleSmallStr<'a> {
     pub const INLINE_CAPACITY: usize = mem::size_of::<&str>() - 2;
 
+    #[must_use]
     pub fn can_be_inlined(s: &str) -> bool {
         s.len() <= Self::INLINE_CAPACITY
     }
 
-    /// Create a new SimpleSmallStr, either by inlining the string data (if it fits)
+    /// Create a new `SimpleSmallStr`, either by inlining the string data (if it fits)
     /// or by calling the provided closure to allocate it.
     ///
     /// If the string is short enough to be inlined, the data is copied and
@@ -389,6 +394,7 @@ impl<'a> SimpleSmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             SimpleSmallStr::Slice(small_len, ptr, _) => {
@@ -401,6 +407,7 @@ impl<'a> SimpleSmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn is_inline(&self) -> bool {
         matches!(self, SimpleSmallStr::Inline(_, _))
     }
@@ -416,6 +423,7 @@ impl<'a> SimpleSmallStr<'a> {
     /// Panics in debug builds if two strings of the same length have different storage
     /// strategies (one inline, one arena-allocated), which indicates a bug in the
     /// interning logic.
+    #[must_use]
     pub fn interned_eq(&self, other: &Self) -> bool {
         let self_str = self.as_str();
         let other_str = other.as_str();
@@ -593,7 +601,7 @@ mod tests {
             }
             fn write(&mut self, bytes: &[u8]) {
                 for &b in bytes {
-                    self.0 = self.0.wrapping_mul(31).wrapping_add(b as u64);
+                    self.0 = self.0.wrapping_mul(31).wrapping_add(u64::from(b));
                 }
             }
         }
@@ -613,8 +621,8 @@ mod tests {
     #[test]
     fn small_str_debug_display() {
         let small = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
-        assert_eq!(format!("{}", small), "hello");
-        assert_eq!(format!("{:?}", small), "\"hello\"");
+        assert_eq!(format!("{small}"), "hello");
+        assert_eq!(format!("{small:?}"), "\"hello\"");
     }
 
     #[test]
@@ -791,7 +799,7 @@ mod tests {
             }
             fn write(&mut self, bytes: &[u8]) {
                 for &b in bytes {
-                    self.0 = self.0.wrapping_mul(31).wrapping_add(b as u64);
+                    self.0 = self.0.wrapping_mul(31).wrapping_add(u64::from(b));
                 }
             }
         }

@@ -24,14 +24,14 @@ test_case! {
 
 test_case! {
     name: multi_line_map,
-    input: { r#"
+    input: { r"
 {a:1,
- b:2}"#.trim_start()},
-    formatted: { r#"
+ b:2}".trim_start()},
+    formatted: { r"
 {
     a: 1,
     b: 2,
-}"#.trim_start() },
+}".trim_start() },
 }
 
 test_case! {
@@ -42,13 +42,13 @@ test_case! {
 
 test_case! {
     name: multi_line_map_respects_newlines,
-    input: { r#"
+    input: { r"
 {
-a:1, b:2}"#.trim_start()},
-    formatted: { r#"
+a:1, b:2}".trim_start()},
+    formatted: { r"
 {
     a: 1, b: 2,
-}"#.trim_start() },
+}".trim_start() },
 }
 
 test_case! {
@@ -66,19 +66,19 @@ test_case! {
 
 test_case! {
     name: map_with_comments,
-    input: { r#"
+    input: { r"
 {
     a   : 1, // first
     b
     : 2 // second
     , c: 3_000_000   // third
-}"#.trim_start()},
-    formatted: { r#"
+}".trim_start()},
+    formatted: { r"
 {
     a: 1, // first
     b: 2, // second
     c: 3_000_000, // third
-}"#.trim_start() },
+}".trim_start() },
     // Comments in maps - should align vertically and add trailing comma
 }
 

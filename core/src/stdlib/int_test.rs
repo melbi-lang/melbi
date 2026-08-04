@@ -404,17 +404,14 @@ fn test_int_expr_expects_error(source: &str, expected_error_substring: &str) {
     match result {
         Ok(val) => {
             panic!(
-                "Expected error containing '{}', but got success with value: {:?}",
-                expected_error_substring, val
+                "Expected error containing '{expected_error_substring}', but got success with value: {val:?}"
             );
         }
         Err(e) => {
-            let error_msg = format!("{:?}", e);
+            let error_msg = format!("{e:?}");
             assert!(
                 error_msg.contains(expected_error_substring),
-                "Expected error containing '{}', but got: {}",
-                expected_error_substring,
-                error_msg
+                "Expected error containing '{expected_error_substring}', but got: {error_msg}"
             );
         }
     }

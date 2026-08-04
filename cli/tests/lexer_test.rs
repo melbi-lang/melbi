@@ -49,15 +49,15 @@ fn lexer_string_double() {
 
 #[test]
 fn lexer_string_single() {
-    let lexer = Token::lexer(r#" 'hello' "#);
+    let lexer = Token::lexer(r" 'hello' ");
     let tokens: Vec<_> = lexer.map(|token_res| token_res.unwrap()).collect();
     assert_eq!(tokens, vec![Token::StringSingle]);
 
-    let lexer_escaped = Token::lexer(r#"'string with \' escape'"#);
+    let lexer_escaped = Token::lexer(r"'string with \' escape'");
     let tokens_escaped: Vec<_> = lexer_escaped.map(|token_res| token_res.unwrap()).collect();
     assert_eq!(tokens_escaped, vec![Token::StringSingle]);
 
-    let lexer_prefix = Token::lexer(r#"f'formatted'"#);
+    let lexer_prefix = Token::lexer(r"f'formatted'");
     let tokens_prefix: Vec<_> = lexer_prefix.map(|token_res| token_res.unwrap()).collect();
     assert_eq!(tokens_prefix, vec![Token::StringSingle]);
 }
@@ -121,18 +121,18 @@ fn calculate_depth_mismatched() {
 
 #[test]
 fn calculate_depth_with_strings() {
-    assert_eq!(calculate_depth(r###"{"hello"}"###), Some(0));
-    assert_eq!(calculate_depth(r###"{"{"}"###), Some(0));
-    assert_eq!(calculate_depth(r###"{"}"###), None);
-    assert_eq!(calculate_depth(r###"{"\""}"###), Some(0));
+    assert_eq!(calculate_depth(r#"{"hello"}"#), Some(0));
+    assert_eq!(calculate_depth(r#"{"{"}"#), Some(0));
+    assert_eq!(calculate_depth(r#"{"}"#), None);
+    assert_eq!(calculate_depth(r#"{"\""}"#), Some(0));
     assert_eq!(calculate_depth("{`id`}"), Some(0));
 }
 
 #[test]
 fn calculate_depth_unclosed_string() {
-    assert_eq!(calculate_depth(r###"{"unclosed"###), None);
+    assert_eq!(calculate_depth(r#"{"unclosed"#), None);
     assert_eq!(calculate_depth("`unclosed`{"), Some(1));
-    assert_eq!(calculate_depth(r###"`unclosed"###), None);
+    assert_eq!(calculate_depth(r"`unclosed"), None);
 }
 
 #[test]

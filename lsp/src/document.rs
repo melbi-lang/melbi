@@ -1,5 +1,5 @@
 use bumpalo::Bump;
-use tower_lsp::lsp_types::*;
+use tower_lsp::lsp_types::{Diagnostic, Range, Position, DiagnosticSeverity, NumberOrString, CompletionItem, CompletionItemKind, InsertTextFormat, SemanticToken};
 
 use crate::semantic_tokens as st;
 
@@ -20,6 +20,7 @@ pub struct DocumentState {
 }
 
 impl DocumentState {
+    #[must_use]
     pub fn new(source: String) -> Self {
         Self {
             source,
@@ -154,7 +155,7 @@ impl DocumentState {
         }
     }
 
-    /// Convert a Melbi TypeError to an LSP diagnostic
+    /// Convert a Melbi `TypeError` to an LSP diagnostic
     fn error_to_diagnostic(&self, error: &melbi_core::analyzer::TypeError) -> Diagnostic {
         // Use the error's built-in to_diagnostic() method
         let diag = error.to_diagnostic();
@@ -232,6 +233,7 @@ impl DocumentState {
     }
 
     /// Get hover information at a position
+    #[must_use]
     pub fn hover_at_position(&self, position: Position) -> Option<String> {
         use melbi_core::types::manager::TypeManager;
         use melbi_core::{analyzer, parser};
@@ -276,7 +278,7 @@ impl DocumentState {
 
         // Format the hover response
         let type_str = format!("{}", expr_at_cursor.0);
-        let hover_text = format!("```melbi\n{}\n```", type_str);
+        let hover_text = format!("```melbi\n{type_str}\n```");
 
         // TODO: When documentation support is added, append it here:
         // if let Some(doc) = get_documentation_for_expr(expr_at_cursor) {
@@ -389,6 +391,7 @@ impl DocumentState {
     }
 
     /// Get completion items at a position
+    #[must_use]
     pub fn completions_at_position(&self, position: Position) -> Vec<CompletionItem> {
         use melbi_core::types::manager::TypeManager;
         use melbi_core::{analyzer, parser};
@@ -634,6 +637,7 @@ impl DocumentState {
     }
 
     /// Get semantic tokens for the entire document
+    #[must_use]
     pub fn semantic_tokens(&self) -> Option<Vec<SemanticToken>> {
         let tree = self.tree.as_ref()?;
         let mut tokens = Vec::new();
@@ -682,8 +686,7 @@ impl DocumentState {
         // Check if we're inside a number suffix - if so, highlight the whole thing as a number
         let is_in_suffix = node
             .parent()
-            .map(|p| matches!(p.kind(), "integer" | "float") && node.kind() == "expression")
-            .unwrap_or(false);
+            .is_some_and(|p| matches!(p.kind(), "integer" | "float") && node.kind() == "expression");
 
         // Map tree-sitter node kinds to semantic token types
         let token_type = match kind {
@@ -777,6 +780,7 @@ impl DocumentState {
     }
 
     /// Format the document using melbi-fmt
+    #[must_use]
     pub fn format(&self) -> Option<String> {
         melbi_fmt::format(&self.source, false, true).ok()
     }

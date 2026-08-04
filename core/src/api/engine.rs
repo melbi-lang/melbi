@@ -12,8 +12,8 @@ use crate::{Vec, analyzer, parser};
 /// The Melbi compilation and execution engine.
 ///
 /// The engine manages:
-/// - Runtime configuration (EngineOptions)
-/// - Type system (TypeManager)
+/// - Runtime configuration (`EngineOptions`)
+/// - Type system (`TypeManager`)
 /// - Global environment (constants, functions, packages)
 ///
 /// # Lifetimes
@@ -50,7 +50,7 @@ pub struct Engine<'arena> {
     type_manager: &'arena TypeManager<'arena>,
     environment: &'arena [(&'arena str, Value<'arena, 'arena>)],
     /// Precomputed globals for analyzer (name, type) pairs
-    /// TODO: Switch to TypeScheme when generic functions are supported
+    /// TODO: Switch to `TypeScheme` when generic functions are supported
     globals_for_analyzer: &'arena [(&'arena str, &'arena Type<'arena>)],
     options: EngineOptions,
 }
@@ -118,6 +118,7 @@ impl<'arena> Engine<'arena> {
     /// Access the type manager.
     ///
     /// Useful for creating types when building expressions programmatically.
+    #[must_use]
     pub fn type_manager(&self) -> &'arena TypeManager<'arena> {
         self.type_manager
     }
@@ -125,11 +126,13 @@ impl<'arena> Engine<'arena> {
     /// Access the global environment.
     ///
     /// Returns a sorted slice of (name, value) pairs.
+    #[must_use]
     pub fn environment(&self) -> &[(&'arena str, Value<'arena, 'arena>)] {
         self.environment
     }
 
     /// Access the engine options.
+    #[must_use]
     pub fn options(&self) -> &EngineOptions {
         &self.options
     }

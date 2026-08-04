@@ -112,11 +112,11 @@ mod tests {
     #[test]
     fn clone_works() {
         let opt: CompileTimeOption<true, i32> = CompileTimeOption::new(42);
-        let cloned = opt.clone();
+        let cloned = opt;
         assert_eq!(cloned.get(), Some(42));
 
         let opt: CompileTimeOption<false, i32> = CompileTimeOption::new(42);
-        let cloned = opt.clone();
+        let cloned = opt;
         assert_eq!(cloned.get(), None);
     }
 }

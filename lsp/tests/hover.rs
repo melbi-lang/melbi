@@ -97,11 +97,11 @@ fn hover_position_sensitivity() {
     doc.analyze();
 
     // Hover over 'x'
-    let hover_x = doc.hover_at_position(Position::new(0, expr.find("x").unwrap() as u32));
+    let hover_x = doc.hover_at_position(Position::new(0, expr.find('x').unwrap() as u32));
     assert_eq!(hover_x, Some("```melbi\nInt\n```".to_string()));
 
     // Hover over 'y'
-    let hover_y = doc.hover_at_position(Position::new(0, expr.find("y").unwrap() as u32));
+    let hover_y = doc.hover_at_position(Position::new(0, expr.find('y').unwrap() as u32));
     assert_eq!(hover_y, Some("```melbi\nStr\n```".to_string()));
 }
 

@@ -47,6 +47,7 @@ use crate::values::dynamic::Value;
 /// # TODO(effects)
 ///
 /// When effect system is implemented, mark Bytes→Str as fallible (`!` effect).
+#[must_use]
 pub fn is_cast_valid<'types>(
     source_type: &'types Type<'types>,
     target_type: &'types Type<'types>,
@@ -85,8 +86,8 @@ pub fn validate_cast<'types>(
         Ok(())
     } else {
         Err(CastError::InvalidCast {
-            from: crate::format!("{}", source_type),
-            to: crate::format!("{}", target_type),
+            from: crate::format!("{source_type}"),
+            to: crate::format!("{target_type}"),
         })
     }
 }
@@ -100,7 +101,7 @@ pub fn validate_cast<'types>(
 ///
 /// - **Identity casts**: No-op, returns the value unchanged
 /// - **Int → Float**: Converts integer to floating point (may lose precision for very large integers)
-/// - **Float → Int**: Truncates toward zero, wraps on overflow, NaN→0, Inf→i64::MAX/MIN
+/// - **Float → Int**: Truncates toward zero, wraps on overflow, NaN→0, `Inf→i64::MAX/MIN`
 /// - **Str → Bytes**: UTF-8 encoding (always succeeds)
 /// - **Bytes → Str**: UTF-8 decoding (fails on invalid UTF-8)
 ///
@@ -125,7 +126,7 @@ pub fn perform_cast<'types, 'arena>(
     target_type: &'types Type<'types>,
     type_manager: &'types TypeManager<'types>,
 ) -> Result<Value<'types, 'arena>, CastError> {
-    use Type::*;
+    use Type::{Int, Float, Str, Bytes};
 
     // Identity cast - just return the value unchanged
     if core::ptr::eq(value.ty, target_type) {
@@ -177,7 +178,7 @@ pub fn perform_cast<'types, 'arena>(
             match core::str::from_utf8(bytes_val) {
                 Ok(str_val) => Ok(Value::str(arena, target_type, str_val)),
                 Err(e) => Err(CastError::InvalidUtf8 {
-                    error: crate::format!("{}", e),
+                    error: crate::format!("{e}"),
                 }),
             }
         }
@@ -191,7 +192,7 @@ pub fn perform_cast<'types, 'arena>(
             );
             Err(CastError::InvalidCast {
                 from: crate::format!("{}", value.ty),
-                to: crate::format!("{}", target_type),
+                to: crate::format!("{target_type}"),
             })
         }
     }
@@ -210,11 +211,11 @@ pub enum CastError {
 impl core::fmt::Display for CastError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            CastError::InvalidCast { from, to } => {
-                write!(f, "Cannot cast from {} to {}", from, to)
+            Self::InvalidCast { from, to } => {
+                write!(f, "Cannot cast from {from} to {to}")
             }
-            CastError::InvalidUtf8 { error } => {
-                write!(f, "Invalid UTF-8 sequence: {}", error)
+            Self::InvalidUtf8 { error } => {
+                write!(f, "Invalid UTF-8 sequence: {error}")
             }
         }
     }

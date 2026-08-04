@@ -500,7 +500,7 @@ fn stack_depth_limit() {
     // This creates real recursion depth, unlike just parentheses
     let mut source = String::from("1");
     for _ in 0..100 {
-        source = format!("1 + ({})", source);
+        source = format!("1 + ({source})");
     }
 
     // With default limit of 1000, this should succeed (100 < 1000)
@@ -526,7 +526,7 @@ fn custom_stack_depth_limit() {
     // Create expression within custom limit
     let mut source = String::from("1");
     for _ in 0..50 {
-        source = format!("({} + 1)", source);
+        source = format!("({source} + 1)");
     }
 
     let parsed = parser::parse(&arena, &source).expect("Parse failed");
@@ -791,7 +791,7 @@ fn record_empty() {
     let result = Runner::new(&arena).run("Record{}", &[], &[]).unwrap();
     let record = result.as_record().unwrap();
     assert_eq!(record.len(), 0);
-    assert_eq!(format!("{}", result), "{}");
+    assert_eq!(format!("{result}"), "{}");
 }
 
 #[test]
@@ -1471,7 +1471,7 @@ fn polymorphic_lambda_array_construction() {
     // Array construction in polymorphic lambda body with monomorphization
     let arena = Bump::new();
     let result = Runner::new(&arena)
-        .run(r#"f(10, 42) where { f = (a, b) => [b, a] }"#, &[], &[])
+        .run(r"f(10, 42) where { f = (a, b) => [b, a] }", &[], &[])
         .unwrap();
     let array = result.as_array().unwrap();
     assert_eq!(array.len(), 2);
@@ -1485,7 +1485,7 @@ fn polymorphic_lambda_empty_record() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
-            r#"f(10, 42) where { f = (a, b) => if false then {a: b} else {} }"#,
+            r"f(10, 42) where { f = (a, b) => if false then {a: b} else {} }",
             &[],
             &[],
         )
@@ -1499,7 +1499,7 @@ fn polymorphic_lambda_empty_map_no_params() {
     // Empty map construction in polymorphic lambda body
     let arena = Bump::new();
     let result = Runner::new(&arena)
-        .run(r#"f() where { f = () => {} }"#, &[], &[])
+        .run(r"f() where { f = () => {} }", &[], &[])
         .unwrap();
     // {} can be either an empty map or empty record depending on context
     // In this case it should be a map since there's no type constraint
@@ -1508,7 +1508,7 @@ fn polymorphic_lambda_empty_map_no_params() {
     } else if let Ok(record) = result.as_record() {
         assert_eq!(record.len(), 0);
     } else {
-        panic!("Expected map or record, got: {:?}", result);
+        panic!("Expected map or record, got: {result:?}");
     }
 }
 
@@ -1847,11 +1847,11 @@ fn otherwise_does_not_catch_stack_overflow() {
     // Use a very small depth limit to trigger overflow quickly
     let mut expr = "1".to_string();
     for _ in 0..50 {
-        expr = format!("({}) + 1", expr);
+        expr = format!("({expr}) + 1");
     }
 
     // Add otherwise clause - this should NOT catch the StackOverflow error
-    let source = format!("({}) otherwise 999", expr);
+    let source = format!("({expr}) otherwise 999");
 
     let parsed = parser::parse(&arena, &source).unwrap();
     let typed = analyzer::analyze(type_manager, &arena, parsed, &[], &[]).unwrap();
@@ -1876,7 +1876,7 @@ fn otherwise_does_not_catch_stack_overflow() {
             // Got the expected error - otherwise did not catch it
         }
         Ok(_) => panic!("Expected StackOverflow error, but evaluation succeeded"),
-        Err(e) => panic!("Expected StackOverflow error, got: {:?}", e),
+        Err(e) => panic!("Expected StackOverflow error, got: {e:?}"),
     }
 }
 
@@ -2018,7 +2018,7 @@ fn ffi_concat<'types, 'arena>(
     assert_eq!(args.len(), 2);
     let a = args[0].as_str().unwrap();
     let b = args[1].as_str().unwrap();
-    let result = ctx.arena().alloc_str(&format!("{}{}", a, b));
+    let result = ctx.arena().alloc_str(&format!("{a}{b}"));
     Ok(Value::str(ctx.arena(), ctx.type_mgr().str(), result))
 }
 
@@ -2042,7 +2042,7 @@ fn ffi_divide<'types, 'arena>(
         // TODO: FFI should return a different error, maybe ExecutionErrorKind?
         return Err(ExecutionError {
             kind: RuntimeError::DivisionByZero {}.into(),
-            source: "".to_string(),
+            source: String::new(),
             span: Span(0..0),
         });
     }
@@ -2508,7 +2508,7 @@ fn multiple_polymorphic_calls() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
-            r#"{ a = id(42), b = id(3.14) } where { id = (x) => x }"#,
+            r"{ a = id(42), b = id(3.14) } where { id = (x) => x }",
             &[],
             &[],
         )
@@ -2668,11 +2668,10 @@ fn ord_constraint_on_bool_fails() {
     );
 
     if let Err(e) = result {
-        let error_msg = format!("{:?}", e);
+        let error_msg = format!("{e:?}");
         assert!(
             error_msg.contains("Ord") || error_msg.contains("Bool"),
-            "Error should mention Ord constraint: {}",
-            error_msg
+            "Error should mention Ord constraint: {error_msg}"
         );
     }
 }
@@ -2718,13 +2717,12 @@ fn ord_constraint_direct_bool_fails() {
     );
 
     if let Err(e) = result {
-        let error_msg = format!("{:?}", e);
+        let error_msg = format!("{e:?}");
         assert!(
             error_msg.contains("Ord")
                 || error_msg.contains("Bool")
                 || error_msg.contains("Ordering"),
-            "Error should mention Ord constraint or Bool type: {}",
-            error_msg
+            "Error should mention Ord constraint or Bool type: {error_msg}"
         );
     }
 }
@@ -2746,11 +2744,10 @@ fn numeric_constraint_on_bool_fails() {
     );
 
     if let Err(e) = result {
-        let error_msg = format!("{:?}", e);
+        let error_msg = format!("{e:?}");
         assert!(
             error_msg.contains("Numeric") || error_msg.contains("Bool"),
-            "Error should mention Numeric constraint: {}",
-            error_msg
+            "Error should mention Numeric constraint: {error_msg}"
         );
     }
 }
@@ -2772,14 +2769,13 @@ fn numeric_constraint_direct_bool_fails() {
     );
 
     if let Err(e) = result {
-        let error_msg = format!("{:?}", e);
+        let error_msg = format!("{e:?}");
         assert!(
             error_msg.contains("Numeric")
                 || error_msg.contains("Bool")
                 || error_msg.contains("Int")
                 || error_msg.contains("Float"),
-            "Error should mention Numeric constraint or type mismatch: {}",
-            error_msg
+            "Error should mention Numeric constraint or type mismatch: {error_msg}"
         );
     }
 }

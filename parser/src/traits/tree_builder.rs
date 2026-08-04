@@ -310,8 +310,8 @@ impl<B: TreeBuilder, D: TreeDescriptor> TreeNode<B, D> {
 /// Lets `&TreeNode<B, D>` satisfy the `AsRef<TreeNode<B, D>>` bound on
 /// [`TreeBuilder::Handle`], so arena builders can use a plain reference as their
 /// handle.
-impl<B: TreeBuilder, D: TreeDescriptor> AsRef<TreeNode<B, D>> for TreeNode<B, D> {
-    fn as_ref(&self) -> &TreeNode<B, D> {
+impl<B: TreeBuilder, D: TreeDescriptor> AsRef<Self> for TreeNode<B, D> {
+    fn as_ref(&self) -> &Self {
         self
     }
 }

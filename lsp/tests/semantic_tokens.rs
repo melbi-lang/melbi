@@ -196,7 +196,7 @@ fn semantic_tokens_boolean_operators() {
 
 #[test]
 fn semantic_tokens_empty_document() {
-    let mut doc = DocumentState::new("".to_string());
+    let mut doc = DocumentState::new(String::new());
     doc.analyze();
 
     let tokens = doc.semantic_tokens();

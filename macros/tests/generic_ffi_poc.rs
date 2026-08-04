@@ -1,6 +1,6 @@
 //! Proof of concept for generic FFI functions with runtime dispatch.
 //!
-//! This demonstrates the "Internal Dispatch" strategy from ffi_generics.md:
+//! This demonstrates the "Internal Dispatch" strategy from `ffi_generics.md`:
 //!
 //! 1. **Closed Expansion** (Numeric): Fully specialized to concrete types (i64, f64)
 //! 2. **Structural Expansion** (Indexable): Uses `Any<N>` for infinite type families
@@ -29,7 +29,7 @@ use melbi_core::values::typed::{Array, Bridge, Optional, RawConvertible};
 fn type_mismatch_error(expected: &str, actual: &str) -> ExecutionError {
     ExecutionError {
         kind: ExecutionErrorKind::Runtime(RuntimeError::CastError {
-            message: format!("expected {}, got {}", expected, actual),
+            message: format!("expected {expected}, got {actual}"),
         }),
         source: String::new(),
         span: Span::new(0, 0),
@@ -44,7 +44,7 @@ fn type_mismatch_error(expected: &str, actual: &str) -> ExecutionError {
 // We generate exhaustive match arms for each - no Any<N> needed.
 
 /// Numeric trait - implemented by i64 and f64.
-/// This would typically be defined in melbi_core.
+/// This would typically be defined in `melbi_core`.
 trait Numeric:
     Copy
     + Sized
@@ -175,14 +175,15 @@ pub struct Any<'a, const N: usize> {
     _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, const N: usize> Any<'a, N> {
+impl<const N: usize> Any<'_, N> {
+    #[must_use]
     pub fn raw(self) -> RawValue {
         self.raw
     }
 }
 
 // RawConvertible impl for Any<N>
-impl<'a, const N: usize> RawConvertible for Any<'a, N> {
+impl<const N: usize> RawConvertible for Any<'_, N> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         value.raw
     }
@@ -198,7 +199,7 @@ impl<'a, const N: usize> RawConvertible for Any<'a, N> {
 }
 
 // Bridge impl for Any<N> - needed for Array<Any<N>>, Optional<Any<N>>, etc.
-impl<'a, const N: usize> Bridge for Any<'a, N> {
+impl<const N: usize> Bridge for Any<'_, N> {
     type Raw = RawValue;
 
     fn type_from<'b>(_type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
@@ -220,7 +221,7 @@ impl<'a, const N: usize> Bridge for Any<'a, N> {
 
 /// User-written function: get the first element of an array.
 ///
-/// This is EXACTLY what the user writes. Copy is needed for array.get().
+/// This is EXACTLY what the user writes. Copy is needed for `array.get()`.
 /// The macro will call it with T = Any<0>.
 fn first_element<'a, T: Bridge + Copy>(
     ctx: &FfiContext<'a, 'a>,
@@ -236,7 +237,7 @@ fn first_element<'a, T: Bridge + Copy>(
 ///
 /// This wrapper handles ANY array type. The dispatch:
 /// 1. Extracts the element type from the input array
-/// 2. Calls first_element::<Any<0>>(array)
+/// 2. Calls `first_element::`<Any<0>>(array)
 /// 3. Reconstructs the proper Optional<ElemTy> type for the result
 pub struct FirstElement<'a> {
     ty: &'a Type<'a>,
@@ -373,7 +374,7 @@ fn check_optional_str(v: &Value, expected: Option<&str>) {
         (Some(inner), Some(exp)) => {
             assert_eq!(inner.as_str().unwrap(), exp);
         }
-        (None, Some(exp)) => panic!("Expected Some({:?}), got None", exp),
+        (None, Some(exp)) => panic!("Expected Some({exp:?}), got None"),
         (Some(inner), None) => {
             panic!("Expected None, got Some({:?})", inner.as_str().unwrap())
         }
@@ -424,8 +425,7 @@ fn square_type_mismatch() {
             err.kind,
             ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
         ),
-        "Expected CastError, got {:?}",
-        err
+        "Expected CastError, got {err:?}"
     );
 }
 
@@ -522,8 +522,7 @@ fn first_element_type_mismatch() {
             err.kind,
             ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
         ),
-        "Expected CastError, got {:?}",
-        err
+        "Expected CastError, got {err:?}"
     );
 }
 

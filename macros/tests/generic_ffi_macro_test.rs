@@ -34,7 +34,7 @@
 //!
 //! ## Edge cases to consider
 //!
-//! - Functions with FfiContext: `fn double<T: Numeric>(ctx: &FfiContext, x: T) -> T`
+//! - Functions with `FfiContext`: `fn double<T: Numeric>(ctx: &FfiContext, x: T) -> T`
 //! - Fallible functions: `fn safe_div<T: Numeric>(a: T, b: T) -> Result<T, DivByZero>`
 //! - Lifetime parameters: `fn square<'a, T: Numeric>(x: T) -> T`
 //!
@@ -167,8 +167,7 @@ fn square_type_mismatch() {
             err.kind,
             ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
         ),
-        "Expected CastError, got {:?}",
-        err
+        "Expected CastError, got {err:?}"
     );
 }
 

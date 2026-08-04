@@ -1,4 +1,4 @@
-//! Tests for the generic Fold trait and TypeFolder convenience trait.
+//! Tests for the generic Fold trait and `TypeFolder` convenience trait.
 
 use bumpalo::Bump;
 use hashbrown::{HashMap, HashSet};
@@ -61,7 +61,7 @@ struct Substitution<'a, B: TyBuilder> {
     mapping: &'a HashMap<u16, Ty<B>>,
 }
 
-impl<'a, B: TyBuilder> TypeFolder<B> for Substitution<'a, B> {
+impl<B: TyBuilder> TypeFolder<B> for Substitution<'_, B> {
     fn fold_ty(&mut self, _b_in: &B, _b_out: &B, ty: &Ty<B>) -> FoldStep<B, Ty<B>> {
         if let TyKind::TypeVar(id) = ty.kind()
             && let Some(replacement) = self.mapping.get(id)
@@ -444,7 +444,7 @@ impl<B: TyBuilder> Fold<B> for FailingFolder {
         if let TyKind::TypeVar(id) = ty.kind()
             && *id == self.fail_on_var
         {
-            return Err(format!("Failed on TypeVar({})", id));
+            return Err(format!("Failed on TypeVar({id})"));
         }
         Ok(FoldStep::Recurse)
     }

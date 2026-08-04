@@ -143,7 +143,7 @@ impl<'a> TypeManager<'a> {
         // the lifetime of the &str field to 'a.
         let mut fields: Vec<(&str, &'a Type<'a>)> = unsafe { core::mem::transmute(fields) };
         // Intern all field names in-place to ensure pointer equality works
-        for (name, _) in fields.iter_mut() {
+        for (name, _) in &mut fields {
             *name = self.intern_str(name);
         }
 
@@ -182,12 +182,12 @@ impl<'a> TypeManager<'a> {
         let mut parts: Vec<&str> = unsafe { core::mem::transmute(parts) };
 
         // Intern all symbol parts in-place to ensure pointer equality works
-        for part in parts.iter_mut() {
+        for part in &mut parts {
             *part = self.intern_str(part);
         }
 
         // Sort by interned parts in-place
-        parts.sort();
+        parts.sort_unstable();
 
         // Lookup using the Vec as a slice
         if let Some(&interned_ty) = self
@@ -222,7 +222,7 @@ impl<'a> TypeManager<'a> {
     //     self.type_registry.get_capabilities(type_name)
     // }
 
-    /// Recursively copies a type from another TypeManager into this TypeManager's arena,
+    /// Recursively copies a type from another `TypeManager` into this `TypeManager`'s arena,
     /// returning the interned equivalent in this manager.
     pub fn adopt<'b>(&self, other: &TypeManager<'b>, ty: &'b Type<'b>) -> &'a Type<'a> {
         fn inner<'a, 'b>(
@@ -238,7 +238,7 @@ impl<'a> TypeManager<'a> {
                 Type::Str => this.str(),
                 Type::Bytes => this.bytes(),
                 Type::TypeVar(_id) => {
-                    let ptr = ty as *const Type<'b>;
+                    let ptr = core::ptr::from_ref::<Type<'b>>(ty);
                     if let Some(&mapped) = var_map.get(&ptr) {
                         mapped
                     } else {
@@ -300,7 +300,7 @@ impl<'a> TypeManager<'a> {
             match ty {
                 Type::Int | Type::Float | Type::Bool | Type::Str | Type::Bytes => ty,
                 Type::TypeVar(_) => {
-                    let ptr = ty as *const Type<'a>;
+                    let ptr = core::ptr::from_ref::<Type<'a>>(ty);
                     if let Some(&mapped) = var_map.get(&ptr) {
                         mapped
                     } else {
@@ -1020,7 +1020,7 @@ mod type_transformer_tests {
     use super::*;
     use crate::types::traits::TypeTransformer;
 
-    /// Identity transformer - transforms a type to itself using the same TypeManager
+    /// Identity transformer - transforms a type to itself using the same `TypeManager`
     struct IdentityTransformer<'a> {
         builder: &'a TypeManager<'a>,
     }
@@ -1298,14 +1298,12 @@ mod display_type_tests {
         let func_ty = manager.function(&[map_ty, arr_ty], record_ty);
 
         // Both should produce identical output
-        let display_output = alloc::format!("{}", func_ty);
+        let display_output = alloc::format!("{func_ty}");
         let generic_output = display_type(func_ty);
 
         assert!(
             display_output == generic_output,
-            "Display impl output: {}\nGeneric display_type output: {}",
-            display_output,
-            generic_output
+            "Display impl output: {display_output}\nGeneric display_type output: {generic_output}"
         );
     }
 

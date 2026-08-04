@@ -54,10 +54,9 @@ fn depth_protection_prevents_stack_overflow() {
     assert!(result.is_err(), "Should fail with depth error, not crash");
 
     let err = result.unwrap_err();
-    let err_msg = format!("{}", err);
+    let err_msg = format!("{err}");
     assert!(
         err_msg.contains("nesting depth exceeds maximum"),
-        "Error should mention nesting depth, got: {}",
-        err_msg
+        "Error should mention nesting depth, got: {err_msg}"
     );
 }

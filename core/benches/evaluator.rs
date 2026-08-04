@@ -4,9 +4,9 @@
 //! Run with: `cargo bench` in the core/ directory.
 //!
 //! Benchmark groups:
-//! 1. eval_only: Measures pure evaluation performance (expressions are pre-parsed/analyzed)
-//! 2. full_pipeline: Measures parse + analyze + eval together (for comparison)
-//! 3. cel_comparison: Comparison with CEL (Common Expression Language) interpreter
+//! 1. `eval_only`: Measures pure evaluation performance (expressions are pre-parsed/analyzed)
+//! 2. `full_pipeline`: Measures parse + analyze + eval together (for comparison)
+//! 3. `cel_comparison`: Comparison with CEL (Common Expression Language) interpreter
 
 use std::hint::black_box;
 
@@ -75,7 +75,7 @@ fn bench_eval_only(c: &mut Criterion) {
 /// Benchmark: Full pipeline (parse + analyze + eval).
 ///
 /// This measures the complete pipeline to understand where time is spent.
-/// Compare with eval_only to see what percentage of time is spent in the evaluator.
+/// Compare with `eval_only` to see what percentage of time is spent in the evaluator.
 fn bench_full_pipeline(c: &mut Criterion) {
     let mut group = c.benchmark_group("full_pipeline");
 
@@ -154,7 +154,7 @@ fn bench_cel_comparison(c: &mut Criterion) {
 
 /// Benchmark: CEL full pipeline (compile + execute).
 ///
-/// Measures CEL's compile + execute to compare with Melbi's full_pipeline.
+/// Measures CEL's compile + execute to compare with Melbi's `full_pipeline`.
 fn bench_cel_full_pipeline(c: &mut Criterion) {
     let mut group = c.benchmark_group("cel_full_pipeline");
 
@@ -190,7 +190,7 @@ fn bench_vm_only(c: &mut Criterion) {
         group.throughput(Throughput::Elements(size as u64));
 
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
-            use Instruction::*;
+            use Instruction::{ConstInt, IntBinOp, Return};
 
             // Generate bytecode for: ((((1 + 1) + 1) + 1) + ... + 1)
             // This is left-associative, so stack never grows beyond 2

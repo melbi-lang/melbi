@@ -117,14 +117,14 @@ fn format_invalid_syntax_returns_none() {
 
 #[test]
 fn format_empty_document() {
-    let doc = DocumentState::new("".to_string());
+    let doc = DocumentState::new(String::new());
     let formatted = doc.format();
 
     // Empty document should format to empty or newline
     assert!(
         formatted.is_none()
             || formatted == Some("\n".to_string())
-            || formatted == Some("".to_string())
+            || formatted == Some(String::new())
     );
 }
 
@@ -136,7 +136,7 @@ fn format_suffix_expression() {
     assert!(formatted.is_some());
     let result = formatted.unwrap();
     // Should preserve suffix notation
-    assert!(result.contains("`"));
+    assert!(result.contains('`'));
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn format_field_access() {
 
     assert!(formatted.is_some());
     let result = formatted.unwrap();
-    assert!(result.contains("."));
+    assert!(result.contains('.'));
 }
 
 #[test]
@@ -157,8 +157,8 @@ fn format_call_expression() {
     assert!(formatted.is_some());
     let result = formatted.unwrap();
     // Formatter may add spaces after commas
-    assert!(result.contains("("));
-    assert!(result.contains(")"));
+    assert!(result.contains('('));
+    assert!(result.contains(')'));
 }
 
 #[test]
@@ -174,8 +174,7 @@ fn format_does_not_add_trailing_newlines() {
     let newline_count = result.matches('\n').count();
     assert!(
         newline_count <= 1,
-        "Should not have multiple trailing newlines, got: {}",
-        newline_count
+        "Should not have multiple trailing newlines, got: {newline_count}"
     );
 }
 

@@ -52,18 +52,18 @@ impl Error {
     pub fn with_filename(self, filename: impl Into<String>) -> Self {
         let filename = Some(filename.into());
         match self {
-            Error::Compilation {
+            Self::Compilation {
                 diagnostics,
                 source,
                 ..
-            } => Error::Compilation {
+            } => Self::Compilation {
                 diagnostics,
                 source,
                 filename,
             },
-            Error::Runtime {
+            Self::Runtime {
                 diagnostic, source, ..
-            } => Error::Runtime {
+            } => Self::Runtime {
                 diagnostic,
                 source,
                 filename,
@@ -74,15 +74,17 @@ impl Error {
     }
 
     /// Get the filename associated with this error, if any.
+    #[must_use]
     pub fn filename(&self) -> Option<&str> {
         match self {
-            Error::Compilation { filename, .. } => filename.as_deref(),
-            Error::Runtime { filename, .. } => filename.as_deref(),
+            Self::Compilation { filename, .. } => filename.as_deref(),
+            Self::Runtime { filename, .. } => filename.as_deref(),
             _ => None,
         }
     }
 
     /// Set the filename if provided, otherwise return self unchanged.
+    #[must_use]
     pub fn with_filename_opt(self, filename: Option<&str>) -> Self {
         match filename {
             Some(f) => self.with_filename(f),
@@ -94,8 +96,8 @@ impl Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Api(msg) => write!(f, "API error: {}", msg),
-            Error::Compilation {
+            Self::Api(msg) => write!(f, "API error: {msg}"),
+            Self::Compilation {
                 diagnostics,
                 source: _,
                 filename: _,
@@ -104,12 +106,12 @@ impl fmt::Display for Error {
                     .iter()
                     .filter(|d| d.severity == Severity::Error)
                     .count();
-                write!(f, "Compilation failed with {} error(s)", error_count)
+                write!(f, "Compilation failed with {error_count} error(s)")
             }
-            Error::Runtime { diagnostic, .. } => {
+            Self::Runtime { diagnostic, .. } => {
                 write!(f, "Runtime error: {}", diagnostic.message)
             }
-            Error::ResourceExceeded(msg) => write!(f, "Resource limit exceeded: {}", msg),
+            Self::ResourceExceeded(msg) => write!(f, "Resource limit exceeded: {msg}"),
         }
     }
 }
@@ -155,9 +157,9 @@ pub enum Severity {
 impl fmt::Display for Severity {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Severity::Error => write!(f, "error"),
-            Severity::Warning => write!(f, "warning"),
-            Severity::Info => write!(f, "info"),
+            Self::Error => write!(f, "error"),
+            Self::Warning => write!(f, "warning"),
+            Self::Info => write!(f, "info"),
         }
     }
 }
@@ -181,9 +183,9 @@ pub struct RelatedInfo {
 
 impl From<crate::parser::ParseError> for Error {
     fn from(err: crate::parser::ParseError) -> Self {
-        Error::Compilation {
+        Self::Compilation {
             diagnostics: crate::Vec::from([err.to_diagnostic()]),
-            source: err.source.clone(),
+            source: err.source,
             filename: None, // TODO: require caller to set via .with_filename()
         }
     }
@@ -191,7 +193,7 @@ impl From<crate::parser::ParseError> for Error {
 
 impl From<crate::analyzer::TypeError> for Error {
     fn from(err: crate::analyzer::TypeError) -> Self {
-        Error::Compilation {
+        Self::Compilation {
             diagnostics: crate::Vec::from([err.to_diagnostic()]),
             source: err.source.clone(),
             filename: None, // TODO: require caller to set via .with_filename()
@@ -203,7 +205,7 @@ impl From<Vec<crate::analyzer::TypeError>> for Error {
     fn from(errors: Vec<crate::analyzer::TypeError>) -> Self {
         // All errors should have the same source (from same compilation)
         let source = errors.first().map(|e| e.source.clone()).unwrap_or_default();
-        Error::Compilation {
+        Self::Compilation {
             diagnostics: errors.into_iter().map(|e| e.to_diagnostic()).collect(),
             source,
             filename: None, // TODO: require caller to set via .with_filename()
@@ -215,20 +217,20 @@ impl From<crate::evaluator::ExecutionError> for Error {
     fn from(err: crate::evaluator::ExecutionError) -> Self {
         use crate::evaluator::ExecutionErrorKind;
         match &err.kind {
-            ExecutionErrorKind::Runtime(_) => Error::Runtime {
+            ExecutionErrorKind::Runtime(_) => Self::Runtime {
                 diagnostic: Box::new(err.to_diagnostic()),
                 source: err.source,
                 filename: None, // TODO: require caller to set via .with_filename()
             },
-            ExecutionErrorKind::ResourceExceeded(e) => Error::ResourceExceeded(e.to_string()),
-            ExecutionErrorKind::Internal(e) => Error::Api(format!("Internal error: {}", e)),
+            ExecutionErrorKind::ResourceExceeded(e) => Self::ResourceExceeded(e.to_string()),
+            ExecutionErrorKind::Internal(e) => Self::Api(format!("Internal error: {e}")),
         }
     }
 }
 
 impl From<crate::compiler::CompileError> for Error {
     fn from(err: crate::compiler::CompileError) -> Self {
-        Error::Compilation {
+        Self::Compilation {
             diagnostics: crate::Vec::from([err.to_diagnostic()]),
             source: String::new(),
             filename: None, // TODO: require caller to set via .with_filename()

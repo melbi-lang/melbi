@@ -121,7 +121,7 @@ fn generate_package(
 /// - `register_<mod>_functions`: Registers functions directly to any Binder
 /// - `register_<mod>_package`: Creates a Record and binds it to the Binder with the package name
 ///
-/// Returns a tuple of (functions_fn, package_fn) as separate TokenStream2 values.
+/// Returns a tuple of (`functions_fn`, `package_fn`) as separate `TokenStream2` values.
 fn generate_registration_functions(
     package_name: &Ident,
     functions_fn_name: &Ident,

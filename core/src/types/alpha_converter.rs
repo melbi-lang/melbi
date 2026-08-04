@@ -39,8 +39,8 @@ use crate::types::traits::{TypeBuilder, TypeKind, TypeTransformer, TypeView};
 /// Each unique variable ID is mapped to a fresh ID, with the same old ID
 /// always mapping to the same new ID within a conversion.
 ///
-/// Uses interior mutability (RefCell, Cell) to maintain mutable state while
-/// working with the `&self` TypeTransformer API (needed for lazy iterators).
+/// Uses interior mutability (`RefCell`, Cell) to maintain mutable state while
+/// working with the `&self` `TypeTransformer` API (needed for lazy iterators).
 pub struct AlphaConverter<'a, B> {
     /// The type builder to build converted types
     builder: B,
@@ -55,7 +55,7 @@ pub struct AlphaConverter<'a, B> {
     _phantom: core::marker::PhantomData<&'a ()>,
 }
 
-impl<'a, B> AlphaConverter<'a, B> {
+impl<B> AlphaConverter<'_, B> {
     /// Create a new alpha-converter with a given constructor and starting variable ID.
     ///
     /// # Arguments
@@ -79,7 +79,7 @@ impl<'a, B> AlphaConverter<'a, B> {
 
     /// Get a fresh variable ID.
     ///
-    /// If this old_id has been seen before, return its existing mapping.
+    /// If this `old_id` has been seen before, return its existing mapping.
     /// Otherwise, allocate a fresh ID and record the mapping.
     fn fresh_var(&self, old_id: u16) -> u16 {
         if let Some(&new_id) = self.mapping.borrow().get(&old_id) {
@@ -163,7 +163,7 @@ mod tests {
         if let crate::types::Type::TypeVar(id) = converted {
             assert!(id == &100);
         } else {
-            panic!("Expected TypeVar, got {:?}", converted);
+            panic!("Expected TypeVar, got {converted:?}");
         }
     }
 

@@ -52,12 +52,14 @@ impl<'types, 'arena> FfiContext<'types, 'arena> {
 
     /// Get the arena for allocating values.
     #[inline]
+    #[must_use]
     pub fn arena(&self) -> &'arena Bump {
         self.arena
     }
 
     /// Get the type manager for constructing typed values.
     #[inline]
+    #[must_use]
     pub fn type_mgr(&self) -> &'types TypeManager<'types> {
         self.type_mgr
     }

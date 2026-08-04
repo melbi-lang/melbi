@@ -72,7 +72,7 @@ pub struct CompiledExpression<'arena> {
 impl<'arena> CompiledExpression<'arena> {
     /// Create a new compiled expression.
     ///
-    /// This is called internally by Engine::compile().
+    /// This is called internally by `Engine::compile()`.
     pub(crate) fn new(
         typed_expr: &'arena TypedExpr<'arena, 'arena>,
         type_manager: &'arena TypeManager<'arena>,
@@ -162,8 +162,7 @@ impl<'arena> CompiledExpression<'arena> {
         {
             if !core::ptr::eq(arg.ty, *expected_ty) {
                 return Err(Error::Api(format!(
-                    "Type mismatch for parameter {}: types don't match",
-                    i
+                    "Type mismatch for parameter {i}: types don't match"
                 )));
             }
         }
@@ -186,7 +185,7 @@ impl<'arena> CompiledExpression<'arena> {
     /// The caller must ensure:
     /// - Argument count matches `self.params().len()`
     /// - Each argument's type matches the corresponding parameter type
-    /// - Arguments were created with the same TypeManager as the expression
+    /// - Arguments were created with the same `TypeManager` as the expression
     ///
     /// Violating these invariants may cause panics or incorrect results.
     ///
@@ -287,11 +286,13 @@ impl<'arena> CompiledExpression<'arena> {
     /// Get the expression's parameters.
     ///
     /// Returns a slice of (name, type) pairs.
+    #[must_use]
     pub fn params(&self) -> &[(&'arena str, &'arena Type<'arena>)] {
         self.params
     }
 
     /// Get the expression's return type.
+    #[must_use]
     pub fn return_type(&self) -> &'arena Type<'arena> {
         self.typed_expr.expr.0
     }

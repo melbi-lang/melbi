@@ -69,18 +69,18 @@ impl<B: TreeBuilder> Visit<B, Sample, SumLiterals> for Expr<B> {
     fn visit(&self, _data: &Span, ctx: &mut SumLiterals) {
         ctx.nodes_seen += 1;
         match self {
-            Expr::Lit(value) => ctx.total += value,
-            Expr::Ident(_) | Expr::Bytes(_) => {}
-            Expr::Add(left, right) => {
+            Self::Lit(value) => ctx.total += value,
+            Self::Ident(_) | Self::Bytes(_) => {}
+            Self::Add(left, right) => {
                 left.visit(ctx);
                 right.visit(ctx);
             }
-            Expr::Sum(items) => {
+            Self::Sum(items) => {
                 for item in items.iter() {
                     item.visit(ctx);
                 }
             }
-            Expr::Format { exprs, .. } => {
+            Self::Format { exprs, .. } => {
                 for expr in exprs.iter() {
                     expr.visit(ctx);
                 }
@@ -103,17 +103,17 @@ impl<In: TreeBuilder, Out: TreeBuilder> Visit<In, Sample, Rebuild<Out>> for Expr
 
     fn visit(&self, data: &Span, ctx: &mut Rebuild<Out>) -> Tree<Out, Sample> {
         let kind = match self {
-            Expr::Lit(value) => Expr::Lit(*value),
-            Expr::Ident(name) => Expr::Ident(ctx.out.alloc_str(name.as_ref())),
-            Expr::Add(left, right) => Expr::Add(left.visit(ctx), right.visit(ctx)),
+            Self::Lit(value) => Expr::Lit(*value),
+            Self::Ident(name) => Expr::Ident(ctx.out.alloc_str(name.as_ref())),
+            Self::Add(left, right) => Expr::Add(left.visit(ctx), right.visit(ctx)),
             // The builder is cloned so the list can be allocated while `ctx` is
             // still borrowed mutably by the per-item visits.
-            Expr::Sum(items) => {
+            Self::Sum(items) => {
                 let out = ctx.out.clone();
                 Expr::Sum(out.alloc_list(items.iter().map(|item| item.visit(ctx))))
             }
-            Expr::Bytes(bytes) => Expr::Bytes(ctx.out.alloc_bytes(bytes)),
-            Expr::Format { strs, exprs } => {
+            Self::Bytes(bytes) => Expr::Bytes(ctx.out.alloc_bytes(bytes)),
+            Self::Format { strs, exprs } => {
                 let out = ctx.out.clone();
                 Expr::Format {
                     strs: out.alloc_str_list(strs.iter().map(|s| out.alloc_str(s.as_ref()))),

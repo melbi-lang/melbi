@@ -60,9 +60,9 @@ impl<'a, H, T> Flex<'a, H, T> {
         unsafe {
             let inner: &FlexSliceWithLength<H, T> = self.inner.as_ref();
             let len = inner.len;
-            let p = &inner.data as *const _ as *const T;
+            let p = (&raw const inner.data).cast::<T>();
             let dst = slice::from_raw_parts(p, len);
-            let ret = dst as *const _ as *const FlexSlice<H, [T]>;
+            let ret = std::ptr::from_ref(dst) as *const FlexSlice<H, [T]>;
             &*ret
         }
     }

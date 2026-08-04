@@ -120,10 +120,10 @@ pub fn render_error_to(
             filename,
         ),
         Error::ResourceExceeded(msg) => {
-            writeln!(writer, "Resource limit exceeded: {}", msg)
+            writeln!(writer, "Resource limit exceeded: {msg}")
         }
         Error::Api(msg) => {
-            writeln!(writer, "API error: {}", msg)
+            writeln!(writer, "API error: {msg}")
         }
     }
 }
@@ -239,7 +239,7 @@ mod tests {
         check_error(
             "1 + + 2",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, literal or identifier, found unexpected token
                    ╭─[ test.melbi:1:5 ]
                    │
@@ -247,7 +247,7 @@ mod tests {
                    │     │ 
                    │     ╰─ Expected expression, literal or identifier, found unexpected token
                 ───╯
-            "#]],
+            "]],
         );
     }
 
@@ -256,7 +256,7 @@ mod tests {
         check_error(
             "1 + + 2",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, literal or identifier, found unexpected token
                    ,-[ test.melbi:1:5 ]
                    |
@@ -264,7 +264,7 @@ mod tests {
                    |     | 
                    |     `- Expected expression, literal or identifier, found unexpected token
                 ---'
-            "#]],
+            "]],
         );
     }
 
@@ -273,7 +273,7 @@ mod tests {
         check_error(
             "1 + true",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E001] Error: Type mismatch: expected Int, found Bool
                    ╭─[ test.melbi:1:5 ]
                    │
@@ -283,7 +283,7 @@ mod tests {
                    │ 
                    │ Help: Types must match in this context
                 ───╯
-            "#]],
+            "]],
         );
     }
 
@@ -292,7 +292,7 @@ mod tests {
         check_error(
             "1 + true",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E001] Error: Type mismatch: expected Int, found Bool
                    ,-[ test.melbi:1:5 ]
                    |
@@ -302,7 +302,7 @@ mod tests {
                    | 
                    | Help: Types must match in this context
                 ---'
-            "#]],
+            "]],
         );
     }
 
@@ -311,7 +311,7 @@ mod tests {
         check_error(
             "foo + 1",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E002] Error: Undefined variable 'foo'
                    ╭─[ test.melbi:1:1 ]
                    │
@@ -321,7 +321,7 @@ mod tests {
                    │ 
                    │ Help: Make sure the variable is declared before use
                 ───╯
-            "#]],
+            "]],
         );
     }
 
@@ -330,7 +330,7 @@ mod tests {
         check_error(
             "foo + 1",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E002] Error: Undefined variable 'foo'
                    ,-[ test.melbi:1:1 ]
                    |
@@ -340,7 +340,7 @@ mod tests {
                    | 
                    | Help: Make sure the variable is declared before use
                 ---'
-            "#]],
+            "]],
         );
     }
 
@@ -349,7 +349,7 @@ mod tests {
         check_error(
             "{ x = 1",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, found unexpected token
                    ╭─[ test.melbi:1:8 ]
                    │
@@ -357,7 +357,7 @@ mod tests {
                    │        │ 
                    │        ╰─ Expected expression, found unexpected token
                 ───╯
-            "#]],
+            "]],
         );
     }
 
@@ -366,7 +366,7 @@ mod tests {
         check_error(
             "{ x = 1",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, found unexpected token
                    ,-[ test.melbi:1:8 ]
                    |
@@ -374,7 +374,7 @@ mod tests {
                    |        | 
                    |        `- Expected expression, found unexpected token
                 ---'
-            "#]],
+            "]],
         );
     }
 

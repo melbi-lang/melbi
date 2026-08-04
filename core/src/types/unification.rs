@@ -116,7 +116,7 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
     /// Resolve a type variable by its ID.
     ///
     /// This is a convenience method that looks up the type variable in the substitution
-    /// and resolves it. If the variable has no substitution, returns a TypeVar constructed
+    /// and resolves it. If the variable has no substitution, returns a `TypeVar` constructed
     /// from the builder.
     pub fn resolve_var(&self, var_id: u16) -> B::Repr {
         let ty = self.subst.borrow().get(&var_id).copied();
@@ -186,7 +186,7 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
     ///
     /// Prevents creating infinite types like `a = Array[a]`.
     fn occurs_in(&self, id: u16, t: B::Repr) -> bool {
-        use TypeKind::*;
+        use TypeKind::{TypeVar, Array, Map, Option, Record, Function, Symbol, Int, Float, Bool, Str, Bytes};
 
         let resolved = self.resolve(t).view();
 
@@ -239,8 +239,8 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
             return Ok(t1);
         }
 
-        use Error::*;
-        use TypeKind::*;
+        use Error::{OccursCheckFailed, FieldCountMismatch, FieldNameMismatch, FunctionParamCountMismatch, TypeMismatch};
+        use TypeKind::{TypeVar, Int, Float, Bool, Str, Bytes, Array, Map, Option, Record, Function, Symbol};
 
         match (t1.view(), t2.view()) {
             // Type variable cases - bind variable to the other type
@@ -429,7 +429,7 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
     /// the provided instantiation substitution. Resolution happens recursively to handle
     /// nested substitutions correctly.
     ///
-    /// Note: This uses a manual TypeTransformer implementation rather than ClosureTransformer
+    /// Note: This uses a manual `TypeTransformer` implementation rather than `ClosureTransformer`
     /// because it requires custom resolution logic that must happen before recursion.
     ///
     /// # Example
@@ -447,7 +447,7 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
             inst_subst: &'b HashMap<u16, B::Repr>,
         }
 
-        impl<'a, 'b, B: TypeBuilder<'a> + 'a> TypeTransformer<'a, B> for Substitutor<'a, 'b, B> {
+        impl<'a, B: TypeBuilder<'a> + 'a> TypeTransformer<'a, B> for Substitutor<'a, '_, B> {
             type Input = B::Repr;
 
             fn builder(&self) -> &B {
@@ -491,7 +491,7 @@ impl<'a> Unification<'a, &'a TypeManager<'a>> {
     /// Generalize a type into a type scheme by quantifying free variables.
     ///
     /// Creates a type scheme by quantifying all type variables that are free in the type
-    /// but not free in the environment (env_vars). This implements the generalization
+    /// but not free in the environment (`env_vars`). This implements the generalization
     /// step of Algorithm W.
     ///
     /// # Arguments
@@ -873,20 +873,18 @@ mod tests {
                 if let crate::types::Type::TypeVar(id) = innermost {
                     assert_eq!(
                         *id, 50,
-                        "Expected innermost type var to be _50, got _{}",
-                        id
+                        "Expected innermost type var to be _50, got _{id}"
                     );
                 } else {
                     panic!(
-                        "Expected TypeVar(_50) as innermost type, got {:?}",
-                        innermost
+                        "Expected TypeVar(_50) as innermost type, got {innermost:?}"
                     );
                 }
             } else {
-                panic!("Expected Array as inner type, got {:?}", inner);
+                panic!("Expected Array as inner type, got {inner:?}");
             }
         } else {
-            panic!("Expected Array as outer type, got {:?}", result);
+            panic!("Expected Array as outer type, got {result:?}");
         }
     }
 

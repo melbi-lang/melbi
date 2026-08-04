@@ -46,31 +46,28 @@ pub enum UnescapeError {
 impl fmt::Display for UnescapeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UnescapeError::InvalidEscape { pos, seq } => {
-                write!(f, "invalid escape sequence '{}' at position {}", seq, pos)
+            Self::InvalidEscape { pos, seq } => {
+                write!(f, "invalid escape sequence '{seq}' at position {pos}")
             }
-            UnescapeError::InvalidHexDigit { pos, seq } => {
-                write!(f, "invalid hex digit in '{}' at position {}", seq, pos)
+            Self::InvalidHexDigit { pos, seq } => {
+                write!(f, "invalid hex digit in '{seq}' at position {pos}")
             }
-            UnescapeError::IncompleteUnicodeEscape { pos, expected, got } => {
+            Self::IncompleteUnicodeEscape { pos, expected, got } => {
                 write!(
                     f,
-                    "incomplete Unicode escape at position {}: expected {} digits, got {}",
-                    pos, expected, got
+                    "incomplete Unicode escape at position {pos}: expected {expected} digits, got {got}"
                 )
             }
-            UnescapeError::InvalidUnicodeScalar { pos, value } => {
+            Self::InvalidUnicodeScalar { pos, value } => {
                 write!(
                     f,
-                    "invalid Unicode scalar value U+{:X} at position {}",
-                    value, pos
+                    "invalid Unicode scalar value U+{value:X} at position {pos}"
                 )
             }
-            UnescapeError::UnpairedBrace { pos, brace } => {
+            Self::UnpairedBrace { pos, brace } => {
                 write!(
                     f,
-                    "unpaired '{}' in format string at position {} (must be '{{{{' or '}}}}')",
-                    brace, pos
+                    "unpaired '{brace}' in format string at position {pos} (must be '{{{{' or '}}}}')"
                 )
             }
         }
@@ -122,11 +119,11 @@ pub fn escape_string(f: &mut impl fmt::Write, s: &str, style: QuoteStyle) -> fmt
         }
     };
 
-    write!(f, "{}", quote_char)?;
+    write!(f, "{quote_char}")?;
 
     for ch in s.chars() {
         if ch == needs_escape {
-            write!(f, "\\{}", quote_char)?;
+            write!(f, "\\{quote_char}")?;
         } else {
             match ch {
                 '\\' => write!(f, "\\\\")?,
@@ -135,12 +132,12 @@ pub fn escape_string(f: &mut impl fmt::Write, s: &str, style: QuoteStyle) -> fmt
                 '\t' => write!(f, "\\t")?,
                 '\0' => write!(f, "\\0")?,
                 c if c.is_control() => write!(f, "\\u{:04x}", c as u32)?,
-                c => write!(f, "{}", c)?,
+                c => write!(f, "{c}")?,
             }
         }
     }
 
-    write!(f, "{}", quote_char)?;
+    write!(f, "{quote_char}")?;
     Ok(())
 }
 
@@ -278,7 +275,7 @@ pub fn unescape_string<'a>(
                             None => {
                                 return Err(UnescapeError::InvalidHexDigit {
                                     pos: hex_start,
-                                    seq: format!("\\u{}", ch),
+                                    seq: format!("\\u{ch}"),
                                 });
                             }
                         },
@@ -318,7 +315,7 @@ pub fn unescape_string<'a>(
                             None => {
                                 return Err(UnescapeError::InvalidHexDigit {
                                     pos: hex_start,
-                                    seq: format!("\\U{}", ch),
+                                    seq: format!("\\U{ch}"),
                                 });
                             }
                         },
@@ -345,7 +342,7 @@ pub fn unescape_string<'a>(
             Some((_, other)) => {
                 return Err(UnescapeError::InvalidEscape {
                     pos,
-                    seq: format!("\\{}", other),
+                    seq: format!("\\{other}"),
                 });
             }
             None => {
@@ -709,7 +706,7 @@ mod tests {
             // Remove surrounding quotes
             let escaped_inner = &escaped[1..escaped.len() - 1];
             let unescaped = unescape_string(&arena, escaped_inner, false).unwrap();
-            assert_eq!(unescaped, test, "Roundtrip failed for: {:?}", test);
+            assert_eq!(unescaped, test, "Roundtrip failed for: {test:?}");
         }
     }
 
@@ -803,7 +800,7 @@ mod tests {
         for test in test_cases {
             let normal = unescape_string(&arena, test, false).unwrap();
             let format = unescape_string(&arena, test, true).unwrap();
-            assert_eq!(normal, format, "Mismatch for: {}", test);
+            assert_eq!(normal, format, "Mismatch for: {test}");
         }
     }
 }

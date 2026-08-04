@@ -106,14 +106,13 @@ fn suffix_expression_type_checking() {
     let diagnostics = doc.analyze();
 
     if !diagnostics.is_empty() {
-        eprintln!("Suffix diagnostics: {:?}", diagnostics);
+        eprintln!("Suffix diagnostics: {diagnostics:?}");
     }
     // Note: Suffix expressions may produce type errors if not handled by analyzer
     // For now, we just check that tree-sitter parses them without syntax errors
     let has_only_type_errors = diagnostics.iter().all(|d| !d.message.contains("Syntax"));
     assert!(
         diagnostics.is_empty() || has_only_type_errors,
-        "Should parse suffix expression: got {:?}",
-        diagnostics
+        "Should parse suffix expression: got {diagnostics:?}"
     );
 }

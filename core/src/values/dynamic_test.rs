@@ -227,7 +227,7 @@ fn empty_record() {
     let record = rec.as_record().unwrap();
     assert_eq!(record.len(), 0);
     assert!(record.is_empty());
-    assert_eq!(format!("{}", rec), "{}");
+    assert_eq!(format!("{rec}"), "{}");
 }
 
 #[test]
@@ -268,7 +268,7 @@ fn record_display() {
 
     let rec = Value::record(&arena, rec_ty, &[("age", age_val), ("name", name_val)]).unwrap();
 
-    let display = format!("{}", rec);
+    let display = format!("{rec}");
     assert_eq!(display, r#"{age = 30, name = "Alice"}"#);
 }
 
@@ -380,7 +380,7 @@ fn nested_record() {
     assert_eq!(y.as_int().unwrap(), 20);
 
     // Test display with nested record
-    let display = format!("{}", outer);
+    let display = format!("{outer}");
     assert_eq!(display, r#"{name = "origin", point = {x = 10, y = 20}}"#);
 }
 
@@ -1021,8 +1021,7 @@ fn hash_eq_consistency() {
             assert_eq!(
                 hash_value(&a),
                 hash_value(&b),
-                "Equal {} values must have equal hashes",
-                type_name
+                "Equal {type_name} values must have equal hashes"
             );
         }
     }

@@ -26,13 +26,13 @@ fn safe_div_impl(_ctx: &FfiContext, a: i64, b: i64) -> Result<i64, RuntimeError>
     }
 }
 
-/// NoContext mode: no context
+/// `NoContext` mode: no context
 #[melbi_fn(name = DeclNoContextAdd)]
 fn no_context_add_impl(a: i64, b: i64) -> i64 {
     a + b
 }
 
-/// NoContext mode with Result
+/// `NoContext` mode with Result
 #[melbi_fn(name = DeclNoContextCheckedAdd)]
 fn no_context_checked_add_impl(a: i64, b: i64) -> Result<i64, RuntimeError> {
     a.checked_add(b).ok_or(RuntimeError::IntegerOverflow {})
@@ -223,13 +223,11 @@ fn function_type_unwraps_result() {
 
     assert!(
         fn_ty_str.contains("Int"),
-        "Function type should contain Int: {}",
-        fn_ty_str
+        "Function type should contain Int: {fn_ty_str}"
     );
     assert!(
         !fn_ty_str.contains("Result"),
-        "Function type should not contain Result: {}",
-        fn_ty_str
+        "Function type should not contain Result: {fn_ty_str}"
     );
 }
 
@@ -268,7 +266,7 @@ fn zero_args_impl(_ctx: &FfiContext) -> i64 {
     42
 }
 
-/// Zero-argument function (NoContext mode)
+/// Zero-argument function (`NoContext` mode)
 #[melbi_fn(name = DeclNoContextZeroArgs)]
 fn no_context_zero_args_impl() -> i64 {
     42
@@ -307,7 +305,7 @@ fn returns_float_impl(_ctx: &FfiContext, x: i64) -> f64 {
 /// Function taking bool parameter
 #[melbi_fn(name = DeclTakesBool)]
 fn takes_bool_impl(_ctx: &FfiContext, flag: bool) -> i64 {
-    if flag { 1 } else { 0 }
+    i64::from(flag)
 }
 
 /// Function taking f64 parameter
@@ -375,7 +373,7 @@ fn result_with_lifetime_impl<'a>(
     }
 }
 
-/// NoContext function with Result returning complex type
+/// `NoContext` function with Result returning complex type
 #[melbi_fn(name = DeclNoContextResultComplex)]
 fn no_context_result_complex_impl(a: i64, b: i64) -> Result<f64, RuntimeError> {
     if b == 0 {
@@ -385,7 +383,7 @@ fn no_context_result_complex_impl(a: i64, b: i64) -> Result<f64, RuntimeError> {
     }
 }
 
-/// NoContext function with nested generics and Result<Str<'value>, E>
+/// `NoContext` function with nested generics and Result<Str<'value>, E>
 #[melbi_fn(name = DeclArrayFirst)]
 fn array_first<'value>(
     arr: Array<'value, Str<'value>>,
@@ -881,8 +879,7 @@ fn zero_args_function_type() {
     let fn_ty_str = format!("{}", DeclZeroArgs::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
-        "Zero-arg function type should contain Int: {}",
-        fn_ty_str
+        "Zero-arg function type should contain Int: {fn_ty_str}"
     );
 }
 
@@ -893,8 +890,7 @@ fn many_args_function_type() {
     let fn_ty_str = format!("{}", DeclManyArgs::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
-        "Many-arg function type should contain Int: {}",
-        fn_ty_str
+        "Many-arg function type should contain Int: {fn_ty_str}"
     );
 }
 
@@ -905,18 +901,15 @@ fn mixed_types_function_type() {
     let fn_ty_str = format!("{}", DeclMixedTypes::new(ctx.type_mgr).ty());
     assert!(
         fn_ty_str.contains("Int"),
-        "Mixed-types function should contain Int: {}",
-        fn_ty_str
+        "Mixed-types function should contain Int: {fn_ty_str}"
     );
     assert!(
         fn_ty_str.contains("Float"),
-        "Mixed-types function should contain Float: {}",
-        fn_ty_str
+        "Mixed-types function should contain Float: {fn_ty_str}"
     );
     assert!(
         fn_ty_str.contains("Bool"),
-        "Mixed-types function should contain Bool: {}",
-        fn_ty_str
+        "Mixed-types function should contain Bool: {fn_ty_str}"
     );
 }
 
@@ -994,19 +987,19 @@ fn array_first_empty_error() {
 // 15. DERIVED NAMES (no explicit name attribute)
 // ============================================================================
 
-/// Test #[melbi_fn] without explicit name - derives PascalCase from function name
+/// Test #[`melbi_fn`] without explicit name - derives `PascalCase` from function name
 #[melbi_fn]
 fn derived_add(a: i64, b: i64) -> i64 {
     a + b
 }
 
-/// Test #[melbi_fn()] with empty parentheses - same as no parentheses
+/// Test #[`melbi_fn()`] with empty parentheses - same as no parentheses
 #[melbi_fn()]
 fn empty_parens_mul(a: i64, b: i64) -> i64 {
     a * b
 }
 
-/// Test derived name with underscores: get_first_item -> GetFirstItem
+/// Test derived name with underscores: `get_first_item` -> `GetFirstItem`
 #[melbi_fn]
 fn get_first_item(a: i64, _b: i64) -> i64 {
     a

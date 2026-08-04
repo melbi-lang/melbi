@@ -13,6 +13,7 @@ use crate::common::engine::build_stdlib;
 use crate::common::input::read_input;
 
 /// Run the check command.
+#[must_use]
 pub fn run(args: CheckArgs, no_color: bool) -> ExitCode {
     let mut has_errors = false;
 
@@ -35,7 +36,7 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
         Ok(c) => c,
         Err(e) => {
             if !quiet {
-                eprintln!("error: {}", e);
+                eprintln!("error: {e}");
             }
             return false;
         }
@@ -72,7 +73,7 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
     }
 
     if !quiet {
-        println!("{}: OK", display_name);
+        println!("{display_name}: OK");
     }
     true
 }

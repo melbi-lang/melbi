@@ -10,15 +10,16 @@ pub fn read_input(path: &str) -> Result<(String, String), String> {
         let mut content = String::new();
         std::io::stdin()
             .read_to_string(&mut content)
-            .map_err(|e| format!("<stdin>: {}", e))?;
+            .map_err(|e| format!("<stdin>: {e}"))?;
         Ok((content, "<stdin>".to_string()))
     } else {
-        let content = std::fs::read_to_string(path).map_err(|e| format!("{}: {}", path, e))?;
+        let content = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
         Ok((content, path.to_string()))
     }
 }
 
 /// Check if the path represents stdin.
+#[must_use]
 pub fn is_stdin(path: &str) -> bool {
     path == "-"
 }

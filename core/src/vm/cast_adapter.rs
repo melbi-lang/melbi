@@ -32,7 +32,7 @@ impl<'t> CastAdapter<'t> {
     }
 }
 
-impl<'t> GenericAdapter for CastAdapter<'t> {
+impl GenericAdapter for CastAdapter<'_> {
     fn num_args(&self) -> usize {
         1 // Just the value to cast
     }

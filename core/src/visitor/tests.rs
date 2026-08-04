@@ -25,45 +25,45 @@ pub struct TreeData<B: TreeBuilder> {
 
 impl<B: TreeBuilder> TreeKind<B>
 where
-    B::TreeViewRepr: TreeView<B, Kind = TreeKind<B>>,
+    B::TreeViewRepr: TreeView<B, Kind = Self>,
 {
     /// Deep structural equality check.
     ///
-    /// Since TreeKind contains TreeViewRepr (references), we can't easily
+    /// Since `TreeKind` contains `TreeViewRepr` (references), we can't easily
     /// construct tree literals for comparison. This recursively compares structure.
     pub fn structural_eq(&self, other: &Self) -> bool
     where
         B::TreeViewRepr: Copy,
     {
         match (self, other) {
-            (TreeKind::Num(a), TreeKind::Num(b)) => a == b,
-            (TreeKind::Add(l1, r1), TreeKind::Add(l2, r2))
-            | (TreeKind::Mul(l1, r1), TreeKind::Mul(l2, r2)) => {
+            (Self::Num(a), Self::Num(b)) => a == b,
+            (Self::Add(l1, r1), Self::Add(l2, r2))
+            | (Self::Mul(l1, r1), Self::Mul(l2, r2)) => {
                 l1.view().structural_eq(&l2.view()) && r1.view().structural_eq(&r2.view())
             }
-            (TreeKind::Neg(a), TreeKind::Neg(b)) => a.view().structural_eq(&b.view()),
+            (Self::Neg(a), Self::Neg(b)) => a.view().structural_eq(&b.view()),
             _ => false,
         }
     }
 
     /// Pattern matching helper: check if this is a Num with expected value.
     pub fn is_num(&self, expected: i32) -> bool {
-        matches!(self, TreeKind::Num(n) if *n == expected)
+        matches!(self, Self::Num(n) if *n == expected)
     }
 
     /// Check if this is an Add node.
     pub fn is_add(&self) -> bool {
-        matches!(self, TreeKind::Add(_, _))
+        matches!(self, Self::Add(_, _))
     }
 
     /// Check if this is a Mul node.
     pub fn is_mul(&self) -> bool {
-        matches!(self, TreeKind::Mul(_, _))
+        matches!(self, Self::Mul(_, _))
     }
 
     /// Check if this is a Neg node.
     pub fn is_neg(&self) -> bool {
-        matches!(self, TreeKind::Neg(_))
+        matches!(self, Self::Neg(_))
     }
 }
 
@@ -114,15 +114,15 @@ impl<'arena> ArenaTreeBuilder<'arena> {
 }
 
 // Manual trait implementations since Bump doesn't implement these traits
-impl<'arena> PartialEq for ArenaTreeBuilder<'arena> {
+impl PartialEq for ArenaTreeBuilder<'_> {
     fn eq(&self, other: &Self) -> bool {
         core::ptr::eq(self.arena, other.arena)
     }
 }
 
-impl<'arena> Eq for ArenaTreeBuilder<'arena> {}
+impl Eq for ArenaTreeBuilder<'_> {}
 
-impl<'arena> core::hash::Hash for ArenaTreeBuilder<'arena> {
+impl core::hash::Hash for ArenaTreeBuilder<'_> {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         core::ptr::hash(self.arena, state);
     }
@@ -202,7 +202,7 @@ impl TreeVisitor<BoxedTreeBuilder> for NodeCounter {
     }
 }
 
-/// Example of TreeTransformer with Output = () (acts as a visitor).
+/// Example of `TreeTransformer` with Output = () (acts as a visitor).
 ///
 /// This demonstrates that transformers can also do side-effect-only traversals.
 struct MaxDepthFinder {
@@ -260,7 +260,7 @@ impl TreeTransformer<BoxedTreeBuilder> for NegateNumbers {
     type Output = Box<TreeData<BoxedTreeBuilder>>;
 
     fn transform(&mut self, tree: Box<TreeData<BoxedTreeBuilder>>) -> Self::Output {
-        match tree.clone().view() {
+        match tree.view() {
             TreeKind::Num(n) => Box::new(TreeData {
                 kind: TreeKind::Num(-n),
                 data: "Hello 🖖".to_string(),
@@ -294,7 +294,7 @@ impl TreeTransformer<BoxedTreeBuilder> for NegateNumbers {
 
 /// Example evaluator: Transform tree to its computed value.
 ///
-/// This demonstrates Output being different from B::TreeViewRepr.
+/// This demonstrates Output being different from `B::TreeViewRepr`.
 struct Evaluator;
 
 impl Evaluator {
@@ -329,7 +329,7 @@ impl TreeTransformer<BoxedTreeBuilder> for ConstantFolder {
     type Output = Box<TreeData<BoxedTreeBuilder>>;
 
     fn transform(&mut self, tree: Box<TreeData<BoxedTreeBuilder>>) -> Self::Output {
-        match tree.clone().view() {
+        match tree.view() {
             TreeKind::Num(n) => Box::new(TreeData {
                 kind: TreeKind::Num(n),
                 data: "Hello 🖖".to_string(),

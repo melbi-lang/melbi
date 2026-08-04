@@ -1,7 +1,7 @@
 //! Binary and unary operator implementations.
 
 use crate::evaluator::ExecutionErrorKind;
-use crate::evaluator::RuntimeError::*;
+use crate::evaluator::RuntimeError::{DivisionByZero, IntegerOverflow};
 use crate::parser::{BinaryOp, ComparisonOp, UnaryOp};
 
 /// Evaluate a binary operation on two integers.
@@ -31,7 +31,7 @@ pub(super) fn eval_binary_int(
             if right < 0 {
                 // Negative exponents for integers result in 0 (floor division semantics)
                 Ok(0)
-            } else if right > u32::MAX as i64 {
+            } else if right > i64::from(u32::MAX) {
                 // Exponent too large, will overflow or underflow
                 // Return 0 for simplicity (matches negative exponent behavior)
                 Ok(0)

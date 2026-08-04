@@ -29,7 +29,7 @@
 //! Types are encoded prefixed with a wire tag or wire byte indicating the variant,
 //! but sometimes containing additional packed information.
 //!
-//! - **0-63**: Direct TypeTag for all Melbi types (with reserved space for new types).
+//! - **0-63**: Direct `TypeTag` for all Melbi types (with reserved space for new types).
 //! - **64-95**: Packed TypeVar(0..31).
 //! - **96-100**: Packed Array(e) for all unitary types.
 //! - **101-126**: Packed Map(k, v) for all composite types.
@@ -156,7 +156,7 @@ mod wire {
                 0..64 => {
                     let type_tag: TypeTag = byte
                         .try_into()
-                        .map_err(|_| DecodeError::InvalidWireTag { tag: byte })?;
+                        .map_err(|()| DecodeError::InvalidWireTag { tag: byte })?;
 
                     if Self::is_unitary_type(type_tag) {
                         // Unitary types have no payload
@@ -187,7 +187,7 @@ mod wire {
 
                 // Packed TypeVar (64-95): IDs 0-31
                 64..96 => {
-                    let id = (byte as u16) - 64u16;
+                    let id = u16::from(byte) - 64u16;
                     Ok(Decoded {
                         type_tag: TypeTag::TypeVar,
                         payload: Payload::PackedTypeVar(id),
@@ -225,21 +225,21 @@ mod wire {
             }
         }
 
-        /// Create WireTag for encoding (tries to use packed format when possible)
+        /// Create `WireTag` for encoding (tries to use packed format when possible)
         // TODO: Rewrite this for more flexibility on what can or cannot get packed.
         pub(super) fn for_encoding(type_tag: TypeTag, encoding: WireEncoding) -> Self {
             match (type_tag, encoding) {
-                (TypeTag::TypeVar, WireEncoding::PackedTypeVar(id)) if id < 32 => WireTag {
+                (TypeTag::TypeVar, WireEncoding::PackedTypeVar(id)) if id < 32 => Self {
                     wire_tag: 64 + (id as u8),
                     chosen_encoding: ChosenEncoding::WithoutPayload,
                 },
                 (TypeTag::Array, WireEncoding::PackedArray(elem)) => {
                     match Self::packed_id_from_type_tag(elem) {
-                        Some(packed_type_id) => WireTag {
+                        Some(packed_type_id) => Self {
                             wire_tag: 96 + packed_type_id,
                             chosen_encoding: ChosenEncoding::WithoutPayload,
                         },
-                        None => WireTag {
+                        None => Self {
                             wire_tag: type_tag as u8,
                             chosen_encoding: ChosenEncoding::WithPayload,
                         },
@@ -250,21 +250,21 @@ mod wire {
                         Self::packed_id_from_type_tag(key_type),
                         Self::packed_id_from_type_tag(value_type),
                     ) {
-                        (Some(key_type_id), Some(value_type_id)) => WireTag {
+                        (Some(key_type_id), Some(value_type_id)) => Self {
                             wire_tag: 101 + key_type_id * 5 + value_type_id,
                             chosen_encoding: ChosenEncoding::WithoutPayload,
                         },
-                        _ => WireTag {
+                        _ => Self {
                             wire_tag: type_tag as u8,
                             chosen_encoding: ChosenEncoding::WithPayload,
                         },
                     }
                 }
-                (type_tag, _) if Self::is_unitary_type(type_tag) => WireTag {
+                (type_tag, _) if Self::is_unitary_type(type_tag) => Self {
                     wire_tag: type_tag as u8,
                     chosen_encoding: ChosenEncoding::WithoutPayload,
                 },
-                _ => WireTag {
+                _ => Self {
                     wire_tag: type_tag as u8,
                     chosen_encoding: ChosenEncoding::WithPayload, // Fallback to standard encoding
                 },
@@ -325,9 +325,8 @@ fn write_varint(buf: &mut BufferType, mut n: usize) {
         if n == 0 {
             buf.push(byte);
             break;
-        } else {
-            buf.push(byte | 0x80);
         }
+        buf.push(byte | 0x80);
     }
 }
 
@@ -398,7 +397,7 @@ fn write_u16_le(buf: &mut BufferType, val: u16) {
 
 pub type BufferType = SmallVec<[u8; 16]>;
 
-/// Encodes a composite type with the standard 3-byte header: [disc][size_lo][size_hi][payload]
+/// Encodes a composite type with the standard 3-byte header: [disc][size_lo][`size_hi`][payload]
 /// The payload is encoded by the provided closure.
 #[inline]
 fn encode_composite<F>(buf: &mut BufferType, disc: u8, encode_payload: F)
@@ -415,6 +414,7 @@ where
     buf[start + 2] = ((size >> 8) & 0xFF) as u8;
 }
 
+#[must_use]
 pub fn encode(ty: &Type) -> BufferType {
     let mut buf = BufferType::new();
     encode_inner(ty, &mut buf);
@@ -458,7 +458,7 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
         ),
         _ => WireTag::for_encoding(type_to_tag(ty), WireEncoding::Standard),
     };
-    if let ChosenEncoding::WithoutPayload = tag.chosen_encoding() {
+    if matches!(tag.chosen_encoding(), ChosenEncoding::WithoutPayload) {
         buf.push(tag.as_byte());
         return;
     }
@@ -490,7 +490,7 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
         Type::Record(fields) => {
             encode_composite(buf, tag.as_byte(), |buf| {
                 write_varint(buf, fields.len());
-                for (name, ty) in fields.iter() {
+                for (name, ty) in *fields {
                     write_string(buf, name);
                     encode_inner(ty, buf);
                 }
@@ -500,7 +500,7 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
             encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(ret, buf); // return type FIRST
                 write_varint(buf, params.len()); // then count
-                for param in params.iter() {
+                for param in *params {
                     encode_inner(param, buf); // then params
                 }
             });
@@ -508,7 +508,7 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
         Type::Symbol(parts) => {
             encode_composite(buf, tag.as_byte(), |buf| {
                 write_varint(buf, parts.len());
-                for part in parts.iter() {
+                for part in *parts {
                     write_string(buf, part);
                 }
             });
@@ -526,11 +526,13 @@ pub struct OwnedType {
 }
 
 impl OwnedType {
+    #[must_use]
     pub fn new(buffer: BufferType) -> Self {
-        OwnedType { buffer }
+        Self { buffer }
     }
 
-    pub fn view<'a>(&'a self) -> TypeKind<'a, EncodedType<'a>> {
+    #[must_use]
+    pub fn view(&self) -> TypeKind<'_, EncodedType<'_>> {
         EncodedType::new_from_buffer(&self.buffer[..])
             .unwrap()
             .0
@@ -693,7 +695,7 @@ impl<'a> Iterator for RecordIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for RecordIter<'a> {}
+impl ExactSizeIterator for RecordIter<'_> {}
 
 pub struct ParamsIter<'a> {
     payload: &'a [u8],
@@ -734,7 +736,7 @@ impl<'a> Iterator for ParamsIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for ParamsIter<'a> {}
+impl ExactSizeIterator for ParamsIter<'_> {}
 
 pub struct SymbolIter<'a> {
     payload: &'a [u8],
@@ -771,7 +773,7 @@ impl<'a> Iterator for SymbolIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for SymbolIter<'a> {}
+impl ExactSizeIterator for SymbolIter<'_> {}
 
 // ============================================================================
 // Decoding
@@ -779,7 +781,7 @@ impl<'a> ExactSizeIterator for SymbolIter<'a> {}
 
 use crate::types::traits::TypeTransformer;
 
-/// Simple transformer that decodes EncodedType to &Type using TypeManager
+/// Simple transformer that decodes `EncodedType` to &Type using `TypeManager`
 struct Decoder<'a> {
     mgr: &'a crate::types::manager::TypeManager<'a>,
 }

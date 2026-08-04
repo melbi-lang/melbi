@@ -25,11 +25,11 @@ impl Default for PlaygroundEngine {
 #[wasm_bindgen]
 impl PlaygroundEngine {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> PlaygroundEngine {
+    pub fn new() -> Self {
         let arena = Box::leak(Box::new(Bump::new()));
         let engine = Engine::new(EngineOptions::default(), arena, stdlib::register_stdlib);
 
-        PlaygroundEngine {
+        Self {
             engine_arena: arena,
             engine,
         }
@@ -56,15 +56,13 @@ impl PlaygroundEngine {
                 // Measure evaluation time (not including compilation)
                 let start = window()
                     .and_then(|w| w.performance())
-                    .map(|p| p.now())
-                    .unwrap_or(0.0);
+                    .map_or(0.0, |p| p.now());
 
                 let result = expr.run(Default::default(), &value_arena, &[]);
 
                 let end = window()
                     .and_then(|w| w.performance())
-                    .map(|p| p.now())
-                    .unwrap_or(0.0);
+                    .map_or(0.0, |p| p.now());
 
                 let duration_ms = end - start;
 
@@ -89,11 +87,11 @@ pub enum WorkerResponse<T> {
 
 impl<T> WorkerResponse<T> {
     fn ok(data: T) -> Self {
-        WorkerResponse::Ok { data }
+        Self::Ok { data }
     }
 
     fn err(error: Error) -> Self {
-        WorkerResponse::Err {
+        Self::Err {
             error: WorkerError::from(error),
         }
     }
@@ -138,7 +136,7 @@ pub struct EvaluationSuccess {
 impl EvaluationSuccess {
     fn from_value(arg: Value<'static, '_>, duration_ms: f64) -> Self {
         let mut value = String::new();
-        html_escape::encode_safe_to_string(format!("{:?}", arg), &mut value);
+        html_escape::encode_safe_to_string(format!("{arg:?}"), &mut value);
         let mut type_name = String::new();
         html_escape::encode_safe_to_string(format!("{}", arg.ty), &mut type_name);
         Self {
@@ -152,12 +150,12 @@ impl EvaluationSuccess {
 impl From<Error> for WorkerError {
     fn from(err: Error) -> Self {
         match err {
-            Error::Api(message) => WorkerError {
+            Error::Api(message) => Self {
                 kind: "api",
                 message,
                 diagnostics: None,
             },
-            Error::Compilation { diagnostics, .. } => WorkerError {
+            Error::Compilation { diagnostics, .. } => Self {
                 kind: "compilation",
                 message: format!(
                     "Compilation failed with {} diagnostic(s)",
@@ -170,12 +168,12 @@ impl From<Error> for WorkerError {
                         .collect(),
                 ),
             },
-            Error::Runtime { diagnostic, .. } => WorkerError {
+            Error::Runtime { diagnostic, .. } => Self {
                 kind: "runtime",
                 message: diagnostic.message.clone(),
                 diagnostics: Some(vec![DiagnosticPayload::from(*diagnostic)]),
             },
-            Error::ResourceExceeded(message) => WorkerError {
+            Error::ResourceExceeded(message) => Self {
                 kind: "resource_exceeded",
                 message,
                 diagnostics: None,
@@ -212,7 +210,7 @@ impl From<RelatedInfo> for RelatedInfoPayload {
 
 impl From<Span> for RangePayload {
     fn from(span: Span) -> Self {
-        RangePayload {
+        Self {
             start: span.0.start,
             end: span.0.end,
         }
@@ -229,7 +227,7 @@ fn severity_to_str(severity: Severity) -> &'static str {
 
 fn to_js_value<T: Serialize>(value: &T) -> Result<JsValue, JsValue> {
     let serialized = serde_json::to_string(value)
-        .map_err(|err| JsValue::from_str(&format!("serialization error: {}", err)))?;
+        .map_err(|err| JsValue::from_str(&format!("serialization error: {err}")))?;
     JSON::parse(&serialized)
 }
 

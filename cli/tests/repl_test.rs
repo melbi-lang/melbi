@@ -16,7 +16,7 @@ const TIMEOUT: u64 = 5000; // 5 seconds
 
 fn spawn_repl() -> Result<rexpect::session::PtySession, rexpect::error::Error> {
     let bin = env!("CARGO_BIN_EXE_melbi");
-    spawn(&format!("{} repl", bin), Some(TIMEOUT))
+    spawn(&format!("{bin} repl"), Some(TIMEOUT))
 }
 
 #[test]

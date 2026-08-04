@@ -22,6 +22,7 @@ impl<'arena> Context<'arena> {
         }
     }
 
+    #[must_use]
     pub fn type_manager(&self) -> &TypeManager<'arena> {
         self.type_manager
     }
@@ -35,7 +36,7 @@ impl<'arena> Context<'arena> {
         'arena: 'ctx,
     {
         // Fake compilation - we'll just store the params and pretend to compile
-        println!("Compiling: {}", source);
+        println!("Compiling: {source}");
 
         Ok(CompiledExpression {
             type_manager: self.type_manager,
@@ -89,18 +90,22 @@ impl<'arena> CompiledExpression<'arena> {
         Ok(Value::int(self.type_manager, result))
     }
 
+    #[must_use]
     pub fn param_types(&self) -> &[&'arena Type<'arena>] {
         &self.param_types
     }
 
+    #[must_use]
     pub fn return_type(&self) -> &'arena Type<'arena> {
         self.return_type
     }
 
+    #[must_use]
     pub fn param_names(&self) -> &[String] {
         &self.param_names
     }
 
+    #[must_use]
     pub fn source(&self) -> &str {
         &self.source
     }
@@ -119,8 +124,8 @@ pub enum CompileError {
 impl fmt::Display for CompileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CompileError::SyntaxError(s) => write!(f, "Syntax error: {}", s),
-            CompileError::UndefinedVariable(name) => write!(f, "Undefined variable: {}", name),
+            Self::SyntaxError(s) => write!(f, "Syntax error: {s}"),
+            Self::UndefinedVariable(name) => write!(f, "Undefined variable: {name}"),
         }
     }
 }
@@ -136,15 +141,14 @@ pub enum ValidationError {
 impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidationError::ArgumentCountMismatch { expected, got } => {
+            Self::ArgumentCountMismatch { expected, got } => {
                 write!(
                     f,
-                    "Argument count mismatch: expected {}, got {}",
-                    expected, got
+                    "Argument count mismatch: expected {expected}, got {got}"
                 )
             }
-            ValidationError::TypeMismatch { param_index } => {
-                write!(f, "Type mismatch for parameter {}", param_index)
+            Self::TypeMismatch { param_index } => {
+                write!(f, "Type mismatch for parameter {param_index}")
             }
         }
     }
@@ -156,10 +160,10 @@ impl From<melbi_core::values::from_raw::TypeError> for ValidationError {
     fn from(err: melbi_core::values::from_raw::TypeError) -> Self {
         match err {
             melbi_core::values::from_raw::TypeError::Mismatch => {
-                ValidationError::TypeMismatch { param_index: 0 }
+                Self::TypeMismatch { param_index: 0 }
             } // Adjust param_index as needed
             melbi_core::values::from_raw::TypeError::IndexOutOfBounds => {
-                ValidationError::ArgumentCountMismatch {
+                Self::ArgumentCountMismatch {
                     expected: 0,
                     got: 0,
                 }
@@ -179,8 +183,8 @@ pub struct Cons<Head, Tail>(PhantomData<(Head, Tail)>);
 pub trait MelbiType: Sized {
     fn melbi_type<'arena>(ty_mgr: &'arena TypeManager<'arena>) -> &'arena Type<'arena>;
     fn to_value<'arena, 'val>(self, ty_mgr: &'arena TypeManager<'arena>) -> Value<'arena, 'val>;
-    fn from_value<'arena, 'val>(
-        val: Value<'arena, 'val>,
+    fn from_value<'arena>(
+        val: Value<'arena, '_>,
         ty_mgr: &'arena TypeManager<'arena>,
     ) -> Result<Self, ValidationError>;
 }
@@ -194,8 +198,8 @@ impl MelbiType for i64 {
         Value::int(ty_mgr, self)
     }
 
-    fn from_value<'arena, 'val>(
-        val: Value<'arena, 'val>,
+    fn from_value<'arena>(
+        val: Value<'arena, '_>,
         _ty_mgr: &'arena TypeManager<'arena>,
     ) -> Result<Self, ValidationError> {
         val.as_int().map_err(Into::into)
@@ -280,7 +284,7 @@ pub struct TypedExpression<'arena, Args, Ret> {
     _phantom: PhantomData<(Args, Ret)>,
 }
 
-impl<'arena, Args, Ret> TypedExpression<'arena, Args, Ret>
+impl<Args, Ret> TypedExpression<'_, Args, Ret>
 where
     Args: MelbiArgs,
     Ret: MelbiType,
@@ -406,13 +410,13 @@ fn static_typing_works() -> Result<(), Box<dyn std::error::Error>> {
 
     let arena = Bump::new();
     let result: i64 = melbi_eval![expr, &arena, 40, 2]?;
-    println!("Static typed result (40 + 2): {}", result);
+    println!("Static typed result (40 + 2): {result}");
     assert_eq!(42, result);
 
     // Example 2: Three arguments
     let expr3 = melbi_compile![context, fn(i64, i64, i64) -> i64]("a + b", &["a", "b", "c"])?;
     let result3: i64 = melbi_eval![expr3, &arena, 10, 20, 30]?;
-    println!("Static typed result (10 + 20 [ignoring c]): {}", result3);
+    println!("Static typed result (10 + 20 [ignoring c]): {result3}");
     assert_eq!(30, result3);
 
     println!("✓ Static typing API works!");
@@ -445,7 +449,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let arena = Bump::new();
         let result = expr.run(&arena, &[Value::int(type_mgr, 40), Value::int(type_mgr, 2)])?;
         let value = result.as_int()?;
-        println!("\nResult: {}", value);
+        println!("\nResult: {value}");
         assert_eq!(42, value);
     }
 
@@ -457,7 +461,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &[Value::int(type_mgr, 100), Value::int(type_mgr, 23)],
         )?;
         let value = result.as_int()?;
-        println!("Result: {}", value);
+        println!("Result: {value}");
         assert_eq!(123, value);
     }
 
@@ -467,8 +471,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match expr.run(&arena, &[Value::int(type_mgr, 42)]) {
             Err(ValidationError::ArgumentCountMismatch { expected, got }) => {
                 println!(
-                    "\n✓ Correctly caught argument count mismatch: expected {}, got {}",
-                    expected, got
+                    "\n✓ Correctly caught argument count mismatch: expected {expected}, got {got}"
                 );
             }
             _ => panic!("Should have failed with argument count mismatch"),

@@ -167,7 +167,7 @@ fn array_flatten<'types, 'arena>(
                 // Empty array with type variable - use fresh type var for inner type
                 ctx.type_mgr().fresh_type_var()
             }
-            _ => panic!("Expected array of arrays, got {:?}", arr_ty),
+            _ => panic!("Expected array of arrays, got {arr_ty:?}"),
         },
         _ => panic!("Expected array type"),
     };

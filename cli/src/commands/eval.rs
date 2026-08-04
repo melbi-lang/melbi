@@ -18,6 +18,7 @@ use crate::cli::{EvalArgs, Runtime};
 use crate::common::engine::{StdlibEnv, build_stdlib};
 
 /// Run the eval command.
+#[must_use]
 pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
@@ -145,7 +146,7 @@ fn output_single_result(
 ) -> ExitCode {
     match result {
         Ok(value) => {
-            println!("{:?}", value);
+            println!("{value:?}");
             ExitCode::SUCCESS
         }
         Err(e) => {
@@ -164,12 +165,12 @@ fn output_both_results(
     match (eval_res, vm_res) {
         (Ok(eval_val), Ok(vm_val)) => {
             if eval_val == vm_val {
-                println!("{:?}", eval_val);
+                println!("{eval_val:?}");
                 ExitCode::SUCCESS
             } else {
                 eprintln!("MISMATCH!");
-                eprintln!("  Evaluator: {:?}", eval_val);
-                eprintln!("  VM:        {:?}", vm_val);
+                eprintln!("  Evaluator: {eval_val:?}");
+                eprintln!("  VM:        {vm_val:?}");
                 ExitCode::FAILURE
             }
         }
@@ -177,12 +178,12 @@ fn output_both_results(
             eprintln!("MISMATCH!");
             eprintln!("  Evaluator: error");
             render_err(e.into());
-            eprintln!("  VM:        {:?}", vm_val);
+            eprintln!("  VM:        {vm_val:?}");
             ExitCode::FAILURE
         }
         (Ok(eval_val), Err(e)) => {
             eprintln!("MISMATCH!");
-            eprintln!("  Evaluator: {:?}", eval_val);
+            eprintln!("  Evaluator: {eval_val:?}");
             eprintln!("  VM:        error");
             render_err(e.into());
             ExitCode::FAILURE
@@ -206,7 +207,7 @@ fn output_both_results(
 fn format_duration(duration: Duration) -> String {
     let nanos = duration.as_nanos();
     if nanos < 1_000 {
-        format!("{}ns", nanos)
+        format!("{nanos}ns")
     } else if nanos < 1_000_000 {
         format!("{:.2}µs", nanos as f64 / 1_000.0)
     } else if nanos < 1_000_000_000 {
@@ -265,12 +266,12 @@ fn print_timing(
                     } else if ratio >= 2.0 {
                         // Use multiplier for large differences
                         let speed_word = if is_faster { "faster" } else { "slower" };
-                        format!("{:.1}x {}", ratio, speed_word)
+                        format!("{ratio:.1}x {speed_word}")
                     } else {
                         // Use percentage for small differences
                         let speed_word = if is_faster { "faster" } else { "slower" };
                         let percent = (ratio - 1.0) * 100.0;
-                        format!("{:.0}% {}", percent, speed_word)
+                        format!("{percent:.0}% {speed_word}")
                     }
                 } else {
                     String::new()
@@ -279,7 +280,7 @@ fn print_timing(
                 let comparison = if diff_str.is_empty() {
                     String::new()
                 } else {
-                    format!(" ({})", diff_str)
+                    format!(" ({diff_str})")
                 };
 
                 eprintln!(

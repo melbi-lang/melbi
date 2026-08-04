@@ -112,7 +112,7 @@ struct ParsedSignature {
     fn_name: syn::Ident,
     /// Lifetime from the function (if any). None means use default '__a.
     lifetime: Option<syn::Lifetime>,
-    /// Whether the first parameter is &FfiContext
+    /// Whether the first parameter is &`FfiContext`
     has_context: bool,
     /// Business logic parameters (excluding context params)
     params: Vec<ParsedParam>,
@@ -203,7 +203,7 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
 
 /// Parse generic parameters: lifetime and type parameters.
 ///
-/// Returns (lifetime, type_params).
+/// Returns (lifetime, `type_params`).
 fn parse_generics(
     generics: &syn::Generics,
 ) -> syn::Result<(Option<syn::Lifetime>, Vec<ParsedGenericParam>)> {
@@ -239,7 +239,7 @@ fn parse_generics(
                     "[melbi] const generics are not supported",
                 ));
             }
-        };
+        }
     }
     Ok((lifetime, type_params))
 }
@@ -268,9 +268,8 @@ fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericPar
                     return Err(syn::Error::new_spanned(
                         &trait_bound.path,
                         format!(
-                            "[melbi] trait bound '{}' is not supported. \
-                                 Supported: Melbi, Numeric",
-                            other
+                            "[melbi] trait bound '{other}' is not supported. \
+                                 Supported: Melbi, Numeric"
                         ),
                     ));
                 }
@@ -306,7 +305,7 @@ fn parse_return_type(sig: &syn::Signature) -> syn::Result<Box<Type>> {
 }
 
 /// Check if a type is `Result<T, E>` and extract the Ok type `T`.
-/// Returns (ok_type, is_fallible).
+/// Returns (`ok_type`, `is_fallible`).
 fn analyze_return_type(ty: &Type) -> (Box<Type>, bool) {
     if let Some(ok_type) = extract_result_ok_type(ty) {
         (ok_type, true)
@@ -328,7 +327,7 @@ fn extract_result_ok_type(ty: &Type) -> Option<Box<Type>> {
     None
 }
 
-/// Detect if first param is FfiContext and extract business params.
+/// Detect if first param is `FfiContext` and extract business params.
 fn parse_params(
     sig: &syn::Signature,
     type_params: &[ParsedGenericParam],
@@ -433,7 +432,7 @@ fn contains_type_var(ty: &Type, type_params: &[ParsedGenericParam]) -> bool {
     false
 }
 
-/// Check if a type looks like FfiContext (contains "FfiContext" in path).
+/// Check if a type looks like `FfiContext` (contains "`FfiContext`" in path).
 fn is_ffi_context_type(ty: &Type) -> bool {
     if let Type::Reference(type_ref) = ty
         && let Type::Path(type_path) = &*type_ref.elem
@@ -580,7 +579,7 @@ fn generate_type_signature(sig: &ParsedSignature) -> TokenStream2 {
     }
 }
 
-/// Generate the call_unchecked body.
+/// Generate the `call_unchecked` body.
 fn generate_call_body(sig: &ParsedSignature) -> TokenStream2 {
     if sig.generic_params.is_empty() {
         generate_monomorphic_call(sig)
@@ -682,7 +681,7 @@ fn generate_polymorphic_call(sig: &ParsedSignature) -> TokenStream2 {
 }
 
 /// Generate dispatch arms for a specific trait bound.
-/// Returns (match_arms, trait_display_name).
+/// Returns (`match_arms`, `trait_display_name`).
 fn generate_dispatch_arms_for_trait(
     sig: &ParsedSignature,
     type_param: &ParsedGenericParam,
@@ -692,7 +691,7 @@ fn generate_dispatch_arms_for_trait(
             generate_numeric_dispatch_arms(sig, &type_param.ident),
             "Numeric (Int or Float)",
         ),
-        other => panic!("Unsupported trait: {}", other),
+        other => panic!("Unsupported trait: {other}"),
     }
 }
 

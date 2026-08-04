@@ -32,6 +32,7 @@ pub struct ConstraintError {
 
 impl ConstraintError {
     /// Creates a user-friendly error message.
+    #[must_use]
     pub fn message(&self) -> String {
         format!(
             "Type '{}' does not implement {}\n\
@@ -68,6 +69,7 @@ pub struct TypeClassResolver<'types> {
 
 impl<'types> TypeClassResolver<'types> {
     /// Creates a new resolver with an empty constraint set.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             constraints: ConstraintSet::new(),
@@ -235,11 +237,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(index_resolved, int_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "array indexing requires Int index, found {}",
-                            index_resolved
+                            "array indexing requires Int index, found {index_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -248,11 +249,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(result_resolved, elem_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "array indexing returns {}, but expected {}",
-                            elem_ty, result_resolved
+                            "array indexing returns {elem_ty}, but expected {result_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -272,11 +272,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(index_resolved, key_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "map indexing requires {} key, found {}",
-                            key_ty, index_resolved
+                            "map indexing requires {key_ty} key, found {index_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -291,11 +290,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(result_resolved, value_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "map indexing returns {}, but expected {}",
-                            value_ty, result_resolved
+                            "map indexing returns {value_ty}, but expected {result_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -315,11 +313,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(index_resolved, int_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "bytes indexing requires Int index, found {}",
-                            index_resolved
+                            "bytes indexing requires Int index, found {index_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -327,11 +324,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(result_resolved, int_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "bytes indexing returns Int, but expected {}",
-                            result_resolved
+                            "bytes indexing returns Int, but expected {result_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -344,7 +340,7 @@ impl<'types> TypeClassResolver<'types> {
                 Ok(())
             }
             _ => Err(ConstraintError {
-                ty: format!("{}", container_resolved),
+                ty: format!("{container_resolved}"),
                 type_class: TypeClassId::Indexable,
                 details: String::new(),
                 spans: spans.to_vec(),
@@ -377,11 +373,10 @@ impl<'types> TypeClassResolver<'types> {
         unification
             .unifies_to(left_resolved, right_resolved)
             .map_err(|_| ConstraintError {
-                ty: format!("{}", left_resolved),
+                ty: format!("{left_resolved}"),
                 type_class: TypeClassId::Numeric,
                 details: format!(
-                    "operands must have the same numeric type, found {} and {}",
-                    left_resolved, right_resolved
+                    "operands must have the same numeric type, found {left_resolved} and {right_resolved}"
                 ),
                 spans: spans.to_vec(),
             })?;
@@ -391,11 +386,10 @@ impl<'types> TypeClassResolver<'types> {
         unification
             .unifies_to(result_resolved, unified_operand)
             .map_err(|_| ConstraintError {
-                ty: format!("{}", unified_operand),
+                ty: format!("{unified_operand}"),
                 type_class: TypeClassId::Numeric,
                 details: format!(
-                    "operation returns {}, but expected {}",
-                    unified_operand, result_resolved
+                    "operation returns {unified_operand}, but expected {result_resolved}"
                 ),
                 spans: spans.to_vec(),
             })?;
@@ -406,7 +400,7 @@ impl<'types> TypeClassResolver<'types> {
             TypeKind::Int | TypeKind::Float => Ok(()),
             TypeKind::TypeVar(_) => Ok(()), // Still polymorphic, OK
             _ => Err(ConstraintError {
-                ty: format!("{}", final_ty),
+                ty: format!("{final_ty}"),
                 type_class: TypeClassId::Numeric,
                 details: String::new(),
                 spans: spans.to_vec(),
@@ -439,7 +433,7 @@ impl<'types> TypeClassResolver<'types> {
                     Ok(())
                 } else {
                     Err(ConstraintError {
-                        ty: format!("{}", resolved),
+                        ty: format!("{resolved}"),
                         type_class: TypeClassId::Hashable,
                         details: String::new(),
                         spans: spans.to_vec(),
@@ -474,7 +468,7 @@ impl<'types> TypeClassResolver<'types> {
                     Ok(())
                 } else {
                     Err(ConstraintError {
-                        ty: format!("{}", resolved),
+                        ty: format!("{resolved}"),
                         type_class: TypeClassId::Ord,
                         details: String::new(),
                         spans: spans.to_vec(),
@@ -526,11 +520,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, str_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "string containment requires Str needle, found {}",
-                            needle_resolved
+                            "string containment requires Str needle, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -542,11 +535,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, bytes_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "bytes containment requires Bytes needle, found {}",
-                            needle_resolved
+                            "bytes containment requires Bytes needle, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -557,11 +549,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, elem_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "array containment requires {} element, found {}",
-                            elem_ty, needle_resolved
+                            "array containment requires {elem_ty} element, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -572,11 +563,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, key_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "map containment requires {} key, found {}",
-                            key_ty, needle_resolved
+                            "map containment requires {key_ty} key, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -590,7 +580,7 @@ impl<'types> TypeClassResolver<'types> {
             _ => {
                 // Other types don't support containment
                 Err(ConstraintError {
-                    ty: format!("{}", haystack_resolved),
+                    ty: format!("{haystack_resolved}"),
                     type_class: TypeClassId::Containable,
                     details: String::new(),
                     spans: spans.to_vec(),
@@ -600,6 +590,7 @@ impl<'types> TypeClassResolver<'types> {
     }
 
     /// Returns a reference to the constraint set.
+    #[must_use]
     pub fn constraint_set(&self) -> &ConstraintSet<'types> {
         &self.constraints
     }
@@ -925,7 +916,7 @@ impl<'types> TypeClassResolver<'types> {
     }
 }
 
-impl<'types> Default for TypeClassResolver<'types> {
+impl Default for TypeClassResolver<'_> {
     fn default() -> Self {
         Self::new()
     }

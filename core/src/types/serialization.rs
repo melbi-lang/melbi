@@ -99,8 +99,7 @@ where
                 variant.newtype_variant_seed(SymbolPartsSeed { mgr: self.mgr })
             }
             _ => Err(Error::custom(format!(
-                "unknown Type variant: {}",
-                discriminant
+                "unknown Type variant: {discriminant}"
             ))),
         }
     }

@@ -40,9 +40,9 @@ fn fmt_parse_error() {
     check_stderr(
         &["fmt", "-"],
         Some("1 + +"),
-        expect![[r#"
+        expect![[r"
             error: -: parse error at 1:3
-        "#]],
+        "]],
     );
 }
 
@@ -51,9 +51,9 @@ fn fmt_from_stdin_write_error() {
     check_stderr(
         &["fmt", "--write", "-"],
         Some("1   +   2"),
-        expect![[r#"
+        expect![[r"
             error: -: cannot use --write with stdin
-        "#]],
+        "]],
     );
 }
 
@@ -131,8 +131,7 @@ fn fmt_is_idempotent() {
 
         assert_eq!(
             first, second,
-            "Formatting should be idempotent for: {}",
-            input
+            "Formatting should be idempotent for: {input}"
         );
     }
 }

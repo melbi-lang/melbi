@@ -85,7 +85,7 @@ struct ParseContext<'a, 'input> {
     max_depth: usize,
 }
 
-impl<'a, 'input> ParseContext<'a, 'input> {
+impl<'a> ParseContext<'a, '_> {
     // Returns a slice into `self.source` covering the same byte range that `s`
     // occupies within `self.original_source`.
     fn reslice(&self, s: &str) -> &'a str {
@@ -713,7 +713,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
                 .map_err(|e| {
                     pest::error::Error::new_from_span(
                         pest::error::ErrorVariant::CustomError {
-                            message: format!("Invalid string literal in pattern: {}", e),
+                            message: format!("Invalid string literal in pattern: {e}"),
                         },
                         pair_span,
                     )
@@ -735,7 +735,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
             crate::syntax::bytes_literal::unescape_bytes(self.arena, inner_arena).map_err(|e| {
                 pest::error::Error::new_from_span(
                     pest::error::ErrorVariant::CustomError {
-                        message: format!("Invalid bytes literal in pattern: {}", e),
+                        message: format!("Invalid bytes literal in pattern: {e}"),
                     },
                     pair_span,
                 )
@@ -886,7 +886,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
                 .map_err(|e| {
                     pest::error::Error::new_from_span(
                         pest::error::ErrorVariant::CustomError {
-                            message: format!("Invalid string literal: {}", e),
+                            message: format!("Invalid string literal: {e}"),
                         },
                         pair_span,
                     )
@@ -909,7 +909,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
             crate::syntax::bytes_literal::unescape_bytes(self.arena, inner_arena).map_err(|e| {
                 pest::error::Error::new_from_span(
                     pest::error::ErrorVariant::CustomError {
-                        message: format!("Invalid bytes literal: {}", e),
+                        message: format!("Invalid bytes literal: {e}"),
                     },
                     pair_span,
                 )
@@ -944,7 +944,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
                     .map_err(|e| {
                         pest::error::Error::new_from_span(
                             pest::error::ErrorVariant::CustomError {
-                                message: format!("Invalid format string: {}", e),
+                                message: format!("Invalid format string: {e}"),
                             },
                             segment.as_span(),
                         )
@@ -1687,9 +1687,9 @@ mod tests {
             }
         );
 
-        println!("Parsed expr: {:#?}", parsed);
+        println!("Parsed expr: {parsed:#?}");
         println!("Span of expr: {:?}", parsed.ann.span_of(parsed.expr));
-        println!("&expr: {:?}", parsed.expr as *const _);
+        println!("&expr: {:?}", std::ptr::from_ref(parsed.expr));
 
         assert_eq!(parsed.ann.span_of(parsed.expr), Some(Span::new(0, 9)));
         let Expr::Field { value, .. } = parsed.expr else {
@@ -1772,7 +1772,7 @@ mod tests {
         assert_eq!(*parsed.expr, Expr::Literal(Literal::Bytes(b"hello")));
 
         // Single quotes
-        let parsed = parse(&arena, r#"b'hello'"#).unwrap();
+        let parsed = parse(&arena, r"b'hello'").unwrap();
         assert_eq!(*parsed.expr, Expr::Literal(Literal::Bytes(b"hello")));
 
         // Single quotes don't need escaping in double quotes
@@ -1940,7 +1940,7 @@ mod tests {
     #[test]
     fn format_string_single_quotes_escape_sequences() {
         let arena = Bump::new();
-        let parsed = parse(&arena, r#"f'hello\nworld'"#).unwrap();
+        let parsed = parse(&arena, r"f'hello\nworld'").unwrap();
         assert_eq!(
             *parsed.expr,
             Expr::FormatStr {
@@ -1949,7 +1949,7 @@ mod tests {
             }
         );
 
-        let parsed = parse(&arena, r#"f'tab\there'"#).unwrap();
+        let parsed = parse(&arena, r"f'tab\there'").unwrap();
         assert_eq!(
             *parsed.expr,
             Expr::FormatStr {
@@ -2208,7 +2208,7 @@ mod tests {
         let arena = Bump::new();
         let expr = "9223372036854775808"; // i64::MAX + 1
         let result = parse(&arena, expr);
-        assert!(result.is_err(), "Expected failure parsing '{}'", expr);
+        assert!(result.is_err(), "Expected failure parsing '{expr}'");
     }
 
     #[test]
@@ -2332,11 +2332,10 @@ mod tests {
         assert!(parsed.is_err(), "Parsing beyond max_depth should fail");
 
         let err = parsed.unwrap_err();
-        let err_msg = format!("{}", err);
+        let err_msg = format!("{err}");
         assert!(
             err_msg.contains("nesting depth exceeds maximum"),
-            "Error message should mention nesting depth, got: {}",
-            err_msg
+            "Error message should mention nesting depth, got: {err_msg}"
         );
         assert!(
             err_msg.contains(&max_depth.to_string()),
@@ -2622,8 +2621,7 @@ mod tests {
         let result = parse(&arena, "x andy");
         assert!(
             result.is_err(),
-            "Expected parse error for 'x andy', but got: {:?}",
-            result
+            "Expected parse error for 'x andy', but got: {result:?}"
         );
     }
 
@@ -2636,8 +2634,7 @@ mod tests {
         let result = parse(&arena, "x ory");
         assert!(
             result.is_err(),
-            "Expected parse error for 'x ory', but got: {:?}",
-            result
+            "Expected parse error for 'x ory', but got: {result:?}"
         );
     }
 
@@ -2650,8 +2647,7 @@ mod tests {
         let result = parse(&arena, "x inside");
         assert!(
             result.is_err(),
-            "Expected parse error for 'x inside', but got: {:?}",
-            result
+            "Expected parse error for 'x inside', but got: {result:?}"
         );
     }
 
@@ -2665,8 +2661,7 @@ mod tests {
         let result = parse(&arena, "1 otherwisely");
         assert!(
             result.is_err(),
-            "Expected parse error for '1 otherwisely', but got: {:?}",
-            result
+            "Expected parse error for '1 otherwisely', but got: {result:?}"
         );
     }
 

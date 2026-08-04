@@ -34,22 +34,22 @@ pub enum FormatError {
 impl From<FormatterError> for FormatError {
     fn from(e: FormatterError) -> Self {
         match e {
-            FormatterError::Query(message, source) => FormatError::Query {
+            FormatterError::Query(message, source) => Self::Query {
                 message: match source {
                     None => message,
                     Some(source) => format!("{message}: {source}"),
                 },
             },
             FormatterError::Idempotence | FormatterError::IdempotenceParsing(_) => {
-                FormatError::Idempotency
+                Self::Idempotency
             }
-            FormatterError::Parsing(err) => FormatError::Parse {
+            FormatterError::Parsing(err) => Self::Parse {
                 start_line: err.start_point().row() as usize + 1,
                 start_column: err.start_point().column() as usize + 1,
                 end_line: err.end_point().row() as usize + 1,
                 end_column: err.end_point().column() as usize + 1,
             },
-            other => FormatError::Internal(other.to_string()),
+            other => Self::Internal(other.to_string()),
         }
     }
 }

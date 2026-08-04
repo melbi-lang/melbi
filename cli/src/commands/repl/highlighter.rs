@@ -102,6 +102,7 @@ impl Highlighter {
     /// # Panics
     ///
     /// Panics if the tree-sitter highlight configuration fails to initialize.
+    #[must_use]
     pub fn new() -> Self {
         let highlight_names = PALETTE.iter().map(|item| item.name).collect::<Vec<_>>();
 

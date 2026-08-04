@@ -21,10 +21,10 @@ use core::fmt;
 
 use bumpalo::Bump;
 
-/// Trait for scopes that can be pushed onto the ScopeStack.
+/// Trait for scopes that can be pushed onto the `ScopeStack`.
 ///
 /// All scopes must implement lookup and bind operations.
-/// Complete scopes return an error when bind() is called.
+/// Complete scopes return an error when `bind()` is called.
 ///
 /// The lifetime parameter `'a` is for the arena where scope data is allocated.
 /// The type parameter `T` can itself contain additional lifetimes (e.g., `Value<'types, 'arena>`).
@@ -53,7 +53,7 @@ impl<'a, T> CompleteScope<'a, T> {
     /// Create a new complete scope from sorted bindings.
     ///
     /// The bindings slice must be sorted by name for binary search to work.
-    pub fn from_sorted(bindings: &'a [(&'a str, T)]) -> CompleteScope<'a, T> {
+    pub fn from_sorted(bindings: &'a [(&'a str, T)]) -> Self {
         debug_assert!(is_sorted(bindings), "Bindings must be sorted by name");
         CompleteScope(bindings)
     }
@@ -169,7 +169,7 @@ pub struct ScopeStack<'a, T> {
     scopes: Vec<Box<dyn Scope<'a, T> + 'a>>,
 }
 
-impl<'a, T: Copy> Default for ScopeStack<'a, T> {
+impl<T: Copy> Default for ScopeStack<'_, T> {
     fn default() -> Self {
         Self::new()
     }
@@ -177,6 +177,7 @@ impl<'a, T: Copy> Default for ScopeStack<'a, T> {
 
 impl<'a, T: Copy> ScopeStack<'a, T> {
     /// Create a new empty scope stack.
+    #[must_use]
     pub fn new() -> Self {
         Self { scopes: Vec::new() }
     }
@@ -198,6 +199,7 @@ impl<'a, T: Copy> ScopeStack<'a, T> {
     ///
     /// Returns the first matching value found, or None if not found in any scope.
     /// The name must have the same lifetime as the scope data.
+    #[must_use]
     pub fn lookup(&self, name: &'a str) -> Option<&T> {
         for scope in self.scopes.iter().rev() {
             if let Some(val) = scope.lookup(name) {
@@ -245,13 +247,13 @@ pub enum BindError {
 impl fmt::Display for BindError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BindError::NoScope => write!(f, "No scope to bind in"),
-            BindError::ScopeIsImmutable => write!(f, "Cannot bind in immutable scope"),
-            BindError::AlreadyBound(name) => {
-                write!(f, "Name '{}' already bound in current scope", name)
+            Self::NoScope => write!(f, "No scope to bind in"),
+            Self::ScopeIsImmutable => write!(f, "Cannot bind in immutable scope"),
+            Self::AlreadyBound(name) => {
+                write!(f, "Name '{name}' already bound in current scope")
             }
-            BindError::NameNotDeclared(name) => {
-                write!(f, "Name '{}' not declared in current scope", name)
+            Self::NameNotDeclared(name) => {
+                write!(f, "Name '{name}' not declared in current scope")
             }
         }
     }
@@ -267,7 +269,7 @@ pub enum PopError {
 impl fmt::Display for PopError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PopError::EmptyStack => write!(f, "Cannot pop from empty scope stack"),
+            Self::EmptyStack => write!(f, "Cannot pop from empty scope stack"),
         }
     }
 }

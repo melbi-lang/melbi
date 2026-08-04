@@ -25,12 +25,13 @@ impl<'t> FunctionAdapter<'t> {
     }
 
     /// Get the parameter types for debugging.
+    #[must_use]
     pub fn param_types(&self) -> &[&'t Type<'t>] {
         &self.types
     }
 }
 
-impl<'t> GenericAdapter for FunctionAdapter<'t> {
+impl GenericAdapter for FunctionAdapter<'_> {
     fn num_args(&self) -> usize {
         // +1 for the function itself (last element in args)
         self.types.len() + 1
@@ -67,7 +68,7 @@ impl<'t> GenericAdapter for FunctionAdapter<'t> {
         if self.types.is_empty() {
             alloc::string::String::from("Call()")
         } else {
-            let types: Vec<_> = self.types.iter().map(|t| alloc::format!("{}", t)).collect();
+            let types: Vec<_> = self.types.iter().map(|t| alloc::format!("{t}")).collect();
             alloc::format!("Call({})", types.join(", "))
         }
     }

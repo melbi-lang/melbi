@@ -53,6 +53,7 @@ impl<'types, 'arena> EvalLambda<'types, 'arena> {
     /// - `params`: Parameter names
     /// - `body`: The typed body expression with source annotations
     /// - `captures`: Captured variables from the enclosing scope
+    #[must_use]
     pub fn new(
         ty: &'types Type<'types>,
         params: &'arena [&'arena str],
