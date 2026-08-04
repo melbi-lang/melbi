@@ -5,7 +5,6 @@
 //! - Stores up to 14 bytes inline without heap allocation
 //! - Grows to heap seamlessly when needed
 //! - Uses odd/even discriminant for stack/heap detection
-#![allow(unsafe_code)]
 
 extern crate alloc;
 
@@ -68,6 +67,10 @@ pub struct TeenyVec {
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 static_assertions::assert_eq_size!(TeenyVec, [usize; 2]);
 
+#[expect(
+    unsafe_code,
+    reason = "unsafe code is used to detect stack/heap usage and to access the data"
+)]
 impl TeenyVec {
     pub fn new() -> Self {
         Self {

@@ -145,9 +145,13 @@ impl StrInlineRepr {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "need to use `str::from_utf8_unchecked` for performance"
+    )]
     fn as_str(&self) -> &str {
         let len: usize = (self.tag_len.get() & !Self::TAG_MASK) as usize;
+        // SAFETY: the tag ensures the length is valid and the data is UTF-8 by construction.
         unsafe { str::from_utf8_unchecked(&self.data[..len]) }
     }
 }
