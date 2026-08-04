@@ -6,7 +6,7 @@ use crate::values::dynamic::Value;
 use crate::{String, format};
 
 #[test]
-fn test_array_value() {
+fn array_value() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -36,7 +36,7 @@ fn test_array_value() {
 // --- New Dynamic API Tests ---
 
 #[test]
-fn test_primitives() {
+fn primitives() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -52,7 +52,7 @@ fn test_primitives() {
 }
 
 #[test]
-fn test_array_simple() {
+fn array_simple() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -82,7 +82,7 @@ fn test_array_simple() {
 }
 
 #[test]
-fn test_array_nested() {
+fn array_nested() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -122,7 +122,7 @@ fn test_array_nested() {
 }
 
 #[test]
-fn test_array_type_mismatch() {
+fn array_type_mismatch() {
     use crate::values::TypeError;
 
     let arena = bumpalo::Bump::new();
@@ -146,7 +146,7 @@ fn test_array_type_mismatch() {
 }
 
 #[test]
-fn test_array_empty() {
+fn array_empty() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -161,7 +161,7 @@ fn test_array_empty() {
 }
 
 #[test]
-fn test_dynamic_array_formatting() {
+fn dynamic_array_formatting() {
     use crate::types::Type;
 
     let arena = bumpalo::Bump::new();

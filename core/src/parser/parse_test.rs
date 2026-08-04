@@ -4,7 +4,7 @@ use pest::error::Error;
 use super::parser::{ExpressionParser, Rule};
 
 #[test]
-fn test_valid_expressions() -> Result<(), Error<Rule>> {
+fn valid_expressions() -> Result<(), Error<Rule>> {
     let examples = [
         "1 + 2",
         "a * b + c",
@@ -70,7 +70,7 @@ fn test_valid_expressions() -> Result<(), Error<Rule>> {
 }
 
 #[test]
-fn test_invalid_expressions() {
+fn invalid_expressions() {
     let examples = [
         "1 +",
         "if x then else y",
@@ -112,7 +112,7 @@ fn test_invalid_expressions() {
 }
 
 #[test]
-fn test_pattern_matching_syntax() {
+fn pattern_matching_syntax() {
     use bumpalo::Bump;
 
     use crate::parser;

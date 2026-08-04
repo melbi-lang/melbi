@@ -5,7 +5,7 @@ use bumpalo::Bump;
 use super::manager::TypeManager;
 
 #[test]
-fn test_interning() {
+fn interning() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -17,7 +17,7 @@ fn test_interning() {
 }
 
 #[test]
-fn test_interning_record() {
+fn interning_record() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -34,7 +34,7 @@ fn test_interning_record() {
 }
 
 #[test]
-fn test_interning_primitives() {
+fn interning_primitives() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -52,7 +52,7 @@ fn test_interning_primitives() {
 }
 
 #[test]
-fn test_interning_array() {
+fn interning_array() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -73,7 +73,7 @@ fn test_interning_array() {
 }
 
 #[test]
-fn test_interning_map() {
+fn interning_map() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -93,7 +93,7 @@ fn test_interning_map() {
 }
 
 #[test]
-fn test_interning_function() {
+fn interning_function() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -126,7 +126,7 @@ fn test_interning_function() {
 }
 
 #[test]
-fn test_interning_symbol() {
+fn interning_symbol() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -149,7 +149,7 @@ fn test_interning_symbol() {
 }
 
 #[test]
-fn test_interning_complex_types() {
+fn interning_complex_types() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -184,7 +184,7 @@ fn test_interning_complex_types() {
 }
 
 #[test]
-fn test_display_primitives() {
+fn display_primitives() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -196,7 +196,7 @@ fn test_display_primitives() {
 }
 
 #[test]
-fn test_display_array() {
+fn display_array() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -214,7 +214,7 @@ fn test_display_array() {
 }
 
 #[test]
-fn test_display_map() {
+fn display_map() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -234,7 +234,7 @@ fn test_display_map() {
 }
 
 #[test]
-fn test_display_record() {
+fn display_record() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -261,7 +261,7 @@ fn test_display_record() {
 }
 
 #[test]
-fn test_display_function() {
+fn display_function() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -293,7 +293,7 @@ fn test_display_function() {
 }
 
 #[test]
-fn test_display_symbol() {
+fn display_symbol() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -311,7 +311,7 @@ fn test_display_symbol() {
 }
 
 #[test]
-fn test_display_complex_types() {
+fn display_complex_types() {
     let bump = Bump::new();
     let manager = TypeManager::new(&bump);
 
@@ -354,7 +354,7 @@ fn test_display_complex_types() {
 }
 
 #[test]
-fn test_record_with_dynamic_strings() {
+fn record_with_dynamic_strings() {
     use alloc::string::String;
 
     let bump = Bump::new();
@@ -387,7 +387,7 @@ fn test_record_with_dynamic_strings() {
 }
 
 #[test]
-fn test_symbol_with_dynamic_strings() {
+fn symbol_with_dynamic_strings() {
     use alloc::string::String;
 
     let bump = Bump::new();
@@ -415,7 +415,7 @@ fn test_symbol_with_dynamic_strings() {
 }
 
 #[test]
-fn test_symbol_with_strings_in_vec() {
+fn symbol_with_strings_in_vec() {
     use alloc::format;
     use alloc::string::String;
 
@@ -449,7 +449,7 @@ fn test_symbol_with_strings_in_vec() {
 }
 
 #[test]
-fn test_record_with_strings_in_vec() {
+fn record_with_strings_in_vec() {
     use alloc::string::String;
 
     use crate::types::Type;

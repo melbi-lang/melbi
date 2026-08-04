@@ -11,7 +11,7 @@ use crate::values::dynamic::Value;
 use crate::{Vec, format};
 
 #[test]
-fn test_display_int_positive() {
+fn display_int_positive() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -20,7 +20,7 @@ fn test_display_int_positive() {
 }
 
 #[test]
-fn test_display_int_negative() {
+fn display_int_negative() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -29,7 +29,7 @@ fn test_display_int_negative() {
 }
 
 #[test]
-fn test_display_int_zero() {
+fn display_int_zero() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -38,7 +38,7 @@ fn test_display_int_zero() {
 }
 
 #[test]
-fn test_display_float_with_decimal() {
+fn display_float_with_decimal() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -47,7 +47,7 @@ fn test_display_float_with_decimal() {
 }
 
 #[test]
-fn test_display_float_whole_number() {
+fn display_float_whole_number() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -66,7 +66,7 @@ fn test_display_float_whole_number() {
 }
 
 #[test]
-fn test_display_float_zero() {
+fn display_float_zero() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -85,7 +85,7 @@ fn test_display_float_zero() {
 }
 
 #[test]
-fn test_display_float_negative() {
+fn display_float_negative() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -94,7 +94,7 @@ fn test_display_float_negative() {
 }
 
 #[test]
-fn test_display_float_infinity() {
+fn display_float_infinity() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -106,7 +106,7 @@ fn test_display_float_infinity() {
 }
 
 #[test]
-fn test_display_float_neg_infinity() {
+fn display_float_neg_infinity() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -118,7 +118,7 @@ fn test_display_float_neg_infinity() {
 }
 
 #[test]
-fn test_display_float_nan() {
+fn display_float_nan() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -130,7 +130,7 @@ fn test_display_float_nan() {
 }
 
 #[test]
-fn test_display_bool_true() {
+fn display_bool_true() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -139,7 +139,7 @@ fn test_display_bool_true() {
 }
 
 #[test]
-fn test_display_bool_false() {
+fn display_bool_false() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -148,7 +148,7 @@ fn test_display_bool_false() {
 }
 
 #[test]
-fn test_display_str_simple() {
+fn display_str_simple() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -160,7 +160,7 @@ fn test_display_str_simple() {
 }
 
 #[test]
-fn test_display_str_empty() {
+fn display_str_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -172,7 +172,7 @@ fn test_display_str_empty() {
 }
 
 #[test]
-fn test_display_str_with_quotes() {
+fn display_str_with_quotes() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -184,7 +184,7 @@ fn test_display_str_with_quotes() {
 }
 
 #[test]
-fn test_display_str_with_newline() {
+fn display_str_with_newline() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -196,7 +196,7 @@ fn test_display_str_with_newline() {
 }
 
 #[test]
-fn test_display_str_with_backslash() {
+fn display_str_with_backslash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -208,7 +208,7 @@ fn test_display_str_with_backslash() {
 }
 
 #[test]
-fn test_display_bytes_empty() {
+fn display_bytes_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -217,7 +217,7 @@ fn test_display_bytes_empty() {
 }
 
 #[test]
-fn test_display_bytes_simple() {
+fn display_bytes_simple() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -226,7 +226,7 @@ fn test_display_bytes_simple() {
 }
 
 #[test]
-fn test_display_bytes_full_range() {
+fn display_bytes_full_range() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -235,7 +235,7 @@ fn test_display_bytes_full_range() {
 }
 
 #[test]
-fn test_display_array_empty() {
+fn display_array_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -248,7 +248,7 @@ fn test_display_array_empty() {
 }
 
 #[test]
-fn test_display_array_int_simple() {
+fn display_array_int_simple() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -270,7 +270,7 @@ fn test_display_array_int_simple() {
 }
 
 #[test]
-fn test_display_array_float() {
+fn display_array_float() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -299,7 +299,7 @@ fn test_display_array_float() {
 }
 
 #[test]
-fn test_display_array_bool() {
+fn display_array_bool() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -321,7 +321,7 @@ fn test_display_array_bool() {
 }
 
 #[test]
-fn test_display_array_nested() {
+fn display_array_nested() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -351,7 +351,7 @@ fn test_display_array_nested() {
 }
 
 #[test]
-fn test_display_array_deeply_nested() {
+fn display_array_deeply_nested() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -376,7 +376,7 @@ fn test_display_array_deeply_nested() {
 }
 
 #[test]
-fn test_display_array_with_negatives() {
+fn display_array_with_negatives() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -398,7 +398,7 @@ fn test_display_array_with_negatives() {
 }
 
 #[test]
-fn test_display_array_single_element() {
+fn display_array_single_element() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -411,7 +411,7 @@ fn test_display_array_single_element() {
 }
 
 #[test]
-fn test_display_large_array() {
+fn display_large_array() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -432,7 +432,7 @@ fn test_display_large_array() {
 // Function Display Tests
 
 #[test]
-fn test_display_function_single_param() {
+fn display_function_single_param() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -457,7 +457,7 @@ fn test_display_function_single_param() {
 }
 
 #[test]
-fn test_display_function_multiple_params() {
+fn display_function_multiple_params() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -481,7 +481,7 @@ fn test_display_function_multiple_params() {
 }
 
 #[test]
-fn test_display_function_no_params() {
+fn display_function_no_params() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -505,7 +505,7 @@ fn test_display_function_no_params() {
 }
 
 #[test]
-fn test_display_function_higher_order() {
+fn display_function_higher_order() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -530,7 +530,7 @@ fn test_display_function_higher_order() {
 }
 
 #[test]
-fn test_display_function_uniqueness() {
+fn display_function_uniqueness() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -568,7 +568,7 @@ fn test_display_function_uniqueness() {
 }
 
 #[test]
-fn test_display_function_debug_same_as_display() {
+fn display_function_debug_same_as_display() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();

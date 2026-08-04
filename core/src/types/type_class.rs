@@ -143,7 +143,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_numeric_instances() {
+    fn numeric_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -154,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn test_indexable_instances() {
+    fn indexable_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -169,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hashable_instances() {
+    fn hashable_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -199,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ord_instances() {
+    fn ord_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -211,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_class_names() {
+    fn type_class_names() {
         assert_eq!(TypeClassId::Numeric.name(), "Numeric");
         assert_eq!(TypeClassId::Indexable.name(), "Indexable");
         assert_eq!(TypeClassId::Hashable.name(), "Hashable");

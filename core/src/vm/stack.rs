@@ -219,7 +219,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_stack() {
+    fn new_stack() {
         let stack: Stack<i32> = Stack::new(100);
         assert_eq!(stack.len(), 0);
         assert_eq!(stack.capacity(), 100);
@@ -227,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn test_push_pop() {
+    fn push_pop() {
         let mut stack = Stack::new(100);
         stack.push(1);
         stack.push(2);
@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_peek() {
+    fn peek() {
         let mut stack = Stack::new(100);
         assert_eq!(stack.peek(), None);
 
@@ -257,7 +257,7 @@ mod tests {
     }
 
     #[test]
-    fn test_peek_mut() {
+    fn peek_mut() {
         let mut stack = Stack::new(100);
         stack.push(42);
 
@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    fn test_peek_at() {
+    fn peek_at() {
         let mut stack = Stack::new(100);
         stack.push(10);
         stack.push(20);
@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dup() {
+    fn dup() {
         let mut stack = Stack::new(100);
 
         // Dup on empty stack
@@ -300,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clear() {
+    fn clear() {
         let mut stack = Stack::new(100);
         stack.push(1);
         stack.push(2);
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iter() {
+    fn iter() {
         let mut stack = Stack::new(100);
         stack.push(1);
         stack.push(2);
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Stack overflow")]
     #[cfg(debug_assertions)]
-    fn test_overflow_debug() {
+    fn overflow_debug() {
         let mut stack = Stack::new(2);
         stack.push(1);
         stack.push(2);
@@ -336,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn test_large_stack() {
+    fn large_stack() {
         let mut stack = Stack::new(10000);
         for i in 0..1000 {
             stack.push(i);

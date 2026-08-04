@@ -2,7 +2,7 @@ use melbi_lsp::document::DocumentState;
 use tower_lsp::lsp_types::*;
 
 #[test]
-fn test_keyword_completions_always_available() {
+fn keyword_completions_always_available() {
     let doc = DocumentState::new("".to_string());
     // Don't analyze - should still get keyword completions
 
@@ -29,7 +29,7 @@ fn test_keyword_completions_always_available() {
 }
 
 #[test]
-fn test_keyword_snippet_completions() {
+fn keyword_snippet_completions() {
     let doc = DocumentState::new("".to_string());
     let completions = doc.completions_at_position(Position::new(0, 0));
 
@@ -49,7 +49,7 @@ fn test_keyword_snippet_completions() {
 }
 
 #[test]
-fn test_if_snippet_completion() {
+fn if_snippet_completion() {
     let doc = DocumentState::new("".to_string());
     let completions = doc.completions_at_position(Position::new(0, 0));
 
@@ -62,7 +62,7 @@ fn test_if_snippet_completion() {
 }
 
 #[test]
-fn test_operator_completions() {
+fn operator_completions() {
     let doc = DocumentState::new("".to_string());
     let completions = doc.completions_at_position(Position::new(0, 0));
 
@@ -78,7 +78,7 @@ fn test_operator_completions() {
 }
 
 #[test]
-fn test_scope_completions_in_where() {
+fn scope_completions_in_where() {
     let mut doc = DocumentState::new("x where { x = 10 }".to_string());
     doc.analyze();
 
@@ -99,7 +99,7 @@ fn test_scope_completions_in_where() {
 }
 
 #[test]
-fn test_scope_completions_with_lambda() {
+fn scope_completions_with_lambda() {
     let mut doc = DocumentState::new("x => x + 1".to_string());
     let diagnostics = doc.analyze();
 
@@ -133,7 +133,7 @@ fn test_scope_completions_with_lambda() {
 }
 
 #[test]
-fn test_scope_completions_nested_where() {
+fn scope_completions_nested_where() {
     let mut doc = DocumentState::new("x + y where { x = a where { a = 1 }, y = 2 }".to_string());
     doc.analyze();
 
@@ -150,7 +150,7 @@ fn test_scope_completions_nested_where() {
 }
 
 #[test]
-fn test_no_duplicate_completions() {
+fn no_duplicate_completions() {
     let mut doc = DocumentState::new("x + x where { x = 10 }".to_string());
     doc.analyze();
 
@@ -163,7 +163,7 @@ fn test_no_duplicate_completions() {
 }
 
 #[test]
-fn test_completions_without_type_checking() {
+fn completions_without_type_checking() {
     let mut doc = DocumentState::new("1 + + invalid".to_string());
     doc.analyze();
 
@@ -184,7 +184,7 @@ fn test_completions_without_type_checking() {
 }
 
 #[test]
-fn test_no_scope_completions_on_syntax_error() {
+fn no_scope_completions_on_syntax_error() {
     let mut doc = DocumentState::new("1 + +".to_string());
     doc.analyze();
 
@@ -206,7 +206,7 @@ fn test_no_scope_completions_on_syntax_error() {
 }
 
 #[test]
-fn test_dot_completion_returns_empty() {
+fn dot_completion_returns_empty() {
     let mut doc = DocumentState::new("{ x = 10 }.".to_string());
     doc.analyze();
 

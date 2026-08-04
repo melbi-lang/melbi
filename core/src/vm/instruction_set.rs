@@ -573,20 +573,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_instruction_size() {
+    fn instruction_size() {
         // Critical: instructions must be exactly 2 bytes
         assert_eq!(core::mem::size_of::<Instruction>(), 2);
         assert_eq!(Instruction::SIZE, 2);
     }
 
     #[test]
-    fn test_instruction_alignment() {
+    fn instruction_alignment() {
         // Should have alignment of 1 (no padding)
         assert_eq!(core::mem::align_of::<Instruction>(), 1);
     }
 
     #[test]
-    fn test_parameterized_ops() {
+    fn parameterized_ops() {
         // Test that parameterized ops work correctly
         let add = Instruction::IntBinOp(b'+');
         let sub = Instruction::IntBinOp(b'-');
@@ -598,7 +598,7 @@ mod tests {
     }
 
     #[test]
-    fn test_debug_formatting() {
+    fn debug_formatting() {
         let inst = Instruction::IntBinOp(b'+');
         let debug = format!("{:?}", inst);
         assert_eq!(debug, "IntBinOp(+)");

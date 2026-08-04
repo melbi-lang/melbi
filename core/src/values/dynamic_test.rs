@@ -9,7 +9,7 @@ use crate::values::binder::{Binder, Error as BindError};
 use crate::values::dynamic::Value;
 
 #[test]
-fn test_dynamic_int() {
+fn dynamic_int() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -22,7 +22,7 @@ fn test_dynamic_int() {
 }
 
 #[test]
-fn test_dynamic_float() {
+fn dynamic_float() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -33,7 +33,7 @@ fn test_dynamic_float() {
 }
 
 #[test]
-fn test_dynamic_bool() {
+fn dynamic_bool() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -44,7 +44,7 @@ fn test_dynamic_bool() {
 }
 
 #[test]
-fn test_dynamic_type_mismatch() {
+fn dynamic_type_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -57,7 +57,7 @@ fn test_dynamic_type_mismatch() {
 }
 
 #[test]
-fn test_dynamic_array() {
+fn dynamic_array() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -87,7 +87,7 @@ fn test_dynamic_array() {
 }
 
 #[test]
-fn test_dynamic_array_type_mismatch() {
+fn dynamic_array_type_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -107,7 +107,7 @@ fn test_dynamic_array_type_mismatch() {
 }
 
 #[test]
-fn test_dynamic_array_element_access() {
+fn dynamic_array_element_access() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -133,7 +133,7 @@ fn test_dynamic_array_element_access() {
 }
 
 #[test]
-fn test_dynamic_array_out_of_bounds() {
+fn dynamic_array_out_of_bounds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -155,7 +155,7 @@ fn test_dynamic_array_out_of_bounds() {
 }
 
 #[test]
-fn test_dynamic_str() {
+fn dynamic_str() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -167,7 +167,7 @@ fn test_dynamic_str() {
 }
 
 #[test]
-fn test_dynamic_str_type_mismatch() {
+fn dynamic_str_type_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -179,7 +179,7 @@ fn test_dynamic_str_type_mismatch() {
 }
 
 #[test]
-fn test_dynamic_bytes() {
+fn dynamic_bytes() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -192,7 +192,7 @@ fn test_dynamic_bytes() {
 }
 
 #[test]
-fn test_dynamic_bytes_type_mismatch() {
+fn dynamic_bytes_type_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -204,7 +204,7 @@ fn test_dynamic_bytes_type_mismatch() {
 }
 
 #[test]
-fn test_dynamic_bytes_empty() {
+fn dynamic_bytes_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -217,7 +217,7 @@ fn test_dynamic_bytes_empty() {
 }
 
 #[test]
-fn test_empty_record() {
+fn empty_record() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -231,7 +231,7 @@ fn test_empty_record() {
 }
 
 #[test]
-fn test_simple_record() {
+fn simple_record() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -257,7 +257,7 @@ fn test_simple_record() {
 }
 
 #[test]
-fn test_record_display() {
+fn record_display() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -273,7 +273,7 @@ fn test_record_display() {
 }
 
 #[test]
-fn test_record_iteration() {
+fn record_iteration() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -309,7 +309,7 @@ fn test_record_iteration() {
 }
 
 #[test]
-fn test_record_exact_size_iterator() {
+fn record_exact_size_iterator() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -344,7 +344,7 @@ fn test_record_exact_size_iterator() {
 }
 
 #[test]
-fn test_nested_record() {
+fn nested_record() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -385,7 +385,7 @@ fn test_nested_record() {
 }
 
 #[test]
-fn test_record_type_validation_wrong_type() {
+fn record_type_validation_wrong_type() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -396,7 +396,7 @@ fn test_record_type_validation_wrong_type() {
 }
 
 #[test]
-fn test_record_field_count_mismatch() {
+fn record_field_count_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -419,7 +419,7 @@ fn test_record_field_count_mismatch() {
 }
 
 #[test]
-fn test_record_field_name_mismatch() {
+fn record_field_name_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -431,7 +431,7 @@ fn test_record_field_name_mismatch() {
 }
 
 #[test]
-fn test_record_field_type_mismatch() {
+fn record_field_type_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -443,7 +443,7 @@ fn test_record_field_type_mismatch() {
 }
 
 #[test]
-fn test_as_record_type_error() {
+fn as_record_type_error() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -462,7 +462,7 @@ fn test_as_record_type_error() {
 // ============================================================================
 
 #[test]
-fn test_int_equality() {
+fn int_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -475,7 +475,7 @@ fn test_int_equality() {
 }
 
 #[test]
-fn test_float_equality() {
+fn float_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -488,7 +488,7 @@ fn test_float_equality() {
 }
 
 #[test]
-fn test_float_nan_inequality() {
+fn float_nan_inequality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -500,7 +500,7 @@ fn test_float_nan_inequality() {
 }
 
 #[test]
-fn test_bool_equality() {
+fn bool_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -513,7 +513,7 @@ fn test_bool_equality() {
 }
 
 #[test]
-fn test_str_equality() {
+fn str_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -526,7 +526,7 @@ fn test_str_equality() {
 }
 
 #[test]
-fn test_str_empty_equality() {
+fn str_empty_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -539,7 +539,7 @@ fn test_str_empty_equality() {
 }
 
 #[test]
-fn test_bytes_equality() {
+fn bytes_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -552,7 +552,7 @@ fn test_bytes_equality() {
 }
 
 #[test]
-fn test_bytes_with_nulls_equality() {
+fn bytes_with_nulls_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -565,7 +565,7 @@ fn test_bytes_with_nulls_equality() {
 }
 
 #[test]
-fn test_array_equality() {
+fn array_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -609,7 +609,7 @@ fn test_array_equality() {
 }
 
 #[test]
-fn test_array_different_length_inequality() {
+fn array_different_length_inequality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -637,7 +637,7 @@ fn test_array_different_length_inequality() {
 }
 
 #[test]
-fn test_empty_array_equality() {
+fn empty_array_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -650,7 +650,7 @@ fn test_empty_array_equality() {
 }
 
 #[test]
-fn test_nested_array_equality() {
+fn nested_array_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -687,7 +687,7 @@ fn test_nested_array_equality() {
 }
 
 #[test]
-fn test_record_equality() {
+fn record_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -728,7 +728,7 @@ fn test_record_equality() {
 }
 
 #[test]
-fn test_empty_record_equality() {
+fn empty_record_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -741,7 +741,7 @@ fn test_empty_record_equality() {
 }
 
 #[test]
-fn test_nested_record_equality() {
+fn nested_record_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -761,7 +761,7 @@ fn test_nested_record_equality() {
 }
 
 #[test]
-fn test_different_types_inequality() {
+fn different_types_inequality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -788,7 +788,7 @@ fn hash_value<T: Hash>(value: &T) -> u64 {
 }
 
 #[test]
-fn test_int_hash_consistency() {
+fn int_hash_consistency() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -800,7 +800,7 @@ fn test_int_hash_consistency() {
 }
 
 #[test]
-fn test_int_hash_inequality() {
+fn int_hash_inequality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -813,7 +813,7 @@ fn test_int_hash_inequality() {
 }
 
 #[test]
-fn test_float_hash_consistency() {
+fn float_hash_consistency() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -824,7 +824,7 @@ fn test_float_hash_consistency() {
 }
 
 #[test]
-fn test_float_hash_zero_canonicalization() {
+fn float_hash_zero_canonicalization() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -837,7 +837,7 @@ fn test_float_hash_zero_canonicalization() {
 }
 
 #[test]
-fn test_float_hash_nan_canonicalization() {
+fn float_hash_nan_canonicalization() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -852,7 +852,7 @@ fn test_float_hash_nan_canonicalization() {
 }
 
 #[test]
-fn test_bool_hash() {
+fn bool_hash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -865,7 +865,7 @@ fn test_bool_hash() {
 }
 
 #[test]
-fn test_str_hash() {
+fn str_hash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -878,7 +878,7 @@ fn test_str_hash() {
 }
 
 #[test]
-fn test_bytes_hash() {
+fn bytes_hash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -891,7 +891,7 @@ fn test_bytes_hash() {
 }
 
 #[test]
-fn test_array_hash() {
+fn array_hash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -935,7 +935,7 @@ fn test_array_hash() {
 }
 
 #[test]
-fn test_array_different_length_hash() {
+fn array_different_length_hash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -963,7 +963,7 @@ fn test_array_different_length_hash() {
 }
 
 #[test]
-fn test_nested_array_hash() {
+fn nested_array_hash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -991,7 +991,7 @@ fn test_nested_array_hash() {
 }
 
 #[test]
-fn test_hash_eq_consistency() {
+fn hash_eq_consistency() {
     // Test that equal values have equal hashes (Hash/Eq invariant)
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
@@ -1029,7 +1029,7 @@ fn test_hash_eq_consistency() {
 }
 
 #[test]
-fn test_different_types_different_hashes() {
+fn different_types_different_hashes() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1044,7 +1044,7 @@ fn test_different_types_different_hashes() {
 }
 
 #[test]
-fn test_record_hash_structural() {
+fn record_hash_structural() {
     // Regression test: records must hash structurally to maintain Hash/Eq invariant
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
@@ -1092,7 +1092,7 @@ fn test_record_hash_structural() {
 }
 
 #[test]
-fn test_record_hash_in_hashmap() {
+fn record_hash_in_hashmap() {
     // Test that records work correctly as HashMap keys
     use std::collections::HashMap;
 
@@ -1126,7 +1126,7 @@ fn test_record_hash_in_hashmap() {
 use core::cmp::Ordering;
 
 #[test]
-fn test_int_ordering() {
+fn int_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1140,7 +1140,7 @@ fn test_int_ordering() {
 }
 
 #[test]
-fn test_float_ordering() {
+fn float_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1152,7 +1152,7 @@ fn test_float_ordering() {
 }
 
 #[test]
-fn test_float_nan_ordering() {
+fn float_nan_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1170,7 +1170,7 @@ fn test_float_nan_ordering() {
 }
 
 #[test]
-fn test_float_zero_ordering() {
+fn float_zero_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1184,7 +1184,7 @@ fn test_float_zero_ordering() {
 }
 
 #[test]
-fn test_bool_ordering() {
+fn bool_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1196,7 +1196,7 @@ fn test_bool_ordering() {
 }
 
 #[test]
-fn test_str_ordering() {
+fn str_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1208,7 +1208,7 @@ fn test_str_ordering() {
 }
 
 #[test]
-fn test_bytes_ordering() {
+fn bytes_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1220,7 +1220,7 @@ fn test_bytes_ordering() {
 }
 
 #[test]
-fn test_array_ordering_lexicographic() {
+fn array_ordering_lexicographic() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1245,7 +1245,7 @@ fn test_array_ordering_lexicographic() {
 }
 
 #[test]
-fn test_array_ordering_length() {
+fn array_ordering_length() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1265,7 +1265,7 @@ fn test_array_ordering_length() {
 }
 
 #[test]
-fn test_array_ordering_empty() {
+fn array_ordering_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1279,7 +1279,7 @@ fn test_array_ordering_empty() {
 }
 
 #[test]
-fn test_record_ordering() {
+fn record_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1310,7 +1310,7 @@ fn test_record_ordering() {
 }
 
 #[test]
-fn test_different_types_ordering() {
+fn different_types_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1326,7 +1326,7 @@ fn test_different_types_ordering() {
 }
 
 #[test]
-fn test_ordering_consistency_with_equality() {
+fn ordering_consistency_with_equality() {
     // Test that Ord is consistent with Eq: a == b ⟺ a.cmp(b) == Equal
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
@@ -1351,7 +1351,7 @@ fn test_ordering_consistency_with_equality() {
 // ============================================================================
 
 #[test]
-fn test_record_builder_empty() {
+fn record_builder_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1364,7 +1364,7 @@ fn test_record_builder_empty() {
 }
 
 #[test]
-fn test_record_builder_basic() {
+fn record_builder_basic() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1382,7 +1382,7 @@ fn test_record_builder_basic() {
 }
 
 #[test]
-fn test_record_builder_auto_sorting() {
+fn record_builder_auto_sorting() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1408,7 +1408,7 @@ fn test_record_builder_auto_sorting() {
 }
 
 #[test]
-fn test_record_builder_duplicate_fields() {
+fn record_builder_duplicate_fields() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1425,7 +1425,7 @@ fn test_record_builder_duplicate_fields() {
 }
 
 #[test]
-fn test_record_builder_nested() {
+fn record_builder_nested() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1456,7 +1456,7 @@ fn test_record_builder_nested() {
 }
 
 #[test]
-fn test_record_builder_mixed_types() {
+fn record_builder_mixed_types() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1478,7 +1478,7 @@ fn test_record_builder_mixed_types() {
 }
 
 #[test]
-fn test_record_builder_with_array() {
+fn record_builder_with_array() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1509,7 +1509,7 @@ fn test_record_builder_with_array() {
 }
 
 #[test]
-fn test_record_builder_equality() {
+fn record_builder_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -1531,7 +1531,7 @@ fn test_record_builder_equality() {
 }
 
 #[test]
-fn test_record_builder_vs_manual() {
+fn record_builder_vs_manual() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 

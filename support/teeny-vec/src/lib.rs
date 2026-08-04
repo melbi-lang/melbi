@@ -283,7 +283,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_grow() {
+    fn grow() {
         let mut vec = TeenyVec::new();
         vec.push(1);
         vec.push(2);
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn test_heap_to_heap_grow() {
+    fn heap_to_heap_grow() {
         let mut vec = TeenyVec::new();
         // Fill to trigger stack->heap
         for i in 0..16 {
@@ -333,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn test_drop_stack() {
+    fn drop_stack() {
         // Just create and drop a stack variant
         let mut vec = TeenyVec::new();
         vec.push(1);
@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn test_drop_heap() {
+    fn drop_heap() {
         // Create and drop a heap variant
         let mut vec = TeenyVec::new();
         for i in 0..20 {
@@ -355,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inline_capacity() {
+    fn inline_capacity() {
         let mut vec = TeenyVec::new();
         // Push exactly 15 items (max inline)
         for i in 0..14 {
@@ -373,7 +373,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clone_stack() {
+    fn clone_stack() {
         let mut vec = TeenyVec::new();
         for i in 0..14 {
             vec.push(i);
@@ -385,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clone_heap() {
+    fn clone_heap() {
         let mut vec = TeenyVec::new();
         for i in 0..100 {
             vec.push(i);

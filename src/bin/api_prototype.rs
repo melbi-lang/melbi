@@ -395,7 +395,7 @@ macro_rules! melbi_eval {
 // Static Typing Demo
 // ============================================================================
 
-fn test_static_typing() -> Result<(), Box<dyn std::error::Error>> {
+fn static_typing_works() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n=== Testing Static Typing API ===");
 
     let context_arena = Bump::new();
@@ -478,7 +478,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n✓ All tests passed!");
 
     // Add static typing tests
-    test_static_typing()?;
+    static_typing_works()?;
 
     Ok(())
 }

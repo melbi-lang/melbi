@@ -63,7 +63,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_monomorphic_scheme() {
+    fn monomorphic_scheme() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -76,7 +76,7 @@ mod tests {
     }
 
     #[test]
-    fn test_polymorphic_scheme() {
+    fn polymorphic_scheme() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -90,7 +90,7 @@ mod tests {
     }
 
     #[test]
-    fn test_polymorphic_function_scheme() {
+    fn polymorphic_function_scheme() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 

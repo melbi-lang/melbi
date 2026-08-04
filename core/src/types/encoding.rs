@@ -818,7 +818,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_smallvec_size() {
+    fn smallvec_size() {
         let v = Vec::<u8>::with_capacity(32);
         let p = v.leak();
         dbg!(std::mem::size_of_val(p));
@@ -836,7 +836,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_discriminant_normalization() {
+    fn discriminant_normalization() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -865,7 +865,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_packed_array_int() {
+    fn navigate_packed_array_int() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -886,7 +886,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_packed_map_str_int() {
+    fn navigate_packed_map_str_int() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -908,7 +908,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_all_packed_arrays() {
+    fn navigate_all_packed_arrays() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -964,7 +964,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_all_packed_maps() {
+    fn navigate_all_packed_maps() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1014,7 +1014,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_decode_via_typeview_primitives() {
+    fn decode_via_typeview_primitives() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1040,7 +1040,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_via_typeview_packed_array() {
+    fn decode_via_typeview_packed_array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1053,7 +1053,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_via_typeview_packed_map() {
+    fn decode_via_typeview_packed_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1066,7 +1066,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_via_typeview_complex() {
+    fn decode_via_typeview_complex() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1088,7 +1088,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_lenient_decode_non_packed_array_int() {
+    fn lenient_decode_non_packed_array_int() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1105,7 +1105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_lenient_decode_non_packed_map() {
+    fn lenient_decode_non_packed_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1123,7 +1123,7 @@ mod tests {
     }
 
     #[test]
-    fn test_both_encodings_intern_same() {
+    fn both_encodings_intern_same() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1151,7 +1151,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_primitives_round_trip() {
+    fn primitives_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1177,7 +1177,7 @@ mod tests {
     }
 
     #[test]
-    fn test_typevar_round_trip() {
+    fn typevar_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1214,7 +1214,7 @@ mod tests {
     }
 
     #[test]
-    fn test_record_round_trip() {
+    fn record_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1226,7 +1226,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_round_trip() {
+    fn function_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1238,7 +1238,7 @@ mod tests {
     }
 
     #[test]
-    fn test_symbol_round_trip() {
+    fn symbol_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1253,7 +1253,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_navigate_non_packed_array() {
+    fn navigate_non_packed_array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1277,7 +1277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_non_packed_map() {
+    fn navigate_non_packed_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1296,7 +1296,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_record() {
+    fn navigate_record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1320,7 +1320,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_function() {
+    fn navigate_function() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1343,7 +1343,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_symbol() {
+    fn navigate_symbol() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1371,7 +1371,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_decode_empty_buffer() {
+    fn decode_empty_buffer() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1380,7 +1380,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_trailing_bytes() {
+    fn decode_trailing_bytes() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1393,7 +1393,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_unknown_discriminant() {
+    fn decode_unknown_discriminant() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1403,7 +1403,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_truncated_composite() {
+    fn decode_truncated_composite() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1418,7 +1418,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_empty_record() {
+    fn empty_record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1429,7 +1429,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_no_params() {
+    fn function_no_params() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1440,7 +1440,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deeply_nested() {
+    fn deeply_nested() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1455,7 +1455,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unicode_field_names() {
+    fn unicode_field_names() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1471,7 +1471,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_deterministic() {
+    fn encode_deterministic() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1490,7 +1490,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_owned_type_primitives() {
+    fn owned_type_primitives() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1526,7 +1526,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_array() {
+    fn owned_type_array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1543,7 +1543,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_map() {
+    fn owned_type_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1561,7 +1561,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_record() {
+    fn owned_type_record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1583,7 +1583,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_function() {
+    fn owned_type_function() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1604,7 +1604,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_symbol() {
+    fn owned_type_symbol() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1623,7 +1623,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_clone() {
+    fn owned_type_clone() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1641,7 +1641,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_equality() {
+    fn owned_type_equality() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1656,7 +1656,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_nested_composite() {
+    fn owned_type_nested_composite() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1687,7 +1687,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_multiple_views() {
+    fn owned_type_multiple_views() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1704,7 +1704,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_option() {
+    fn owned_type_option() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1721,7 +1721,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_nested_option() {
+    fn owned_type_nested_option() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1749,7 +1749,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_decode_option_roundtrip() {
+    fn encode_decode_option_roundtrip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 

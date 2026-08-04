@@ -139,7 +139,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_alpha_convert_primitives() {
+    fn alpha_convert_primitives() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let converter = AlphaConverter::new(manager, 0);
@@ -151,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alpha_convert_single_var() {
+    fn alpha_convert_single_var() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let converter = AlphaConverter::new(manager, 100);
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alpha_convert_consistent_mapping() {
+    fn alpha_convert_consistent_mapping() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let converter = AlphaConverter::new(manager, 100);
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alpha_convert_array() {
+    fn alpha_convert_array() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let converter = AlphaConverter::new(manager, 100);
@@ -204,7 +204,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alpha_convert_function() {
+    fn alpha_convert_function() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let converter = AlphaConverter::new(manager, 100);
@@ -247,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alpha_convert_nested() {
+    fn alpha_convert_nested() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let converter = AlphaConverter::new(manager, 200);

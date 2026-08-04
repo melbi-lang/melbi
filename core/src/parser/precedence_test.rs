@@ -14,7 +14,7 @@ fn ast<'a>(arena: &'a Bump, source: &'a str) -> &'a Expr<'a> {
 }
 
 #[test]
-fn test_addition_vs_subtraction() {
+fn addition_vs_subtraction() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + b - c"), ast(&arena, "(a + b) - c"));
     assert_eq!(ast(&arena, "a - b + c"), ast(&arena, "(a - b) + c"));
@@ -25,7 +25,7 @@ fn test_addition_vs_subtraction() {
 }
 
 #[test]
-fn test_multiplication_vs_division() {
+fn multiplication_vs_division() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a * b / c"), ast(&arena, "(a * b) / c"));
     assert_eq!(ast(&arena, "a / b * c"), ast(&arena, "(a / b) * c"));
@@ -36,14 +36,14 @@ fn test_multiplication_vs_division() {
 }
 
 #[test]
-fn test_addition_vs_multiplication() {
+fn addition_vs_multiplication() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + b * c"), ast(&arena, "a + (b * c)"));
     assert_eq!(ast(&arena, "a * b + c"), ast(&arena, "(a * b) + c"));
 }
 
 #[test]
-fn test_and_vs_or() {
+fn and_vs_or() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "true and false or true"),
@@ -56,7 +56,7 @@ fn test_and_vs_or() {
 }
 
 #[test]
-fn test_unary_vs_binary() {
+fn unary_vs_binary() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "--a"), ast(&arena, "-(-a)"));
     assert_eq!(ast(&arena, "-a + b"), ast(&arena, "(-a) + b"));
@@ -66,7 +66,7 @@ fn test_unary_vs_binary() {
 }
 
 #[test]
-fn test_exponentiation() {
+fn exponentiation() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a ^ b ^ c"), ast(&arena, "a ^ (b ^ c)"));
     assert_eq!(
@@ -76,21 +76,21 @@ fn test_exponentiation() {
 }
 
 #[test]
-fn test_exponentiation_vs_multiplication() {
+fn exponentiation_vs_multiplication() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a * b ^ c"), ast(&arena, "a * (b ^ c)"));
     assert_eq!(ast(&arena, "(a * b) ^ c"), ast(&arena, "(a * b) ^ c"));
 }
 
 #[test]
-fn test_exponentiation_vs_negation() {
+fn exponentiation_vs_negation() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "-a ^ b"), ast(&arena, "- (a  ^ b)"));
     assert_eq!(ast(&arena, "a ^ -b"), ast(&arena, "a ^ ( -b )"));
 }
 
 #[test]
-fn test_if_vs_binary() {
+fn if_vs_binary() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "if a then b + c else d"),
@@ -103,7 +103,7 @@ fn test_if_vs_binary() {
 }
 
 #[test]
-fn test_lambda_vs_everything() {
+fn lambda_vs_everything() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "-(a) => b"), ast(&arena, "-((a) => b)")); // This couldn't be any other way. And it makes no sense semantically.
     assert_eq!(ast(&arena, "(a) => a or b"), ast(&arena, "(a) => (a or b)"));
@@ -137,7 +137,7 @@ fn test_lambda_vs_everything() {
 }
 
 #[test]
-fn test_where_vs_prefix_operations() {
+fn where_vs_prefix_operations() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "-a where { x = 1 }"),
@@ -150,7 +150,7 @@ fn test_where_vs_prefix_operations() {
 }
 
 #[test]
-fn test_where_vs_binary() {
+fn where_vs_binary() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a + b where { x = 1 }"),
@@ -163,7 +163,7 @@ fn test_where_vs_binary() {
 }
 
 #[test]
-fn test_otherwise_vs_binary() {
+fn otherwise_vs_binary() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a + b otherwise c"),
@@ -176,7 +176,7 @@ fn test_otherwise_vs_binary() {
 }
 
 #[test]
-fn test_cast_vs_binary() {
+fn cast_vs_binary() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a + b as String"),
@@ -189,7 +189,7 @@ fn test_cast_vs_binary() {
 }
 
 #[test]
-fn test_cast_vs_field_accessor() {
+fn cast_vs_field_accessor() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a.b as String"),
@@ -202,21 +202,21 @@ fn test_cast_vs_field_accessor() {
 }
 
 #[test]
-fn test_grouped_vs_binary() {
+fn grouped_vs_binary() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + (b * c)"), ast(&arena, "a + (b * c)"));
     assert_eq!(ast(&arena, "(a + b) * c"), ast(&arena, "(a + b) * c"));
 }
 
 #[test]
-fn test_record_vs_binary() {
+fn record_vs_binary() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + { x = 1 }"), ast(&arena, "a + ({ x = 1 })"));
     assert_eq!(ast(&arena, "{ x = 1 } + a"), ast(&arena, "({ x = 1 }) + a"));
 }
 
 #[test]
-fn test_map_vs_binary() {
+fn map_vs_binary() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a + { x: 1, y: 2 }"),
@@ -229,35 +229,35 @@ fn test_map_vs_binary() {
 }
 
 #[test]
-fn test_array_vs_binary() {
+fn array_vs_binary() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + [1, 2, 3]"), ast(&arena, "a + ([1, 2, 3])"));
     assert_eq!(ast(&arena, "[1, 2, 3] + a"), ast(&arena, "([1, 2, 3]) + a"));
 }
 
 #[test]
-fn test_attr_access_vs_binary() {
+fn attr_access_vs_binary() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + obj.field"), ast(&arena, "a + (obj.field)"));
     assert_eq!(ast(&arena, "obj.field + a"), ast(&arena, "(obj.field) + a"));
 }
 
 #[test]
-fn test_index_access_vs_binary() {
+fn index_access_vs_binary() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + arr[0]"), ast(&arena, "a + (arr[0])"));
     assert_eq!(ast(&arena, "arr[0] + a"), ast(&arena, "(arr[0]) + a"));
 }
 
 #[test]
-fn test_function_call_vs_binary() {
+fn function_call_vs_binary() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a + foo(1, 2)"), ast(&arena, "a + (foo(1, 2))"));
     assert_eq!(ast(&arena, "foo(1, 2) + a"), ast(&arena, "(foo(1, 2)) + a"));
 }
 
 #[test]
-fn test_otherwise() {
+fn otherwise() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a otherwise b otherwise c otherwise d"),
@@ -266,7 +266,7 @@ fn test_otherwise() {
 }
 
 #[test]
-fn test_otherwise_vs_if() {
+fn otherwise_vs_if() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "if a then b else c otherwise d"),
@@ -275,7 +275,7 @@ fn test_otherwise_vs_if() {
 }
 
 #[test]
-fn test_otherwise_vs_where() {
+fn otherwise_vs_where() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a where { x = 1 } otherwise b"),
@@ -288,7 +288,7 @@ fn test_otherwise_vs_where() {
 }
 
 #[test]
-fn test_if_vs_where() {
+fn if_vs_where() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "if a then b where { x = 1 } else c"),
@@ -301,7 +301,7 @@ fn test_if_vs_where() {
 }
 
 #[test]
-fn test_otherwise_vs_cast() {
+fn otherwise_vs_cast() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a as b otherwise c"),
@@ -314,7 +314,7 @@ fn test_otherwise_vs_cast() {
 }
 
 #[test]
-fn test_if_vs_cast() {
+fn if_vs_cast() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "if a then b as c else d"),
@@ -327,7 +327,7 @@ fn test_if_vs_cast() {
 }
 
 #[test]
-fn test_where_vs_cast() {
+fn where_vs_cast() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a as b where { x = 1 }"),
@@ -340,7 +340,7 @@ fn test_where_vs_cast() {
 }
 
 #[test]
-fn test_otherwise_vs_grouped() {
+fn otherwise_vs_grouped() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a + (b otherwise c)"),
@@ -353,7 +353,7 @@ fn test_otherwise_vs_grouped() {
 }
 
 #[test]
-fn test_otherwise_vs_division_and_addition() {
+fn otherwise_vs_division_and_addition() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a / b otherwise b + c"),
@@ -362,7 +362,7 @@ fn test_otherwise_vs_division_and_addition() {
 }
 
 #[test]
-fn test_otherwise_vs_and_or() {
+fn otherwise_vs_and_or() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a and b otherwise c or d"),
@@ -375,7 +375,7 @@ fn test_otherwise_vs_and_or() {
 }
 
 #[test]
-fn test_complex_nested_expression() {
+fn complex_nested_expression() {
     let arena = Bump::new();
     assert_eq!(
         ast(
@@ -390,19 +390,19 @@ fn test_complex_nested_expression() {
 }
 
 #[test]
-fn test_excessive_parentheses() {
+fn excessive_parentheses() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "(((a + b)))"), ast(&arena, "a + b"));
 }
 
 #[test]
-fn test_exponentiation_associativity() {
+fn exponentiation_associativity() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "a ^ b ^ c"), ast(&arena, "a ^ (b ^ c)"));
 }
 
 #[test]
-fn test_function_call_with_complex_arguments() {
+fn function_call_with_complex_arguments() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "foo(a + b, c * d)"),
@@ -411,7 +411,7 @@ fn test_function_call_with_complex_arguments() {
 }
 
 #[test]
-fn test_chained_constructs() {
+fn chained_constructs() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "if a then b where { x = 1 } otherwise c else d"),
@@ -425,14 +425,14 @@ fn test_chained_constructs() {
 }
 
 #[test]
-fn test_not_vs_and_or() {
+fn not_vs_and_or() {
     let arena = Bump::new();
     assert_eq!(ast(&arena, "not a and b"), ast(&arena, "(not a) and b"));
     assert_eq!(ast(&arena, "a or not b"), ast(&arena, "a or (not b)"));
 }
 
 #[test]
-fn test_deeply_nested_expressions() {
+fn deeply_nested_expressions() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "a + (b * (c - (d / e)))"),
@@ -441,7 +441,7 @@ fn test_deeply_nested_expressions() {
 }
 
 #[test]
-fn test_in_operator_basic() {
+fn in_operator_basic() {
     let arena = Bump::new();
     // Basic "in" operator parsing
     assert_eq!(ast(&arena, "5 in [1, 2, 3]"), ast(&arena, "5 in [1, 2, 3]"));
@@ -456,7 +456,7 @@ fn test_in_operator_basic() {
 }
 
 #[test]
-fn test_not_in_operator_basic() {
+fn not_in_operator_basic() {
     let arena = Bump::new();
     // Basic "not in" operator parsing
     assert_eq!(
@@ -470,7 +470,7 @@ fn test_not_in_operator_basic() {
 }
 
 #[test]
-fn test_in_vs_logical_and() {
+fn in_vs_logical_and() {
     let arena = Bump::new();
     // "in" should have higher precedence than "and"
     assert_eq!(ast(&arena, "a in b and c"), ast(&arena, "(a in b) and c"));
@@ -478,7 +478,7 @@ fn test_in_vs_logical_and() {
 }
 
 #[test]
-fn test_in_vs_logical_or() {
+fn in_vs_logical_or() {
     let arena = Bump::new();
     // "in" should have higher precedence than "or"
     assert_eq!(ast(&arena, "a in b or c"), ast(&arena, "(a in b) or c"));
@@ -486,7 +486,7 @@ fn test_in_vs_logical_or() {
 }
 
 #[test]
-fn test_not_vs_in() {
+fn not_vs_in() {
     let arena = Bump::new();
     // "not" (logical) should have lower precedence than "in"
     // So "not a in b" means "not (a in b)"
@@ -494,7 +494,7 @@ fn test_not_vs_in() {
 }
 
 #[test]
-fn test_in_vs_arithmetic() {
+fn in_vs_arithmetic() {
     let arena = Bump::new();
     // Arithmetic should have higher precedence than "in"
     assert_eq!(
@@ -509,7 +509,7 @@ fn test_in_vs_arithmetic() {
 }
 
 #[test]
-fn test_not_in_vs_logical_operators() {
+fn not_in_vs_logical_operators() {
     let arena = Bump::new();
     // "not in" should have same precedence as "in"
     assert_eq!(
@@ -523,7 +523,7 @@ fn test_not_in_vs_logical_operators() {
 }
 
 #[test]
-fn test_in_and_not_in_combined() {
+fn in_and_not_in_combined() {
     let arena = Bump::new();
     // Multiple containment checks
     assert_eq!(
@@ -533,7 +533,7 @@ fn test_in_and_not_in_combined() {
 }
 
 #[test]
-fn test_some_vs_binary() {
+fn some_vs_binary() {
     let arena = Bump::new();
     // some should have same precedence as negation (prefix)
     assert_eq!(ast(&arena, "some a + b"), ast(&arena, "(some a) + b"));
@@ -542,7 +542,7 @@ fn test_some_vs_binary() {
 }
 
 #[test]
-fn test_some_vs_negation() {
+fn some_vs_negation() {
     let arena = Bump::new();
     // some and negation at same precedence level
     assert_eq!(ast(&arena, "-some a"), ast(&arena, "-(some a)"));
@@ -550,14 +550,14 @@ fn test_some_vs_negation() {
 }
 
 #[test]
-fn test_some_vs_not() {
+fn some_vs_not() {
     let arena = Bump::new();
     // some should be at higher precedence than logical not
     assert_eq!(ast(&arena, "not some a"), ast(&arena, "not (some a)"));
 }
 
 #[test]
-fn test_some_vs_postfix() {
+fn some_vs_postfix() {
     let arena = Bump::new();
     // Postfix operations should bind tighter than prefix
     assert_eq!(ast(&arena, "some a.field"), ast(&arena, "some (a.field)"));
@@ -566,14 +566,14 @@ fn test_some_vs_postfix() {
 }
 
 #[test]
-fn test_some_nested() {
+fn some_nested() {
     let arena = Bump::new();
     // Nested some should work
     assert_eq!(ast(&arena, "some some a"), ast(&arena, "some (some a)"));
 }
 
 #[test]
-fn test_some_vs_otherwise() {
+fn some_vs_otherwise() {
     let arena = Bump::new();
     assert_eq!(
         ast(&arena, "some a otherwise b"),
@@ -582,7 +582,7 @@ fn test_some_vs_otherwise() {
 }
 
 #[test]
-fn test_none_vs_binary() {
+fn none_vs_binary() {
     let arena = Bump::new();
     // none is a literal, should work like other literals
     assert_eq!(ast(&arena, "none + a"), ast(&arena, "none + a"));
@@ -590,7 +590,7 @@ fn test_none_vs_binary() {
 }
 
 #[test]
-fn test_some_vs_cast() {
+fn some_vs_cast() {
     let arena = Bump::new();
     // Postfix `as` should bind tighter than prefix `some`
     assert_eq!(

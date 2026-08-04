@@ -385,7 +385,7 @@ fn check_optional_str(v: &Value, expected: Option<&str>) {
 // ============================================================================
 
 #[test]
-fn test_square_int() {
+fn square_int() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -397,7 +397,7 @@ fn test_square_int() {
 }
 
 #[test]
-fn test_square_float() {
+fn square_float() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -409,7 +409,7 @@ fn test_square_float() {
 }
 
 #[test]
-fn test_square_type_mismatch() {
+fn square_type_mismatch() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -430,7 +430,7 @@ fn test_square_type_mismatch() {
 }
 
 #[test]
-fn test_square_negative() {
+fn square_negative() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -441,7 +441,7 @@ fn test_square_negative() {
 }
 
 #[test]
-fn test_square_zero() {
+fn square_zero() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -456,7 +456,7 @@ fn test_square_zero() {
 // ============================================================================
 
 #[test]
-fn test_first_element_int_array() {
+fn first_element_int_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -468,7 +468,7 @@ fn test_first_element_int_array() {
 }
 
 #[test]
-fn test_first_element_str_array() {
+fn first_element_str_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -480,7 +480,7 @@ fn test_first_element_str_array() {
 }
 
 #[test]
-fn test_first_element_nested_array() {
+fn first_element_nested_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -498,7 +498,7 @@ fn test_first_element_nested_array() {
 }
 
 #[test]
-fn test_first_element_empty_array() {
+fn first_element_empty_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -509,7 +509,7 @@ fn test_first_element_empty_array() {
 }
 
 #[test]
-fn test_first_element_type_mismatch() {
+fn first_element_type_mismatch() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 

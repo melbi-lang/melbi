@@ -185,14 +185,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_type_eq() {
+    fn type_eq() {
         let ty1 = &Type::Int;
         let ty2 = &Type::Int;
         assert_eq!(ty1, ty2);
     }
 
     #[test]
-    fn test_discriminant() {
+    fn discriminant() {
         let ty = &Type::Int;
         assert_eq!(ty.discriminant(), 1);
     }

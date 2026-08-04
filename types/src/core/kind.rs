@@ -170,7 +170,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_scalar_ord() {
+    fn scalar_ord() {
         assert!(Scalar::Bool < Scalar::Int);
         assert!(Scalar::Int < Scalar::Float);
         assert!(Scalar::Float < Scalar::Str);

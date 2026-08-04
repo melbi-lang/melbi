@@ -894,7 +894,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_bridge_type_from() {
+    fn bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -929,7 +929,7 @@ mod tests {
     }
 
     #[test]
-    fn test_i64_roundtrip() {
+    fn i64_roundtrip() {
         let arena = Bump::new();
         let value: i64 = 42;
         let raw = i64::to_raw_value(&arena, value);
@@ -938,7 +938,7 @@ mod tests {
     }
 
     #[test]
-    fn test_f64_roundtrip() {
+    fn f64_roundtrip() {
         let arena = Bump::new();
         let value: f64 = 3.14159;
         let raw = f64::to_raw_value(&arena, value);
@@ -947,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bool_roundtrip() {
+    fn bool_roundtrip() {
         let arena = Bump::new();
         let raw_true = bool::to_raw_value(&arena, true);
         let raw_false = bool::to_raw_value(&arena, false);
@@ -958,7 +958,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_i64_basic() {
+    fn array_i64_basic() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[1, 2, 3, 4, 5]);
         assert_eq!(arr.len(), 5);
@@ -969,7 +969,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_f64_basic() {
+    fn array_f64_basic() {
         let arena = Bump::new();
         let arr = Array::<f64>::new(&arena, &[1.1, 2.2, 3.3]);
         assert_eq!(arr.len(), 3);
@@ -979,7 +979,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_bool_basic() {
+    fn array_bool_basic() {
         let arena = Bump::new();
         let arr = Array::<bool>::new(&arena, &[true, false, true]);
         assert_eq!(arr.len(), 3);
@@ -989,7 +989,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_empty() {
+    fn array_empty() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[]);
         assert_eq!(arr.len(), 0);
@@ -998,7 +998,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_nested() {
+    fn array_nested() {
         let arena = Bump::new();
         let arr = Array::<Array<i64>>::new(
             &arena,
@@ -1017,7 +1017,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_get_unchecked() {
+    fn array_get_unchecked() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[10, 20, 30]);
         unsafe {
@@ -1028,7 +1028,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_clone_copy() {
+    fn array_clone_copy() {
         let arena = Bump::new();
         let arr1 = Array::<i64>::new(&arena, &[1, 2, 3]);
         let arr2 = arr1;
@@ -1042,7 +1042,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_large() {
+    fn array_large() {
         let arena = Bump::new();
         let values: Vec<i64> = (0..1000).collect();
         let arr = Array::<i64>::new(&arena, &values);
@@ -1054,7 +1054,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_negative_numbers() {
+    fn array_negative_numbers() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[-100, -50, 0, 50, 100]);
         assert_eq!(arr.get(0), Some(-100));
@@ -1065,7 +1065,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_special_floats() {
+    fn array_special_floats() {
         let arena = Bump::new();
         let arr = Array::<f64>::new(&arena, &[0.0, -0.0, f64::INFINITY, f64::NEG_INFINITY]);
         assert_eq!(arr.len(), 4);
@@ -1076,7 +1076,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_raw_value_roundtrip() {
+    fn array_raw_value_roundtrip() {
         let arena = Bump::new();
         let arr1 = Array::<i64>::new(&arena, &[1, 2, 3]);
         let raw = arr1.as_raw_value();
@@ -1088,7 +1088,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_bridge_type_from() {
+    fn str_bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1097,7 +1097,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_bridge_type_from() {
+    fn bytes_bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1109,7 +1109,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_from_raw_value() {
+    fn str_from_raw_value() {
         use crate::values::raw::Slice;
 
         let arena = Bump::new();
@@ -1126,7 +1126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_from_raw_value() {
+    fn bytes_from_raw_value() {
         use crate::values::raw::Slice;
 
         let arena = Bump::new();
@@ -1142,7 +1142,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_of_str_type() {
+    fn array_of_str_type() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1154,7 +1154,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_of_bytes_type() {
+    fn array_of_bytes_type() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1166,7 +1166,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_array_with_str_type() {
+    fn nested_array_with_str_type() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1178,7 +1178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_str_with_from_strs() {
+    fn array_str_with_from_strs() {
         let arena = Bump::new();
 
         // Create strings using various methods
@@ -1205,7 +1205,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_from_owned_strings() {
+    fn array_from_owned_strings() {
         let arena = Bump::new();
 
         // Create owned strings
@@ -1226,7 +1226,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_deref_and_equality() {
+    fn str_deref_and_equality() {
         let arena = Bump::new();
 
         let s1 = Str::from_str(&arena, "hello world");
@@ -1246,7 +1246,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_basic() {
+    fn array_iter_basic() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5]);
 
@@ -1255,7 +1255,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_sum() {
+    fn array_iter_sum() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5]);
 
@@ -1264,7 +1264,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_for_loop() {
+    fn array_iter_for_loop() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[10, 20, 30]);
 
@@ -1277,7 +1277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_empty() {
+    fn array_iter_empty() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[]);
 
@@ -1285,7 +1285,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_with_str() {
+    fn array_iter_with_str() {
         let arena = Bump::new();
         let arr = Array::from_strs(&arena, vec!["hello", "world", "rust"]);
 
@@ -1294,7 +1294,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_exact_size() {
+    fn array_iter_exact_size() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5]);
 
@@ -1309,7 +1309,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_map_filter() {
+    fn array_iter_map_filter() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5, 6]);
 
@@ -1320,7 +1320,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_size_hint() {
+    fn array_iter_size_hint() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3]);
 
@@ -1332,7 +1332,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_nested() {
+    fn array_iter_nested() {
         let arena = Bump::new();
 
         // Create inner arrays
@@ -1360,7 +1360,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_map_bridge_type_from() {
+    fn map_bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1380,7 +1380,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_i64_i64_basic() {
+    fn map_i64_i64_basic() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1393,7 +1393,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_unsorted_input() {
+    fn map_unsorted_input() {
         let arena = Bump::new();
         // Input pairs are not sorted
         let map = Map::<i64, i64>::new(&arena, &[(3, 30), (1, 10), (2, 20)]);
@@ -1405,7 +1405,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_empty() {
+    fn map_empty() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[]);
 
@@ -1415,7 +1415,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_single_element() {
+    fn map_single_element() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(42, 100)]);
 
@@ -1426,7 +1426,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_different_types() {
+    fn map_different_types() {
         let arena = Bump::new();
 
         // i64 -> f64
@@ -1440,7 +1440,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_basic() {
+    fn map_iter_basic() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1449,7 +1449,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_sorted_order() {
+    fn map_iter_sorted_order() {
         let arena = Bump::new();
         // Create map with unsorted input
         let map = Map::<i64, i64>::new(&arena, &[(3, 30), (1, 10), (2, 20)]);
@@ -1460,7 +1460,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_empty() {
+    fn map_iter_empty() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[]);
 
@@ -1468,7 +1468,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_for_loop() {
+    fn map_iter_for_loop() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1484,7 +1484,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_exact_size() {
+    fn map_iter_exact_size() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1499,7 +1499,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_from_iter() {
+    fn map_from_iter() {
         let arena = Bump::new();
         let pairs = vec![(1, 10), (2, 20), (3, 30)];
         let map = Map::<i64, i64>::from_iter(&arena, pairs);
@@ -1511,7 +1511,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_clone_copy() {
+    fn map_clone_copy() {
         let arena = Bump::new();
         let map1 = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20)]);
         let map2 = map1;
@@ -1523,7 +1523,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_raw_value_roundtrip() {
+    fn map_raw_value_roundtrip() {
         let arena = Bump::new();
         let map1 = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
         let raw = map1.as_raw_value();
@@ -1536,7 +1536,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_large() {
+    fn map_large() {
         let arena = Bump::new();
         let pairs: Vec<(i64, i64)> = (0..100).map(|i| (i, i * 10)).collect();
         let map = Map::<i64, i64>::new(&arena, &pairs);
@@ -1549,7 +1549,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_negative_keys() {
+    fn map_negative_keys() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(-100, 1), (-50, 2), (0, 3), (50, 4), (100, 5)]);
 
@@ -1561,7 +1561,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_duplicate_keys_last_wins() {
+    fn map_duplicate_keys_last_wins() {
         let arena = Bump::new();
         // Create map with duplicate keys - last value should win
         let map = Map::<i64, i64>::new(

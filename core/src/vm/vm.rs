@@ -787,7 +787,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_works() {
+    fn works() {
         use Instruction::*;
         let code = Code {
             constants: vec![RawValue::make_int(42)],
@@ -804,7 +804,7 @@ mod tests {
     }
 
     #[test]
-    fn test_wide() {
+    fn wide() {
         use Instruction::*;
         let mut code = Code {
             constants: vec![RawValue::make_int(2)],
@@ -829,7 +829,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_comparisons() {
+    fn int_comparisons() {
         use Instruction::*;
 
         // Test <
@@ -871,7 +871,7 @@ mod tests {
     }
 
     #[test]
-    fn test_float_ops() {
+    fn float_ops() {
         use Instruction::*;
 
         let code = Code {
@@ -889,7 +889,7 @@ mod tests {
     }
 
     #[test]
-    fn test_logical_ops() {
+    fn logical_ops() {
         use Instruction::*;
 
         // Test AND
@@ -934,7 +934,7 @@ mod tests {
     }
 
     #[test]
-    fn test_stack_ops() {
+    fn stack_ops() {
         use Instruction::*;
 
         // Test Dup
@@ -966,7 +966,7 @@ mod tests {
     }
 
     #[test]
-    fn test_local_vars() {
+    fn local_vars() {
         use Instruction::*;
 
         // Store and load local variable
@@ -992,7 +992,7 @@ mod tests {
     }
 
     #[test]
-    fn test_jumps() {
+    fn jumps() {
         use Instruction::*;
 
         // Unconditional jump
@@ -1019,7 +1019,7 @@ mod tests {
     }
 
     #[test]
-    fn test_conditional_jumps() {
+    fn conditional_jumps() {
         use Instruction::*;
 
         // JumpIfTrue - should jump
@@ -1063,7 +1063,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unary_ops() {
+    fn unary_ops() {
         use Instruction::*;
 
         // NegInt
@@ -1086,7 +1086,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_int_division_basic() {
+    fn int_division_basic() {
         use Instruction::*;
 
         let code = Code {
@@ -1104,7 +1104,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_euclidean_negative_dividend() {
+    fn int_division_euclidean_negative_dividend() {
         use Instruction::*;
 
         // Euclidean: -7 / 3 = -3 (not -2 like truncated)
@@ -1124,7 +1124,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_euclidean_negative_divisor() {
+    fn int_division_euclidean_negative_divisor() {
         use Instruction::*;
 
         // Euclidean: 7 / -3 = -2
@@ -1144,7 +1144,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_euclidean_both_negative() {
+    fn int_division_euclidean_both_negative() {
         use Instruction::*;
 
         // Euclidean: -7 / -3 = 3 (not 2 like truncated)
@@ -1164,7 +1164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_by_zero() {
+    fn int_division_by_zero() {
         use Instruction::*;
 
         let code = Code {
@@ -1189,7 +1189,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_i64_min_overflow() {
+    fn int_division_i64_min_overflow() {
         use Instruction::*;
 
         // i64::MIN / -1 would overflow
@@ -1220,7 +1220,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_int_modulo_basic() {
+    fn int_modulo_basic() {
         use Instruction::*;
 
         let code = Code {
@@ -1238,7 +1238,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_exact_division() {
+    fn int_modulo_exact_division() {
         use Instruction::*;
 
         let code = Code {
@@ -1256,7 +1256,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_euclidean_negative_dividend() {
+    fn int_modulo_euclidean_negative_dividend() {
         use Instruction::*;
 
         // Euclidean: -7 % 3 = 2 (always non-negative)
@@ -1276,7 +1276,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_euclidean_negative_divisor() {
+    fn int_modulo_euclidean_negative_divisor() {
         use Instruction::*;
 
         // Euclidean: 7 % -3 = 1 (always non-negative)
@@ -1295,7 +1295,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_euclidean_both_negative() {
+    fn int_modulo_euclidean_both_negative() {
         use Instruction::*;
 
         // Euclidean: -7 % -3 = 2 (always non-negative)
@@ -1314,7 +1314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_by_zero() {
+    fn int_modulo_by_zero() {
         use Instruction::*;
 
         let code = Code {
@@ -1339,7 +1339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_i64_min_overflow() {
+    fn int_modulo_i64_min_overflow() {
         use Instruction::*;
 
         // i64::MIN % -1 would overflow during computation
@@ -1366,7 +1366,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_modulo_invariant() {
+    fn int_division_modulo_invariant() {
         use Instruction::*;
 
         // Verify the invariant: a == (a / b) * b + (a % b)

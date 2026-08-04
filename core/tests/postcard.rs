@@ -9,7 +9,7 @@ use melbi_core::types::manager::TypeManager;
 use postcard::to_allocvec;
 
 #[test]
-fn test_postcard() {
+fn postcard() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -85,7 +85,7 @@ fn test_postcard() {
 }
 
 #[test]
-fn test_parsed_expr() {
+fn parsed_expr() {
     let arena = Bump::new();
     let input = "x + y where { x = 1, y = 2 }";
     let parsed = parse(&arena, input).unwrap();

@@ -940,7 +940,7 @@ mod tests {
     use crate::types::unification::Unification;
 
     #[test]
-    fn test_indexable_array() {
+    fn indexable_array() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -958,7 +958,7 @@ mod tests {
     }
 
     #[test]
-    fn test_indexable_map() {
+    fn indexable_map() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -976,7 +976,7 @@ mod tests {
     }
 
     #[test]
-    fn test_numeric_constraint() {
+    fn numeric_constraint() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -993,7 +993,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_string() {
+    fn containable_string() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1009,7 +1009,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_bytes() {
+    fn containable_bytes() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1025,7 +1025,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_array() {
+    fn containable_array() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1042,7 +1042,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_map() {
+    fn containable_map() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1059,7 +1059,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_invalid() {
+    fn containable_invalid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1077,7 +1077,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_type_mismatch() {
+    fn containable_type_mismatch() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();

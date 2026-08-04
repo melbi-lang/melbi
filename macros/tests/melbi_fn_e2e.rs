@@ -125,7 +125,7 @@ impl<'a> TestCtx<'a> {
 // ============================================================================
 
 #[test]
-fn test_legacy_mode_plain() {
+fn legacy_mode_plain() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -137,7 +137,7 @@ fn test_legacy_mode_plain() {
 }
 
 #[test]
-fn test_legacy_mode_result_success() {
+fn legacy_mode_result_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -146,7 +146,7 @@ fn test_legacy_mode_result_success() {
 }
 
 #[test]
-fn test_legacy_mode_result_error() {
+fn legacy_mode_result_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -160,7 +160,7 @@ fn test_legacy_mode_result_error() {
 }
 
 #[test]
-fn test_no_context_mode_plain() {
+fn no_context_mode_plain() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -172,7 +172,7 @@ fn test_no_context_mode_plain() {
 }
 
 #[test]
-fn test_no_context_mode_result_success() {
+fn no_context_mode_result_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -184,7 +184,7 @@ fn test_no_context_mode_result_success() {
 }
 
 #[test]
-fn test_no_context_mode_result_error() {
+fn no_context_mode_result_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -201,7 +201,7 @@ fn test_no_context_mode_result_error() {
 }
 
 #[test]
-fn test_with_lifetimes() {
+fn with_lifetimes() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -213,7 +213,7 @@ fn test_with_lifetimes() {
 }
 
 #[test]
-fn test_function_type_unwraps_result() {
+fn function_type_unwraps_result() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -234,7 +234,7 @@ fn test_function_type_unwraps_result() {
 }
 
 #[test]
-fn test_annotated_function_register() {
+fn annotated_function_register() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -409,7 +409,7 @@ fn array_first<'value>(
 // Tests that empty params = [] works correctly.
 
 #[test]
-fn test_zero_args_legacy_mode() {
+fn zero_args_legacy_mode() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -421,7 +421,7 @@ fn test_zero_args_legacy_mode() {
 }
 
 #[test]
-fn test_zero_args_no_context_mode() {
+fn zero_args_no_context_mode() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -433,7 +433,7 @@ fn test_zero_args_no_context_mode() {
 }
 
 #[test]
-fn test_zero_args_with_result() {
+fn zero_args_with_result() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -448,7 +448,7 @@ fn test_zero_args_with_result() {
 // Tests macro repetition patterns with multiple parameters.
 
 #[test]
-fn test_many_args_all_same_type() {
+fn many_args_all_same_type() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let args = [ctx.int(1), ctx.int(2), ctx.int(3), ctx.int(4), ctx.int(5)];
@@ -461,7 +461,7 @@ fn test_many_args_all_same_type() {
 }
 
 #[test]
-fn test_single_arg() {
+fn single_arg() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -476,7 +476,7 @@ fn test_single_arg() {
 // Tests extreme integer values through RawConvertible.
 
 #[test]
-fn test_i64_max_value() {
+fn i64_max_value() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -488,7 +488,7 @@ fn test_i64_max_value() {
 }
 
 #[test]
-fn test_i64_min_value() {
+fn i64_min_value() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -500,7 +500,7 @@ fn test_i64_min_value() {
 }
 
 #[test]
-fn test_zero_values() {
+fn zero_values() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -512,7 +512,7 @@ fn test_zero_values() {
 }
 
 #[test]
-fn test_negative_one() {
+fn negative_one() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // -1 has all bits set (0xFFFFFFFFFFFFFFFF)
@@ -528,7 +528,7 @@ fn test_negative_one() {
 // Tests correct indexing into args[] with different types.
 
 #[test]
-fn test_mixed_types_i64_f64_bool() {
+fn mixed_types_i64_f64_bool() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // i=10, f=0.5, b=true => (10 + 0.5) = 10.5
@@ -540,7 +540,7 @@ fn test_mixed_types_i64_f64_bool() {
 }
 
 #[test]
-fn test_mixed_types_with_false_flag() {
+fn mixed_types_with_false_flag() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // i=10, f=0.5, b=false => -(10 + 0.5) = -10.5
@@ -555,7 +555,7 @@ fn test_mixed_types_with_false_flag() {
 // Tests Bridge for bool.
 
 #[test]
-fn test_returns_bool_true() {
+fn returns_bool_true() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert!(
@@ -566,7 +566,7 @@ fn test_returns_bool_true() {
 }
 
 #[test]
-fn test_returns_bool_false() {
+fn returns_bool_false() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert!(
@@ -577,7 +577,7 @@ fn test_returns_bool_false() {
 }
 
 #[test]
-fn test_returns_bool_zero_edge_case() {
+fn returns_bool_zero_edge_case() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // 0 > 0 is false (boundary test)
@@ -592,7 +592,7 @@ fn test_returns_bool_zero_edge_case() {
 // Tests float representation quirks (NaN, Inf, -0.0).
 
 #[test]
-fn test_float_zero() {
+fn float_zero() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -604,7 +604,7 @@ fn test_float_zero() {
 }
 
 #[test]
-fn test_float_negative_zero() {
+fn float_negative_zero() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let result = ctx
@@ -616,7 +616,7 @@ fn test_float_negative_zero() {
 }
 
 #[test]
-fn test_float_infinity() {
+fn float_infinity() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -631,7 +631,7 @@ fn test_float_infinity() {
 }
 
 #[test]
-fn test_float_neg_infinity() {
+fn float_neg_infinity() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -646,7 +646,7 @@ fn test_float_neg_infinity() {
 }
 
 #[test]
-fn test_float_nan() {
+fn float_nan() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // NaN * 2.0 = NaN
@@ -662,7 +662,7 @@ fn test_float_nan() {
 // Tests empty strings, unicode, special characters.
 
 #[test]
-fn test_string_empty() {
+fn string_empty() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -674,7 +674,7 @@ fn test_string_empty() {
 }
 
 #[test]
-fn test_string_single_char() {
+fn string_single_char() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -686,7 +686,7 @@ fn test_string_single_char() {
 }
 
 #[test]
-fn test_string_unicode() {
+fn string_unicode() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // to_ascii_uppercase only affects ASCII
@@ -701,7 +701,7 @@ fn test_string_unicode() {
 // 8. COMPLEX GENERIC TYPES (Array<T>)
 
 #[test]
-fn test_takes_array_empty() {
+fn takes_array_empty() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -713,7 +713,7 @@ fn test_takes_array_empty() {
 }
 
 #[test]
-fn test_takes_array_single_element() {
+fn takes_array_single_element() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -725,7 +725,7 @@ fn test_takes_array_single_element() {
 }
 
 #[test]
-fn test_takes_array_multiple_elements() {
+fn takes_array_multiple_elements() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -740,7 +740,7 @@ fn test_takes_array_multiple_elements() {
 }
 
 #[test]
-fn test_returns_array() {
+fn returns_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -758,7 +758,7 @@ fn test_returns_array() {
 // Tests Optional<T> which uses null pointer for None.
 
 #[test]
-fn test_takes_optional_some() {
+fn takes_optional_some() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -773,7 +773,7 @@ fn test_takes_optional_some() {
 }
 
 #[test]
-fn test_takes_optional_none() {
+fn takes_optional_none() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // None => unwrap_or(0) => 0
@@ -789,7 +789,7 @@ fn test_takes_optional_none() {
 }
 
 #[test]
-fn test_returns_optional_some() {
+fn returns_optional_some() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // x > 0 returns Some(x)
@@ -799,7 +799,7 @@ fn test_returns_optional_some() {
 }
 
 #[test]
-fn test_returns_optional_none() {
+fn returns_optional_none() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // x <= 0 returns None
@@ -811,7 +811,7 @@ fn test_returns_optional_none() {
 // Tests Result<Str<'a>, E> with lifetimes in the Ok type.
 
 #[test]
-fn test_result_with_lifetime_success() {
+fn result_with_lifetime_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -826,7 +826,7 @@ fn test_result_with_lifetime_success() {
 }
 
 #[test]
-fn test_result_with_lifetime_error() {
+fn result_with_lifetime_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     // Empty string triggers error
@@ -842,7 +842,7 @@ fn test_result_with_lifetime_error() {
 // 11. NO-CONTEXT MODE WITH RESULT RETURNING NON-INT
 
 #[test]
-fn test_no_context_result_returns_float_success() {
+fn no_context_result_returns_float_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -857,7 +857,7 @@ fn test_no_context_result_returns_float_success() {
 }
 
 #[test]
-fn test_no_context_result_returns_float_error() {
+fn no_context_result_returns_float_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let err = ctx
@@ -875,7 +875,7 @@ fn test_no_context_result_returns_float_error() {
 // 12. FUNCTION TYPE CORRECTNESS
 
 #[test]
-fn test_zero_args_function_type() {
+fn zero_args_function_type() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let fn_ty_str = format!("{}", DeclZeroArgs::new(ctx.type_mgr).ty());
@@ -887,7 +887,7 @@ fn test_zero_args_function_type() {
 }
 
 #[test]
-fn test_many_args_function_type() {
+fn many_args_function_type() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let fn_ty_str = format!("{}", DeclManyArgs::new(ctx.type_mgr).ty());
@@ -899,7 +899,7 @@ fn test_many_args_function_type() {
 }
 
 #[test]
-fn test_mixed_types_function_type() {
+fn mixed_types_function_type() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let fn_ty_str = format!("{}", DeclMixedTypes::new(ctx.type_mgr).ty());
@@ -923,7 +923,7 @@ fn test_mixed_types_function_type() {
 // 13. ANNOTATED FUNCTION NAME
 
 #[test]
-fn test_annotated_name_matches_struct() {
+fn annotated_name_matches_struct() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -935,7 +935,7 @@ fn test_annotated_name_matches_struct() {
 // 14. NESTED ARRAY TYPE (Array<Str<'a>>)
 
 #[test]
-fn test_takes_str_array_empty() {
+fn takes_str_array_empty() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -950,7 +950,7 @@ fn test_takes_str_array_empty() {
 }
 
 #[test]
-fn test_takes_str_array_with_elements() {
+fn takes_str_array_with_elements() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     assert_eq!(
@@ -967,7 +967,7 @@ fn test_takes_str_array_with_elements() {
 // 15. PURE MODE WITH NESTED GENERICS AND RESULT
 
 #[test]
-fn test_array_first_success() {
+fn array_first_success() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let result = ctx.call_ok(
@@ -978,7 +978,7 @@ fn test_array_first_success() {
 }
 
 #[test]
-fn test_array_first_empty_error() {
+fn array_first_empty_error() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let err = ctx
@@ -1013,7 +1013,7 @@ fn get_first_item(a: i64, _b: i64) -> i64 {
 }
 
 #[test]
-fn test_derived_name_no_parens() {
+fn derived_name_no_parens() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -1026,7 +1026,7 @@ fn test_derived_name_no_parens() {
 }
 
 #[test]
-fn test_derived_name_empty_parens() {
+fn derived_name_empty_parens() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -1039,7 +1039,7 @@ fn test_derived_name_empty_parens() {
 }
 
 #[test]
-fn test_derived_name_with_underscores() {
+fn derived_name_with_underscores() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 

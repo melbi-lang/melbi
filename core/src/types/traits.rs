@@ -606,7 +606,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_closure_transformer_simple_remap() {
+    fn closure_transformer_simple_remap() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -632,7 +632,7 @@ mod tests {
     }
 
     #[test]
-    fn test_closure_transformer_function() {
+    fn closure_transformer_function() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -683,7 +683,7 @@ mod tests {
     }
 
     #[test]
-    fn test_closure_transformer_nested() {
+    fn closure_transformer_nested() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -729,7 +729,7 @@ mod tests {
     }
 
     #[test]
-    fn test_closure_visitor_collect_vars() {
+    fn closure_visitor_collect_vars() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -759,7 +759,7 @@ mod tests {
     }
 
     #[test]
-    fn test_closure_visitor_count_nodes() {
+    fn closure_visitor_count_nodes() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -782,7 +782,7 @@ mod tests {
     }
 
     #[test]
-    fn test_closure_visitor_early_stop() {
+    fn closure_visitor_early_stop() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -809,7 +809,7 @@ mod tests {
     }
 
     #[test]
-    fn test_closure_transformer_vs_manual_implementation() {
+    fn closure_transformer_vs_manual_implementation() {
         // This test demonstrates the ergonomic improvement of ClosureTransformer
         // over manual trait implementation
         let bump = Bump::new();

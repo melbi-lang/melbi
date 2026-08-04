@@ -395,7 +395,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_type_error_to_diagnostic() {
+    fn type_error_to_diagnostic() {
         let error = TypeError::new(
             TypeErrorKind::UnboundVariable {
                 name: "x".to_string(),
@@ -411,7 +411,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_mismatch_diagnostic() {
+    fn type_mismatch_diagnostic() {
         let error = TypeError::new(
             TypeErrorKind::TypeMismatch {
                 expected: "Int".to_string(),
@@ -430,7 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn test_non_exhaustive_patterns_diagnostic() {
+    fn non_exhaustive_patterns_diagnostic() {
         let error = TypeError::new(
             TypeErrorKind::NonExhaustivePatterns {
                 ty: "Option[Int]".to_string(),

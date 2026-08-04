@@ -10,7 +10,7 @@ use crate::values::binder::Binder;
 use crate::values::dynamic::{RecordBuilder, Value};
 
 #[test]
-fn test_array_package_builds() {
+fn array_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -52,7 +52,7 @@ fn eval<'a>(arena: &'a Bump, source: &'a str) -> Result<Value<'a, 'a>, Error> {
 // ============================================================================
 
 #[test]
-fn test_len() {
+fn len() {
     let arena = Bump::new();
 
     // Different types - polymorphism
@@ -103,7 +103,7 @@ fn test_len() {
 // ============================================================================
 
 #[test]
-fn test_is_empty() {
+fn is_empty() {
     let arena = Bump::new();
 
     assert!(
@@ -131,7 +131,7 @@ fn test_is_empty() {
 // ============================================================================
 
 #[test]
-fn test_reverse() {
+fn reverse() {
     let arena = Bump::new();
 
     // Basic reverse with integers
@@ -175,7 +175,7 @@ fn test_reverse() {
 // ============================================================================
 
 #[test]
-fn test_map() {
+fn map() {
     let arena = Bump::new();
 
     // Basic map with integers - double each element
@@ -229,7 +229,7 @@ fn test_map() {
 }
 
 #[test]
-fn test_map_with_string_package() {
+fn map_with_string_package() {
     let arena = Bump::new();
 
     // Map strings to their lengths
@@ -256,7 +256,7 @@ fn test_map_with_string_package() {
 }
 
 #[test]
-fn test_map_composition() {
+fn map_composition() {
     let arena = Bump::new();
 
     // Map then Reverse
@@ -306,7 +306,7 @@ fn test_map_composition() {
 
 #[test]
 #[ignore = "TODO: Bug - empty arrays with different type variables don't compare equal"]
-fn test_map_empty_array() {
+fn map_empty_array() {
     let arena = Bump::new();
     assert!(
         eval(&arena, "Array.Map([], (x) => x * 2) == []")
@@ -317,7 +317,7 @@ fn test_map_empty_array() {
 }
 
 #[test]
-fn test_map_type_errors() {
+fn map_type_errors() {
     let arena = Bump::new();
 
     // Map expects function as second argument
@@ -346,7 +346,7 @@ fn test_map_type_errors() {
 
 #[test]
 #[ignore = "TODO: Bug - runtime errors are incorrectly wrapped as compilation errors during constant folding"]
-fn test_map_runtime_error_propagation() {
+fn map_runtime_error_propagation() {
     let arena = Bump::new();
 
     // Test that runtime errors from lambdas propagate correctly through Array.Map
@@ -361,7 +361,7 @@ fn test_map_runtime_error_propagation() {
 // ============================================================================
 
 #[test]
-fn test_slice() {
+fn slice() {
     let arena = Bump::new();
 
     // Basic slice
@@ -437,7 +437,7 @@ fn test_slice() {
 // ============================================================================
 
 #[test]
-fn test_concat() {
+fn concat() {
     let arena = Bump::new();
 
     // Basic concat
@@ -489,7 +489,7 @@ fn test_concat() {
 // ============================================================================
 
 #[test]
-fn test_flatten() {
+fn flatten() {
     let arena = Bump::new();
 
     // Basic flatten
@@ -522,7 +522,7 @@ fn test_flatten() {
 
 #[test]
 #[ignore = "TODO: Bug - empty arrays with different type variables don't compare equal (Array.Flatten([]) returns Array[_N], [] is Array[_M])"]
-fn test_flatten_empty_outer() {
+fn flatten_empty_outer() {
     let arena = Bump::new();
 
     assert!(
@@ -549,7 +549,7 @@ fn test_flatten_empty_outer() {
 // ============================================================================
 
 #[test]
-fn test_zip() {
+fn zip() {
     let arena = Bump::new();
 
     // Basic zip
@@ -597,7 +597,7 @@ fn test_zip() {
 
 #[test]
 #[ignore = "TODO: Bug - empty arrays with different type variables don't compare equal"]
-fn test_zip_both_empty() {
+fn zip_both_empty() {
     let arena = Bump::new();
     assert!(
         eval(&arena, "Array.Zip([], []) == []")
@@ -609,7 +609,7 @@ fn test_zip_both_empty() {
 
 #[test]
 #[ignore = "TODO: Bug - empty arrays with different type variables don't compare equal"]
-fn test_zip_first_empty() {
+fn zip_first_empty() {
     let arena = Bump::new();
     assert!(
         eval(&arena, "Array.Zip([], [1, 2, 3]) == []")
@@ -621,7 +621,7 @@ fn test_zip_first_empty() {
 
 #[test]
 #[ignore = "TODO: Bug - empty arrays with different type variables don't compare equal"]
-fn test_zip_second_empty() {
+fn zip_second_empty() {
     let arena = Bump::new();
     assert!(
         eval(&arena, "Array.Zip([1, 2, 3], []) == []")
@@ -636,7 +636,7 @@ fn test_zip_second_empty() {
 // ============================================================================
 
 #[test]
-fn test_composition() {
+fn composition() {
     let arena = Bump::new();
 
     // Reverse after Concat
@@ -697,7 +697,7 @@ fn test_composition() {
 // ============================================================================
 
 #[test]
-fn test_type_errors() {
+fn type_errors() {
     let arena = Bump::new();
 
     // Len expects array, not string
@@ -753,7 +753,7 @@ fn test_type_errors() {
 // ============================================================================
 
 #[test]
-fn test_integration_with_string() {
+fn integration_with_string() {
     let arena = Bump::new();
 
     // Len of Split result
@@ -791,7 +791,7 @@ fn test_integration_with_string() {
 }
 
 #[test]
-fn test_integration_with_math() {
+fn integration_with_math() {
     let arena = Bump::new();
 
     // Array of Math results
@@ -823,7 +823,7 @@ fn test_integration_with_math() {
 }
 
 #[test]
-fn test_integration_combined() {
+fn integration_combined() {
     let arena = Bump::new();
 
     // Complex: Split, Len, with Math

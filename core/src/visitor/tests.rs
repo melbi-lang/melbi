@@ -405,7 +405,7 @@ fn make_example_tree() -> Box<TreeData<BoxedTreeBuilder>> {
 }
 
 #[test]
-fn test_node_counter() {
+fn node_counter() {
     let tree = make_example_tree();
     let mut counter = NodeCounter::new();
     counter.visit(tree);
@@ -413,7 +413,7 @@ fn test_node_counter() {
 }
 
 #[test]
-fn test_evaluator() {
+fn evaluator() {
     let tree = make_example_tree();
     // (2 + 3) * -(4 + 5) = 5 * -9 = -45
     let mut evaluator = Evaluator::new();
@@ -422,7 +422,7 @@ fn test_evaluator() {
 }
 
 #[test]
-fn test_max_depth_finder() {
+fn max_depth_finder() {
     let tree = make_example_tree();
     // Tree structure: Mul -> Add/Neg -> Num/Add -> Num
     // Max depth is 3 (Mul -> Neg -> Add -> Num)
@@ -432,7 +432,7 @@ fn test_max_depth_finder() {
 }
 
 #[test]
-fn test_compare_trees() {
+fn compare_trees() {
     let arena = Bump::new();
     let b = ArenaTreeBuilder::new(&arena);
 
@@ -465,7 +465,7 @@ fn test_compare_trees() {
 }
 
 #[test]
-fn test_arena_tree_builder() {
+fn arena_tree_builder() {
     let arena = Bump::new();
     let b = ArenaTreeBuilder::new(&arena);
 
@@ -501,7 +501,7 @@ impl<'arena> TreeTransformer<ArenaTreeBuilder<'arena>> for ArenaEvaluator {
 }
 
 #[test]
-fn test_negate_numbers() {
+fn negate_numbers() {
     let b = BoxedTreeBuilder;
     let tree = b.build(TreeKind::Add(
         b.build(TreeKind::Num(5)),
@@ -516,7 +516,7 @@ fn test_negate_numbers() {
 }
 
 #[test]
-fn test_constant_folder() {
+fn constant_folder() {
     let tree = make_example_tree();
     // (2 + 3) * -(4 + 5) should fold to 5 * -9 = -45
     let mut folder = ConstantFolder::new();
@@ -525,7 +525,7 @@ fn test_constant_folder() {
 }
 
 #[test]
-fn test_partial_constant_fold() {
+fn partial_constant_fold() {
     let b = BoxedTreeBuilder;
     // Add(2, Neg(x)) where x is unknown - should only fold the 2
     // For this test, we'll use a tree with mixed constants and non-constants

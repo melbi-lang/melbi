@@ -13,7 +13,7 @@ use melbi_core::values::dynamic::Value;
 use melbi_core::values::{FfiContext, NativeFunction};
 
 #[test]
-fn test_basic_compilation_and_execution() {
+fn basic_compilation_and_execution() {
     // Create engine with empty environment
     let arena = Bump::new();
     let engine = Engine::new(Default::default(), &arena, |_arena, _type_mgr, env| {
@@ -38,7 +38,7 @@ fn test_basic_compilation_and_execution() {
 }
 
 #[test]
-fn test_parameterized_expression() {
+fn parameterized_expression() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
@@ -65,7 +65,7 @@ fn test_parameterized_expression() {
 }
 
 #[test]
-fn test_environment_registration_constant() {
+fn environment_registration_constant() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
@@ -91,7 +91,7 @@ fn test_environment_registration_constant() {
 }
 
 #[test]
-fn test_native_function_registration() {
+fn native_function_registration() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |arena, type_mgr, env| {
@@ -128,7 +128,7 @@ fn test_native_function_registration() {
 }
 
 #[test]
-fn test_error_arg_count_mismatch() {
+fn error_arg_count_mismatch() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
@@ -152,7 +152,7 @@ fn test_error_arg_count_mismatch() {
 }
 
 #[test]
-fn test_error_type_mismatch() {
+fn error_type_mismatch() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
@@ -180,7 +180,7 @@ fn test_error_type_mismatch() {
 }
 
 #[test]
-fn test_error_compilation_failure() {
+fn error_compilation_failure() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
@@ -194,7 +194,7 @@ fn test_error_compilation_failure() {
 }
 
 #[test]
-fn test_error_undefined_variable() {
+fn error_undefined_variable() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
@@ -208,7 +208,7 @@ fn test_error_undefined_variable() {
 }
 
 #[test]
-fn test_run_unchecked() {
+fn run_unchecked() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
@@ -231,7 +231,7 @@ fn test_run_unchecked() {
 }
 
 #[test]
-fn test_multiple_executions_same_expression() {
+fn multiple_executions_same_expression() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);
@@ -260,7 +260,7 @@ fn test_multiple_executions_same_expression() {
 }
 
 #[test]
-fn test_complex_expression_with_multiple_operations() {
+fn complex_expression_with_multiple_operations() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, type_mgr, env| {
@@ -296,7 +296,7 @@ fn test_complex_expression_with_multiple_operations() {
 }
 
 #[test]
-fn test_engine_options_max_depth() {
+fn engine_options_max_depth() {
     use melbi_core::api::RunOptions;
 
     let arena = Bump::new();
@@ -343,7 +343,7 @@ fn test_engine_options_max_depth() {
 }
 
 #[test]
-fn test_error_duplicate_registration() {
+fn error_duplicate_registration() {
     let arena = Bump::new();
     let type_mgr = melbi_core::types::manager::TypeManager::new(&arena);
 
@@ -365,7 +365,7 @@ fn test_error_duplicate_registration() {
 }
 
 #[test]
-fn test_access_expression_metadata() {
+fn access_expression_metadata() {
     let arena = Bump::new();
     let options = EngineOptions::default();
     let engine = Engine::new(options, &arena, |_arena, _type_mgr, env| env);

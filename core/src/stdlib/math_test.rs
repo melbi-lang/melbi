@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[test]
-fn test_math_package_builds() {
+fn math_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -27,7 +27,7 @@ fn test_math_package_builds() {
 }
 
 #[test]
-fn test_math_constants() {
+fn math_constants() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -82,7 +82,7 @@ where
 }
 
 #[test]
-fn test_math_abs() {
+fn math_abs() {
     test_math_expr("Math.Abs(3.14)", |r: Value| {
         assert_eq!(r.as_float().unwrap(), 3.14);
     });
@@ -97,7 +97,7 @@ fn test_math_abs() {
 }
 
 #[test]
-fn test_math_min_max() {
+fn math_min_max() {
     test_math_expr("Math.Min(3.0, 5.0)", |r: Value| {
         assert_eq!(r.as_float().unwrap(), 3.0);
     });
@@ -108,7 +108,7 @@ fn test_math_min_max() {
 }
 
 #[test]
-fn test_math_clamp() {
+fn math_clamp() {
     test_math_expr("Math.Clamp(5.0, 0.0, 10.0)", |r: Value| {
         assert_eq!(r.as_float().unwrap(), 5.0);
     });
@@ -123,7 +123,7 @@ fn test_math_clamp() {
 }
 
 #[test]
-fn test_math_rounding() {
+fn math_rounding() {
     test_math_expr("Math.Floor(3.7)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 3);
     });
@@ -142,7 +142,7 @@ fn test_math_rounding() {
 }
 
 #[test]
-fn test_math_sqrt() {
+fn math_sqrt() {
     test_math_expr("Math.Sqrt(4.0)", |r: Value| {
         assert_eq!(r.as_float().unwrap(), 2.0);
     });
@@ -153,7 +153,7 @@ fn test_math_sqrt() {
 }
 
 #[test]
-fn test_math_pow() {
+fn math_pow() {
     test_math_expr("Math.Pow(2.0, 3.0)", |r: Value| {
         assert_eq!(r.as_float().unwrap(), 8.0);
     });
@@ -164,7 +164,7 @@ fn test_math_pow() {
 }
 
 #[test]
-fn test_math_trig() {
+fn math_trig() {
     test_math_expr("Math.Sin(0.0)", |r: Value| {
         assert!((r.as_float().unwrap() - 0.0).abs() < 1e-10);
     });
@@ -183,7 +183,7 @@ fn test_math_trig() {
 }
 
 #[test]
-fn test_math_inverse_trig() {
+fn math_inverse_trig() {
     test_math_expr("Math.Asin(0.0)", |r: Value| {
         assert!((r.as_float().unwrap() - 0.0).abs() < 1e-10);
     });
@@ -199,7 +199,7 @@ fn test_math_inverse_trig() {
 }
 
 #[test]
-fn test_math_log() {
+fn math_log() {
     test_math_expr("Math.Log(Math.E)", |r: Value| {
         assert!((r.as_float().unwrap() - 1.0).abs() < 1e-10);
     });
@@ -215,7 +215,7 @@ fn test_math_log() {
 }
 
 #[test]
-fn test_math_edge_cases() {
+fn math_edge_cases() {
     test_math_expr("Math.Abs(Math.NAN)", |r: Value| {
         assert!(r.as_float().unwrap().is_nan());
     });
@@ -231,7 +231,7 @@ fn test_math_edge_cases() {
 }
 
 #[test]
-fn test_math_composition() {
+fn math_composition() {
     test_math_expr(
         "Math.Sqrt(Math.Pow(3.0, 2.0) + Math.Pow(4.0, 2.0))",
         |r: Value| {

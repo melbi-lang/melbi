@@ -223,7 +223,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_add_numeric() {
+    fn add_numeric() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut cs = ConstraintSet::new();
@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_indexable() {
+    fn add_indexable() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut cs = ConstraintSet::new();
@@ -247,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clear() {
+    fn clear() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut cs = ConstraintSet::new();

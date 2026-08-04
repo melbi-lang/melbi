@@ -104,7 +104,7 @@ fn square<T: Numeric>(x: T) -> T {
 }
 
 #[test]
-fn test_square_int() {
+fn square_int() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let square_fn = Square::new(ctx.type_mgr);
@@ -113,7 +113,7 @@ fn test_square_int() {
 }
 
 #[test]
-fn test_square_float() {
+fn square_float() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let square_fn = Square::new(ctx.type_mgr);
@@ -122,7 +122,7 @@ fn test_square_float() {
 }
 
 #[test]
-fn test_square_negative() {
+fn square_negative() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let square_fn = Square::new(ctx.type_mgr);
@@ -136,7 +136,7 @@ fn add_nums<T: Numeric>(a: T, b: T) -> T {
 }
 
 #[test]
-fn test_add_int() {
+fn add_int() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let add_fn = AddNums::new(ctx.type_mgr);
@@ -145,7 +145,7 @@ fn test_add_int() {
 }
 
 #[test]
-fn test_add_float() {
+fn add_float() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let add_fn = AddNums::new(ctx.type_mgr);
@@ -154,7 +154,7 @@ fn test_add_float() {
 }
 
 #[test]
-fn test_square_type_mismatch() {
+fn square_type_mismatch() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let square_fn = Square::new(ctx.type_mgr);
@@ -180,7 +180,7 @@ fn test_square_type_mismatch() {
 // }
 //
 // #[test]
-// fn test_identity_int() {
+// fn identity_int() {
 //     let arena = Bump::new();
 //     let ctx = TestCtx::new(&arena);
 //     let identity_fn = Identity::new(ctx.type_mgr);
@@ -189,7 +189,7 @@ fn test_square_type_mismatch() {
 // }
 //
 // #[test]
-// fn test_identity_float() {
+// fn identity_float() {
 //     let arena = Bump::new();
 //     let ctx = TestCtx::new(&arena);
 //     let identity_fn = Identity::new(ctx.type_mgr);
@@ -204,7 +204,7 @@ fn double<T: Melbi + Numeric>(x: T) -> T {
 }
 
 #[test]
-fn test_double_int() {
+fn double_int() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let double_fn = Double::new(ctx.type_mgr);
@@ -213,7 +213,7 @@ fn test_double_int() {
 }
 
 #[test]
-fn test_double_float() {
+fn double_float() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
     let double_fn = Double::new(ctx.type_mgr);

@@ -46,7 +46,7 @@ pub mod test_utils {
     /// # Example
     /// ```ignore
     /// #[test]
-    /// fn test_type_inference() {
+    /// fn type_inference() {
     ///     test_utils::init_test_logging();
     ///     // ... your test code
     /// }

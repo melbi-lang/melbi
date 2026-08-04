@@ -176,7 +176,7 @@ mod tests {
     use crate::core::Scalar;
 
     #[test]
-    fn test_interned_str_equality() {
+    fn interned_str_equality() {
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
 
@@ -192,7 +192,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interned_str_hash() {
+    fn interned_str_hash() {
         use core::hash::BuildHasher;
 
         let arena = Bump::new();
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_interning_equality() {
+    fn type_interning_equality() {
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
 
@@ -228,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_type_interning() {
+    fn nested_type_interning() {
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
 
@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_interning_hash() {
+    fn type_interning_hash() {
         use core::hash::BuildHasher;
 
         let arena = Bump::new();

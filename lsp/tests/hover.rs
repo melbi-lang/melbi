@@ -2,7 +2,7 @@ use melbi_lsp::document::DocumentState;
 use tower_lsp::lsp_types::*;
 
 #[test]
-fn test_hover_on_identifier() {
+fn hover_on_identifier() {
     let mut doc = DocumentState::new("x where { x = 42 }".to_string());
     doc.analyze();
 
@@ -13,7 +13,7 @@ fn test_hover_on_identifier() {
 }
 
 #[test]
-fn test_hover_on_numeric_literal() {
+fn hover_on_numeric_literal() {
     let mut doc = DocumentState::new("42".to_string());
     doc.analyze();
 
@@ -24,7 +24,7 @@ fn test_hover_on_numeric_literal() {
 }
 
 #[test]
-fn test_hover_on_lambda() {
+fn hover_on_lambda() {
     let mut doc = DocumentState::new("(x) => x + 1".to_string());
     doc.analyze();
 
@@ -34,7 +34,7 @@ fn test_hover_on_lambda() {
 }
 
 #[test]
-fn test_hover_on_where_expression() {
+fn hover_on_where_expression() {
     let mut doc = DocumentState::new("a + b where { a = 1, b = 2 }".to_string());
     doc.analyze();
 
@@ -44,7 +44,7 @@ fn test_hover_on_where_expression() {
 }
 
 #[test]
-fn test_hover_on_if_expression() {
+fn hover_on_if_expression() {
     let mut doc = DocumentState::new("if true then 1 else 2".to_string());
     doc.analyze();
 
@@ -55,7 +55,7 @@ fn test_hover_on_if_expression() {
 }
 
 #[test]
-fn test_hover_on_field_access() {
+fn hover_on_field_access() {
     let mut doc = DocumentState::new("{ x = 10 }.x".to_string());
     doc.analyze();
 
@@ -65,7 +65,7 @@ fn test_hover_on_field_access() {
 }
 
 #[test]
-fn test_hover_on_call_expression() {
+fn hover_on_call_expression() {
     let mut doc = DocumentState::new("((x) => x + 1)(5)".to_string());
     let diagnostics = doc.analyze();
 
@@ -80,7 +80,7 @@ fn test_hover_on_call_expression() {
 }
 
 #[test]
-fn test_no_hover_on_invalid_code() {
+fn no_hover_on_invalid_code() {
     let mut doc = DocumentState::new("1 + +".to_string());
     doc.analyze();
 
@@ -91,7 +91,7 @@ fn test_no_hover_on_invalid_code() {
 }
 
 #[test]
-fn test_hover_position_sensitivity() {
+fn hover_position_sensitivity() {
     let expr = "x + f(y) where { x = 1, y = \"foo\", f = (s) => 1 }";
     let mut doc = DocumentState::new(expr.to_string());
     doc.analyze();
@@ -106,7 +106,7 @@ fn test_hover_position_sensitivity() {
 }
 
 #[test]
-fn test_hover_on_nested_expression() {
+fn hover_on_nested_expression() {
     let mut doc = DocumentState::new("(1 + 2) * 3".to_string());
     doc.analyze();
 

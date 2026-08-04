@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_error_unicode() {
+    fn parse_error_unicode() {
         check_error(
             "1 + + 2",
             &UNICODE_CONFIG,
@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_error_ascii() {
+    fn parse_error_ascii() {
         check_error(
             "1 + + 2",
             &ASCII_CONFIG,
@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_error_unicode() {
+    fn type_error_unicode() {
         check_error(
             "1 + true",
             &UNICODE_CONFIG,
@@ -288,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_error_ascii() {
+    fn type_error_ascii() {
         check_error(
             "1 + true",
             &ASCII_CONFIG,
@@ -307,7 +307,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unknown_identifier_unicode() {
+    fn unknown_identifier_unicode() {
         check_error(
             "foo + 1",
             &UNICODE_CONFIG,
@@ -326,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unknown_identifier_ascii() {
+    fn unknown_identifier_ascii() {
         check_error(
             "foo + 1",
             &ASCII_CONFIG,
@@ -345,7 +345,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unclosed_brace_unicode() {
+    fn unclosed_brace_unicode() {
         check_error(
             "{ x = 1",
             &UNICODE_CONFIG,
@@ -362,7 +362,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unclosed_brace_ascii() {
+    fn unclosed_brace_ascii() {
         check_error(
             "{ x = 1",
             &ASCII_CONFIG,
@@ -379,12 +379,12 @@ mod tests {
     }
 
     #[test]
-    fn test_charset_default_is_unicode() {
+    fn charset_default_is_unicode() {
         assert_eq!(CharSet::default(), CharSet::Unicode);
     }
 
     #[test]
-    fn test_render_config_default_charset() {
+    fn render_config_default_charset() {
         let config = RenderConfig::default();
         assert_eq!(config.charset, CharSet::Unicode);
     }

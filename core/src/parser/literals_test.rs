@@ -4,7 +4,7 @@ use super::parser::parse;
 use crate::parser::{BinaryOp, Expr, Literal, UnaryOp};
 
 #[test]
-fn test_decimal_integers() {
+fn decimal_integers() {
     let arena = Bump::new();
 
     let cases = [
@@ -32,7 +32,7 @@ fn test_decimal_integers() {
 }
 
 #[test]
-fn test_binary_integers() {
+fn binary_integers() {
     let arena = Bump::new();
 
     let cases = [
@@ -61,7 +61,7 @@ fn test_binary_integers() {
 }
 
 #[test]
-fn test_octal_integers() {
+fn octal_integers() {
     let arena = Bump::new();
 
     let cases = [
@@ -88,7 +88,7 @@ fn test_octal_integers() {
 }
 
 #[test]
-fn test_hexadecimal_integers() {
+fn hexadecimal_integers() {
     let arena = Bump::new();
 
     let cases = [
@@ -118,7 +118,7 @@ fn test_hexadecimal_integers() {
 }
 
 #[test]
-fn test_integers_with_suffix() {
+fn integers_with_suffix() {
     let arena = Bump::new();
 
     // Test with simple identifier suffix
@@ -209,7 +209,7 @@ fn test_integers_with_suffix() {
 }
 
 #[test]
-fn test_float_literals() {
+fn float_literals() {
     let arena = Bump::new();
 
     let cases = [
@@ -238,7 +238,7 @@ fn test_float_literals() {
 }
 
 #[test]
-fn test_float_with_exponent() {
+fn float_with_exponent() {
     let arena = Bump::new();
 
     let cases = [
@@ -270,7 +270,7 @@ fn test_float_with_exponent() {
 }
 
 #[test]
-fn test_floats_with_suffix() {
+fn floats_with_suffix() {
     let arena = Bump::new();
 
     // Test with simple identifier suffix
@@ -316,7 +316,7 @@ fn test_floats_with_suffix() {
 }
 
 #[test]
-fn test_negative_numbers() {
+fn negative_numbers() {
     let arena = Bump::new();
 
     // Negative integers (parsed as negative literals)
@@ -354,7 +354,7 @@ fn test_negative_numbers() {
 }
 
 #[test]
-fn test_integer_overflow() {
+fn integer_overflow() {
     let arena = Bump::new();
 
     // 9223372036854775808 is i64::MAX + 1, should fail to parse
@@ -367,7 +367,7 @@ fn test_integer_overflow() {
 }
 
 #[test]
-fn test_integer_min_value() {
+fn integer_min_value() {
     let arena = Bump::new();
 
     // -9223372036854775808 is i64::MIN, now works with negative literal support

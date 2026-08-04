@@ -43,7 +43,7 @@ fn compile_and_run<'a>(
 }
 
 #[test]
-fn test_compile_simple_integer() {
+fn compile_simple_integer() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -59,7 +59,7 @@ fn test_compile_simple_integer() {
 }
 
 #[test]
-fn test_compile_addition() {
+fn compile_addition() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -80,7 +80,7 @@ fn test_compile_addition() {
 }
 
 #[test]
-fn test_compile_subtraction() {
+fn compile_subtraction() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -98,7 +98,7 @@ fn test_compile_subtraction() {
 }
 
 #[test]
-fn test_compile_multiplication() {
+fn compile_multiplication() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -116,7 +116,7 @@ fn test_compile_multiplication() {
 }
 
 #[test]
-fn test_compile_negation() {
+fn compile_negation() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -133,7 +133,7 @@ fn test_compile_negation() {
 }
 
 #[test]
-fn test_compile_complex_expression() {
+fn compile_complex_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -154,7 +154,7 @@ fn test_compile_complex_expression() {
 }
 
 #[test]
-fn test_stack_depth_tracking() {
+fn stack_depth_tracking() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -170,7 +170,7 @@ fn test_stack_depth_tracking() {
 }
 
 #[test]
-fn test_debug_output() {
+fn debug_output() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -185,7 +185,7 @@ fn test_debug_output() {
 }
 
 #[test]
-fn test_debug_output_with_jumps() {
+fn debug_output_with_jumps() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -218,7 +218,7 @@ fn test_debug_output_with_jumps() {
 }
 
 #[test]
-fn test_convenience_compile_method() {
+fn convenience_compile_method() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -235,7 +235,7 @@ fn test_convenience_compile_method() {
 }
 
 #[test]
-fn test_constant_deduplication() {
+fn constant_deduplication() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -260,7 +260,7 @@ fn test_constant_deduplication() {
 }
 
 #[test]
-fn test_comparison_operations() {
+fn comparison_operations() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -279,7 +279,7 @@ fn test_comparison_operations() {
 }
 
 #[test]
-fn test_boolean_not() {
+fn boolean_not() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -300,7 +300,7 @@ fn test_boolean_not() {
 }
 
 #[test]
-fn test_boolean_and() {
+fn boolean_and() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -334,7 +334,7 @@ fn test_boolean_and() {
 }
 
 #[test]
-fn test_if_expression() {
+fn if_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -356,7 +356,7 @@ fn test_if_expression() {
 }
 
 #[test]
-fn test_all_comparison_operators() {
+fn all_comparison_operators() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -383,7 +383,7 @@ fn test_all_comparison_operators() {
 }
 
 #[test]
-fn test_boolean_or() {
+fn boolean_or() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -415,7 +415,7 @@ fn test_boolean_or() {
 }
 
 #[test]
-fn test_complex_boolean_expression() {
+fn complex_boolean_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -453,7 +453,7 @@ fn test_complex_boolean_expression() {
 }
 
 #[test]
-fn test_short_circuit_and_avoids_error() {
+fn short_circuit_and_avoids_error() {
     // Test that short-circuit evaluation prevents errors:
     // `false and arr[999]` should return false without evaluating arr[999]
     let arena = Bump::new();
@@ -471,7 +471,7 @@ fn test_short_circuit_and_avoids_error() {
 }
 
 #[test]
-fn test_short_circuit_or_avoids_error() {
+fn short_circuit_or_avoids_error() {
     // Test that short-circuit evaluation prevents errors:
     // `true or arr[999]` should return true without evaluating arr[999]
     let arena = Bump::new();
@@ -489,7 +489,7 @@ fn test_short_circuit_or_avoids_error() {
 }
 
 #[test]
-fn test_short_circuit_and_division_by_zero() {
+fn short_circuit_and_division_by_zero() {
     // Classic use case: check before dividing
     // `x != 0 and 1 / x > 0`
     let arena = Bump::new();
@@ -503,7 +503,7 @@ fn test_short_circuit_and_division_by_zero() {
 }
 
 #[test]
-fn test_short_circuit_and_division_succeeds() {
+fn short_circuit_and_division_succeeds() {
     // When condition is true, both sides are evaluated
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
@@ -515,7 +515,7 @@ fn test_short_circuit_and_division_succeeds() {
 }
 
 #[test]
-fn test_short_circuit_or_division_by_zero() {
+fn short_circuit_or_division_by_zero() {
     // `x == 0 or 1 / x > 0` - if x is 0, short-circuits to true
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
@@ -527,7 +527,7 @@ fn test_short_circuit_or_division_by_zero() {
 }
 
 #[test]
-fn test_nested_if_expression() {
+fn nested_if_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -551,7 +551,7 @@ fn test_nested_if_expression() {
 }
 
 #[test]
-fn test_if_with_complex_condition() {
+fn if_with_complex_condition() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -574,7 +574,7 @@ fn test_if_with_complex_condition() {
 }
 
 #[test]
-fn test_chained_comparisons() {
+fn chained_comparisons() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -606,7 +606,7 @@ fn test_chained_comparisons() {
 }
 
 #[test]
-fn test_not_equals() {
+fn not_equals() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -622,7 +622,7 @@ fn test_not_equals() {
 }
 
 #[test]
-fn test_empty_array() {
+fn empty_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -638,7 +638,7 @@ fn test_empty_array() {
 }
 
 #[test]
-fn test_array_with_constants() {
+fn array_with_constants() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -657,7 +657,7 @@ fn test_array_with_constants() {
 }
 
 #[test]
-fn test_array_with_expressions() {
+fn array_with_expressions() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -678,7 +678,7 @@ fn test_array_with_expressions() {
 }
 
 #[test]
-fn test_nested_arrays() {
+fn nested_arrays() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -706,7 +706,7 @@ fn test_nested_arrays() {
 }
 
 #[test]
-fn test_array_of_booleans() {
+fn array_of_booleans() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -732,7 +732,7 @@ fn test_array_of_booleans() {
 }
 
 #[test]
-fn test_single_element_array() {
+fn single_element_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -745,7 +745,7 @@ fn test_single_element_array() {
 }
 
 #[test]
-fn test_float_addition() {
+fn float_addition() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -760,7 +760,7 @@ fn test_float_addition() {
 }
 
 #[test]
-fn test_float_operations() {
+fn float_operations() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -784,7 +784,7 @@ fn test_float_operations() {
 }
 
 #[test]
-fn test_float_negation() {
+fn float_negation() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -798,7 +798,7 @@ fn test_float_negation() {
 }
 
 #[test]
-fn test_float_comparisons() {
+fn float_comparisons() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -824,7 +824,7 @@ fn test_float_comparisons() {
 }
 
 #[test]
-fn test_mixed_float_expressions() {
+fn mixed_float_expressions() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -840,7 +840,7 @@ fn test_mixed_float_expressions() {
 }
 
 #[test]
-fn test_float_array() {
+fn float_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -857,7 +857,7 @@ fn test_float_array() {
 }
 
 #[test]
-fn test_simple_where_binding() {
+fn simple_where_binding() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -880,7 +880,7 @@ fn test_simple_where_binding() {
 }
 
 #[test]
-fn test_multiple_where_bindings() {
+fn multiple_where_bindings() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -913,7 +913,7 @@ fn test_multiple_where_bindings() {
 }
 
 #[test]
-fn test_nested_where_bindings() {
+fn nested_where_bindings() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -933,7 +933,7 @@ fn test_nested_where_bindings() {
 }
 
 #[test]
-fn test_where_with_expression() {
+fn where_with_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -960,7 +960,7 @@ fn test_where_with_expression() {
 }
 
 #[test]
-fn test_where_in_array() {
+fn where_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -992,7 +992,7 @@ fn test_where_in_array() {
 }
 
 #[test]
-fn test_where_with_shadowing() {
+fn where_with_shadowing() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1011,7 +1011,7 @@ fn test_where_with_shadowing() {
 }
 
 #[test]
-fn test_where_scope_unshadowing() {
+fn where_scope_unshadowing() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1065,7 +1065,7 @@ fn test_where_scope_unshadowing() {
 }
 
 #[test]
-fn test_where_scope_restoration() {
+fn where_scope_restoration() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1119,7 +1119,7 @@ fn test_where_scope_restoration() {
 // ============================================================================
 
 #[test]
-fn test_vm_simple_integer() {
+fn vm_simple_integer() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1130,7 +1130,7 @@ fn test_vm_simple_integer() {
 }
 
 #[test]
-fn test_vm_arithmetic() {
+fn vm_arithmetic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1141,7 +1141,7 @@ fn test_vm_arithmetic() {
 }
 
 #[test]
-fn test_vm_boolean_operations() {
+fn vm_boolean_operations() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1152,7 +1152,7 @@ fn test_vm_boolean_operations() {
 }
 
 #[test]
-fn test_vm_if_expression() {
+fn vm_if_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1163,7 +1163,7 @@ fn test_vm_if_expression() {
 }
 
 #[test]
-fn test_vm_where_binding() {
+fn vm_where_binding() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1174,7 +1174,7 @@ fn test_vm_where_binding() {
 }
 
 #[test]
-fn test_vm_scope_restoration() {
+fn vm_scope_restoration() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1193,7 +1193,7 @@ fn test_vm_scope_restoration() {
 }
 
 #[test]
-fn test_vm_shadowing_unshadowing() {
+fn vm_shadowing_unshadowing() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1212,7 +1212,7 @@ fn test_vm_shadowing_unshadowing() {
 // ============================================================================
 
 #[test]
-fn test_array_index_constant() {
+fn array_index_constant() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1233,7 +1233,7 @@ fn test_array_index_constant() {
 }
 
 #[test]
-fn test_array_index_dynamic() {
+fn array_index_dynamic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1260,7 +1260,7 @@ fn test_array_index_dynamic() {
 }
 
 #[test]
-fn test_vm_array_index_constant() {
+fn vm_array_index_constant() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1271,7 +1271,7 @@ fn test_vm_array_index_constant() {
 }
 
 #[test]
-fn test_vm_array_index_constant_last() {
+fn vm_array_index_constant_last() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1282,7 +1282,7 @@ fn test_vm_array_index_constant_last() {
 }
 
 #[test]
-fn test_vm_array_index_dynamic() {
+fn vm_array_index_dynamic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1294,7 +1294,7 @@ fn test_vm_array_index_dynamic() {
 }
 
 #[test]
-fn test_vm_array_index_expression() {
+fn vm_array_index_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1309,7 +1309,7 @@ fn test_vm_array_index_expression() {
 // ============================================================================
 
 #[test]
-fn test_record_construction() {
+fn record_construction() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1332,7 +1332,7 @@ fn test_record_construction() {
 }
 
 #[test]
-fn test_field_access() {
+fn field_access() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1353,7 +1353,7 @@ fn test_field_access() {
 }
 
 #[test]
-fn test_field_access_second_field() {
+fn field_access_second_field() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1374,7 +1374,7 @@ fn test_field_access_second_field() {
 }
 
 #[test]
-fn test_vm_record_field_access() {
+fn vm_record_field_access() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1385,7 +1385,7 @@ fn test_vm_record_field_access() {
 }
 
 #[test]
-fn test_vm_record_field_access_second() {
+fn vm_record_field_access_second() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1396,7 +1396,7 @@ fn test_vm_record_field_access_second() {
 }
 
 #[test]
-fn test_vm_nested_record_field_access() {
+fn vm_nested_record_field_access() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1407,7 +1407,7 @@ fn test_vm_nested_record_field_access() {
 }
 
 #[test]
-fn test_vm_record_in_where() {
+fn vm_record_in_where() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1426,7 +1426,7 @@ fn test_vm_record_in_where() {
 // ============================================================================
 
 #[test]
-fn test_map_construction() {
+fn map_construction() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1448,7 +1448,7 @@ fn test_map_construction() {
 }
 
 #[test]
-fn test_map_indexing() {
+fn map_indexing() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1472,7 +1472,7 @@ fn test_map_indexing() {
 }
 
 #[test]
-fn test_vm_map_indexing() {
+fn vm_map_indexing() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1483,7 +1483,7 @@ fn test_vm_map_indexing() {
 }
 
 #[test]
-fn test_vm_map_with_variable_key() {
+fn vm_map_with_variable_key() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1502,7 +1502,7 @@ fn test_vm_map_with_variable_key() {
 // ============================================================================
 
 #[test]
-fn test_vm_array_negative_index_last() {
+fn vm_array_negative_index_last() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1512,7 +1512,7 @@ fn test_vm_array_negative_index_last() {
 }
 
 #[test]
-fn test_vm_array_negative_index_first() {
+fn vm_array_negative_index_first() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1523,7 +1523,7 @@ fn test_vm_array_negative_index_first() {
 
 #[test]
 #[ignore = "Map string keys not implemented in VM (only integer keys work)"]
-fn test_vm_map_string_keys() {
+fn vm_map_string_keys() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1534,7 +1534,7 @@ fn test_vm_map_string_keys() {
 
 #[test]
 #[ignore = "Map[Str, Str] not implemented in VM"]
-fn test_vm_map_string_to_string() {
+fn vm_map_string_to_string() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1548,7 +1548,7 @@ fn test_vm_map_string_to_string() {
 }
 
 #[test]
-fn test_vm_float_array_index() {
+fn vm_float_array_index() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1558,7 +1558,7 @@ fn test_vm_float_array_index() {
 }
 
 #[test]
-fn test_vm_string_array_index() {
+fn vm_string_array_index() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1568,7 +1568,7 @@ fn test_vm_string_array_index() {
 }
 
 #[test]
-fn test_vm_bool_array_index() {
+fn vm_bool_array_index() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1578,7 +1578,7 @@ fn test_vm_bool_array_index() {
 }
 
 #[test]
-fn test_vm_empty_map() {
+fn vm_empty_map() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1590,7 +1590,7 @@ fn test_vm_empty_map() {
 }
 
 #[test]
-fn test_vm_nested_map_access() {
+fn vm_nested_map_access() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1600,7 +1600,7 @@ fn test_vm_nested_map_access() {
 }
 
 #[test]
-fn test_vm_large_map() {
+fn vm_large_map() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1614,7 +1614,7 @@ fn test_vm_large_map() {
 }
 
 #[test]
-fn test_vm_array_of_records() {
+fn vm_array_of_records() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1628,7 +1628,7 @@ fn test_vm_array_of_records() {
 }
 
 #[test]
-fn test_vm_large_record() {
+fn vm_large_record() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1642,7 +1642,7 @@ fn test_vm_large_record() {
 }
 
 #[test]
-fn test_vm_deeply_nested_records() {
+fn vm_deeply_nested_records() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1656,7 +1656,7 @@ fn test_vm_deeply_nested_records() {
 // ============================================================================
 
 #[test]
-fn test_vm_otherwise_array_out_of_bounds() {
+fn vm_otherwise_array_out_of_bounds() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1666,7 +1666,7 @@ fn test_vm_otherwise_array_out_of_bounds() {
 }
 
 #[test]
-fn test_vm_otherwise_array_negative_index() {
+fn vm_otherwise_array_negative_index() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1676,7 +1676,7 @@ fn test_vm_otherwise_array_negative_index() {
 }
 
 #[test]
-fn test_vm_otherwise_array_success() {
+fn vm_otherwise_array_success() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1686,7 +1686,7 @@ fn test_vm_otherwise_array_success() {
 }
 
 #[test]
-fn test_vm_otherwise_map_key_not_found() {
+fn vm_otherwise_map_key_not_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1696,7 +1696,7 @@ fn test_vm_otherwise_map_key_not_found() {
 }
 
 #[test]
-fn test_vm_otherwise_map_success() {
+fn vm_otherwise_map_success() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1706,7 +1706,7 @@ fn test_vm_otherwise_map_success() {
 }
 
 #[test]
-fn test_vm_otherwise_complex_primary_expr() {
+fn vm_otherwise_complex_primary_expr() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1720,7 +1720,7 @@ fn test_vm_otherwise_complex_primary_expr() {
 }
 
 #[test]
-fn test_vm_otherwise_complex_fallback_expr() {
+fn vm_otherwise_complex_fallback_expr() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1734,7 +1734,7 @@ fn test_vm_otherwise_complex_fallback_expr() {
 }
 
 #[test]
-fn test_vm_otherwise_nested() {
+fn vm_otherwise_nested() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1748,7 +1748,7 @@ fn test_vm_otherwise_nested() {
 }
 
 #[test]
-fn test_vm_otherwise_nested_fallback_error() {
+fn vm_otherwise_nested_fallback_error() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1762,7 +1762,7 @@ fn test_vm_otherwise_nested_fallback_error() {
 }
 
 #[test]
-fn test_vm_otherwise_in_arithmetic() {
+fn vm_otherwise_in_arithmetic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1772,7 +1772,7 @@ fn test_vm_otherwise_in_arithmetic() {
 }
 
 #[test]
-fn test_vm_otherwise_bool_result() {
+fn vm_otherwise_bool_result() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1782,7 +1782,7 @@ fn test_vm_otherwise_bool_result() {
 }
 
 #[test]
-fn test_vm_otherwise_chained() {
+fn vm_otherwise_chained() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1800,7 +1800,7 @@ fn test_vm_otherwise_chained() {
 // ============================================================================
 
 #[test]
-fn test_vm_array_index_error_no_otherwise() {
+fn vm_array_index_error_no_otherwise() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1822,7 +1822,7 @@ fn test_vm_array_index_error_no_otherwise() {
 }
 
 #[test]
-fn test_vm_map_key_error_no_otherwise() {
+fn vm_map_key_error_no_otherwise() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1844,7 +1844,7 @@ fn test_vm_map_key_error_no_otherwise() {
 }
 
 #[test]
-fn test_vm_integer_division_by_zero_no_otherwise() {
+fn vm_integer_division_by_zero_no_otherwise() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1866,7 +1866,7 @@ fn test_vm_integer_division_by_zero_no_otherwise() {
 }
 
 #[test]
-fn test_vm_float_division_by_zero_returns_inf() {
+fn vm_float_division_by_zero_returns_inf() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1886,7 +1886,7 @@ fn test_vm_float_division_by_zero_returns_inf() {
 // ============================================================================
 
 #[test]
-fn test_vm_negative_index_last_element() {
+fn vm_negative_index_last_element() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1896,7 +1896,7 @@ fn test_vm_negative_index_last_element() {
 }
 
 #[test]
-fn test_vm_negative_index_second_to_last() {
+fn vm_negative_index_second_to_last() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1906,7 +1906,7 @@ fn test_vm_negative_index_second_to_last() {
 }
 
 #[test]
-fn test_vm_negative_index_first_element() {
+fn vm_negative_index_first_element() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1916,7 +1916,7 @@ fn test_vm_negative_index_first_element() {
 }
 
 #[test]
-fn test_vm_negative_index_out_of_bounds() {
+fn vm_negative_index_out_of_bounds() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1941,7 +1941,7 @@ fn test_vm_negative_index_out_of_bounds() {
 }
 
 #[test]
-fn test_vm_negative_index_way_out_of_bounds() {
+fn vm_negative_index_way_out_of_bounds() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1969,7 +1969,7 @@ fn test_vm_negative_index_way_out_of_bounds() {
 }
 
 #[test]
-fn test_vm_negative_index_dynamic() {
+fn vm_negative_index_dynamic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1979,7 +1979,7 @@ fn test_vm_negative_index_dynamic() {
 }
 
 #[test]
-fn test_vm_negative_index_with_otherwise_success() {
+fn vm_negative_index_with_otherwise_success() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1989,7 +1989,7 @@ fn test_vm_negative_index_with_otherwise_success() {
 }
 
 #[test]
-fn test_vm_negative_index_with_otherwise_error() {
+fn vm_negative_index_with_otherwise_error() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1999,7 +1999,7 @@ fn test_vm_negative_index_with_otherwise_error() {
 }
 
 #[test]
-fn test_vm_negative_index_single_element_array() {
+fn vm_negative_index_single_element_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2009,7 +2009,7 @@ fn test_vm_negative_index_single_element_array() {
 }
 
 #[test]
-fn test_vm_negative_index_float_array() {
+fn vm_negative_index_float_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2019,7 +2019,7 @@ fn test_vm_negative_index_float_array() {
 }
 
 #[test]
-fn test_vm_negative_index_string_array() {
+fn vm_negative_index_string_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2029,7 +2029,7 @@ fn test_vm_negative_index_string_array() {
 }
 
 #[test]
-fn test_vm_negative_index_bool_array() {
+fn vm_negative_index_bool_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2039,7 +2039,7 @@ fn test_vm_negative_index_bool_array() {
 }
 
 #[test]
-fn test_vm_negative_index_nested_arrays() {
+fn vm_negative_index_nested_arrays() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2049,7 +2049,7 @@ fn test_vm_negative_index_nested_arrays() {
 }
 
 #[test]
-fn test_vm_negative_index_boundary_last() {
+fn vm_negative_index_boundary_last() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2063,7 +2063,7 @@ fn test_vm_negative_index_boundary_last() {
 // ============================================================================
 
 #[test]
-fn test_vm_empty_array_positive_index_error() {
+fn vm_empty_array_positive_index_error() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2085,7 +2085,7 @@ fn test_vm_empty_array_positive_index_error() {
 }
 
 #[test]
-fn test_vm_empty_array_negative_index_error() {
+fn vm_empty_array_negative_index_error() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2110,7 +2110,7 @@ fn test_vm_empty_array_negative_index_error() {
 }
 
 #[test]
-fn test_vm_empty_array_with_otherwise() {
+fn vm_empty_array_with_otherwise() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2127,7 +2127,7 @@ fn test_vm_empty_array_with_otherwise() {
 // ============================================================================
 
 #[test]
-fn test_vm_none_literal() {
+fn vm_none_literal() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2144,7 +2144,7 @@ fn test_vm_none_literal() {
 }
 
 #[test]
-fn test_vm_some_integer() {
+fn vm_some_integer() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2164,7 +2164,7 @@ fn test_vm_some_integer() {
 }
 
 #[test]
-fn test_vm_some_float() {
+fn vm_some_float() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2178,7 +2178,7 @@ fn test_vm_some_float() {
 }
 
 #[test]
-fn test_vm_some_bool() {
+fn vm_some_bool() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2192,7 +2192,7 @@ fn test_vm_some_bool() {
 }
 
 #[test]
-fn test_vm_some_string() {
+fn vm_some_string() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2206,7 +2206,7 @@ fn test_vm_some_string() {
 }
 
 #[test]
-fn test_vm_nested_some() {
+fn vm_nested_some() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2224,7 +2224,7 @@ fn test_vm_nested_some() {
 }
 
 #[test]
-fn test_vm_some_with_expression() {
+fn vm_some_with_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2238,7 +2238,7 @@ fn test_vm_some_with_expression() {
 }
 
 #[test]
-fn test_vm_some_with_array() {
+fn vm_some_with_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2255,7 +2255,7 @@ fn test_vm_some_with_array() {
 }
 
 #[test]
-fn test_vm_some_with_record() {
+fn vm_some_with_record() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2275,7 +2275,7 @@ fn test_vm_some_with_record() {
 // ============================================================================
 
 #[test]
-fn test_ffi_math_sin() {
+fn ffi_math_sin() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2286,7 +2286,7 @@ fn test_ffi_math_sin() {
 }
 
 #[test]
-fn test_ffi_math_sin_pi() {
+fn ffi_math_sin_pi() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2297,7 +2297,7 @@ fn test_ffi_math_sin_pi() {
 }
 
 #[test]
-fn test_ffi_math_sqrt() {
+fn ffi_math_sqrt() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2308,7 +2308,7 @@ fn test_ffi_math_sqrt() {
 }
 
 #[test]
-fn test_ffi_math_sqrt_with_expression_arg() {
+fn ffi_math_sqrt_with_expression_arg() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2319,7 +2319,7 @@ fn test_ffi_math_sqrt_with_expression_arg() {
 }
 
 #[test]
-fn test_ffi_in_where_binding() {
+fn ffi_in_where_binding() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2330,7 +2330,7 @@ fn test_ffi_in_where_binding() {
 }
 
 #[test]
-fn test_ffi_nested_calls() {
+fn ffi_nested_calls() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2341,7 +2341,7 @@ fn test_ffi_nested_calls() {
 }
 
 #[test]
-fn test_ffi_math_abs_positive() {
+fn ffi_math_abs_positive() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2352,7 +2352,7 @@ fn test_ffi_math_abs_positive() {
 }
 
 #[test]
-fn test_ffi_math_abs_negative() {
+fn ffi_math_abs_negative() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2363,7 +2363,7 @@ fn test_ffi_math_abs_negative() {
 }
 
 #[test]
-fn test_ffi_math_min() {
+fn ffi_math_min() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2374,7 +2374,7 @@ fn test_ffi_math_min() {
 }
 
 #[test]
-fn test_ffi_math_max() {
+fn ffi_math_max() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2385,7 +2385,7 @@ fn test_ffi_math_max() {
 }
 
 #[test]
-fn test_ffi_result_in_arithmetic() {
+fn ffi_result_in_arithmetic() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2396,7 +2396,7 @@ fn test_ffi_result_in_arithmetic() {
 }
 
 #[test]
-fn test_ffi_in_array() {
+fn ffi_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2414,7 +2414,7 @@ fn test_ffi_in_array() {
 }
 
 #[test]
-fn test_ffi_in_if_expression() {
+fn ffi_in_if_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2429,7 +2429,7 @@ fn test_ffi_in_if_expression() {
 }
 
 #[test]
-fn test_ffi_chained_method_calls() {
+fn ffi_chained_method_calls() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2440,7 +2440,7 @@ fn test_ffi_chained_method_calls() {
 }
 
 #[test]
-fn test_ffi_complex_expression() {
+fn ffi_complex_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2459,7 +2459,7 @@ fn test_ffi_complex_expression() {
 // and that the VM correctly decodes them.
 
 #[test]
-fn test_wide_arg_many_constants() {
+fn wide_arg_many_constants() {
     // Test with >255 constants to verify WideArg encoding for ConstLoad
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
@@ -2503,7 +2503,7 @@ fn test_wide_arg_many_constants() {
 }
 
 #[test]
-fn test_wide_arg_many_locals() {
+fn wide_arg_many_locals() {
     // Test with >255 local variables to verify WideArg encoding for LoadLocal/StoreLocal
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
@@ -2543,7 +2543,7 @@ fn test_wide_arg_many_locals() {
 }
 
 #[test]
-fn test_wide_arg_large_array() {
+fn wide_arg_large_array() {
     // Test with a large array (>255 elements) to verify WideArg encoding for MakeArray
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
@@ -2578,7 +2578,7 @@ fn test_wide_arg_large_array() {
 }
 
 #[test]
-fn test_wide_arg_encoding_bytes() {
+fn wide_arg_encoding_bytes() {
     // Test that WideArg encoding works correctly for multi-byte values
     // by verifying the bytecode structure directly
     use crate::vm::VM;
@@ -2612,7 +2612,7 @@ fn test_wide_arg_encoding_bytes() {
 }
 
 #[test]
-fn test_wide_arg_three_byte_encoding() {
+fn wide_arg_three_byte_encoding() {
     // Test that three-byte WideArg encoding works (for values >= 65536)
     use crate::vm::VM;
 
@@ -2654,7 +2654,7 @@ fn test_wide_arg_three_byte_encoding() {
 // The VM-direct tests below verify the WideArg + Jump functionality works correctly.
 
 #[test]
-fn test_wide_jump_if_large_then_branch() {
+fn wide_jump_if_large_then_branch() {
     // Test if expression with large then and else branches
     // Both branches generate >255 instructions, forcing WideArg for jumps
     let arena = Bump::new();
@@ -2697,7 +2697,7 @@ fn test_wide_jump_if_large_then_branch() {
 }
 
 #[test]
-fn test_wide_jump_otherwise_large_primary() {
+fn wide_jump_otherwise_large_primary() {
     // Test otherwise expression with a large primary that requires wide jump
     // PushOtherwise needs to jump over the large primary to the fallback
     // Primary FAILS so PushOtherwise jump is actually taken
@@ -2742,7 +2742,7 @@ fn test_wide_jump_otherwise_large_primary() {
 }
 
 #[test]
-fn test_wide_jump_otherwise_large_fallback() {
+fn wide_jump_otherwise_large_fallback() {
     // Test otherwise expression with a large fallback that requires wide jump
     // PopOtherwiseAndJump needs to jump over the large fallback to the done label
     // Primary SUCCEEDS so PopOtherwiseAndJump is actually taken
@@ -2787,7 +2787,7 @@ fn test_wide_jump_otherwise_large_fallback() {
 }
 
 #[test]
-fn test_wide_jump_otherwise_large_both() {
+fn wide_jump_otherwise_large_both() {
     // Test otherwise expression with large primary AND large fallback
     // Both PushOtherwise and PopOtherwiseAndJump need WideArg
     let arena = Bump::new();
@@ -2832,7 +2832,7 @@ fn test_wide_jump_otherwise_large_both() {
 }
 
 #[test]
-fn test_wide_jump_vm_direct() {
+fn wide_jump_vm_direct() {
     // Test WideArg with JumpForward directly in the VM
     use crate::vm::VM;
 
@@ -2868,7 +2868,7 @@ fn test_wide_jump_vm_direct() {
 }
 
 #[test]
-fn test_wide_jump_pop_jump_if_false_vm_direct() {
+fn wide_jump_pop_jump_if_false_vm_direct() {
     // Test WideArg with PopJumpIfFalse directly in the VM
     use crate::vm::VM;
 
@@ -2911,7 +2911,7 @@ fn test_wide_jump_pop_jump_if_false_vm_direct() {
 // ============================================================================
 
 #[test]
-fn test_bytes_indexing_first_element() {
+fn bytes_indexing_first_element() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2921,7 +2921,7 @@ fn test_bytes_indexing_first_element() {
 }
 
 #[test]
-fn test_bytes_indexing_last_element() {
+fn bytes_indexing_last_element() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2931,7 +2931,7 @@ fn test_bytes_indexing_last_element() {
 }
 
 #[test]
-fn test_bytes_indexing_negative_index() {
+fn bytes_indexing_negative_index() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2941,7 +2941,7 @@ fn test_bytes_indexing_negative_index() {
 }
 
 #[test]
-fn test_bytes_indexing_with_otherwise() {
+fn bytes_indexing_with_otherwise() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2955,7 +2955,7 @@ fn test_bytes_indexing_with_otherwise() {
 // ============================================================================
 
 #[test]
-fn test_string_less_than() {
+fn string_less_than() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2965,7 +2965,7 @@ fn test_string_less_than() {
 }
 
 #[test]
-fn test_string_greater_than() {
+fn string_greater_than() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2975,7 +2975,7 @@ fn test_string_greater_than() {
 }
 
 #[test]
-fn test_string_less_than_or_equal() {
+fn string_less_than_or_equal() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2985,7 +2985,7 @@ fn test_string_less_than_or_equal() {
 }
 
 #[test]
-fn test_string_greater_than_or_equal() {
+fn string_greater_than_or_equal() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -2999,7 +2999,7 @@ fn test_string_greater_than_or_equal() {
 // ============================================================================
 
 #[test]
-fn test_bytes_less_than() {
+fn bytes_less_than() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3009,7 +3009,7 @@ fn test_bytes_less_than() {
 }
 
 #[test]
-fn test_bytes_greater_than() {
+fn bytes_greater_than() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3019,7 +3019,7 @@ fn test_bytes_greater_than() {
 }
 
 #[test]
-fn test_bytes_less_than_or_equal() {
+fn bytes_less_than_or_equal() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3029,7 +3029,7 @@ fn test_bytes_less_than_or_equal() {
 }
 
 #[test]
-fn test_bytes_greater_than_or_equal() {
+fn bytes_greater_than_or_equal() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3043,7 +3043,7 @@ fn test_bytes_greater_than_or_equal() {
 // ============================================================================
 
 #[test]
-fn test_cast_int_to_float() {
+fn cast_int_to_float() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3063,7 +3063,7 @@ fn test_cast_int_to_float() {
 }
 
 #[test]
-fn test_cast_float_to_int() {
+fn cast_float_to_int() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3074,7 +3074,7 @@ fn test_cast_float_to_int() {
 }
 
 #[test]
-fn test_cast_float_to_int_negative() {
+fn cast_float_to_int_negative() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3085,7 +3085,7 @@ fn test_cast_float_to_int_negative() {
 }
 
 #[test]
-fn test_cast_str_to_bytes() {
+fn cast_str_to_bytes() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3095,7 +3095,7 @@ fn test_cast_str_to_bytes() {
 }
 
 #[test]
-fn test_cast_bytes_to_str_valid_utf8() {
+fn cast_bytes_to_str_valid_utf8() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3105,7 +3105,7 @@ fn test_cast_bytes_to_str_valid_utf8() {
 }
 
 #[test]
-fn test_cast_bytes_to_str_invalid_utf8() {
+fn cast_bytes_to_str_invalid_utf8() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3129,7 +3129,7 @@ fn test_cast_bytes_to_str_invalid_utf8() {
 }
 
 #[test]
-fn test_cast_bytes_to_str_invalid_utf8_with_otherwise() {
+fn cast_bytes_to_str_invalid_utf8_with_otherwise() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3145,7 +3145,7 @@ fn test_cast_bytes_to_str_invalid_utf8_with_otherwise() {
 }
 
 #[test]
-fn test_cast_utf8_roundtrip() {
+fn cast_utf8_roundtrip() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3156,7 +3156,7 @@ fn test_cast_utf8_roundtrip() {
 }
 
 #[test]
-fn test_cast_in_expression() {
+fn cast_in_expression() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3171,7 +3171,7 @@ fn test_cast_in_expression() {
 // ============================================================================
 
 #[test]
-fn test_format_str_no_interpolation() {
+fn format_str_no_interpolation() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3188,7 +3188,7 @@ fn test_format_str_no_interpolation() {
 }
 
 #[test]
-fn test_format_str_single_int() {
+fn format_str_single_int() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3198,7 +3198,7 @@ fn test_format_str_single_int() {
 }
 
 #[test]
-fn test_format_str_multiple_values() {
+fn format_str_multiple_values() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3212,7 +3212,7 @@ fn test_format_str_multiple_values() {
 }
 
 #[test]
-fn test_format_str_with_string() {
+fn format_str_with_string() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3227,7 +3227,7 @@ fn test_format_str_with_string() {
 }
 
 #[test]
-fn test_format_str_with_float() {
+fn format_str_with_float() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3238,7 +3238,7 @@ fn test_format_str_with_float() {
 }
 
 #[test]
-fn test_format_str_with_bool() {
+fn format_str_with_bool() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3252,7 +3252,7 @@ fn test_format_str_with_bool() {
 }
 
 #[test]
-fn test_format_str_with_array() {
+fn format_str_with_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3267,7 +3267,7 @@ fn test_format_str_with_array() {
 }
 
 #[test]
-fn test_format_str_consecutive_expressions() {
+fn format_str_consecutive_expressions() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3278,7 +3278,7 @@ fn test_format_str_consecutive_expressions() {
 }
 
 #[test]
-fn test_format_str_mixed_types() {
+fn format_str_mixed_types() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3299,7 +3299,7 @@ fn test_format_str_mixed_types() {
 // =============================================================================
 
 #[test]
-fn test_match_wildcard() {
+fn match_wildcard() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3311,7 +3311,7 @@ fn test_match_wildcard() {
 }
 
 #[test]
-fn test_match_var() {
+fn match_var() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3326,7 +3326,7 @@ fn test_match_var() {
 }
 
 #[test]
-fn test_match_literal_bool_true() {
+fn match_literal_bool_true() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3341,7 +3341,7 @@ fn test_match_literal_bool_true() {
 }
 
 #[test]
-fn test_match_literal_bool_false() {
+fn match_literal_bool_false() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3356,7 +3356,7 @@ fn test_match_literal_bool_false() {
 }
 
 #[test]
-fn test_match_literal_int() {
+fn match_literal_int() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3371,7 +3371,7 @@ fn test_match_literal_int() {
 }
 
 #[test]
-fn test_match_literal_int_fallback() {
+fn match_literal_int_fallback() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3386,7 +3386,7 @@ fn test_match_literal_int_fallback() {
 }
 
 #[test]
-fn test_match_some_pattern() {
+fn match_some_pattern() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3401,7 +3401,7 @@ fn test_match_some_pattern() {
 }
 
 #[test]
-fn test_match_none_pattern() {
+fn match_none_pattern() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3416,7 +3416,7 @@ fn test_match_none_pattern() {
 }
 
 #[test]
-fn test_match_nested_some() {
+fn match_nested_some() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3433,7 +3433,7 @@ fn test_match_nested_some() {
 }
 
 #[test]
-fn test_match_nested_some_inner_none() {
+fn match_nested_some_inner_none() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3449,7 +3449,7 @@ fn test_match_nested_some_inner_none() {
 
 #[test]
 #[ignore = "Type inference doesn't fully resolve Option[Option[T]] when opt = none"]
-fn test_match_nested_outer_none_unresolved_type() {
+fn match_nested_outer_none_unresolved_type() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3466,7 +3466,7 @@ fn test_match_nested_outer_none_unresolved_type() {
 }
 
 #[test]
-fn test_match_nested_outer_none() {
+fn match_nested_outer_none() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3482,7 +3482,7 @@ fn test_match_nested_outer_none() {
 }
 
 #[test]
-fn test_match_with_expression_body() {
+fn match_with_expression_body() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3497,7 +3497,7 @@ fn test_match_with_expression_body() {
 }
 
 #[test]
-fn test_match_multiple_arms_first_matches() {
+fn match_multiple_arms_first_matches() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3512,7 +3512,7 @@ fn test_match_multiple_arms_first_matches() {
 }
 
 #[test]
-fn test_match_multiple_arms_middle_matches() {
+fn match_multiple_arms_middle_matches() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3527,7 +3527,7 @@ fn test_match_multiple_arms_middle_matches() {
 }
 
 #[test]
-fn test_match_multiple_arms_last_specific_matches() {
+fn match_multiple_arms_last_specific_matches() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3546,7 +3546,7 @@ fn test_match_multiple_arms_last_specific_matches() {
 // =============================================================================
 
 #[test]
-fn test_lambda_identity() {
+fn lambda_identity() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3557,7 +3557,7 @@ fn test_lambda_identity() {
 }
 
 #[test]
-fn test_lambda_in_where_clause() {
+fn lambda_in_where_clause() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3568,7 +3568,7 @@ fn test_lambda_in_where_clause() {
 }
 
 #[test]
-fn test_lambda_generates_make_closure() {
+fn lambda_generates_make_closure() {
     use crate::vm::LambdaKind;
 
     let arena = Bump::new();
@@ -3599,7 +3599,7 @@ fn test_lambda_generates_make_closure() {
 }
 
 #[test]
-fn test_lambda_with_captures() {
+fn lambda_with_captures() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3621,7 +3621,7 @@ fn test_lambda_with_captures() {
 
 #[test]
 #[ignore = "Requires polymorphism support: lambda has Numeric constraint making it polymorphic"]
-fn test_lambda_multiple_params() {
+fn lambda_multiple_params() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3638,7 +3638,7 @@ fn test_lambda_multiple_params() {
 
 #[test]
 #[ignore = "TODO: fix"]
-fn test_lambda_numeric_poly() {
+fn lambda_numeric_poly() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3654,7 +3654,7 @@ fn test_lambda_numeric_poly() {
 }
 
 #[test]
-fn test_lambda_no_params() {
+fn lambda_no_params() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3665,7 +3665,7 @@ fn test_lambda_no_params() {
 }
 
 #[test]
-fn test_lambda_only_captures() {
+fn lambda_only_captures() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3679,7 +3679,7 @@ fn test_lambda_only_captures() {
 }
 
 #[test]
-fn test_nested_lambda() {
+fn nested_lambda() {
     use crate::vm::LambdaKind;
 
     let arena = Bump::new();
@@ -3709,7 +3709,7 @@ fn test_nested_lambda() {
 
 #[test]
 #[ignore = "Requires polymorphism support: lambda has Numeric constraint making it polymorphic"]
-fn test_lambda_as_return_value() {
+fn lambda_as_return_value() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3728,7 +3728,7 @@ fn test_lambda_as_return_value() {
 }
 
 #[test]
-fn test_lambda_multiple_captures() {
+fn lambda_multiple_captures() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3752,7 +3752,7 @@ fn test_lambda_multiple_captures() {
 }
 
 #[test]
-fn test_polymorphic_lambda_numeric() {
+fn polymorphic_lambda_numeric() {
     use crate::vm::LambdaKind;
 
     let arena = Bump::new();
@@ -3813,7 +3813,7 @@ fn test_polymorphic_lambda_numeric() {
 }
 
 #[test]
-fn test_polymorphic_lambda_indexable() {
+fn polymorphic_lambda_indexable() {
     use crate::vm::LambdaKind;
 
     let arena = Bump::new();
@@ -3846,7 +3846,7 @@ fn test_polymorphic_lambda_indexable() {
 }
 
 #[test]
-fn test_monomorphic_lambda_single_instantiation() {
+fn monomorphic_lambda_single_instantiation() {
     use crate::vm::LambdaKind;
 
     let arena = Bump::new();
@@ -3882,7 +3882,7 @@ fn test_monomorphic_lambda_single_instantiation() {
 // ============================================================================
 
 #[test]
-fn test_int_in_array_found() {
+fn int_in_array_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3894,7 +3894,7 @@ fn test_int_in_array_found() {
 }
 
 #[test]
-fn test_int_in_array_not_found() {
+fn int_in_array_not_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3903,7 +3903,7 @@ fn test_int_in_array_not_found() {
 }
 
 #[test]
-fn test_int_not_in_array() {
+fn int_not_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3912,7 +3912,7 @@ fn test_int_not_in_array() {
 }
 
 #[test]
-fn test_string_in_array_found() {
+fn string_in_array_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3921,7 +3921,7 @@ fn test_string_in_array_found() {
 }
 
 #[test]
-fn test_string_in_array_not_found() {
+fn string_in_array_not_found() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3930,7 +3930,7 @@ fn test_string_in_array_not_found() {
 }
 
 #[test]
-fn test_element_in_empty_array() {
+fn element_in_empty_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3939,7 +3939,7 @@ fn test_element_in_empty_array() {
 }
 
 #[test]
-fn test_containment_in_if_condition() {
+fn containment_in_if_condition() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3952,7 +3952,7 @@ fn test_containment_in_if_condition() {
 }
 
 #[test]
-fn test_string_containment_in_where_binding() {
+fn string_containment_in_where_binding() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3965,7 +3965,7 @@ fn test_string_containment_in_where_binding() {
 }
 
 #[test]
-fn test_float_in_array() {
+fn float_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3974,7 +3974,7 @@ fn test_float_in_array() {
 }
 
 #[test]
-fn test_bool_in_array() {
+fn bool_in_array() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -3989,7 +3989,7 @@ fn test_bool_in_array() {
 /// the value correctly. This test verifies that the bytecode compiler resolves
 /// the type through monomorphism substitution when compiling format strings.
 #[test]
-fn test_polymorphic_lambda_format_string() {
+fn polymorphic_lambda_format_string() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -4021,7 +4021,7 @@ fn test_polymorphic_lambda_format_string() {
 /// This tests that a polymorphic lambda like `apply = (f, x) => f(x)` can be
 /// used with different function/argument type combinations.
 #[test]
-fn test_polymorphic_lambda_function_call() {
+fn polymorphic_lambda_function_call() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 

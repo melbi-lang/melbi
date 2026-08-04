@@ -231,7 +231,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_numeric_casts_are_valid() {
+    fn numeric_casts_are_valid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -242,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_str_casts_are_valid() {
+    fn bytes_str_casts_are_valid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -253,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn test_identity_casts_are_valid() {
+    fn identity_casts_are_valid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unsupported_casts_are_invalid() {
+    fn unsupported_casts_are_invalid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -283,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_cast_returns_error_for_invalid() {
+    fn validate_cast_returns_error_for_invalid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -304,7 +304,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_int_to_float_cast() {
+    fn int_to_float_cast() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn test_float_to_int_cast_truncates() {
+    fn float_to_int_cast_truncates() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -331,7 +331,7 @@ mod tests {
     }
 
     #[test]
-    fn test_float_to_int_cast_special_values() {
+    fn float_to_int_cast_special_values() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -352,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_to_bytes_cast() {
+    fn str_to_bytes_cast() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -363,7 +363,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_to_str_cast_valid_utf8() {
+    fn bytes_to_str_cast_valid_utf8() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -374,7 +374,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_to_str_cast_invalid_utf8() {
+    fn bytes_to_str_cast_invalid_utf8() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -393,7 +393,7 @@ mod tests {
     }
 
     #[test]
-    fn test_utf8_roundtrip() {
+    fn utf8_roundtrip() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -410,7 +410,7 @@ mod tests {
     }
 
     #[test]
-    fn test_identity_cast_runtime() {
+    fn identity_cast_runtime() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 

@@ -282,7 +282,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_error_to_diagnostic() {
+    fn parse_error_to_diagnostic() {
         let error = ParseError::new(
             ParseErrorKind::UnexpectedToken {
                 expected: "expression".to_string(),
@@ -300,14 +300,14 @@ mod tests {
     }
 
     #[test]
-    fn test_format_expected_rules() {
+    fn format_expected_rules_works() {
         let rules = vec![Rule::integer, Rule::float];
         let formatted = format_expected_rules(&rules);
         assert_eq!(formatted, "literal");
     }
 
     #[test]
-    fn test_extract_number_from_message() {
+    fn extract_number_from_message_works() {
         let message = "nesting depth 150 exceeds maximum of 100 levels";
         assert_eq!(
             extract_number_from_message(message, "depth"),
@@ -320,7 +320,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_error_conversion_with_both_numbers() {
+    fn depth_error_conversion_with_both_numbers() {
         // Test with format that includes both current depth and max depth
         let pest_err = pest::error::Error::<Rule>::new_from_pos(
             pest::error::ErrorVariant::CustomError {
@@ -342,7 +342,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_error_conversion_with_only_max() {
+    fn depth_error_conversion_with_only_max() {
         // Test with format that only includes max depth (actual parser format)
         let pest_err = pest::error::Error::<Rule>::new_from_pos(
             pest::error::ErrorVariant::CustomError {

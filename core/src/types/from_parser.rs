@@ -129,7 +129,7 @@ mod tests {
     use crate::parser::TypeExpr;
 
     #[test]
-    fn test_simple_types() {
+    fn simple_types() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unknown_type() {
+    fn unknown_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_type() {
+    fn array_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -176,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_type() {
+    fn map_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_parametrized_type() {
+    fn nested_parametrized_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_record_type() {
+    fn record_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -231,7 +231,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_wrong_param_count() {
+    fn array_wrong_param_count() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -245,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_wrong_param_count() {
+    fn map_wrong_param_count() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -259,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_type() {
+    fn option_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_with_complex_inner_type() {
+    fn option_with_complex_inner_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -296,7 +296,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_option() {
+    fn nested_option() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -316,7 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_wrong_param_count_zero() {
+    fn option_wrong_param_count_zero() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -330,7 +330,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_wrong_param_count_multiple() {
+    fn option_wrong_param_count_multiple() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 

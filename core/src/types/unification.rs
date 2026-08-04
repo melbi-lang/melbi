@@ -599,7 +599,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_unifies_to_success() {
+    fn unifies_to_success() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -615,7 +615,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unifies_to_failure() {
+    fn unifies_to_failure() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -636,7 +636,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_empty() {
+    fn free_type_vars_empty() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -648,7 +648,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_single() {
+    fn free_type_vars_single() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -661,7 +661,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_function() {
+    fn free_type_vars_function() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -679,7 +679,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_after_unification() {
+    fn free_type_vars_after_unification() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -697,7 +697,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generalize_monomorphic() {
+    fn generalize_monomorphic() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -712,7 +712,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generalize_polymorphic() {
+    fn generalize_polymorphic() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -731,7 +731,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generalize_with_env_vars() {
+    fn generalize_with_env_vars() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -753,7 +753,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instantiate_monomorphic() {
+    fn instantiate_monomorphic() {
         use crate::parser::Span;
 
         let arena = bumpalo::Bump::new();
@@ -771,7 +771,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instantiate_polymorphic() {
+    fn instantiate_polymorphic() {
         use crate::parser::Span;
 
         let arena = bumpalo::Bump::new();
@@ -799,7 +799,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instantiate_creates_fresh_vars() {
+    fn instantiate_creates_fresh_vars() {
         use crate::parser::Span;
 
         let arena = bumpalo::Bump::new();
@@ -836,7 +836,7 @@ mod tests {
     }
 
     #[test]
-    fn test_substitute_with_nested_unification() {
+    fn substitute_with_nested_unification() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -891,7 +891,7 @@ mod tests {
     }
 
     #[test]
-    fn test_path_compression_basic() {
+    fn path_compression_basic() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -919,7 +919,7 @@ mod tests {
     }
 
     #[test]
-    fn test_path_compression_long_chain() {
+    fn path_compression_long_chain() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -949,7 +949,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fully_resolve_array() {
+    fn fully_resolve_array() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -970,7 +970,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fully_resolve_function() {
+    fn fully_resolve_function() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1001,7 +1001,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fully_resolve_with_chain() {
+    fn fully_resolve_with_chain() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1032,7 +1032,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_option_same_inner() {
+    fn unify_option_same_inner() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1050,7 +1050,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_option_different_inner() {
+    fn unify_option_different_inner() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1069,7 +1069,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_option_with_type_var() {
+    fn unify_option_with_type_var() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1092,7 +1092,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_nested_option() {
+    fn unify_nested_option() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1108,7 +1108,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_option() {
+    fn free_type_vars_option() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -1123,7 +1123,7 @@ mod tests {
     }
 
     #[test]
-    fn test_occurs_check_option() {
+    fn occurs_check_option() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);

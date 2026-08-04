@@ -2,7 +2,7 @@ use melbi_lsp::document::DocumentState;
 use tower_lsp::lsp_types::*;
 
 #[test]
-fn test_syntax_error_detection() {
+fn syntax_error_detection() {
     let mut doc = DocumentState::new("1 + + 2".to_string());
     let diagnostics = doc.analyze();
 
@@ -11,7 +11,7 @@ fn test_syntax_error_detection() {
 }
 
 #[test]
-fn test_type_error_detection() {
+fn type_error_detection() {
     let mut doc = DocumentState::new("1 + true".to_string());
     let diagnostics = doc.analyze();
 
@@ -23,7 +23,7 @@ fn test_type_error_detection() {
 }
 
 #[test]
-fn test_valid_program_no_errors() {
+fn valid_program_no_errors() {
     let mut doc = DocumentState::new("1 + 2".to_string());
     let diagnostics = doc.analyze();
 
@@ -35,7 +35,7 @@ fn test_valid_program_no_errors() {
 }
 
 #[test]
-fn test_where_expression_type_checking() {
+fn where_expression_type_checking() {
     let mut doc = DocumentState::new("x + y where { x = 10, y = 20 }".to_string());
     let diagnostics = doc.analyze();
 
@@ -48,7 +48,7 @@ fn test_where_expression_type_checking() {
 
 #[test]
 #[ignore] // tree-sitter grammar doesn't fully support lambda expressions yet
-fn test_lambda_type_checking() {
+fn lambda_type_checking() {
     // Note: Lambda expressions are not fully supported by tree-sitter grammar
     // This is a known limitation of the grammar
     let mut doc = DocumentState::new("x => x + 1".to_string());
@@ -61,7 +61,7 @@ fn test_lambda_type_checking() {
 }
 
 #[test]
-fn test_if_expression_type_error() {
+fn if_expression_type_error() {
     let mut doc = DocumentState::new("if true then 1 else \"hello\"".to_string());
     let diagnostics = doc.analyze();
 
@@ -72,7 +72,7 @@ fn test_if_expression_type_error() {
 }
 
 #[test]
-fn test_multiple_errors_reported() {
+fn multiple_errors_reported() {
     // Even though analyzer currently returns first error only,
     // we should still test that syntax errors are reported
     let mut doc = DocumentState::new("1 + +".to_string());
@@ -82,7 +82,7 @@ fn test_multiple_errors_reported() {
 }
 
 #[test]
-fn test_record_type_checking() {
+fn record_type_checking() {
     let mut doc = DocumentState::new("{ x = 10, y = 20 }.x".to_string());
     let diagnostics = doc.analyze();
 
@@ -93,7 +93,7 @@ fn test_record_type_checking() {
 }
 
 #[test]
-fn test_array_type_checking() {
+fn array_type_checking() {
     let mut doc = DocumentState::new("[1, 2, 3]".to_string());
     let diagnostics = doc.analyze();
 
@@ -101,7 +101,7 @@ fn test_array_type_checking() {
 }
 
 #[test]
-fn test_suffix_expression_type_checking() {
+fn suffix_expression_type_checking() {
     let mut doc = DocumentState::new("10`m`".to_string());
     let diagnostics = doc.analyze();
 

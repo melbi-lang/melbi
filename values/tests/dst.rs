@@ -76,7 +76,7 @@ impl<'a, H, T> Flex<'a, H, T> {
 }
 
 #[test]
-fn test_flex_inner() {
+fn flex_inner() {
     let arena = Bump::new();
     let a = Flex::from_iter(&arena, "something", [1, 2, 3]);
     assert_eq!(a.as_fat_ref().header, "something");

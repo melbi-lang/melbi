@@ -113,42 +113,42 @@ impl<'a> Runner<'a> {
 // ============================================================================
 
 #[test]
-fn test_constant_int() {
+fn constant_int() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("42", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 42);
 }
 
 #[test]
-fn test_constant_negative_int() {
+fn constant_negative_int() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-42", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), -42);
 }
 
 #[test]
-fn test_constant_float() {
+fn constant_float() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("3.14", &[], &[]).unwrap();
     assert_eq!(result.as_float().unwrap(), 3.14);
 }
 
 #[test]
-fn test_constant_bool_true() {
+fn constant_bool_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true", &[], &[]).unwrap();
     assert!(result.as_bool().unwrap());
 }
 
 #[test]
-fn test_constant_bool_false() {
+fn constant_bool_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false", &[], &[]).unwrap();
     assert!(!result.as_bool().unwrap());
 }
 
 #[test]
-fn test_constant_string() {
+fn constant_string() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run(r#""hello""#, &[], &[]).unwrap();
     assert_eq!(result.as_str().unwrap(), "hello");
@@ -159,56 +159,56 @@ fn test_constant_string() {
 // ============================================================================
 
 #[test]
-fn test_int_addition() {
+fn int_addition() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("2 + 3", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 5);
 }
 
 #[test]
-fn test_int_subtraction() {
+fn int_subtraction() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("10 - 4", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 6);
 }
 
 #[test]
-fn test_int_multiplication() {
+fn int_multiplication() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("3 * 4", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 12);
 }
 
 #[test]
-fn test_int_division() {
+fn int_division() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("10 / 2", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 5);
 }
 
 #[test]
-fn test_int_division_truncates() {
+fn int_division_truncates() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("7 / 3", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 2);
 }
 
 #[test]
-fn test_int_power() {
+fn int_power() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("2 ^ 10", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 1024);
 }
 
 #[test]
-fn test_int_power_zero() {
+fn int_power_zero() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("5 ^ 0", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 1);
 }
 
 #[test]
-fn test_int_division_by_zero() {
+fn int_division_by_zero() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("10 / 0", &[], &[]);
     assert!(matches!(
@@ -221,7 +221,7 @@ fn test_int_division_by_zero() {
 }
 
 #[test]
-fn test_int_division_euclidean_negative_dividend() {
+fn int_division_euclidean_negative_dividend() {
     // Euclidean division: -7 / 3 = -3 (not -2 like truncated division)
     // because -7 = -3 * 3 + 2 (remainder is always non-negative)
     let arena = Bump::new();
@@ -230,7 +230,7 @@ fn test_int_division_euclidean_negative_dividend() {
 }
 
 #[test]
-fn test_int_division_euclidean_negative_divisor() {
+fn int_division_euclidean_negative_divisor() {
     // Euclidean division: 7 / -3 = -2 (not -2 like truncated, same in this case)
     // because 7 = -2 * (-3) + 1
     let arena = Bump::new();
@@ -239,7 +239,7 @@ fn test_int_division_euclidean_negative_divisor() {
 }
 
 #[test]
-fn test_int_division_euclidean_both_negative() {
+fn int_division_euclidean_both_negative() {
     // Euclidean division: -7 / -3 = 3 (not 2 like truncated)
     // because -7 = 3 * (-3) + 2
     let arena = Bump::new();
@@ -248,7 +248,7 @@ fn test_int_division_euclidean_both_negative() {
 }
 
 #[test]
-fn test_int_division_i64_min_overflow() {
+fn int_division_i64_min_overflow() {
     // i64::MIN / -1 would overflow (result would be i64::MAX + 1)
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-9223372036854775808 / -1", &[], &[]);
@@ -262,7 +262,7 @@ fn test_int_division_i64_min_overflow() {
 }
 
 #[test]
-fn test_int_wrapping_overflow_add() {
+fn int_wrapping_overflow_add() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("9223372036854775807 + 1", &[], &[])
@@ -271,7 +271,7 @@ fn test_int_wrapping_overflow_add() {
 }
 
 #[test]
-fn test_int_wrapping_overflow_mul() {
+fn int_wrapping_overflow_mul() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("9223372036854775807 * 2", &[], &[])
@@ -284,28 +284,28 @@ fn test_int_wrapping_overflow_mul() {
 // ============================================================================
 
 #[test]
-fn test_float_addition() {
+fn float_addition() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("3.14 + 2.0", &[], &[]).unwrap();
     assert!((result.as_float().unwrap() - 5.14).abs() < 0.0001);
 }
 
 #[test]
-fn test_float_subtraction() {
+fn float_subtraction() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("10.5 - 3.5", &[], &[]).unwrap();
     assert_eq!(result.as_float().unwrap(), 7.0);
 }
 
 #[test]
-fn test_float_multiplication() {
+fn float_multiplication() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("2.5 * 4.0", &[], &[]).unwrap();
     assert_eq!(result.as_float().unwrap(), 10.0);
 }
 
 #[test]
-fn test_float_division() {
+fn float_division() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("10.0 / 3.0", &[], &[]).unwrap();
     let expected = 10.0 / 3.0;
@@ -313,14 +313,14 @@ fn test_float_division() {
 }
 
 #[test]
-fn test_float_division_by_zero() {
+fn float_division_by_zero() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("10.0 / 0.0", &[], &[]).unwrap();
     assert!(result.as_float().unwrap().is_infinite());
 }
 
 #[test]
-fn test_float_power() {
+fn float_power() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("2.0 ^ 3.0", &[], &[]).unwrap();
     assert_eq!(result.as_float().unwrap(), 8.0);
@@ -331,28 +331,28 @@ fn test_float_power() {
 // ============================================================================
 
 #[test]
-fn test_boolean_and_true_true() {
+fn boolean_and_true_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true and true", &[], &[]).unwrap();
     assert!(result.as_bool().unwrap());
 }
 
 #[test]
-fn test_boolean_and_true_false() {
+fn boolean_and_true_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true and false", &[], &[]).unwrap();
     assert!(!result.as_bool().unwrap());
 }
 
 #[test]
-fn test_boolean_and_false_true() {
+fn boolean_and_false_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false and true", &[], &[]).unwrap();
     assert!(!result.as_bool().unwrap());
 }
 
 #[test]
-fn test_boolean_and_false_false() {
+fn boolean_and_false_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("false and false", &[], &[])
@@ -361,14 +361,14 @@ fn test_boolean_and_false_false() {
 }
 
 #[test]
-fn test_boolean_or_true_true() {
+fn boolean_or_true_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true or true", &[], &[]).unwrap();
     assert!(result.as_bool().unwrap());
 }
 
 #[test]
-fn test_boolean_or_true_false() {
+fn boolean_or_true_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("true or false", &[], &[]).unwrap();
     // Right side not evaluated due to short-circuit
@@ -376,21 +376,21 @@ fn test_boolean_or_true_false() {
 }
 
 #[test]
-fn test_boolean_or_false_true() {
+fn boolean_or_false_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false or true", &[], &[]).unwrap();
     assert!(result.as_bool().unwrap());
 }
 
 #[test]
-fn test_boolean_or_false_false() {
+fn boolean_or_false_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("false or false", &[], &[]).unwrap();
     assert!(!result.as_bool().unwrap());
 }
 
 #[test]
-fn test_boolean_chain_and() {
+fn boolean_chain_and() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("true and true and false", &[], &[])
@@ -399,7 +399,7 @@ fn test_boolean_chain_and() {
 }
 
 #[test]
-fn test_boolean_chain_or() {
+fn boolean_chain_or() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("false or false or true", &[], &[])
@@ -408,7 +408,7 @@ fn test_boolean_chain_or() {
 }
 
 #[test]
-fn test_boolean_mixed_chain() {
+fn boolean_mixed_chain() {
     let arena = Bump::new();
     // 'and' has higher precedence than 'or'
     // So: true and false or true = (true and false) or true = false or true = true
@@ -419,7 +419,7 @@ fn test_boolean_mixed_chain() {
 }
 
 #[test]
-fn test_boolean_with_variables() {
+fn boolean_with_variables() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -432,7 +432,7 @@ fn test_boolean_with_variables() {
 }
 
 #[test]
-fn test_boolean_short_circuit_and_with_where() {
+fn boolean_short_circuit_and_with_where() {
     let arena = Bump::new();
     // false and (x where { x = true })
     // The where expression should not be evaluated due to short-circuit
@@ -443,7 +443,7 @@ fn test_boolean_short_circuit_and_with_where() {
 }
 
 #[test]
-fn test_boolean_short_circuit_or_with_where() {
+fn boolean_short_circuit_or_with_where() {
     let arena = Bump::new();
     // true or (x where { x = false })
     // The where expression should not be evaluated due to short-circuit
@@ -458,14 +458,14 @@ fn test_boolean_short_circuit_or_with_where() {
 // ============================================================================
 
 #[test]
-fn test_nested_arithmetic() {
+fn nested_arithmetic() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("(2 + 3) * 4", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 20);
 }
 
 #[test]
-fn test_deeply_nested() {
+fn deeply_nested() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((1 + 2) * (3 + 4)) - (5 * 6)", &[], &[])
@@ -474,7 +474,7 @@ fn test_deeply_nested() {
 }
 
 #[test]
-fn test_operator_precedence() {
+fn operator_precedence() {
     let arena = Bump::new();
 
     // Verify that * binds tighter than +
@@ -492,7 +492,7 @@ fn test_operator_precedence() {
 
 #[test]
 #[ignore = "TODO(investigage): this is actually overflowing the stack"]
-fn test_stack_depth_limit() {
+fn stack_depth_limit() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -519,7 +519,7 @@ fn test_stack_depth_limit() {
 }
 
 #[test]
-fn test_custom_stack_depth_limit() {
+fn custom_stack_depth_limit() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -569,7 +569,7 @@ fn test_custom_stack_depth_limit() {
 // ============================================================================
 
 #[test]
-fn test_variable_simple_lookup() {
+fn variable_simple_lookup() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -579,7 +579,7 @@ fn test_variable_simple_lookup() {
 }
 
 #[test]
-fn test_variable_in_expression() {
+fn variable_in_expression() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -589,7 +589,7 @@ fn test_variable_in_expression() {
 }
 
 #[test]
-fn test_multiple_variables() {
+fn multiple_variables() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -602,7 +602,7 @@ fn test_multiple_variables() {
 }
 
 #[test]
-fn test_variable_float() {
+fn variable_float() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -612,7 +612,7 @@ fn test_variable_float() {
 }
 
 #[test]
-fn test_variable_bool() {
+fn variable_bool() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -622,7 +622,7 @@ fn test_variable_bool() {
 }
 
 #[test]
-fn test_variable_string() {
+fn variable_string() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -636,7 +636,7 @@ fn test_variable_string() {
 // ============================================================================
 
 #[test]
-fn test_global_constant_pi() {
+fn global_constant_pi() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -646,7 +646,7 @@ fn test_global_constant_pi() {
 }
 
 #[test]
-fn test_global_constant_with_variables() {
+fn global_constant_with_variables() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -661,7 +661,7 @@ fn test_global_constant_with_variables() {
 }
 
 #[test]
-fn test_multiple_globals() {
+fn multiple_globals() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -678,7 +678,7 @@ fn test_multiple_globals() {
 // ============================================================================
 
 #[test]
-fn test_where_shadows_variable() {
+fn where_shadows_variable() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -690,7 +690,7 @@ fn test_where_shadows_variable() {
 }
 
 #[test]
-fn test_where_can_reference_variable() {
+fn where_can_reference_variable() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -708,7 +708,7 @@ fn test_where_can_reference_variable() {
 // ============================================================================
 
 #[test]
-fn test_where_simple() {
+fn where_simple() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("x where { x = 42 }", &[], &[])
@@ -717,7 +717,7 @@ fn test_where_simple() {
 }
 
 #[test]
-fn test_where_multiple_bindings() {
+fn where_multiple_bindings() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("x + y where { x = 10, y = 20 }", &[], &[])
@@ -726,7 +726,7 @@ fn test_where_multiple_bindings() {
 }
 
 #[test]
-fn test_where_sequential_binding() {
+fn where_sequential_binding() {
     let arena = Bump::new();
     // b can reference a (sequential binding)
     let result = Runner::new(&arena)
@@ -736,7 +736,7 @@ fn test_where_sequential_binding() {
 }
 
 #[test]
-fn test_where_sequential_binding_chain() {
+fn where_sequential_binding_chain() {
     let arena = Bump::new();
     // c can reference b which references a
     let result = Runner::new(&arena)
@@ -746,7 +746,7 @@ fn test_where_sequential_binding_chain() {
 }
 
 #[test]
-fn test_where_complex_expression() {
+fn where_complex_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("a + b + c where { a = 1, b = a * 2, c = b + 1 }", &[], &[])
@@ -755,7 +755,7 @@ fn test_where_complex_expression() {
 }
 
 #[test]
-fn test_where_nested_scopes() {
+fn where_nested_scopes() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("x + y where { x = 10 } where { y = 20 }", &[], &[])
@@ -764,7 +764,7 @@ fn test_where_nested_scopes() {
 }
 
 #[test]
-fn test_where_with_arithmetic() {
+fn where_with_arithmetic() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(a + b) * c where { a = 2, b = 3, c = 4 }", &[], &[])
@@ -773,7 +773,7 @@ fn test_where_with_arithmetic() {
 }
 
 #[test]
-fn test_where_with_float() {
+fn where_with_float() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("x * y where { x = 2.5, y = 4.0 }", &[], &[])
@@ -786,7 +786,7 @@ fn test_where_with_float() {
 // ============================================================================
 
 #[test]
-fn test_record_empty() {
+fn record_empty() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("Record{}", &[], &[]).unwrap();
     let record = result.as_record().unwrap();
@@ -795,7 +795,7 @@ fn test_record_empty() {
 }
 
 #[test]
-fn test_record_simple() {
+fn record_simple() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("{ x = 42, y = 3.14 }", &[], &[])
@@ -811,14 +811,14 @@ fn test_record_simple() {
 }
 
 #[test]
-fn test_field_access_simple() {
+fn field_access_simple() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("{ x = 42 }.x", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 42);
 }
 
 #[test]
-fn test_field_access_multiple_fields() {
+fn field_access_multiple_fields() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("{ a = 10, b = 20, c = 30 }.b", &[], &[])
@@ -827,7 +827,7 @@ fn test_field_access_multiple_fields() {
 }
 
 #[test]
-fn test_field_access_in_expression() {
+fn field_access_in_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("{ x = 5, y = 10 }.x + { x = 5, y = 10 }.y", &[], &[])
@@ -836,7 +836,7 @@ fn test_field_access_in_expression() {
 }
 
 #[test]
-fn test_record_with_where() {
+fn record_with_where() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("{ x = a, y = b } where { a = 1, b = 2 }", &[], &[])
@@ -851,7 +851,7 @@ fn test_record_with_where() {
 }
 
 #[test]
-fn test_nested_record() {
+fn nested_record() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -876,7 +876,7 @@ fn test_nested_record() {
 }
 
 #[test]
-fn test_nested_field_access() {
+fn nested_field_access() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("{ point = { x = 10, y = 20 } }.point.x", &[], &[])
@@ -885,7 +885,7 @@ fn test_nested_field_access() {
 }
 
 #[test]
-fn test_math_package_record() {
+fn math_package_record() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -916,7 +916,7 @@ fn test_math_package_record() {
 }
 
 #[test]
-fn test_math_package_circle_area() {
+fn math_package_circle_area() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -948,63 +948,63 @@ fn test_math_package_circle_area() {
 // ================================
 
 #[test]
-fn test_unary_negation_int() {
+fn unary_negation_int() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-42", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), -42);
 }
 
 #[test]
-fn test_unary_negation_int_positive() {
+fn unary_negation_int_positive() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-(42)", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), -42);
 }
 
 #[test]
-fn test_unary_double_negation() {
+fn unary_double_negation() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-(-5)", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 5);
 }
 
 #[test]
-fn test_unary_negation_expression() {
+fn unary_negation_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-(1 + 2)", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), -3);
 }
 
 #[test]
-fn test_unary_negation_float() {
+fn unary_negation_float() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-(3.14)", &[], &[]).unwrap();
     assert!((result.as_float().unwrap() + 3.14).abs() < 0.0001);
 }
 
 #[test]
-fn test_unary_negation_float_expression() {
+fn unary_negation_float_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("-(2.5 + 1.5)", &[], &[]).unwrap();
     assert!((result.as_float().unwrap() + 4.0).abs() < 0.0001);
 }
 
 #[test]
-fn test_unary_not_true() {
+fn unary_not_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("not true", &[], &[]).unwrap();
     assert!(!result.as_bool().unwrap());
 }
 
 #[test]
-fn test_unary_not_false() {
+fn unary_not_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("not false", &[], &[]).unwrap();
     assert!(result.as_bool().unwrap());
 }
 
 #[test]
-fn test_unary_not_expression() {
+fn unary_not_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("not (true and false)", &[], &[])
@@ -1013,7 +1013,7 @@ fn test_unary_not_expression() {
 }
 
 #[test]
-fn test_unary_with_where() {
+fn unary_with_where() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("-x where { x = 42 }", &[], &[])
@@ -1022,7 +1022,7 @@ fn test_unary_with_where() {
 }
 
 #[test]
-fn test_unary_negation_wrapping() {
+fn unary_negation_wrapping() {
     let arena = Bump::new();
     // Use string interpolation to build the source with i64::MIN
     let source = format!("-({})", i64::MIN);
@@ -1036,7 +1036,7 @@ fn test_unary_negation_wrapping() {
 // ================================
 
 #[test]
-fn test_if_true_branch() {
+fn if_true_branch() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if true then 1 else 2", &[], &[])
@@ -1045,7 +1045,7 @@ fn test_if_true_branch() {
 }
 
 #[test]
-fn test_if_false_branch() {
+fn if_false_branch() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if false then 1 else 2", &[], &[])
@@ -1054,7 +1054,7 @@ fn test_if_false_branch() {
 }
 
 #[test]
-fn test_if_with_variable() {
+fn if_with_variable() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -1074,7 +1074,7 @@ fn test_if_with_variable() {
 }
 
 #[test]
-fn test_if_with_expression_condition() {
+fn if_with_expression_condition() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if true and false then 1 else 2", &[], &[])
@@ -1083,7 +1083,7 @@ fn test_if_with_expression_condition() {
 }
 
 #[test]
-fn test_if_with_where() {
+fn if_with_where() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if x then 1 else 2 where { x = true }", &[], &[])
@@ -1092,7 +1092,7 @@ fn test_if_with_where() {
 }
 
 #[test]
-fn test_if_nested() {
+fn if_nested() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if true then (if false then 1 else 2) else 3", &[], &[])
@@ -1101,7 +1101,7 @@ fn test_if_nested() {
 }
 
 #[test]
-fn test_if_float_branches() {
+fn if_float_branches() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if true then 3.14 else 2.71", &[], &[])
@@ -1110,7 +1110,7 @@ fn test_if_float_branches() {
 }
 
 #[test]
-fn test_if_string_branches() {
+fn if_string_branches() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"if false then "yes" else "no""#, &[], &[])
@@ -1119,7 +1119,7 @@ fn test_if_string_branches() {
 }
 
 #[test]
-fn test_if_bool_branches() {
+fn if_bool_branches() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if true then true else false", &[], &[])
@@ -1128,7 +1128,7 @@ fn test_if_bool_branches() {
 }
 
 #[test]
-fn test_if_with_complex_expressions() {
+fn if_with_complex_expressions() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("if true then (1 + 2) * 3 else 4 ^ 2", &[], &[])
@@ -1141,7 +1141,7 @@ fn test_if_with_complex_expressions() {
 // ================================
 
 #[test]
-fn test_array_empty() {
+fn array_empty() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("[]", &[], &[]).unwrap();
 
@@ -1150,7 +1150,7 @@ fn test_array_empty() {
 }
 
 #[test]
-fn test_array_simple_int() {
+fn array_simple_int() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("[1, 2, 3]", &[], &[]).unwrap();
 
@@ -1162,7 +1162,7 @@ fn test_array_simple_int() {
 }
 
 #[test]
-fn test_array_simple_float() {
+fn array_simple_float() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[3.14, 2.71, 1.41]", &[], &[])
@@ -1176,7 +1176,7 @@ fn test_array_simple_float() {
 }
 
 #[test]
-fn test_array_simple_bool() {
+fn array_simple_bool() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[true, false, true]", &[], &[])
@@ -1190,7 +1190,7 @@ fn test_array_simple_bool() {
 }
 
 #[test]
-fn test_array_simple_string() {
+fn array_simple_string() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"["a", "b", "c"]"#, &[], &[])
@@ -1204,7 +1204,7 @@ fn test_array_simple_string() {
 }
 
 #[test]
-fn test_array_with_expressions() {
+fn array_with_expressions() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[1 + 1, 2 * 2, 3 ^ 2]", &[], &[])
@@ -1218,7 +1218,7 @@ fn test_array_with_expressions() {
 }
 
 #[test]
-fn test_array_nested() {
+fn array_nested() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[[1, 2], [3, 4]]", &[], &[])
@@ -1239,7 +1239,7 @@ fn test_array_nested() {
 }
 
 #[test]
-fn test_array_with_where() {
+fn array_with_where() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[x, y, z] where { x = 1, y = 2, z = 3 }", &[], &[])
@@ -1253,7 +1253,7 @@ fn test_array_with_where() {
 }
 
 #[test]
-fn test_array_with_variables() {
+fn array_with_variables() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -1275,21 +1275,21 @@ fn test_array_with_variables() {
 // ================================
 
 #[test]
-fn test_index_simple() {
+fn index_simple() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("[1, 2, 3][0]", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 1);
 }
 
 #[test]
-fn test_index_last_element() {
+fn index_last_element() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("[1, 2, 3][2]", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 3);
 }
 
 #[test]
-fn test_index_with_variable() {
+fn index_with_variable() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("arr[i] where { arr = [10, 20, 30], i = 1 }", &[], &[])
@@ -1298,7 +1298,7 @@ fn test_index_with_variable() {
 }
 
 #[test]
-fn test_index_with_expression() {
+fn index_with_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[5, 10, 15][1 + 1]", &[], &[])
@@ -1307,7 +1307,7 @@ fn test_index_with_expression() {
 }
 
 #[test]
-fn test_index_out_of_bounds_positive() {
+fn index_out_of_bounds_positive() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("[1, 2][5]", &[], &[]);
     assert!(matches!(
@@ -1320,7 +1320,7 @@ fn test_index_out_of_bounds_positive() {
 }
 
 #[test]
-fn test_index_negative() {
+fn index_negative() {
     let arena = Bump::new();
     // -1 should get the last element
     let result = Runner::new(&arena).run("[1, 2][-1]", &[], &[]).unwrap();
@@ -1328,7 +1328,7 @@ fn test_index_negative() {
 }
 
 #[test]
-fn test_index_negative_second_to_last() {
+fn index_negative_second_to_last() {
     let arena = Bump::new();
     // -2 should get the second-to-last element
     let result = Runner::new(&arena).run("[1, 2, 3][-2]", &[], &[]).unwrap();
@@ -1336,7 +1336,7 @@ fn test_index_negative_second_to_last() {
 }
 
 #[test]
-fn test_index_negative_first() {
+fn index_negative_first() {
     let arena = Bump::new();
     // -3 should get the first element of a 3-element array
     let result = Runner::new(&arena)
@@ -1346,7 +1346,7 @@ fn test_index_negative_first() {
 }
 
 #[test]
-fn test_index_out_of_bounds_negative() {
+fn index_out_of_bounds_negative() {
     let arena = Bump::new();
     // -3 is out of bounds for a 2-element array
     let result = Runner::new(&arena).run("[1, 2][-3]", &[], &[]);
@@ -1358,7 +1358,7 @@ fn test_index_out_of_bounds_negative() {
 }
 
 #[test]
-fn test_index_nested_array() {
+fn index_nested_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[[1, 2], [3, 4]][1][0]", &[], &[])
@@ -1367,7 +1367,7 @@ fn test_index_nested_array() {
 }
 
 #[test]
-fn test_index_float_array() {
+fn index_float_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[3.14, 2.71, 1.41][1]", &[], &[])
@@ -1376,7 +1376,7 @@ fn test_index_float_array() {
 }
 
 #[test]
-fn test_index_string_array() {
+fn index_string_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"["a", "b", "c"][2]"#, &[], &[])
@@ -1385,7 +1385,7 @@ fn test_index_string_array() {
 }
 
 #[test]
-fn test_index_bool_array() {
+fn index_bool_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[true, false, true][1]", &[], &[])
@@ -1394,7 +1394,7 @@ fn test_index_bool_array() {
 }
 
 #[test]
-fn test_index_with_where_binding() {
+fn index_with_where_binding() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -1411,7 +1411,7 @@ fn test_index_with_where_binding() {
 // ================================
 
 #[test]
-fn test_map_index_basic_int_key() {
+fn map_index_basic_int_key() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("{1: \"one\"}[1]", &[], &[])
@@ -1420,7 +1420,7 @@ fn test_map_index_basic_int_key() {
 }
 
 #[test]
-fn test_map_index_key_not_found() {
+fn map_index_key_not_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("{1: \"one\"}[0]", &[], &[]);
     assert!(matches!(
@@ -1433,7 +1433,7 @@ fn test_map_index_key_not_found() {
 }
 
 #[test]
-fn test_map_index_in_function() {
+fn map_index_in_function() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("f({1: \"one\"}) where { f = (m) => m[1] }", &[], &[])
@@ -1442,7 +1442,7 @@ fn test_map_index_in_function() {
 }
 
 #[test]
-fn test_map_index_with_variable_key() {
+fn map_index_with_variable_key() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("f({1: \"one\"}, 1) where { f = (m, k) => m[k] }", &[], &[])
@@ -1451,7 +1451,7 @@ fn test_map_index_with_variable_key() {
 }
 
 #[test]
-fn test_map_index_multiple_key_types() {
+fn map_index_multiple_key_types() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -1467,7 +1467,7 @@ fn test_map_index_multiple_key_types() {
 }
 
 #[test]
-fn test_polymorphic_lambda_array_construction() {
+fn polymorphic_lambda_array_construction() {
     // Array construction in polymorphic lambda body with monomorphization
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -1480,7 +1480,7 @@ fn test_polymorphic_lambda_array_construction() {
 }
 
 #[test]
-fn test_polymorphic_lambda_empty_record() {
+fn polymorphic_lambda_empty_record() {
     // Empty record/map construction needs to know the concrete types
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -1495,7 +1495,7 @@ fn test_polymorphic_lambda_empty_record() {
 }
 
 #[test]
-fn test_polymorphic_lambda_empty_map_no_params() {
+fn polymorphic_lambda_empty_map_no_params() {
     // Empty map construction in polymorphic lambda body
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -1513,7 +1513,7 @@ fn test_polymorphic_lambda_empty_map_no_params() {
 }
 
 #[test]
-fn test_map_index_nested() {
+fn map_index_nested() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("{1: {2: \"value\"}}[1][2]", &[], &[])
@@ -1522,7 +1522,7 @@ fn test_map_index_nested() {
 }
 
 #[test]
-fn test_map_index_string_keys() {
+fn map_index_string_keys() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"{"key": "value"}["key"]"#, &[], &[])
@@ -1531,7 +1531,7 @@ fn test_map_index_string_keys() {
 }
 
 #[test]
-fn test_map_index_bool_keys() {
+fn map_index_bool_keys() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"{true: "yes", false: "no"}[true]"#, &[], &[])
@@ -1540,7 +1540,7 @@ fn test_map_index_bool_keys() {
 }
 
 #[test]
-fn test_map_index_empty_map() {
+fn map_index_empty_map() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("{}[1]", &[], &[]);
     assert!(matches!(
@@ -1553,7 +1553,7 @@ fn test_map_index_empty_map() {
 }
 
 #[test]
-fn test_map_index_key_not_found_with_otherwise() {
+fn map_index_key_not_found_with_otherwise() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"{1: "one"}[0] otherwise "fallback""#, &[], &[])
@@ -1566,7 +1566,7 @@ fn test_map_index_key_not_found_with_otherwise() {
 // ================================
 
 #[test]
-fn test_format_str_no_interpolation() {
+fn format_str_no_interpolation() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"hello world""#, &[], &[])
@@ -1575,7 +1575,7 @@ fn test_format_str_no_interpolation() {
 }
 
 #[test]
-fn test_format_str_single_int() {
+fn format_str_single_int() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"x = {x}" where { x = 42 }"#, &[], &[])
@@ -1584,7 +1584,7 @@ fn test_format_str_single_int() {
 }
 
 #[test]
-fn test_format_str_multiple_values() {
+fn format_str_multiple_values() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"{a} + {b} = {a + b}" where { a = 1, b = 2 }"#, &[], &[])
@@ -1593,7 +1593,7 @@ fn test_format_str_multiple_values() {
 }
 
 #[test]
-fn test_format_str_with_string() {
+fn format_str_with_string() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"Hello, {name}!" where { name = "World" }"#, &[], &[])
@@ -1602,7 +1602,7 @@ fn test_format_str_with_string() {
 }
 
 #[test]
-fn test_format_str_with_float() {
+fn format_str_with_float() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"Pi = {pi}" where { pi = 3.14 }"#, &[], &[])
@@ -1611,7 +1611,7 @@ fn test_format_str_with_float() {
 }
 
 #[test]
-fn test_format_str_with_bool() {
+fn format_str_with_bool() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"Flag: {flag}" where { flag = true }"#, &[], &[])
@@ -1620,7 +1620,7 @@ fn test_format_str_with_bool() {
 }
 
 #[test]
-fn test_format_str_with_array() {
+fn format_str_with_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"Array: {arr}" where { arr = [1, 2, 3] }"#, &[], &[])
@@ -1629,7 +1629,7 @@ fn test_format_str_with_array() {
 }
 
 #[test]
-fn test_format_str_consecutive_expressions() {
+fn format_str_consecutive_expressions() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"{x}{y}" where { x = 1, y = 2 }"#, &[], &[])
@@ -1638,7 +1638,7 @@ fn test_format_str_consecutive_expressions() {
 }
 
 #[test]
-fn test_format_str_mixed_types() {
+fn format_str_mixed_types() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -1651,7 +1651,7 @@ fn test_format_str_mixed_types() {
 }
 
 #[test]
-fn test_format_str_with_variables() {
+fn format_str_with_variables() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -1666,7 +1666,7 @@ fn test_format_str_with_variables() {
 }
 
 #[test]
-fn test_format_str_string_no_quotes() {
+fn format_str_string_no_quotes() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"f"Result: {s}" where { s = "test" }"#, &[], &[])
@@ -1676,7 +1676,7 @@ fn test_format_str_string_no_quotes() {
 }
 
 #[test]
-fn test_format_str_array_with_strings() {
+fn format_str_array_with_strings() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -1694,7 +1694,7 @@ fn test_format_str_array_with_strings() {
 // ================================
 
 #[test]
-fn test_otherwise_no_error() {
+fn otherwise_no_error() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(10 / 2) otherwise -1", &[], &[])
@@ -1705,7 +1705,7 @@ fn test_otherwise_no_error() {
 }
 
 #[test]
-fn test_otherwise_division_by_zero() {
+fn otherwise_division_by_zero() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(10 / 0) otherwise -1", &[], &[])
@@ -1716,7 +1716,7 @@ fn test_otherwise_division_by_zero() {
 }
 
 #[test]
-fn test_otherwise_index_out_of_bounds() {
+fn otherwise_index_out_of_bounds() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[1, 2][5] otherwise -1", &[], &[])
@@ -1727,7 +1727,7 @@ fn test_otherwise_index_out_of_bounds() {
 }
 
 #[test]
-fn test_otherwise_negative_index() {
+fn otherwise_negative_index() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[1, 2][-1] otherwise 99", &[], &[])
@@ -1737,7 +1737,7 @@ fn test_otherwise_negative_index() {
 }
 
 #[test]
-fn test_otherwise_negative_index_out_of_bounds() {
+fn otherwise_negative_index_out_of_bounds() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("[1, 2][-3] otherwise 99", &[], &[])
@@ -1747,7 +1747,7 @@ fn test_otherwise_negative_index_out_of_bounds() {
 }
 
 #[test]
-fn test_otherwise_with_variables() {
+fn otherwise_with_variables() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -1785,7 +1785,7 @@ fn test_otherwise_with_variables() {
 }
 
 #[test]
-fn test_otherwise_nested() {
+fn otherwise_nested() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(10 / 0) otherwise ((5 / 0) otherwise 42)", &[], &[])
@@ -1795,7 +1795,7 @@ fn test_otherwise_nested() {
 }
 
 #[test]
-fn test_otherwise_with_where() {
+fn otherwise_with_where() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -1808,7 +1808,7 @@ fn test_otherwise_with_where() {
 }
 
 #[test]
-fn test_otherwise_fallback_expression() {
+fn otherwise_fallback_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(10 / 0) otherwise (2 + 3)", &[], &[])
@@ -1818,7 +1818,7 @@ fn test_otherwise_fallback_expression() {
 }
 
 #[test]
-fn test_otherwise_string_type() {
+fn otherwise_string_type() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"["a", "b"][10] otherwise "default""#, &[], &[])
@@ -1828,7 +1828,7 @@ fn test_otherwise_string_type() {
 }
 
 #[test]
-fn test_otherwise_float_type() {
+fn otherwise_float_type() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(1.0 / 0.0) otherwise 3.14", &[], &[])
@@ -1839,7 +1839,7 @@ fn test_otherwise_float_type() {
 }
 
 #[test]
-fn test_otherwise_does_not_catch_stack_overflow() {
+fn otherwise_does_not_catch_stack_overflow() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -1885,14 +1885,14 @@ fn test_otherwise_does_not_catch_stack_overflow() {
 // ============================================================================
 
 #[test]
-fn test_cast_int_to_float() {
+fn cast_int_to_float() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("42 as Float", &[], &[]).unwrap();
     assert_eq!(result.as_float().unwrap(), 42.0);
 }
 
 #[test]
-fn test_cast_float_to_int_truncates() {
+fn cast_float_to_int_truncates() {
     let arena = Bump::new();
     // Positive truncation
     let result = Runner::new(&arena).run("3.7 as Int", &[], &[]).unwrap();
@@ -1903,7 +1903,7 @@ fn test_cast_float_to_int_truncates() {
 }
 
 #[test]
-fn test_cast_str_to_bytes() {
+fn cast_str_to_bytes() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""hello" as Bytes"#, &[], &[])
@@ -1912,7 +1912,7 @@ fn test_cast_str_to_bytes() {
 }
 
 #[test]
-fn test_cast_bytes_to_str_valid_utf8() {
+fn cast_bytes_to_str_valid_utf8() {
     let arena = Bump::new();
     // First create bytes, then cast back to string
     let result = Runner::new(&arena)
@@ -1922,7 +1922,7 @@ fn test_cast_bytes_to_str_valid_utf8() {
 }
 
 #[test]
-fn test_cast_bytes_to_str_invalid_utf8() {
+fn cast_bytes_to_str_invalid_utf8() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -1947,7 +1947,7 @@ fn test_cast_bytes_to_str_invalid_utf8() {
 }
 
 #[test]
-fn test_cast_with_otherwise() {
+fn cast_with_otherwise() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -1967,7 +1967,7 @@ fn test_cast_with_otherwise() {
 }
 
 #[test]
-fn test_cast_in_expression() {
+fn cast_in_expression() {
     let arena = Bump::new();
     // Cast within arithmetic expression
     let result = Runner::new(&arena)
@@ -1977,7 +1977,7 @@ fn test_cast_in_expression() {
 }
 
 #[test]
-fn test_cast_with_where() {
+fn cast_with_where() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(x as Float) * 2.0 where { x = 21 }", &[], &[])
@@ -1986,7 +1986,7 @@ fn test_cast_with_where() {
 }
 
 #[test]
-fn test_cast_utf8_roundtrip() {
+fn cast_utf8_roundtrip() {
     let arena = Bump::new();
     // String → Bytes → String should preserve unicode
     let result = Runner::new(&arena)
@@ -2050,7 +2050,7 @@ fn ffi_divide<'types, 'arena>(
 }
 
 #[test]
-fn test_ffi_simple_call() {
+fn ffi_simple_call() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2065,7 +2065,7 @@ fn test_ffi_simple_call() {
 }
 
 #[test]
-fn test_ffi_nested_calls() {
+fn ffi_nested_calls() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2082,7 +2082,7 @@ fn test_ffi_nested_calls() {
 }
 
 #[test]
-fn test_ffi_string_concat() {
+fn ffi_string_concat() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2099,7 +2099,7 @@ fn test_ffi_string_concat() {
 }
 
 #[test]
-fn test_ffi_polymorphic_array_len() {
+fn ffi_polymorphic_array_len() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2118,7 +2118,7 @@ fn test_ffi_polymorphic_array_len() {
 }
 
 #[test]
-fn test_ffi_error_with_otherwise() {
+fn ffi_error_with_otherwise() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2135,7 +2135,7 @@ fn test_ffi_error_with_otherwise() {
 }
 
 #[test]
-fn test_ffi_call_with_variables() {
+fn ffi_call_with_variables() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2160,14 +2160,14 @@ fn test_ffi_call_with_variables() {
 // ============================================================================
 
 #[test]
-fn test_lambda_identity() {
+fn lambda_identity() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("((x) => x)(42)", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 42);
 }
 
 #[test]
-fn test_lambda_simple_arithmetic() {
+fn lambda_simple_arithmetic() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((x) => x + x)(21)", &[], &[])
@@ -2176,7 +2176,7 @@ fn test_lambda_simple_arithmetic() {
 }
 
 #[test]
-fn test_lambda_simple_arithmetic_constrained_to_int() {
+fn lambda_simple_arithmetic_constrained_to_int() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((x) => x + 1)(21)", &[], &[])
@@ -2190,7 +2190,7 @@ fn test_lambda_simple_arithmetic_constrained_to_int() {
 }
 
 #[test]
-fn test_lambda_arithmetic_multiple_params() {
+fn lambda_arithmetic_multiple_params() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((x, y) => x + y)(10, 20)", &[], &[])
@@ -2199,7 +2199,7 @@ fn test_lambda_arithmetic_multiple_params() {
 }
 
 #[test]
-fn test_lambda_two_params_return_array() {
+fn lambda_two_params_return_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((a, b) => [b, a])(10, 42)", &[], &[])
@@ -2214,7 +2214,7 @@ fn test_lambda_two_params_return_array() {
 }
 
 #[test]
-fn test_lambda_with_where() {
+fn lambda_with_where() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("f(42) where { f = (a) => a }", &[], &[])
@@ -2223,7 +2223,7 @@ fn test_lambda_with_where() {
 }
 
 #[test]
-fn test_lambda_polymorphic() {
+fn lambda_polymorphic() {
     let arena = Bump::new();
 
     // Test polymorphic identity function with Int
@@ -2235,7 +2235,7 @@ fn test_lambda_polymorphic() {
 }
 
 #[test]
-fn test_lambda_nested_call() {
+fn lambda_nested_call() {
     let arena = Bump::new();
     // Test nested lambdas - inner returns its parameter, outer returns result of calling inner
     let result = Runner::new(&arena)
@@ -2245,7 +2245,7 @@ fn test_lambda_nested_call() {
 }
 
 #[test]
-fn test_lambda_as_argument() {
+fn lambda_as_argument() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2278,7 +2278,7 @@ fn test_lambda_as_argument() {
 }
 
 #[test]
-fn test_lambda_with_ffi_abs() {
+fn lambda_with_ffi_abs() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
 
@@ -2334,7 +2334,7 @@ fn test_lambda_with_ffi_abs() {
 // ============================================================================
 
 #[test]
-fn test_closure_simple_capture() {
+fn closure_simple_capture() {
     let arena = Bump::new();
 
     // Capture a single variable - lambda just returns the captured value
@@ -2346,7 +2346,7 @@ fn test_closure_simple_capture() {
 }
 
 #[test]
-fn test_closure_multiple_captures() {
+fn closure_multiple_captures() {
     let arena = Bump::new();
 
     // Capture multiple variables - return first capture to verify it was captured
@@ -2358,7 +2358,7 @@ fn test_closure_multiple_captures() {
 }
 
 #[test]
-fn test_closure_nested() {
+fn closure_nested() {
     let arena = Bump::new();
 
     // Nested closures - outer captures x, inner also captures x
@@ -2370,7 +2370,7 @@ fn test_closure_nested() {
 }
 
 #[test]
-fn test_closure_returned_from_function() {
+fn closure_returned_from_function() {
     let arena = Bump::new();
 
     // Function that returns a closure - the closure captures x
@@ -2386,7 +2386,7 @@ fn test_closure_returned_from_function() {
 }
 
 #[test]
-fn test_closure_with_where_binding() {
+fn closure_with_where_binding() {
     let arena = Bump::new();
 
     // Closure captures variable from where binding
@@ -2405,7 +2405,7 @@ fn test_closure_with_where_binding() {
 
 // Milestone 2.2: Simple Function Call Tests
 #[test]
-fn test_lambda_zero_params() {
+fn lambda_zero_params() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("(() => 42)()", &[], &[]).unwrap();
     assert_eq!(result.as_int().unwrap(), 42);
@@ -2413,7 +2413,7 @@ fn test_lambda_zero_params() {
 
 // Milestone 2.3: Closure Call Tests (from original plan)
 #[test]
-fn test_closure_capturing_one_variable_inline() {
+fn closure_capturing_one_variable_inline() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("(((y) => x + y)(5)) where { x = 10 }", &[], &[])
@@ -2422,7 +2422,7 @@ fn test_closure_capturing_one_variable_inline() {
 }
 
 #[test]
-fn test_closure_capturing_multiple_variables_inline() {
+fn closure_capturing_multiple_variables_inline() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -2435,7 +2435,7 @@ fn test_closure_capturing_multiple_variables_inline() {
 }
 
 #[test]
-fn test_closure_in_where_binding_multiply() {
+fn closure_in_where_binding_multiply() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("f(5) where { f = (x) => x * 2 }", &[], &[])
@@ -2445,7 +2445,7 @@ fn test_closure_in_where_binding_multiply() {
 
 // Milestone 2.4: Currying Tests
 #[test]
-fn test_simple_currying_inline() {
+fn simple_currying_inline() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((x) => (y) => x + y)(10)(20)", &[], &[])
@@ -2454,7 +2454,7 @@ fn test_simple_currying_inline() {
 }
 
 #[test]
-fn test_curried_function_in_where_add() {
+fn curried_function_in_where_add() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("add(10)(20) where { add = (x) => (y) => x + y }", &[], &[])
@@ -2463,7 +2463,7 @@ fn test_curried_function_in_where_add() {
 }
 
 #[test]
-fn test_lambda_partial_application() {
+fn lambda_partial_application() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -2477,7 +2477,7 @@ fn test_lambda_partial_application() {
 
 // Milestone 2.5: Polymorphic Function Tests
 #[test]
-fn test_lambda_polymorphic_float() {
+fn lambda_polymorphic_float() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("id(3.14) where { id = (x) => x }", &[], &[])
@@ -2486,7 +2486,7 @@ fn test_lambda_polymorphic_float() {
 }
 
 #[test]
-fn test_lambda_polymorphic_string() {
+fn lambda_polymorphic_string() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"id("hello") where { id = (x) => x }"#, &[], &[])
@@ -2495,7 +2495,7 @@ fn test_lambda_polymorphic_string() {
 }
 
 #[test]
-fn test_lambda_polymorphic_bool() {
+fn lambda_polymorphic_bool() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("id(true) where { id = (x) => x }", &[], &[])
@@ -2504,7 +2504,7 @@ fn test_lambda_polymorphic_bool() {
 }
 
 #[test]
-fn test_multiple_polymorphic_calls() {
+fn multiple_polymorphic_calls() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -2525,7 +2525,7 @@ fn test_multiple_polymorphic_calls() {
 }
 
 #[test]
-fn test_lambda_array_constructor() {
+fn lambda_array_constructor() {
     // Array construction wrapping a generic parameter with monomorphization
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -2542,7 +2542,7 @@ fn test_lambda_array_constructor() {
 
 // Milestone 2.6: Complex Expression Tests
 #[test]
-fn test_lambda_with_if_expression() {
+fn lambda_with_if_expression() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((x) => if x > 0 then x else -x)(5)", &[], &[])
@@ -2551,7 +2551,7 @@ fn test_lambda_with_if_expression() {
 }
 
 #[test]
-fn test_lambda_with_where_in_body() {
+fn lambda_with_where_in_body() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -2564,7 +2564,7 @@ fn test_lambda_with_where_in_body() {
 }
 
 #[test]
-fn test_lambda_with_array_in_body() {
+fn lambda_with_array_in_body() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("((x) => [x, x * 2, x * 3])(10)", &[], &[])
@@ -2579,7 +2579,7 @@ fn test_lambda_with_array_in_body() {
 }
 
 #[test]
-fn test_lambda_with_format_string() {
+fn lambda_with_format_string() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"((name) => f"Hello, {name}!")("World")"#, &[], &[])
@@ -2590,7 +2590,7 @@ fn test_lambda_with_format_string() {
 // Milestone 4.1: Recursive Closure Detection
 #[test]
 #[ignore = "needs recursive closure detection in analyzer"]
-fn test_recursive_closure_direct_self_reference() {
+fn recursive_closure_direct_self_reference() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("f(5) where { f = (n) => f(n - 1) }", &[], &[]);
     // Should fail with RecursiveClosure error
@@ -2599,7 +2599,7 @@ fn test_recursive_closure_direct_self_reference() {
 
 #[test]
 #[ignore = "needs recursive closure detection in analyzer"]
-fn test_recursive_closure_factorial() {
+fn recursive_closure_factorial() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run(
         "factorial(5) where { factorial = (n) => if n <= 1 then 1 else n * factorial(n - 1) }",
@@ -2612,7 +2612,7 @@ fn test_recursive_closure_factorial() {
 
 // Milestone 4.3: Edge Cases
 #[test]
-fn test_lambda_unused_argument_evaluated() {
+fn lambda_unused_argument_evaluated() {
     let arena = Bump::new();
     // The argument should be evaluated even if not used in the body
     // This test just verifies the lambda works when argument is unused
@@ -2623,7 +2623,7 @@ fn test_lambda_unused_argument_evaluated() {
 }
 
 #[test]
-fn test_lambda_nested_where_shadowing() {
+fn lambda_nested_where_shadowing() {
     let arena = Bump::new();
     // Inner where shadows outer x, but lambda should capture outer x
     let result = Runner::new(&arena)
@@ -2639,7 +2639,7 @@ fn test_lambda_nested_where_shadowing() {
 }
 
 #[test]
-fn test_lambda_capturing_lambda() {
+fn lambda_capturing_lambda() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -2652,7 +2652,7 @@ fn test_lambda_capturing_lambda() {
 }
 
 #[test]
-fn test_ord_constraint_on_bool_fails() {
+fn ord_constraint_on_bool_fails() {
     // This should fail because Bool doesn't implement Ord
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
@@ -2678,7 +2678,7 @@ fn test_ord_constraint_on_bool_fails() {
 }
 
 #[test]
-fn test_ord_constraint_on_int_succeeds() {
+fn ord_constraint_on_int_succeeds() {
     // This should succeed because Int implements Ord
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -2688,7 +2688,7 @@ fn test_ord_constraint_on_int_succeeds() {
 }
 
 #[test]
-fn test_ord_constraint_on_string_succeeds() {
+fn ord_constraint_on_string_succeeds() {
     // This should succeed because Str implements Ord
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -2702,7 +2702,7 @@ fn test_ord_constraint_on_string_succeeds() {
 }
 
 #[test]
-fn test_ord_constraint_direct_bool_fails() {
+fn ord_constraint_direct_bool_fails() {
     // Simpler test: directly use < on bools (no lambda abstraction)
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
@@ -2730,7 +2730,7 @@ fn test_ord_constraint_direct_bool_fails() {
 }
 
 #[test]
-fn test_numeric_constraint_on_bool_fails() {
+fn numeric_constraint_on_bool_fails() {
     // This should fail because Bool doesn't implement Numeric
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
@@ -2756,7 +2756,7 @@ fn test_numeric_constraint_on_bool_fails() {
 }
 
 #[test]
-fn test_numeric_constraint_direct_bool_fails() {
+fn numeric_constraint_direct_bool_fails() {
     // Simpler test: directly use + on bools (no lambda abstraction)
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
@@ -2785,7 +2785,7 @@ fn test_numeric_constraint_direct_bool_fails() {
 }
 
 #[test]
-fn test_numeric_constraint_on_int_succeeds() {
+fn numeric_constraint_on_int_succeeds() {
     // This should succeed because Int implements Numeric
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -2797,7 +2797,7 @@ fn test_numeric_constraint_on_int_succeeds() {
 // ===== Containment Operator Tests =====
 
 #[test]
-fn test_string_in_string_found() {
+fn string_in_string_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""lo" in "hello""#, &[], &[])
@@ -2806,7 +2806,7 @@ fn test_string_in_string_found() {
 }
 
 #[test]
-fn test_string_in_string_not_found() {
+fn string_in_string_not_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""x" in "hello""#, &[], &[])
@@ -2815,7 +2815,7 @@ fn test_string_in_string_not_found() {
 }
 
 #[test]
-fn test_string_not_in_string() {
+fn string_not_in_string() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""x" not in "hello""#, &[], &[])
@@ -2824,7 +2824,7 @@ fn test_string_not_in_string() {
 }
 
 #[test]
-fn test_string_in_string_empty_needle() {
+fn string_in_string_empty_needle() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""" in "hello""#, &[], &[])
@@ -2833,7 +2833,7 @@ fn test_string_in_string_empty_needle() {
 }
 
 #[test]
-fn test_bytes_in_bytes_found() {
+fn bytes_in_bytes_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"b"oob" in b"foobar""#, &[], &[])
@@ -2842,7 +2842,7 @@ fn test_bytes_in_bytes_found() {
 }
 
 #[test]
-fn test_bytes_in_bytes_not_found() {
+fn bytes_in_bytes_not_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"b"xyz" in b"foobar""#, &[], &[])
@@ -2851,7 +2851,7 @@ fn test_bytes_in_bytes_not_found() {
 }
 
 #[test]
-fn test_bytes_not_in_bytes() {
+fn bytes_not_in_bytes() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"b"xyz" not in b"foobar""#, &[], &[])
@@ -2860,7 +2860,7 @@ fn test_bytes_not_in_bytes() {
 }
 
 #[test]
-fn test_bytes_in_bytes_empty_needle() {
+fn bytes_in_bytes_empty_needle() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"b"" in b"foobar""#, &[], &[])
@@ -2869,7 +2869,7 @@ fn test_bytes_in_bytes_empty_needle() {
 }
 
 #[test]
-fn test_int_in_array_found() {
+fn int_in_array_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("5 in [1, 2, 3, 4, 5]", &[], &[])
@@ -2878,7 +2878,7 @@ fn test_int_in_array_found() {
 }
 
 #[test]
-fn test_int_in_array_not_found() {
+fn int_in_array_not_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("6 in [1, 2, 3, 4, 5]", &[], &[])
@@ -2887,7 +2887,7 @@ fn test_int_in_array_not_found() {
 }
 
 #[test]
-fn test_int_not_in_array() {
+fn int_not_in_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("6 not in [1, 2, 3, 4, 5]", &[], &[])
@@ -2896,7 +2896,7 @@ fn test_int_not_in_array() {
 }
 
 #[test]
-fn test_string_in_array_found() {
+fn string_in_array_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""foo" in ["foo", "bar", "baz"]"#, &[], &[])
@@ -2905,14 +2905,14 @@ fn test_string_in_array_found() {
 }
 
 #[test]
-fn test_element_in_empty_array() {
+fn element_in_empty_array() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run("1 in []", &[], &[]).unwrap();
     assert!(!result.as_bool().unwrap());
 }
 
 #[test]
-fn test_key_in_map_found() {
+fn key_in_map_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""key" in {"key": 1, "other": 2}"#, &[], &[])
@@ -2921,7 +2921,7 @@ fn test_key_in_map_found() {
 }
 
 #[test]
-fn test_key_in_map_not_found() {
+fn key_in_map_not_found() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""missing" in {"key": 1, "other": 2}"#, &[], &[])
@@ -2930,7 +2930,7 @@ fn test_key_in_map_not_found() {
 }
 
 #[test]
-fn test_key_not_in_map() {
+fn key_not_in_map() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#""missing" not in {"key": 1, "other": 2}"#, &[], &[])
@@ -2939,7 +2939,7 @@ fn test_key_not_in_map() {
 }
 
 #[test]
-fn test_int_key_in_map() {
+fn int_key_in_map() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("42 in {42: true, 99: false}", &[], &[])
@@ -2948,14 +2948,14 @@ fn test_int_key_in_map() {
 }
 
 #[test]
-fn test_key_in_empty_map() {
+fn key_in_empty_map() {
     let arena = Bump::new();
     let result = Runner::new(&arena).run(r#""key" in {}"#, &[], &[]).unwrap();
     assert!(!result.as_bool().unwrap());
 }
 
 #[test]
-fn test_containment_in_where_binding() {
+fn containment_in_where_binding() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"found where { found = "lo" in "hello" }"#, &[], &[])
@@ -2964,7 +2964,7 @@ fn test_containment_in_where_binding() {
 }
 
 #[test]
-fn test_containment_in_if_condition() {
+fn containment_in_if_condition() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(r#"if 5 in [1, 2, 3, 4, 5] then "yes" else "no""#, &[], &[])
@@ -2977,7 +2977,7 @@ fn test_containment_in_if_condition() {
 // ============================================================================
 
 #[test]
-fn test_match_variable_pattern() {
+fn match_variable_pattern() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("42 match { x -> x }", &[], &[])
@@ -2986,7 +2986,7 @@ fn test_match_variable_pattern() {
 }
 
 #[test]
-fn test_match_wildcard_pattern() {
+fn match_wildcard_pattern() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("42 match { _ -> 99 }", &[], &[])
@@ -2995,7 +2995,7 @@ fn test_match_wildcard_pattern() {
 }
 
 #[test]
-fn test_match_literal_int() {
+fn match_literal_int() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -3008,7 +3008,7 @@ fn test_match_literal_int() {
 }
 
 #[test]
-fn test_match_literal_bool_true() {
+fn match_literal_bool_true() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("true match { true -> 1, false -> 0 }", &[], &[])
@@ -3017,7 +3017,7 @@ fn test_match_literal_bool_true() {
 }
 
 #[test]
-fn test_match_literal_bool_false() {
+fn match_literal_bool_false() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("false match { true -> 1, false -> 0 }", &[], &[])
@@ -3026,7 +3026,7 @@ fn test_match_literal_bool_false() {
 }
 
 #[test]
-fn test_match_literal_string() {
+fn match_literal_string() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -3039,7 +3039,7 @@ fn test_match_literal_string() {
 }
 
 #[test]
-fn test_match_option_some() {
+fn match_option_some() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("some 42 match { some x -> x, none -> 0 }", &[], &[])
@@ -3048,7 +3048,7 @@ fn test_match_option_some() {
 }
 
 #[test]
-fn test_match_option_none() {
+fn match_option_none() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("none match { some x -> x, none -> 99 }", &[], &[])
@@ -3057,7 +3057,7 @@ fn test_match_option_none() {
 }
 
 #[test]
-fn test_match_option_nested_some() {
+fn match_option_nested_some() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -3070,7 +3070,7 @@ fn test_match_option_nested_some() {
 }
 
 #[test]
-fn test_match_option_nested_some_none() {
+fn match_option_nested_some_none() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -3083,7 +3083,7 @@ fn test_match_option_nested_some_none() {
 }
 
 #[test]
-fn test_match_in_where_binding() {
+fn match_in_where_binding() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run(
@@ -3096,7 +3096,7 @@ fn test_match_in_where_binding() {
 }
 
 #[test]
-fn test_match_pattern_order() {
+fn match_pattern_order() {
     // First matching pattern wins
     let arena = Bump::new();
     let result = Runner::new(&arena)
@@ -3106,7 +3106,7 @@ fn test_match_pattern_order() {
 }
 
 #[test]
-fn test_match_with_expression_in_body() {
+fn match_with_expression_in_body() {
     let arena = Bump::new();
     let result = Runner::new(&arena)
         .run("some 10 match { some x -> x + x, none -> 0 }", &[], &[])
@@ -3115,7 +3115,7 @@ fn test_match_with_expression_in_body() {
 }
 
 #[test]
-fn test_match_in_lambda_with_inferable_type() {
+fn match_in_lambda_with_inferable_type() {
     // Type (Option[Int]) => Int is correctly inferred from the body:
     // - Match arms return Int (y * 2 and 0)
     // - Pattern 'some y' with 'y * 2' means y: Int
@@ -3132,7 +3132,7 @@ fn test_match_in_lambda_with_inferable_type() {
 }
 
 #[test]
-fn test_match_in_where_with_known_type() {
+fn match_in_where_with_known_type() {
     // Pattern matching works when types are known from context
     let arena = Bump::new();
     let result = Runner::new(&arena)

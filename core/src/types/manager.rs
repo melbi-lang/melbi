@@ -451,7 +451,7 @@ mod type_view_tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_primitives() {
+    fn primitives() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -492,7 +492,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_type_var() {
+    fn type_var() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -504,7 +504,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_array() {
+    fn array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -519,7 +519,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_map() {
+    fn map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -540,7 +540,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_record() {
+    fn record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -565,7 +565,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_function() {
+    fn function() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -592,7 +592,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_symbol() {
+    fn symbol() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -611,7 +611,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_nested_types() {
+    fn nested_types() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -636,7 +636,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_iterator_exact_size() {
+    fn iterator_exact_size() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -675,7 +675,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_view_with_temporaries() {
+    fn view_with_temporaries() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -705,7 +705,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_typeview_equality() {
+    fn typeview_equality() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -734,7 +734,7 @@ mod manager_tests {
     use super::*;
 
     #[test]
-    fn test_interning() {
+    fn interning() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -747,7 +747,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_adopt_preserves_typevar_identity() {
+    fn adopt_preserves_typevar_identity() {
         let bump1 = Bump::new();
         let bump2 = Bump::new();
         let mgr1 = TypeManager::new(&bump1);
@@ -799,7 +799,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_simple_typevar() {
+    fn alpha_convert_simple_typevar() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -820,7 +820,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_function_type_same_var() {
+    fn alpha_convert_function_type_same_var() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -847,7 +847,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_function_type_different_vars() {
+    fn alpha_convert_function_type_different_vars() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -876,7 +876,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_complex_type() {
+    fn alpha_convert_complex_type() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -910,7 +910,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_no_typevars() {
+    fn alpha_convert_no_typevars() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -933,7 +933,7 @@ mod type_builder_tests {
     use crate::types::traits::TypeBuilder;
 
     #[test]
-    fn test_type_builder_primitives() {
+    fn type_builder_primitives() {
         fn test_with_builder<'a, B: TypeBuilder<'a>>(builder: &B) {
             // All calls go through the TypeBuilder trait
             let int_ty = builder.int();
@@ -958,7 +958,7 @@ mod type_builder_tests {
     }
 
     #[test]
-    fn test_type_builder_collections() {
+    fn type_builder_collections() {
         fn test_with_builder<'a, B: TypeBuilder<'a>>(builder: &B) {
             let int_ty = builder.int();
             let str_ty = builder.str();
@@ -978,7 +978,7 @@ mod type_builder_tests {
     }
 
     #[test]
-    fn test_type_builder_structural() {
+    fn type_builder_structural() {
         fn test_with_builder<'a, B: TypeBuilder<'a>>(builder: &B) {
             let int_ty = builder.int();
             let float_ty = builder.float();
@@ -1034,7 +1034,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_primitives() {
+    fn identity_transform_primitives() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1055,7 +1055,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_typevar() {
+    fn identity_transform_typevar() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1069,7 +1069,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_collections() {
+    fn identity_transform_collections() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1089,7 +1089,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_record() {
+    fn identity_transform_record() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1106,7 +1106,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_function() {
+    fn identity_transform_function() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1124,7 +1124,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_symbol() {
+    fn identity_transform_symbol() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1139,7 +1139,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_nested() {
+    fn identity_transform_nested() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1167,7 +1167,7 @@ mod display_type_tests {
     use crate::types::traits::display_type;
 
     #[test]
-    fn test_display_primitives() {
+    fn display_primitives() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1179,7 +1179,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_type_var() {
+    fn display_type_var() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1193,7 +1193,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_array() {
+    fn display_array() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1204,7 +1204,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_map() {
+    fn display_map() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1216,7 +1216,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_record() {
+    fn display_record() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1228,7 +1228,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_function() {
+    fn display_function() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1243,7 +1243,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_function_no_params() {
+    fn display_function_no_params() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1256,7 +1256,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_symbol() {
+    fn display_symbol() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1268,7 +1268,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_nested() {
+    fn display_nested() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1282,7 +1282,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_matches_display_impl() {
+    fn display_matches_display_impl() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1310,7 +1310,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_option() {
+    fn display_option() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1321,7 +1321,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_option_complex_inner() {
+    fn display_option_complex_inner() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1334,7 +1334,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_nested_option() {
+    fn display_nested_option() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1347,7 +1347,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_option_in_complex_type() {
+    fn display_option_in_complex_type() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1361,7 +1361,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_option_interning() {
+    fn option_interning() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1374,7 +1374,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_option_adopt() {
+    fn option_adopt() {
         let bump1 = Bump::new();
         let bump2 = Bump::new();
         let mgr1 = TypeManager::new(&bump1);
@@ -1398,7 +1398,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_option_alpha_convert() {
+    fn option_alpha_convert() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 

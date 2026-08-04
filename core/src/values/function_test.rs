@@ -38,7 +38,7 @@ fn test_not<'types, 'arena>(
 // ============================================================================
 
 #[test]
-fn test_value_function_construction() {
+fn value_function_construction() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -58,7 +58,7 @@ fn test_value_function_construction() {
 }
 
 #[test]
-fn test_value_function_wrong_type() {
+fn value_function_wrong_type() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -71,7 +71,7 @@ fn test_value_function_wrong_type() {
 }
 
 #[test]
-fn test_value_function_different_signatures() {
+fn value_function_different_signatures() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -93,7 +93,7 @@ fn test_value_function_different_signatures() {
 // ============================================================================
 
 #[test]
-fn test_value_as_function_extraction() {
+fn value_as_function_extraction() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -106,7 +106,7 @@ fn test_value_as_function_extraction() {
 }
 
 #[test]
-fn test_value_as_function_wrong_type() {
+fn value_as_function_wrong_type() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -119,7 +119,7 @@ fn test_value_as_function_wrong_type() {
 }
 
 #[test]
-fn test_value_as_function_call_through() {
+fn value_as_function_call_through() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -146,7 +146,7 @@ fn test_value_as_function_call_through() {
 // ============================================================================
 
 #[test]
-fn test_multiple_functions_same_arena() {
+fn multiple_functions_same_arena() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -172,7 +172,7 @@ fn test_multiple_functions_same_arena() {
 }
 
 #[test]
-fn test_trait_object_size() {
+fn trait_object_size() {
     // Verify trait object is a fat pointer (2 words)
     use core::mem::size_of;
 

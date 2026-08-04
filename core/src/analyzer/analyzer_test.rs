@@ -136,7 +136,7 @@ fn collect_lambda_pointers<'types, 'arena>(
 // ============================================================================
 
 #[test]
-fn test_arithmetic_operators_integers() {
+fn arithmetic_operators_integers() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -154,7 +154,7 @@ fn test_arithmetic_operators_integers() {
 
 #[test]
 #[ignore = "Type system limitation: generic indexing now defaults to Map for better map support; arrays with Int indexes conflict with Map[Int, V]"]
-fn test_index_in_generic_lambda() {
+fn index_in_generic_lambda() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -173,7 +173,7 @@ fn test_index_in_generic_lambda() {
 }
 
 #[test]
-fn test_numeric_constraint_violation_with_source() {
+fn numeric_constraint_violation_with_source() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -199,7 +199,7 @@ fn test_numeric_constraint_violation_with_source() {
 }
 
 #[test]
-fn test_numeric_int_and_float() {
+fn numeric_int_and_float() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -210,7 +210,7 @@ fn test_numeric_int_and_float() {
 }
 
 #[test]
-fn test_indexable_lambda_instantiations() {
+fn indexable_lambda_instantiations() {
     use crate::types::type_class::TypeClassId;
 
     let bump = Bump::new();
@@ -263,7 +263,7 @@ fn test_indexable_lambda_instantiations() {
 }
 
 #[test]
-fn test_numeric_lambda_type_classes() {
+fn numeric_lambda_type_classes() {
     use crate::types::type_class::TypeClassId;
 
     let bump = Bump::new();
@@ -293,7 +293,7 @@ fn test_numeric_lambda_type_classes() {
 }
 
 #[test]
-fn test_unconstrained_lambda_no_type_classes() {
+fn unconstrained_lambda_no_type_classes() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -321,7 +321,7 @@ fn test_unconstrained_lambda_no_type_classes() {
 }
 
 #[test]
-fn test_nested_indexing_polymorphic_lambda() {
+fn nested_indexing_polymorphic_lambda() {
     // crate::test_utils::init_test_logging();
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
@@ -335,7 +335,7 @@ fn test_nested_indexing_polymorphic_lambda() {
 
 #[test]
 #[ignore = "Type system limitation: generic indexing now defaults to Map for better map support; arrays with Int indexes conflict with Map[Int, V]"]
-fn test_nested_array_indexing_with_generic() {
+fn nested_array_indexing_with_generic() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -356,7 +356,7 @@ fn test_nested_array_indexing_with_generic() {
 
 #[test]
 #[ignore = "Requires row polymorphism - cannot infer 'any record with field x'"]
-fn test_field_access_in_generic_lambda() {
+fn field_access_in_generic_lambda() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -376,7 +376,7 @@ fn test_field_access_in_generic_lambda() {
 
 #[test]
 #[ignore = "Requires row polymorphism - nested case"]
-fn test_nested_generic_lambda_field_access() {
+fn nested_generic_lambda_field_access() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -396,7 +396,7 @@ fn test_nested_generic_lambda_field_access() {
 
 #[test]
 #[ignore = "Cast validation happens during lambda body analysis, before unification"]
-fn test_cast_on_lambda_parameter() {
+fn cast_on_lambda_parameter() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -415,7 +415,7 @@ fn test_cast_on_lambda_parameter() {
 }
 
 #[test]
-fn test_index_in_where_bound_variable() {
+fn index_in_where_bound_variable() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -433,7 +433,7 @@ fn test_index_in_where_bound_variable() {
 }
 
 #[test]
-fn test_field_access_in_where_bound_variable() {
+fn field_access_in_where_bound_variable() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -451,7 +451,7 @@ fn test_field_access_in_where_bound_variable() {
 }
 
 #[test]
-fn test_arithmetic_operators_floats() {
+fn arithmetic_operators_floats() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -464,7 +464,7 @@ fn test_arithmetic_operators_floats() {
 }
 
 #[test]
-fn test_arithmetic_mixed_types_fails() {
+fn arithmetic_mixed_types_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -473,7 +473,7 @@ fn test_arithmetic_mixed_types_fails() {
 }
 
 #[test]
-fn test_logical_operators() {
+fn logical_operators() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -486,7 +486,7 @@ fn test_logical_operators() {
 }
 
 #[test]
-fn test_logical_operators_non_boolean_fails() {
+fn logical_operators_non_boolean_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -495,7 +495,7 @@ fn test_logical_operators_non_boolean_fails() {
 }
 
 #[test]
-fn test_plus_one_lambda() {
+fn plus_one_lambda() {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
 
@@ -514,7 +514,7 @@ fn test_plus_one_lambda() {
 // all type variables after constraint finalization.
 
 #[test]
-fn test_type_resolution_simple_call() {
+fn type_resolution_simple_call() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -541,7 +541,7 @@ fn test_type_resolution_simple_call() {
 }
 
 #[test]
-fn test_type_resolution_array_simple() {
+fn type_resolution_array_simple() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -577,7 +577,7 @@ fn test_type_resolution_array_simple() {
 }
 
 #[test]
-fn test_type_resolution_map_indexing() {
+fn type_resolution_map_indexing() {
     // Initialize tracing for this test
     init_tracing();
 
@@ -617,7 +617,7 @@ fn test_type_resolution_map_indexing() {
 }
 
 #[test]
-fn test_type_resolution_nested_structures() {
+fn type_resolution_nested_structures() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -652,7 +652,7 @@ fn test_type_resolution_nested_structures() {
 }
 
 #[test]
-fn test_type_resolution_if_branches() {
+fn type_resolution_if_branches() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -702,7 +702,7 @@ fn test_type_resolution_if_branches() {
 }
 
 #[test]
-fn test_type_resolution_empty_array_unification() {
+fn type_resolution_empty_array_unification() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -732,7 +732,7 @@ fn test_type_resolution_empty_array_unification() {
 
 #[test]
 #[ignore = "Type resolution doesn't fully resolve deeply nested type variables from empty arrays"]
-fn test_type_resolution_deeply_nested_unification() {
+fn type_resolution_deeply_nested_unification() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -846,7 +846,7 @@ fn test_type_resolution_deeply_nested_unification() {
 }
 
 #[test]
-fn test_type_resolution_polymorphic_calls() {
+fn type_resolution_polymorphic_calls() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -881,7 +881,7 @@ fn test_type_resolution_polymorphic_calls() {
 }
 
 #[test]
-fn test_type_resolution_map_construction() {
+fn type_resolution_map_construction() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -921,7 +921,7 @@ fn test_type_resolution_map_construction() {
 // ============================================================================
 
 #[test]
-fn test_unary_negation() {
+fn unary_negation() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -941,7 +941,7 @@ fn test_unary_negation() {
 }
 
 #[test]
-fn test_unary_negation_non_numeric_fails() {
+fn unary_negation_non_numeric_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -950,7 +950,7 @@ fn test_unary_negation_non_numeric_fails() {
 }
 
 #[test]
-fn test_unary_not() {
+fn unary_not() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -960,7 +960,7 @@ fn test_unary_not() {
 }
 
 #[test]
-fn test_unary_not_non_boolean_fails() {
+fn unary_not_non_boolean_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -973,7 +973,7 @@ fn test_unary_not_non_boolean_fails() {
 // ============================================================================
 
 #[test]
-fn test_literals() {
+fn literals() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -995,7 +995,7 @@ fn test_literals() {
 }
 
 #[test]
-fn test_all_literal_types() {
+fn all_literal_types() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1023,7 +1023,7 @@ fn test_all_literal_types() {
 // ============================================================================
 
 #[test]
-fn test_cast_identity_allowed() {
+fn cast_identity_allowed() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1042,7 +1042,7 @@ fn test_cast_identity_allowed() {
 }
 
 #[test]
-fn test_cast_unknown_type_fails() {
+fn cast_unknown_type_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1059,7 +1059,7 @@ fn test_cast_unknown_type_fails() {
 // ============================================================================
 
 #[test]
-fn test_undefined_variable_fails() {
+fn undefined_variable_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1068,7 +1068,7 @@ fn test_undefined_variable_fails() {
 }
 
 #[test]
-fn test_where_binding() {
+fn where_binding() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1078,7 +1078,7 @@ fn test_where_binding() {
 }
 
 #[test]
-fn test_where_duplicate_binding_fails() {
+fn where_duplicate_binding_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1091,7 +1091,7 @@ fn test_where_duplicate_binding_fails() {
 // ============================================================================
 
 #[test]
-fn test_lambda_basic() {
+fn lambda_basic() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1106,7 +1106,7 @@ fn test_lambda_basic() {
 }
 
 #[test]
-fn test_lambda_duplicate_parameter_fails() {
+fn lambda_duplicate_parameter_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1115,7 +1115,7 @@ fn test_lambda_duplicate_parameter_fails() {
 }
 
 #[test]
-fn test_function_call() {
+fn function_call() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1125,7 +1125,7 @@ fn test_function_call() {
 }
 
 #[test]
-fn test_call_non_function_fails() {
+fn call_non_function_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1138,7 +1138,7 @@ fn test_call_non_function_fails() {
 // ============================================================================
 
 #[test]
-fn test_if_expression() {
+fn if_expression() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1148,7 +1148,7 @@ fn test_if_expression() {
 }
 
 #[test]
-fn test_if_non_boolean_condition_fails() {
+fn if_non_boolean_condition_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1157,7 +1157,7 @@ fn test_if_non_boolean_condition_fails() {
 }
 
 #[test]
-fn test_if_mismatched_branches_fails() {
+fn if_mismatched_branches_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1170,7 +1170,7 @@ fn test_if_mismatched_branches_fails() {
 // ============================================================================
 
 #[test]
-fn test_array_homogeneous() {
+fn array_homogeneous() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1183,7 +1183,7 @@ fn test_array_homogeneous() {
 }
 
 #[test]
-fn test_array_heterogeneous_fails() {
+fn array_heterogeneous_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1192,7 +1192,7 @@ fn test_array_heterogeneous_fails() {
 }
 
 #[test]
-fn test_array_empty() {
+fn array_empty() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1210,7 +1210,7 @@ fn test_array_empty() {
 // ============================================================================
 
 #[test]
-fn test_array_indexing() {
+fn array_indexing() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1220,7 +1220,7 @@ fn test_array_indexing() {
 }
 
 #[test]
-fn test_array_indexing_with_variable() {
+fn array_indexing_with_variable() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1234,7 +1234,7 @@ fn test_array_indexing_with_variable() {
 }
 
 #[test]
-fn test_array_indexing_non_integer_fails() {
+fn array_indexing_non_integer_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1243,7 +1243,7 @@ fn test_array_indexing_non_integer_fails() {
 }
 
 #[test]
-fn test_indexing_non_indexable_fails() {
+fn indexing_non_indexable_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1256,7 +1256,7 @@ fn test_indexing_non_indexable_fails() {
 // ============================================================================
 
 #[test]
-fn test_record_empty() {
+fn record_empty() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1266,7 +1266,7 @@ fn test_record_empty() {
 }
 
 #[test]
-fn test_record_single_field() {
+fn record_single_field() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1278,7 +1278,7 @@ fn test_record_single_field() {
 }
 
 #[test]
-fn test_record_multiple_fields() {
+fn record_multiple_fields() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1298,7 +1298,7 @@ fn test_record_multiple_fields() {
 // ============================================================================
 
 #[test]
-fn test_record_field_access() {
+fn record_field_access() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1308,7 +1308,7 @@ fn test_record_field_access() {
 }
 
 #[test]
-fn test_record_field_access_multiple_fields() {
+fn record_field_access_multiple_fields() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1318,7 +1318,7 @@ fn test_record_field_access_multiple_fields() {
 }
 
 #[test]
-fn test_record_field_access_nonexistent_fails() {
+fn record_field_access_nonexistent_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1327,7 +1327,7 @@ fn test_record_field_access_nonexistent_fails() {
 }
 
 #[test]
-fn test_field_access_non_record_fails() {
+fn field_access_non_record_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1340,7 +1340,7 @@ fn test_field_access_non_record_fails() {
 // ============================================================================
 
 #[test]
-fn test_map_empty() {
+fn map_empty() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1353,7 +1353,7 @@ fn test_map_empty() {
 }
 
 #[test]
-fn test_map_homogeneous_types() {
+fn map_homogeneous_types() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1366,7 +1366,7 @@ fn test_map_homogeneous_types() {
 }
 
 #[test]
-fn test_map_heterogeneous_keys_fails() {
+fn map_heterogeneous_keys_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1377,7 +1377,7 @@ fn test_map_heterogeneous_keys_fails() {
 }
 
 #[test]
-fn test_map_heterogeneous_values_fails() {
+fn map_heterogeneous_values_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1392,7 +1392,7 @@ fn test_map_heterogeneous_values_fails() {
 // ============================================================================
 
 #[test]
-fn test_format_str_no_interpolations() {
+fn format_str_no_interpolations() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1402,7 +1402,7 @@ fn test_format_str_no_interpolations() {
 }
 
 #[test]
-fn test_format_str_with_interpolations() {
+fn format_str_with_interpolations() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1412,7 +1412,7 @@ fn test_format_str_with_interpolations() {
 }
 
 #[test]
-fn test_format_str_function_fails() {
+fn format_str_function_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1425,7 +1425,7 @@ fn test_format_str_function_fails() {
 }
 
 #[test]
-fn test_otherwise_same_types() {
+fn otherwise_same_types() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1435,7 +1435,7 @@ fn test_otherwise_same_types() {
 }
 
 #[test]
-fn test_otherwise_type_mismatch_fails() {
+fn otherwise_type_mismatch_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1445,7 +1445,7 @@ fn test_otherwise_type_mismatch_fails() {
 }
 
 #[test]
-fn test_otherwise_with_array_indexing() {
+fn otherwise_with_array_indexing() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1461,7 +1461,7 @@ fn test_otherwise_with_array_indexing() {
 // ============================================================================
 
 #[test]
-fn test_cast_invalid() {
+fn cast_invalid() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1476,7 +1476,7 @@ fn test_cast_invalid() {
 // ============================================================================
 
 #[test]
-fn test_integer_suffix_not_supported() {
+fn integer_suffix_not_supported() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1495,7 +1495,7 @@ fn test_integer_suffix_not_supported() {
 // ============================================================================
 
 #[test]
-fn test_span_tracking_binary_expr() {
+fn span_tracking_binary_expr() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1525,7 +1525,7 @@ fn test_span_tracking_binary_expr() {
 
 #[test]
 #[ignore = "Span tracking logic needs to be fixed in parser"]
-fn test_span_tracking_nested_expr() {
+fn span_tracking_nested_expr() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1554,7 +1554,7 @@ fn test_span_tracking_nested_expr() {
 }
 
 #[test]
-fn test_span_tracking_boolean_expr() {
+fn span_tracking_boolean_expr() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1582,7 +1582,7 @@ fn test_span_tracking_boolean_expr() {
 }
 
 #[test]
-fn test_float_suffix_not_supported() {
+fn float_suffix_not_supported() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1601,7 +1601,7 @@ fn test_float_suffix_not_supported() {
 // ============================================================================
 
 #[test]
-fn test_polymorphic_identity_function() {
+fn polymorphic_identity_function() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1623,7 +1623,7 @@ fn test_polymorphic_identity_function() {
 }
 
 #[test]
-fn test_polymorphic_inline_lambda() {
+fn polymorphic_inline_lambda() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1643,7 +1643,7 @@ fn test_polymorphic_inline_lambda() {
 }
 
 #[test]
-fn test_polymorphic_pair_function() {
+fn polymorphic_pair_function() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1668,7 +1668,7 @@ fn test_polymorphic_pair_function() {
 }
 
 #[test]
-fn test_polymorphic_const_function() {
+fn polymorphic_const_function() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1698,7 +1698,7 @@ fn test_polymorphic_const_function() {
 }
 
 #[test]
-fn test_sequential_polymorphic_bindings() {
+fn sequential_polymorphic_bindings() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1733,7 +1733,7 @@ fn test_sequential_polymorphic_bindings() {
 }
 
 #[test]
-fn test_higher_rank_polymorphism() {
+fn higher_rank_polymorphism() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1758,7 +1758,7 @@ fn test_higher_rank_polymorphism() {
 }
 
 #[test]
-fn test_polymorphic_in_array_literal() {
+fn polymorphic_in_array_literal() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1779,7 +1779,7 @@ fn test_polymorphic_in_array_literal() {
 }
 
 #[test]
-fn test_nested_where_with_polymorphism() {
+fn nested_where_with_polymorphism() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1802,7 +1802,7 @@ fn test_nested_where_with_polymorphism() {
 }
 
 #[test]
-fn test_polymorphic_function_type_error() {
+fn polymorphic_function_type_error() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1822,7 +1822,7 @@ fn test_polymorphic_function_type_error() {
 }
 
 #[test]
-fn test_polymorphic_map_function() {
+fn polymorphic_map_function() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1856,7 +1856,7 @@ fn test_polymorphic_map_function() {
 }
 
 #[test]
-fn test_polymorphic_compose() {
+fn polymorphic_compose() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1890,7 +1890,7 @@ fn test_polymorphic_compose() {
 }
 
 #[test]
-fn test_closure_capturing_lambda_param_should_not_be_polymorphic() {
+fn closure_capturing_lambda_param_should_not_be_polymorphic() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1928,7 +1928,7 @@ fn test_closure_capturing_lambda_param_should_not_be_polymorphic() {
 // ============================================================================
 
 #[test]
-fn test_error_unbound_variable() {
+fn error_unbound_variable() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1951,7 +1951,7 @@ fn test_error_unbound_variable() {
 }
 
 #[test]
-fn test_error_not_indexable() {
+fn error_not_indexable() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1974,7 +1974,7 @@ fn test_error_not_indexable() {
 }
 
 #[test]
-fn test_error_unknown_field() {
+fn error_unknown_field() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -1998,7 +1998,7 @@ fn test_error_unknown_field() {
 }
 
 #[test]
-fn test_error_not_a_record() {
+fn error_not_a_record() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2018,7 +2018,7 @@ fn test_error_not_a_record() {
 }
 
 #[test]
-fn test_error_duplicate_parameter() {
+fn error_duplicate_parameter() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2036,7 +2036,7 @@ fn test_error_duplicate_parameter() {
 }
 
 #[test]
-fn test_error_duplicate_binding() {
+fn error_duplicate_binding() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2054,7 +2054,7 @@ fn test_error_duplicate_binding() {
 }
 
 #[test]
-fn test_error_not_formattable() {
+fn error_not_formattable() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2073,7 +2073,7 @@ fn test_error_not_formattable() {
 }
 
 #[test]
-fn test_error_constraint_violation_numeric() {
+fn error_constraint_violation_numeric() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2101,7 +2101,7 @@ fn test_error_constraint_violation_numeric() {
 }
 
 #[test]
-fn test_error_constraint_violation_ord() {
+fn error_constraint_violation_ord() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2119,7 +2119,7 @@ fn test_error_constraint_violation_ord() {
 }
 
 #[test]
-fn test_error_type_mismatch_binary_op() {
+fn error_type_mismatch_binary_op() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2139,7 +2139,7 @@ fn test_error_type_mismatch_binary_op() {
 }
 
 #[test]
-fn test_error_function_param_count_mismatch() {
+fn error_function_param_count_mismatch() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2163,7 +2163,7 @@ fn test_error_function_param_count_mismatch() {
 }
 
 #[test]
-fn test_error_invalid_cast() {
+fn error_invalid_cast() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2182,7 +2182,7 @@ fn test_error_invalid_cast() {
 }
 
 #[test]
-fn test_error_polymorphic_cast() {
+fn error_polymorphic_cast() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2209,7 +2209,7 @@ fn test_error_polymorphic_cast() {
 }
 
 #[test]
-fn test_error_unsupported_feature_integer_suffix() {
+fn error_unsupported_feature_integer_suffix() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2233,7 +2233,7 @@ fn test_error_unsupported_feature_integer_suffix() {
 }
 
 #[test]
-fn test_error_unsupported_feature_float_suffix() {
+fn error_unsupported_feature_float_suffix() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2257,7 +2257,7 @@ fn test_error_unsupported_feature_float_suffix() {
 }
 
 #[test]
-fn test_lambda_body_type_variables_after_resolution() {
+fn lambda_body_type_variables_after_resolution() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2295,7 +2295,7 @@ fn test_lambda_body_type_variables_after_resolution() {
 }
 
 #[test]
-fn test_array_lambda_body_unified_types() {
+fn array_lambda_body_unified_types() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2351,7 +2351,7 @@ fn test_array_lambda_body_unified_types() {
 }
 
 #[test]
-fn test_inline_array_lambda_works() {
+fn inline_array_lambda_works() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2404,7 +2404,7 @@ fn test_inline_array_lambda_works() {
 // ============================================================================
 
 #[test]
-fn test_instantiation_tracking_simple() {
+fn instantiation_tracking_simple() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2446,7 +2446,7 @@ fn test_instantiation_tracking_simple() {
 }
 
 #[test]
-fn test_instantiation_tracking_multiple_calls() {
+fn instantiation_tracking_multiple_calls() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2487,7 +2487,7 @@ fn test_instantiation_tracking_multiple_calls() {
 }
 
 #[test]
-fn test_instantiation_tracking_multi_param() {
+fn instantiation_tracking_multi_param() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2526,7 +2526,7 @@ fn test_instantiation_tracking_multi_param() {
 }
 
 #[test]
-fn test_instantiation_tracking_map_indexing() {
+fn instantiation_tracking_map_indexing() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2562,7 +2562,7 @@ fn test_instantiation_tracking_map_indexing() {
 }
 
 #[test]
-fn test_no_instantiation_for_monomorphic() {
+fn no_instantiation_for_monomorphic() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2582,7 +2582,7 @@ fn test_no_instantiation_for_monomorphic() {
 }
 
 #[test]
-fn test_no_instantiation_for_inline_lambda() {
+fn no_instantiation_for_inline_lambda() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2602,7 +2602,7 @@ fn test_no_instantiation_for_inline_lambda() {
 }
 
 #[test]
-fn test_instantiation_tracking_with_shadowing() {
+fn instantiation_tracking_with_shadowing() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2658,7 +2658,7 @@ fn test_instantiation_tracking_with_shadowing() {
 }
 
 #[test]
-fn test_lambda_instantiations_pointer_remapping() {
+fn lambda_instantiations_pointer_remapping() {
     // Regression test for pointer invalidation bug:
     // resolve_expr_types allocates new Expr nodes, so lambda_instantiations
     // keys must be remapped from old pointers to new pointers.
@@ -2705,7 +2705,7 @@ fn test_lambda_instantiations_pointer_remapping() {
 // ============================================================================
 
 #[test]
-fn test_some_literal_int() {
+fn some_literal_int() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -2733,7 +2733,7 @@ fn test_some_literal_int() {
 }
 
 #[test]
-fn test_none_polymorphic() {
+fn none_polymorphic() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -2761,7 +2761,7 @@ fn test_none_polymorphic() {
 }
 
 #[test]
-fn test_if_none_some_string() {
+fn if_none_some_string() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -2790,7 +2790,7 @@ fn test_if_none_some_string() {
 }
 
 #[test]
-fn test_option_in_lambda() {
+fn option_in_lambda() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -2819,7 +2819,7 @@ fn test_option_in_lambda() {
 }
 
 #[test]
-fn test_array_of_options() {
+fn array_of_options() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -2850,7 +2850,7 @@ fn test_array_of_options() {
 }
 
 #[test]
-fn test_nested_option() {
+fn nested_option() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -2881,7 +2881,7 @@ fn test_nested_option() {
 }
 
 #[test]
-fn test_option_in_record() {
+fn option_in_record() {
     use crate::types::traits::{TypeKind, TypeView};
 
     let bump = Bump::new();
@@ -2925,7 +2925,7 @@ fn test_option_in_record() {
 }
 
 #[test]
-fn test_exhaustiveness_option_with_catch_all() {
+fn exhaustiveness_option_with_catch_all() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2941,7 +2941,7 @@ fn test_exhaustiveness_option_with_catch_all() {
 }
 
 #[test]
-fn test_exhaustiveness_option_specific_pattern_fails() {
+fn exhaustiveness_option_specific_pattern_fails() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 
@@ -2965,7 +2965,7 @@ fn test_exhaustiveness_option_specific_pattern_fails() {
 }
 
 #[test]
-fn test_exhaustiveness_nested_option_with_catch_all() {
+fn exhaustiveness_nested_option_with_catch_all() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);
 

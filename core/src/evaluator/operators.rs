@@ -204,31 +204,31 @@ mod tests {
     use crate::evaluator::RuntimeError;
 
     #[test]
-    fn test_int_add() {
+    fn int_add() {
         assert_eq!(eval_binary_int(BinaryOp::Add, 2, 3).unwrap(), 5);
         assert_eq!(eval_binary_int(BinaryOp::Add, -5, 3).unwrap(), -2);
     }
 
     #[test]
-    fn test_int_sub() {
+    fn int_sub() {
         assert_eq!(eval_binary_int(BinaryOp::Sub, 10, 4).unwrap(), 6);
         assert_eq!(eval_binary_int(BinaryOp::Sub, 3, 10).unwrap(), -7);
     }
 
     #[test]
-    fn test_int_mul() {
+    fn int_mul() {
         assert_eq!(eval_binary_int(BinaryOp::Mul, 3, 4).unwrap(), 12);
         assert_eq!(eval_binary_int(BinaryOp::Mul, -2, 5).unwrap(), -10);
     }
 
     #[test]
-    fn test_int_div() {
+    fn int_div() {
         assert_eq!(eval_binary_int(BinaryOp::Div, 10, 2).unwrap(), 5);
         assert_eq!(eval_binary_int(BinaryOp::Div, 7, 3).unwrap(), 2);
     }
 
     #[test]
-    fn test_int_div_by_zero() {
+    fn int_div_by_zero() {
         let result = eval_binary_int(BinaryOp::Div, 10, 0);
         assert!(matches!(
             result.as_ref().map(|_| ()),
@@ -239,20 +239,20 @@ mod tests {
     }
 
     #[test]
-    fn test_int_pow() {
+    fn int_pow() {
         assert_eq!(eval_binary_int(BinaryOp::Pow, 2, 10).unwrap(), 1024);
         assert_eq!(eval_binary_int(BinaryOp::Pow, 3, 3).unwrap(), 27);
         assert_eq!(eval_binary_int(BinaryOp::Pow, 5, 0).unwrap(), 1);
     }
 
     #[test]
-    fn test_int_pow_negative_exponent() {
+    fn int_pow_negative_exponent() {
         // Negative exponents for integers return 0 (floor semantics)
         assert_eq!(eval_binary_int(BinaryOp::Pow, 2, -1).unwrap(), 0);
     }
 
     #[test]
-    fn test_int_wrapping_overflow() {
+    fn int_wrapping_overflow() {
         // Test that we wrap on overflow rather than panic
         let result = eval_binary_int(BinaryOp::Add, i64::MAX, 1).unwrap();
         assert_eq!(result, i64::MIN);
@@ -262,25 +262,25 @@ mod tests {
     }
 
     #[test]
-    fn test_float_add() {
+    fn float_add() {
         let result = eval_binary_float(BinaryOp::Add, 3.14, 2.0);
         assert!((result - 5.14).abs() < 0.0001);
     }
 
     #[test]
-    fn test_float_div() {
+    fn float_div() {
         assert_eq!(eval_binary_float(BinaryOp::Div, 10.0, 3.0), 10.0 / 3.0);
     }
 
     #[test]
-    fn test_float_div_by_zero() {
+    fn float_div_by_zero() {
         // Float division by zero produces infinity (IEEE 754)
         let result = eval_binary_float(BinaryOp::Div, 10.0, 0.0);
         assert!(result.is_infinite() && result.is_sign_positive());
     }
 
     #[test]
-    fn test_float_pow() {
+    fn float_pow() {
         assert_eq!(eval_binary_float(BinaryOp::Pow, 2.0, 3.0), 8.0);
     }
 }

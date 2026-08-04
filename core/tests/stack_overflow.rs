@@ -3,7 +3,7 @@ use melbi_core::parser;
 
 #[test]
 #[ignore = "crashes the binary and can't be caught with should_panic"]
-fn test_stack_overflow() {
+fn stack_overflow() {
     let arena = Bump::new();
 
     // Create a very deeply nested expression that would exceed Rust's stack limit
@@ -32,7 +32,7 @@ fn test_stack_overflow() {
 #[ignore = "Rust 1.93+ debug builds have larger stack frames (~16KB vs ~8KB per recursion), \
             causing stack overflow at ~500 nesting levels before depth check (1000) triggers. \
             Fix: either lower max_depth or restructure test with custom lower depth limit."]
-fn test_depth_protection_prevents_stack_overflow() {
+fn depth_protection_prevents_stack_overflow() {
     let arena = Bump::new();
 
     // Same deeply nested expression, but with default depth protection

@@ -155,7 +155,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_to_pascal_case() {
+    fn to_pascal_case_works() {
         assert_eq!(to_pascal_case("add"), "Add");
         assert_eq!(to_pascal_case("safe_div"), "SafeDiv");
         assert_eq!(to_pascal_case("get_first_element"), "GetFirstElement");
@@ -165,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_screaming_snake_case() {
+    fn to_screaming_snake_case_works() {
         assert_eq!(to_screaming_snake_case("pi"), "PI");
         assert_eq!(to_screaming_snake_case("euler_constant"), "EULER_CONSTANT");
         assert_eq!(to_screaming_snake_case("speed_of_light"), "SPEED_OF_LIGHT");

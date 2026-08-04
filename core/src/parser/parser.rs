@@ -1122,7 +1122,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simple_binary_expr() {
+    fn simple_binary_expr() {
         let arena = Bump::new();
         let input = "1 + 2";
         let parsed = parse(&arena, input).unwrap();
@@ -1152,7 +1152,7 @@ mod tests {
 
     #[test]
     #[ignore = "Grouped expression spans are incorrect - they exclude parentheses"]
-    fn test_grouped_expression_span_bug() {
+    fn grouped_expression_span_bug() {
         let arena = Bump::new();
         let input = "1 + (2 + 3) * 4";
         let parsed = parse(&arena, input).unwrap();
@@ -1199,7 +1199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_boolean_and_expr() {
+    fn boolean_and_expr() {
         let arena = Bump::new();
         let input = "true and false";
         let parsed = parse(&arena, input).unwrap();
@@ -1216,7 +1216,7 @@ mod tests {
     }
 
     #[test]
-    fn test_boolean_or_expr() {
+    fn boolean_or_expr() {
         let arena = Bump::new();
         let input = "true or false";
         let parsed = parse(&arena, input).unwrap();
@@ -1233,7 +1233,7 @@ mod tests {
     }
 
     #[test]
-    fn test_boolean_chain_same_op() {
+    fn boolean_chain_same_op() {
         let arena = Bump::new();
         let input = "a and b and c";
         let parsed = parse(&arena, input).unwrap();
@@ -1254,7 +1254,7 @@ mod tests {
     }
 
     #[test]
-    fn test_boolean_chain_mixed_ops() {
+    fn boolean_chain_mixed_ops() {
         let arena = Bump::new();
         let input = "a and b or c";
         let parsed = parse(&arena, input).unwrap();
@@ -1275,7 +1275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_boolean_with_not() {
+    fn boolean_with_not() {
         let arena = Bump::new();
         let input = "not a and b";
         let parsed = parse(&arena, input).unwrap();
@@ -1295,7 +1295,7 @@ mod tests {
     }
 
     #[test]
-    fn test_if_expr() {
+    fn if_expr() {
         let arena = Bump::new();
         let input = "if not false then false else true";
         let parsed = parse(&arena, input).unwrap();
@@ -1327,7 +1327,7 @@ mod tests {
     }
 
     #[test]
-    fn test_lambda_expr() {
+    fn lambda_expr() {
         let arena = Bump::new();
         let input = "(x) => x + 1";
         let parsed = parse(&arena, input).unwrap();
@@ -1355,7 +1355,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cast_expr_type_names() {
+    fn cast_expr_type_names() {
         let arena = Bump::new();
         let input = "m as Map[String, Integer]";
         let parsed = parse(&arena, input).unwrap();
@@ -1375,7 +1375,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_literal() {
+    fn array_literal() {
         let arena = Bump::new();
         let input = "[1, 2, 3]";
         let parsed = parse(&arena, input).unwrap();
@@ -1408,7 +1408,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_literal() {
+    fn map_literal() {
         let arena = Bump::new();
         let input = "{a: 1, b: 2}";
         let parsed = parse(&arena, input).unwrap();
@@ -1444,7 +1444,7 @@ mod tests {
     }
 
     #[test]
-    fn test_record_literal() {
+    fn record_literal() {
         let arena = Bump::new();
         let input = "{ x = 1, y = 2 }";
         let parsed = parse(&arena, input).unwrap();
@@ -1478,7 +1478,7 @@ mod tests {
     }
 
     #[test]
-    fn test_where_expr() {
+    fn where_expr() {
         let arena = Bump::new();
         let input = "x + y where { x = 1, y = 2 }";
         let parsed = parse(&arena, input).unwrap();
@@ -1520,7 +1520,7 @@ mod tests {
     }
 
     #[test]
-    fn test_lambda_no_argument() {
+    fn lambda_no_argument() {
         let arena = Bump::new();
         let input = "() => 42";
         let parsed = parse(&arena, input).unwrap();
@@ -1544,7 +1544,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_record_literal() {
+    fn empty_record_literal() {
         let arena = Bump::new();
         let input = "Record {}";
         let parsed = parse(&arena, input).unwrap();
@@ -1555,7 +1555,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_with_interpolation() {
+    fn format_string_with_interpolation() {
         let arena = Bump::new();
         let input = "f\" Hello, {a + b} !\\n \"";
         let parsed = parse(&arena, input).expect("parse failed");
@@ -1576,7 +1576,7 @@ mod tests {
     }
 
     #[test]
-    fn test_where_expr_with_bindings() {
+    fn where_expr_with_bindings() {
         let arena = Bump::new();
         let input = "x + y where { x = 1, y = 2, }";
         let parsed = parse(&arena, input).unwrap();
@@ -1612,7 +1612,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_call() {
+    fn function_call() {
         let arena = Bump::new();
         let input = "foo(1, 2, 3)";
         let parsed = parse(&arena, input).unwrap();
@@ -1649,7 +1649,7 @@ mod tests {
     }
 
     #[test]
-    fn test_index_access() {
+    fn index_access() {
         let arena = Bump::new();
         let input = "arr[42]";
         let parsed = parse(&arena, input).unwrap();
@@ -1674,7 +1674,7 @@ mod tests {
     }
 
     #[test]
-    fn test_attr_access() {
+    fn attr_access() {
         let arena = Bump::new();
         let input = "obj.field";
         let parsed = parse(&arena, input).unwrap();
@@ -1699,7 +1699,7 @@ mod tests {
     }
 
     #[test]
-    fn test_string_literal() {
+    fn string_literal() {
         let arena = Bump::new();
         let input = "\"Hello, world!\"";
         let parsed = parse(&arena, input).unwrap();
@@ -1710,7 +1710,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_literal() {
+    fn bytes_literal() {
         let arena = Bump::new();
         let input = "b\"Hello, bytes!\"";
         let parsed = parse(&arena, input).unwrap();
@@ -1724,7 +1724,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_escape_sequences() {
+    fn bytes_escape_sequences() {
         let arena = Bump::new();
 
         // Newline
@@ -1744,7 +1744,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_hex_escapes() {
+    fn bytes_hex_escapes() {
         let arena = Bump::new();
 
         // "Hello" in hex
@@ -1764,7 +1764,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_quote_styles() {
+    fn bytes_quote_styles() {
         let arena = Bump::new();
 
         // Double quotes
@@ -1785,7 +1785,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_null_escape() {
+    fn bytes_null_escape() {
         let arena = Bump::new();
 
         let parsed = parse(&arena, r#"b"before\0after""#).unwrap();
@@ -1799,7 +1799,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_line_continuation() {
+    fn bytes_line_continuation() {
         let arena = Bump::new();
 
         // Basic line continuation
@@ -1819,7 +1819,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_reject_non_ascii() {
+    fn bytes_reject_non_ascii() {
         let arena = Bump::new();
 
         // Should fail with error about non-ASCII character 'é'
@@ -1834,7 +1834,7 @@ mod tests {
     // ===== String literal unescaping tests =====
 
     #[test]
-    fn test_string_escape_sequences() {
+    fn string_escape_sequences() {
         let arena = Bump::new();
         let parsed = parse(&arena, r#""hello\nworld""#).unwrap();
         assert_eq!(*parsed.expr, Expr::Literal(Literal::Str("hello\nworld")));
@@ -1847,7 +1847,7 @@ mod tests {
     }
 
     #[test]
-    fn test_string_unicode_escapes() {
+    fn string_unicode_escapes() {
         let arena = Bump::new();
         // 4-digit Unicode escapes
         let parsed = parse(&arena, r#""\u0048\u0065\u006c\u006c\u006f""#).unwrap();
@@ -1862,7 +1862,7 @@ mod tests {
     }
 
     #[test]
-    fn test_string_quote_styles() {
+    fn string_quote_styles() {
         let arena = Bump::new();
         // Double quotes
         let parsed = parse(&arena, r#""hello""#).unwrap();
@@ -1881,7 +1881,7 @@ mod tests {
     }
 
     #[test]
-    fn test_string_utf8_in_source() {
+    fn string_utf8_in_source() {
         let arena = Bump::new();
         // UTF-8 characters should be allowed in source
         let parsed = parse(&arena, r#""café""#).unwrap();
@@ -1895,14 +1895,14 @@ mod tests {
     }
 
     #[test]
-    fn test_string_null_escape() {
+    fn string_null_escape() {
         let arena = Bump::new();
         let parsed = parse(&arena, r#""null\0byte""#).unwrap();
         assert_eq!(*parsed.expr, Expr::Literal(Literal::Str("null\0byte")));
     }
 
     #[test]
-    fn test_string_line_continuation() {
+    fn string_line_continuation() {
         let arena = Bump::new();
         // Backslash + newline should be removed
         let parsed = parse(&arena, "\"hello\\\nworld\"").unwrap();
@@ -1916,7 +1916,7 @@ mod tests {
     // ===== Format string unescaping tests =====
 
     #[test]
-    fn test_format_string_escape_sequences() {
+    fn format_string_escape_sequences() {
         let arena = Bump::new();
         let parsed = parse(&arena, r#"f"hello\nworld""#).unwrap();
         assert_eq!(
@@ -1938,7 +1938,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_single_quotes_escape_sequences() {
+    fn format_string_single_quotes_escape_sequences() {
         let arena = Bump::new();
         let parsed = parse(&arena, r#"f'hello\nworld'"#).unwrap();
         assert_eq!(
@@ -1960,7 +1960,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_unicode_escapes() {
+    fn format_string_unicode_escapes() {
         let arena = Bump::new();
         let parsed = parse(&arena, r#"f"\u0048ello""#).unwrap();
         assert_eq!(
@@ -1982,7 +1982,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_brace_and_escapes() {
+    fn format_string_brace_and_escapes() {
         let arena = Bump::new();
         // Combine brace escaping and string escapes
         let parsed = parse(&arena, r#"f"{{\n}}""#).unwrap();
@@ -2005,7 +2005,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_mixed() {
+    fn format_string_mixed() {
         let arena = Bump::new();
         // Test format string with both expressions and escapes
         let parsed = parse(&arena, r#"f"text {x} more\ntext {{literal}}""#).unwrap();
@@ -2019,7 +2019,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_empty_parts_consecutive_exprs() {
+    fn format_string_empty_parts_consecutive_exprs() {
         let arena = Bump::new();
         // Test that consecutive expressions have empty strings between them
         // Invariant: strs.len() == exprs.len() + 1
@@ -2055,7 +2055,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_empty_parts_starts_with_expr() {
+    fn format_string_empty_parts_starts_with_expr() {
         let arena = Bump::new();
         // Test format string starting with expression
         let parsed = parse(&arena, r#"f"{0}x{1}""#).unwrap();
@@ -2086,7 +2086,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_empty_parts_ends_with_expr() {
+    fn format_string_empty_parts_ends_with_expr() {
         let arena = Bump::new();
         // Test format string ending with expression
         let parsed = parse(&arena, r#"f"{0}{1}x""#).unwrap();
@@ -2117,7 +2117,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_empty_parts_only_exprs() {
+    fn format_string_empty_parts_only_exprs() {
         let arena = Bump::new();
         // Test format string with only expressions (no text)
         let parsed = parse(&arena, r#"f"{0}{1}""#).unwrap();
@@ -2148,7 +2148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_format_string_empty_parts_alternating() {
+    fn format_string_empty_parts_alternating() {
         let arena = Bump::new();
         // Test alternating text and expressions
         let parsed = parse(&arena, r#"f"a{0}b{1}c""#).unwrap();
@@ -2179,7 +2179,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_quoted_string_literal() {
+    fn single_quoted_string_literal() {
         let arena = Bump::new();
         let input = "'Hello, world!'";
         let parsed = parse(&arena, input).unwrap();
@@ -2190,7 +2190,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_quoted_bytes_literal() {
+    fn single_quoted_bytes_literal() {
         let arena = Bump::new();
         let input = "b'Hello, bytes!'";
         let parsed = parse(&arena, input).unwrap();
@@ -2204,7 +2204,7 @@ mod tests {
     }
 
     #[test]
-    fn test_integer_overflow() {
+    fn integer_overflow() {
         let arena = Bump::new();
         let expr = "9223372036854775808"; // i64::MAX + 1
         let result = parse(&arena, expr);
@@ -2212,7 +2212,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cast_simple_type() {
+    fn cast_simple_type() {
         let arena = Bump::new();
         let input = "42 as Int";
         let parsed = parse(&arena, input).unwrap();
@@ -2230,7 +2230,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cast_parametrized_type() {
+    fn cast_parametrized_type() {
         let arena = Bump::new();
         let input = "x as Array[Int]";
         let parsed = parse(&arena, input).unwrap();
@@ -2248,7 +2248,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cast_map_type() {
+    fn cast_map_type() {
         let arena = Bump::new();
         let input = "m as Map[String, Int]";
         let parsed = parse(&arena, input).unwrap();
@@ -2266,7 +2266,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cast_nested_parametrized_type() {
+    fn cast_nested_parametrized_type() {
         let arena = Bump::new();
         let input = "x as Array[Array[Int]]";
         let parsed = parse(&arena, input).unwrap();
@@ -2287,7 +2287,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cast_record_type() {
+    fn cast_record_type() {
         let arena = Bump::new();
         let input = "r as Record[name: String, age: Int]";
         let parsed = parse(&arena, input).unwrap();
@@ -2305,7 +2305,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_tracking_shallow() {
+    fn depth_tracking_shallow() {
         // Test that shallow nesting works fine
         let arena = Bump::new();
         let input = "((((((((((1))))))))))"; // 10 levels of nesting
@@ -2314,7 +2314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_tracking_exceeds_limit() {
+    fn depth_tracking_exceeds_limit() {
         // Test that exceeding max_depth fails with appropriate error
         let arena = Bump::new();
         let max_depth = 50;
@@ -2345,7 +2345,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_tracking_arrays() {
+    fn depth_tracking_arrays() {
         // Test depth tracking works with arrays too
         let arena = Bump::new();
         let max_depth = 30;
@@ -2364,7 +2364,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_tracking_default_max() {
+    fn depth_tracking_default_max() {
         // Verify the default max depth is reasonable (1000)
         let arena = Bump::new();
         // Create expression with 100 levels of nesting (well under default)
@@ -2388,7 +2388,7 @@ mod tests {
     }
 
     #[test]
-    fn test_none_literal() {
+    fn none_literal() {
         let arena = Bump::new();
         let input = "none";
         let parsed = parse(&arena, input).unwrap();
@@ -2398,7 +2398,7 @@ mod tests {
     }
 
     #[test]
-    fn test_some_prefix() {
+    fn some_prefix() {
         let arena = Bump::new();
         let input = "some 42";
         let parsed = parse(&arena, input).unwrap();
@@ -2416,7 +2416,7 @@ mod tests {
     }
 
     #[test]
-    fn test_some_nested() {
+    fn some_nested() {
         let arena = Bump::new();
         let input = "some some 42";
         let parsed = parse(&arena, input).unwrap();
@@ -2436,7 +2436,7 @@ mod tests {
     }
 
     #[test]
-    fn test_some_complex_expr() {
+    fn some_complex_expr() {
         let arena = Bump::new();
         let input = "some (x + 1)";
         let parsed = parse(&arena, input).unwrap();
@@ -2459,7 +2459,7 @@ mod tests {
     }
 
     #[test]
-    fn test_some_none() {
+    fn some_none() {
         let arena = Bump::new();
         let input = "some none";
         let parsed = parse(&arena, input).unwrap();
@@ -2478,7 +2478,7 @@ mod tests {
     // For example, `notdefined` should be an identifier, not `not defined`.
 
     #[test]
-    fn test_keyword_not_in_identifier() {
+    fn keyword_not_in_identifier() {
         let arena = Bump::new();
 
         // `notdefined` should be a single identifier, not `not defined`
@@ -2495,7 +2495,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keyword_and_in_identifier() {
+    fn keyword_and_in_identifier() {
         let arena = Bump::new();
 
         // `android` should be a single identifier, not `and roid`
@@ -2508,7 +2508,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keyword_or_in_identifier() {
+    fn keyword_or_in_identifier() {
         let arena = Bump::new();
 
         // `order` should be a single identifier, not `or der`
@@ -2525,7 +2525,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keyword_in_in_identifier() {
+    fn keyword_in_in_identifier() {
         let arena = Bump::new();
 
         // `index` should be a single identifier, not `in dex`
@@ -2542,7 +2542,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keyword_some_in_identifier() {
+    fn keyword_some_in_identifier() {
         let arena = Bump::new();
 
         // `something` should be a single identifier, not `some thing`
@@ -2555,7 +2555,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keyword_none_in_identifier() {
+    fn keyword_none_in_identifier() {
         let arena = Bump::new();
 
         // `nonetheless` should be a single identifier, not `none theless`
@@ -2568,7 +2568,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keyword_as_standalone() {
+    fn keyword_as_standalone() {
         let arena = Bump::new();
 
         // `not true` should be `not` applied to `true`
@@ -2614,7 +2614,7 @@ mod tests {
     // The fix adds `~ !(ASCII_ALPHANUMERIC | "_")` guards to these operators in expression.pest.
 
     #[test]
-    fn test_infix_keyword_boundary_regression_and() {
+    fn infix_keyword_boundary_regression_and() {
         let arena = Bump::new();
 
         // `x andy` should fail to parse - it's two consecutive identifiers with no operator.
@@ -2628,7 +2628,7 @@ mod tests {
     }
 
     #[test]
-    fn test_infix_keyword_boundary_regression_or() {
+    fn infix_keyword_boundary_regression_or() {
         let arena = Bump::new();
 
         // `x ory` should fail to parse - it's two consecutive identifiers with no operator.
@@ -2642,7 +2642,7 @@ mod tests {
     }
 
     #[test]
-    fn test_infix_keyword_boundary_regression_in() {
+    fn infix_keyword_boundary_regression_in() {
         let arena = Bump::new();
 
         // `x inside` should fail to parse - it's two consecutive identifiers with no operator.
@@ -2656,7 +2656,7 @@ mod tests {
     }
 
     #[test]
-    fn test_infix_keyword_boundary_regression_otherwise() {
+    fn infix_keyword_boundary_regression_otherwise() {
         let arena = Bump::new();
 
         // `1 otherwisely` should fail to parse - it's a literal followed by an identifier
@@ -2678,7 +2678,7 @@ mod tests {
     // parse `some_value` as `Pattern::Some(Var("_value"))` instead of `Pattern::Var("some_value")`.
 
     #[test]
-    fn test_pattern_keyword_boundary_some_value() {
+    fn pattern_keyword_boundary_some_value() {
         let arena = Bump::new();
         // `some_value` should parse as Pattern::Var("some_value"), not Pattern::Some
         let parsed = parse(&arena, "x match { some_value -> 1, _ -> 0 }").unwrap();
@@ -2689,7 +2689,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pattern_keyword_boundary_none_value() {
+    fn pattern_keyword_boundary_none_value() {
         let arena = Bump::new();
         // `none_value` should parse as Pattern::Var("none_value"), not Pattern::None
         let parsed = parse(&arena, "x match { none_value -> 1, _ -> 0 }").unwrap();
@@ -2700,7 +2700,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pattern_some_with_binding() {
+    fn pattern_some_with_binding() {
         let arena = Bump::new();
         // `some y` (with space) should parse as Pattern::Some containing Pattern::Var("y")
         let parsed = parse(&arena, "x match { some y -> y, none -> 0 }").unwrap();
@@ -2714,7 +2714,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pattern_keyword_boundary_something() {
+    fn pattern_keyword_boundary_something() {
         let arena = Bump::new();
         // `something` should be Pattern::Var("something"), not Pattern::Some
         let parsed = parse(&arena, "x match { something -> 1, _ -> 0 }").unwrap();
@@ -2725,7 +2725,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pattern_keyword_boundary_nonetheless() {
+    fn pattern_keyword_boundary_nonetheless() {
         let arena = Bump::new();
         // `nonetheless` should be Pattern::Var("nonetheless"), not Pattern::None
         let parsed = parse(&arena, "x match { nonetheless -> 1, _ -> 0 }").unwrap();

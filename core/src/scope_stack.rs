@@ -287,7 +287,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_complete_scope_lookup() {
+    fn complete_scope_lookup() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -301,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn test_incomplete_scope_sequential_binding() {
+    fn incomplete_scope_sequential_binding() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -324,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn test_shadowing() {
+    fn shadowing() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -348,7 +348,7 @@ mod tests {
     }
 
     #[test]
-    fn test_duplicate_names_error() {
+    fn duplicate_names_error() {
         let bump = Bump::new();
 
         let result = IncompleteScope::<i32>::new(&bump, &["a", "b", "a"]);
@@ -357,7 +357,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bind_already_bound_error() {
+    fn bind_already_bound_error() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -370,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bind_undeclared_name_error() {
+    fn bind_undeclared_name_error() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -383,7 +383,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bind_immutable_scope_error() {
+    fn bind_immutable_scope_error() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 

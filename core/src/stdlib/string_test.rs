@@ -9,7 +9,7 @@ use crate::values::binder::Binder;
 use crate::values::dynamic::{RecordBuilder, Value};
 
 #[test]
-fn test_string_package_builds() {
+fn string_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -46,7 +46,7 @@ where
 }
 
 #[test]
-fn test_string_len() {
+fn string_len() {
     // ASCII string
     test_string_expr("String.Len(\"hello\")", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 5);
@@ -69,7 +69,7 @@ fn test_string_len() {
 }
 
 #[test]
-fn test_string_is_empty() {
+fn string_is_empty() {
     test_string_expr("String.IsEmpty(\"\")", |r: Value| {
         assert!(r.as_bool().unwrap());
     });
@@ -80,7 +80,7 @@ fn test_string_is_empty() {
 }
 
 #[test]
-fn test_string_contains() {
+fn string_contains() {
     test_string_expr("String.Contains(\"hello world\", \"world\")", |r: Value| {
         assert!(r.as_bool().unwrap());
     });
@@ -91,7 +91,7 @@ fn test_string_contains() {
 }
 
 #[test]
-fn test_string_starts_with() {
+fn string_starts_with() {
     test_string_expr("String.StartsWith(\"hello\", \"hel\")", |r: Value| {
         assert!(r.as_bool().unwrap());
     });
@@ -102,7 +102,7 @@ fn test_string_starts_with() {
 }
 
 #[test]
-fn test_string_ends_with() {
+fn string_ends_with() {
     test_string_expr("String.EndsWith(\"hello\", \"llo\")", |r: Value| {
         assert!(r.as_bool().unwrap());
     });
@@ -113,7 +113,7 @@ fn test_string_ends_with() {
 }
 
 #[test]
-fn test_string_upper() {
+fn string_upper() {
     // ASCII only
     test_string_expr("String.Upper(\"hello\")", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "HELLO");
@@ -130,7 +130,7 @@ fn test_string_upper() {
 }
 
 #[test]
-fn test_string_lower() {
+fn string_lower() {
     // ASCII only
     test_string_expr("String.Lower(\"HELLO\")", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "hello");
@@ -147,7 +147,7 @@ fn test_string_lower() {
 }
 
 #[test]
-fn test_string_trim() {
+fn string_trim() {
     test_string_expr("String.Trim(\"  hello  \")", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "hello");
     });
@@ -162,21 +162,21 @@ fn test_string_trim() {
 }
 
 #[test]
-fn test_string_trim_start() {
+fn string_trim_start() {
     test_string_expr("String.TrimStart(\"  hello  \")", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "hello  ");
     });
 }
 
 #[test]
-fn test_string_trim_end() {
+fn string_trim_end() {
     test_string_expr("String.TrimEnd(\"  hello  \")", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "  hello");
     });
 }
 
 #[test]
-fn test_string_replace() {
+fn string_replace() {
     test_string_expr(
         "String.Replace(\"hello world\", \"world\", \"Melbi\")",
         |r: Value| {
@@ -190,7 +190,7 @@ fn test_string_replace() {
 }
 
 #[test]
-fn test_string_replace_n() {
+fn string_replace_n() {
     test_string_expr("String.ReplaceN(\"aaa\", \"a\", \"b\", 2)", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "bba"); // Only first 2
     });
@@ -201,7 +201,7 @@ fn test_string_replace_n() {
 }
 
 #[test]
-fn test_string_split() {
+fn string_split() {
     test_string_expr("String.Split(\"a,b,c\", \",\")", |r: Value| {
         let arr = r.as_array().unwrap();
         assert_eq!(arr.len(), 3);
@@ -217,7 +217,7 @@ fn test_string_split() {
 }
 
 #[test]
-fn test_string_join() {
+fn string_join() {
     test_string_expr("String.Join([\"a\", \"b\", \"c\"], \",\")", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "a,b,c");
     });
@@ -228,7 +228,7 @@ fn test_string_join() {
 }
 
 #[test]
-fn test_string_substring() {
+fn string_substring() {
     // Normal substring
     test_string_expr("String.Substring(\"hello\", 1, 4)", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "ell");
@@ -256,7 +256,7 @@ fn test_string_substring() {
 }
 
 #[test]
-fn test_string_to_int() {
+fn string_to_int() {
     // Valid integer
     test_string_expr("String.ToInt(\"42\")", |r: Value| {
         let opt = r.as_option().unwrap();
@@ -285,7 +285,7 @@ fn test_string_to_int() {
 }
 
 #[test]
-fn test_string_to_float() {
+fn string_to_float() {
     // Valid float
     test_string_expr("String.ToFloat(\"3.14\")", |r: Value| {
         let opt = r.as_option().unwrap();
@@ -315,7 +315,7 @@ fn test_string_to_float() {
 }
 
 #[test]
-fn test_string_composition() {
+fn string_composition() {
     // Combining multiple string operations
     test_string_expr("String.Upper(String.Trim(\"  hello  \"))", |r: Value| {
         assert_eq!(r.as_str().unwrap(), "HELLO");

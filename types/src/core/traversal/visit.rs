@@ -60,7 +60,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_int_two() {
+    fn count_int_two() {
         let builder = BoxBuilder::new();
         let map = TyKind::Map(
             TyKind::Scalar(Scalar::Int).alloc(&builder),
@@ -74,7 +74,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_int_one() {
+    fn count_int_one() {
         let builder = BoxBuilder::new();
         let map = TyKind::Map(
             TyKind::Array(TyKind::Scalar(Scalar::Int).alloc(&builder)).alloc(&builder),

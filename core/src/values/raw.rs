@@ -527,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dyn_trait_node_works() {
+    fn dyn_trait_node_works() {
         let arena = Bump::new();
         let header_ptr =
             DynTraitNode::<dyn MyTrait, MyStruct>::new(&arena, MyStruct(arena.alloc_str("hello")));
