@@ -64,19 +64,19 @@ macro_rules! melbi_fn_impl {
                 self.fn_type
             }
 
-            #[allow(unused_variables)]
+            #[allow(unused_variables, reason = "macro generated code")]
             unsafe fn call_unchecked(
                 &self,
                 ctx: &::melbi_core::values::function::FfiContext<$lt, $lt>,
                 args: &[::melbi_core::values::dynamic::Value<$lt, $lt>],
             ) -> Result<::melbi_core::values::dynamic::Value<$lt, $lt>, ::melbi_core::evaluator::ExecutionError> {
-                #[allow(unused_imports)]
+                #[allow(unused_imports, reason = "macro generated code")]
                 use ::melbi_core::values::typed::{Bridge, RawConvertible};
 
                 // Extract parameters
                 let mut _idx = 0usize;
                 $(
-                    #[allow(unused_assignments)]
+                    #[allow(unused_assignments, reason = "macro generated code")]
                     let $param_name = unsafe { <$param_ty as RawConvertible>::from_raw_value(args[_idx].raw()) };
                     _idx += 1;
                 )*

@@ -141,7 +141,7 @@ impl TeenyVec {
         heap.cap = new_cap.try_into().expect("capacity overflow");
     }
 
-    #[allow(dead_code)] // Not currently used.
+    #[expect(dead_code, reason = "Utility method for TeenyVec")]
     #[inline(always)]
     fn set_len(&mut self, new_len: usize) {
         match self.kind() {

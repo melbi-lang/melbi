@@ -52,7 +52,10 @@ impl fmt::Debug for ArenaRaw<'_> {
     }
 }
 
-#[allow(unsafe_code)] // Union field access requires unsafe; each use has a SAFETY comment.
+#[allow(
+    unsafe_code,
+    reason = "Union field access requires unsafe; each use has a SAFETY comment."
+)]
 impl<'arena> RawValue for ArenaRaw<'arena> {
     type ArrayHandle = ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>;
 

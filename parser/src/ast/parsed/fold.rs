@@ -243,7 +243,6 @@ macro_rules! step {
             Step::Replace(other) => $stack.push(Task::$combine(other)),
             Step::Recurse => {
                 $stack.push(Task::Combine(Combine::$combine(tree.clone())));
-                #[allow(clippy::redundant_closure_call)]
                 ($push_children)(&tree, $stack);
             }
         }

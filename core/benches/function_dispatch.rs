@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! Benchmark: Function call dispatch methods
 //!
 //! Compares performance of:
@@ -97,13 +96,23 @@ fn sub(a: i64, b: i64) -> i64 {
 // ============================================================================
 
 fn bench_enum_dispatch(c: &mut Criterion) {
-    let func = FunctionData::Native(add);
-
+    let func_native = FunctionData::Native(add);
     c.bench_function("enum_dispatch_native", |b| {
         b.iter(|| {
             let mut sum = 0i64;
             for i in 0i64..1000 {
-                sum = func.call(black_box(sum), black_box(i));
+                sum = func_native.call(black_box(sum), black_box(i));
+            }
+            sum
+        })
+    });
+
+    let func_closure = FunctionData::Closure(Box::new(|a, b| a - b));
+    c.bench_function("enum_dispatch_closure", |b| {
+        b.iter(|| {
+            let mut sum = 0i64;
+            for i in 0i64..1000 {
+                sum = func_closure.call(black_box(sum), black_box(i));
             }
             sum
         })
@@ -115,6 +124,8 @@ fn bench_enum_dispatch(c: &mut Criterion) {
         FunctionData::Native(mul),
         FunctionData::Native(sub),
         FunctionData::Builtin(BuiltinFunction::Add),
+        FunctionData::Builtin(BuiltinFunction::Mul),
+        FunctionData::Builtin(BuiltinFunction::Sub),
     ];
 
     c.bench_function("enum_dispatch_mixed", |b| {

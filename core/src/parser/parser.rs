@@ -614,7 +614,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
     }
 
     // Helper functions for parsing pattern literals (without suffix support)
-    #[allow(clippy::from_str_radix_10)]
+    #[expect(clippy::from_str_radix_10, reason = "Consistent radix parsing across integer bases")]
     fn parse_integer_literal(
         &self,
         pair: Pair<Rule>,
@@ -750,7 +750,7 @@ impl<'a, 'input> ParseContext<'a, 'input> {
         Ok(node)
     }
 
-    #[allow(clippy::from_str_radix_10)]
+    #[expect(clippy::from_str_radix_10, reason = "Consistent radix parsing across integer bases")]
     fn parse_integer(&self, pair: Pair<Rule>) -> Result<&'a Expr<'a>, pest::error::Error<Rule>> {
         let pair_span = pair.as_span();
         let mut inner = pair.into_inner();

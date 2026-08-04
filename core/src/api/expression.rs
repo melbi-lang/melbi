@@ -169,7 +169,10 @@ impl<'arena> CompiledExpression<'arena> {
         }
 
         // Execute with validation complete
-        unsafe { self.run_unchecked(options_override, arena, args) }
+        #[allow(unsafe_code, reason = "run must eventually call run_unchecked")]
+        unsafe {
+            self.run_unchecked(options_override, arena, args)
+        }
     }
 
     /// Execute the expression without validation.
@@ -225,6 +228,10 @@ impl<'arena> CompiledExpression<'arena> {
     /// }.unwrap();
     /// assert_eq!(result.as_int().unwrap(), 42);
     /// ```
+    #[allow(
+        unsafe_code,
+        reason = "low-level building block for safe expression evaluation"
+    )]
     pub unsafe fn run_unchecked<'value_arena>(
         &self,
         options_override: RunOptionsOverride,

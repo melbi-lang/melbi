@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use alloc::fmt;
 
 use crate::Vec;
@@ -15,6 +14,10 @@ pub struct Stack<T> {
     max_size: usize,
 }
 
+#[allow(
+    dead_code,
+    reason = "Preserve the full Stack API. All methods are tested."
+)]
 impl<T> Stack<T> {
     pub fn new(max_size: usize) -> Self {
         // Pre-allocate a reasonable amount (min of max_size or 256)
@@ -102,6 +105,10 @@ impl<T> Stack<T> {
     }
 }
 
+#[allow(
+    dead_code,
+    reason = "Preserve the full Stack API. All methods are tested."
+)]
 impl<T: Clone> Stack<T> {
     #[inline]
     pub fn peek_at(&self, offset: usize) -> Option<&T> {

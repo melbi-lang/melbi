@@ -420,31 +420,6 @@ fn test_int_expr_expects_error(source: &str, expected_error_substring: &str) {
     }
 }
 
-/// Helper to test expressions that might panic (for documenting known bugs).
-/// Returns true if the expression panics, false if it succeeds or returns an error.
-#[allow(dead_code)]
-fn test_int_expr_panics(source: &str) -> bool {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    catch_unwind(AssertUnwindSafe(|| {
-        use crate::api::{CompileOptionsOverride, Engine, EngineOptions};
-
-        let options = EngineOptions::default();
-        let arena = Bump::new();
-
-        let engine = Engine::new(options, &arena, register_int_package);
-
-        let compile_opts = CompileOptionsOverride::default();
-        let expr = engine
-            .compile(compile_opts, source, &[])
-            .expect("compilation should succeed");
-
-        let val_arena = Bump::new();
-        let _ = expr.run(Default::default(), &val_arena, &[]);
-    }))
-    .is_err()
-}
-
 #[test]
 fn test_quot_division_by_zero_returns_error() {
     // Int.Quot(a, 0) returns a DivisionByZero error

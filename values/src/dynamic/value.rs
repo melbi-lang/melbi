@@ -74,6 +74,7 @@ impl<B: ValueBuilder> Value<B> {
     }
 
     /// Internal: Get the handle to the raw storage.
+    #[expect(dead_code, reason = "Internal Value handle getter")]
     pub(crate) fn handle(&self) -> &B::ValHandle {
         &self.handle
     }

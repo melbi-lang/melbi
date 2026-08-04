@@ -202,37 +202,6 @@ impl TreeVisitor<BoxedTreeBuilder> for NodeCounter {
     }
 }
 
-/// Example: Simple visitor that just calls a method on each node's data.
-///
-/// This is like the type resolution pass you mentioned - just traverse
-/// and call resolve() on each type. With this pattern, it's ~3 lines!
-#[allow(dead_code)]
-struct TypeResolver;
-
-impl TreeTransformer<BoxedTreeBuilder> for TypeResolver {
-    type Output = (); // Visitor pattern
-
-    fn transform(&mut self, tree: Box<TreeData<BoxedTreeBuilder>>) -> Self::Output {
-        // In real code, this would be: tree.data().resolve();
-        // For demo, we'll just print it
-        if let Some(data) = tree.clone().data() {
-            println!("Resolving: {}", data);
-        }
-
-        // Recursively visit children
-        match tree.view() {
-            TreeKind::Num(_) => {}
-            TreeKind::Add(left, right) | TreeKind::Mul(left, right) => {
-                self.transform(left);
-                self.transform(right);
-            }
-            TreeKind::Neg(inner) => {
-                self.transform(inner);
-            }
-        }
-    }
-}
-
 /// Example of TreeTransformer with Output = () (acts as a visitor).
 ///
 /// This demonstrates that transformers can also do side-effect-only traversals.

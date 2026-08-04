@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![allow(unsafe_code)]
 
 use core::fmt;
@@ -457,7 +456,6 @@ impl<'a> MapData<'a> {
     }
 }
 
-// TODO: Use the abstractions below.
 // This is how we access the dyn trait while type-erasing the concrete type.
 // We use repr(C) to ensure it matches the prefix of the Node.
 #[repr(C)]
@@ -465,50 +463,50 @@ struct DynTraitHeader<T: ?Sized> {
     dyn_ptr: NonNull<T>,
 }
 
-// Must be implemented by any trait that we want to use with DynTraitNode.
-trait AsDyn<T: ?Sized> {
-    fn as_dyn(&mut self) -> &mut T;
-}
-
-impl<'a, S: Function<'a, 'a> + 'a> AsDyn<dyn Function<'a, 'a> + 'a> for S {
-    fn as_dyn(&mut self) -> &mut (dyn Function<'a, 'a> + 'a) {
-        self
-    }
-}
-
-// This is what actually gets allocated. For example, if `MyStruct` implements
-// `MyTrait`, we can allocate a `DynTraitNode` like this:
-// ```ignore
-// let header = DynTraitNode::<dyn MyTrait, MyStruct>::new(&arena, MyStruct);
-// unsafe { header.as_ref().dyn_ptr.as_ref() }.foo();  // Call the trait method
-// ```
-#[repr(C)]
-struct DynTraitNode<T: ?Sized, U: AsDyn<T>> {
-    dyn_ptr: Option<NonNull<T>>,
-    obj: U, // The concrete object
-}
-
-// Ensure layout compatibility between Option<NonNull<T>> and NonNull<T>
-// for the cast in DynTraitNode::new to be sound.
-static_assertions::assert_eq_size!(
-    Option<NonNull<dyn Function<'_, '_>>>,
-    NonNull<dyn Function<'_, '_>>
-);
-
-impl<T: ?Sized, U: AsDyn<T>> DynTraitNode<T, U> {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(arena: &Bump, obj: U) -> NonNull<DynTraitHeader<T>> {
-        // Two-phase init: allocate first, then create fat pointer from stable address
-        let node: &mut DynTraitNode<T, U> = arena.alloc(DynTraitNode { dyn_ptr: None, obj });
-        let fat_ref: &mut T = node.obj.as_dyn(); // Use AsDyn<T> trait.
-        node.dyn_ptr = Some(NonNull::from(fat_ref));
-        NonNull::from(node).cast()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // TODO: the following abstractions/ideas should be used in the production
+    // code above, since they standardize the method used.
+    // Must be implemented by any trait that we want to use with DynTraitNode.
+    trait AsDyn<T: ?Sized> {
+        fn as_dyn(&mut self) -> &mut T;
+    }
+
+    impl<'a, S: Function<'a, 'a> + 'a> AsDyn<dyn Function<'a, 'a> + 'a> for S {
+        fn as_dyn(&mut self) -> &mut (dyn Function<'a, 'a> + 'a) {
+            self
+        }
+    }
+
+    // This is what actually gets allocated.
+    #[repr(C)]
+    struct DynTraitNode<T: ?Sized, U: AsDyn<T>> {
+        dyn_ptr: Option<NonNull<T>>,
+        obj: U, // The concrete object
+    }
+
+    // Ensure layout compatibility between Option<NonNull<T>> and NonNull<T>
+    // for the cast in DynTraitNode::new to be sound.
+    static_assertions::assert_eq_size!(
+        Option<NonNull<dyn Function<'_, '_>>>,
+        NonNull<dyn Function<'_, '_>>
+    );
+
+    impl<T: ?Sized, U: AsDyn<T>> DynTraitNode<T, U> {
+        #[expect(
+            clippy::new_ret_no_self,
+            reason = "Constructor returns NonNull pointer to header"
+        )]
+        pub fn new(arena: &Bump, obj: U) -> NonNull<DynTraitHeader<T>> {
+            // Two-phase init: allocate first, then create fat pointer from stable address
+            let node: &mut DynTraitNode<T, U> = arena.alloc(DynTraitNode { dyn_ptr: None, obj });
+            let fat_ref: &mut T = node.obj.as_dyn(); // Use AsDyn<T> trait.
+            node.dyn_ptr = Some(NonNull::from(fat_ref));
+            NonNull::from(node).cast()
+        }
+    }
 
     trait MyTrait {
         fn foo(&self) -> i32;
@@ -520,7 +518,7 @@ mod tests {
         }
     }
 
-    struct MyStruct<'a>(&'a str);
+    struct MyStruct<'a>(#[allow(dead_code)] &'a str);
 
     impl MyTrait for MyStruct<'_> {
         fn foo(&self) -> i32 {

@@ -494,7 +494,7 @@ fn generate_output(
                 self.__fn_type
             }
 
-            #[allow(unused_variables)]
+            #[allow(unused_variables, reason = "macro generated code")]
             unsafe fn call_unchecked(
                 &self,
                 __ctx: &::melbi_core::values::function::FfiContext<#lt, #lt>,
