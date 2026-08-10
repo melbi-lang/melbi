@@ -194,10 +194,9 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                 IntBinOp(b'^') => {
                     let b = self.stack.pop().as_int_unchecked();
                     let a = self.stack.pop().as_int_unchecked();
-                    let result = if b < 0 || b > i64::from(u32::MAX) {
-                        0
-                    } else {
-                        a.wrapping_pow(b as u32)
+                    let result = match u32::try_from(b) {
+                        Ok(exp) => a.wrapping_pow(exp),
+                        Err(_) => 0,
                     };
                     self.stack.push(RawValue::make_int(result));
                 }

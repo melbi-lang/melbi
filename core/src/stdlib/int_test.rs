@@ -502,7 +502,7 @@ fn i64_max_operations() {
 
     // i64::MAX / 2 = 4611686018427387903
     test_int_expr("Int.Quot(9223372036854775807, 2)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), 4611686018427387903);
+        assert_eq!(r.as_int().unwrap(), 0x3FFF_FFFF_FFFF_FFFF);
     });
 
     // i64::MAX % 2 = 1 (i64::MAX is odd)
@@ -528,7 +528,7 @@ fn i64_min_safe_operations() {
 
     // i64::MIN / 2 = -4611686018427387904
     test_int_expr("Int.Quot(-9223372036854775808, 2)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), -4611686018427387904);
+        assert_eq!(r.as_int().unwrap(), -0x4000_0000_0000_0000);
     });
 
     // i64::MIN % 2 = 0 (i64::MIN is even in two's complement)
@@ -551,7 +551,7 @@ fn i64_min_safe_operations() {
 fn i64_max_divided_by_negative_one() {
     // i64::MAX / -1 = -i64::MAX = -9223372036854775807 (fits in i64)
     test_int_expr("Int.Quot(9223372036854775807, -1)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), -9223372036854775807);
+        assert_eq!(r.as_int().unwrap(), -0x7FFF_FFFF_FFFF_FFFF);
     });
 
     // i64::MAX % -1 = 0
@@ -645,7 +645,7 @@ fn i64_max_divided_by_i64_max() {
 fn euclidean_div_i64_min_with_positive_divisor() {
     // Int.Div(-9223372036854775808, 2) should work
     test_int_expr("Int.Div(-9223372036854775808, 2)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), -4611686018427387904);
+        assert_eq!(r.as_int().unwrap(), -0x4000_0000_0000_0000);
     });
 
     // Int.Mod(-9223372036854775808, 2) should return 0 (i64::MIN is even)
@@ -670,7 +670,7 @@ fn euclidean_div_i64_min_with_large_positive_divisor() {
         "Int.Mod(-9223372036854775808, 9223372036854775807)",
         |r: Value| {
             // The mod should be positive: 9223372036854775806
-            assert_eq!(r.as_int().unwrap(), 9223372036854775806);
+            assert_eq!(r.as_int().unwrap(), 0x7FFF_FFFF_FFFF_FFFE);
         },
     );
 }
@@ -845,7 +845,7 @@ fn powers_of_two_divisors() {
         "Int.Rem(9223372036854775807, 4611686018427387904)",
         |r: Value| {
             // i64::MAX % 2^62 = i64::MAX - 2^62 = 4611686018427387903
-            assert_eq!(r.as_int().unwrap(), 4611686018427387903);
+            assert_eq!(r.as_int().unwrap(), 0x3FFF_FFFF_FFFF_FFFF);
         },
     );
 }

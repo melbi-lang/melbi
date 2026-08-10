@@ -680,7 +680,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
         // Create shared recording vector and push recording scope
         let recorded = Rc::new(RefCell::new(BTreeSet::new()));
-        let recording_scope = scope_stack::RecordingScope::new(recorded.clone());
+        let recording_scope = scope_stack::RecordingScope::new(Rc::clone(&recorded));
         self.scope_stack.push(recording_scope);
 
         // Push incomplete scope with parameter names

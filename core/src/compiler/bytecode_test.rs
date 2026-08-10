@@ -2639,7 +2639,7 @@ fn wide_arg_three_byte_encoding() {
 
     let result = VM::execute(&arena, &code);
     // The constant at index 65537 should be 65537
-    assert_eq!(result.unwrap().as_int_unchecked(), 65537);
+    assert_eq!(result.unwrap().as_int_unchecked(), 0x0001_0001);
 }
 
 // === Wide Jump Tests ===
