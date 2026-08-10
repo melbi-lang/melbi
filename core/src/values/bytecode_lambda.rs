@@ -147,6 +147,10 @@ impl<'types, 'arena> Function<'types, 'arena> for BytecodeLambda<'types, 'arena>
         self.ty
     }
 
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for bytecode lambda execution"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,

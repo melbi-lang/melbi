@@ -42,6 +42,10 @@ impl GenericAdapter for ArrayContainsAdapter<'_> {
         2 // elem and array
     }
 
+    #[expect(
+        unsafe_code,
+        reason = "accesses array elements via RawValue pointer arithmetic"
+    )]
     fn call(&self, _arena: &Bump, args: &[RawValue]) -> Result<RawValue, ExecutionErrorKind> {
         let elem_raw = args[0];
         let array_raw = args[1];

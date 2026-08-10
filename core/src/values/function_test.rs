@@ -131,9 +131,8 @@ fn value_as_function_call_through() {
     let func_trait = func_value.as_function().unwrap();
     let args = [Value::int(type_mgr, 100), Value::int(type_mgr, 23)];
 
-    // SAFETY: We constructed the function with correct type (Int, Int) -> Int
-    // and are passing two Int arguments as expected.
     let ctx = FfiContext::new(&bump, type_mgr);
+    #[expect(unsafe_code, reason = "test verifies call_unchecked trait invocation")]
     let result = unsafe { func_trait.call_unchecked(&ctx, &args) };
     assert!(result.is_ok());
 

@@ -290,6 +290,10 @@ fn array_map<'types, 'arena>(
 
     let mut results = Vec::new();
     for elem in arr.iter() {
+        #[expect(
+            unsafe_code,
+            reason = "Array.map executes function callback on array elements"
+        )]
         let result = unsafe { func.call_unchecked(ctx, &[elem]) }?;
         results.push(result);
     }
@@ -328,6 +332,10 @@ impl<'types> Function<'types, 'types> for NativeFunction<'types> {
         self.ty
     }
 
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for native stdlib function pointer"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'types>,

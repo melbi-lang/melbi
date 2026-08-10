@@ -1,4 +1,8 @@
 //! Tier 1: Statically-typed, compile-time safe value API
+#![allow(
+    unsafe_code,
+    reason = "implements low-level RawConvertible trait and pointer arithmetic for typed value representations"
+)]
 //!
 //! This module provides zero-overhead, compile-time type-safe wrappers around
 //! the untyped `RawValue` representation. Types are guaranteed at compile time,

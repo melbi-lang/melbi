@@ -1,3 +1,8 @@
+#![allow(
+    unsafe_code,
+    reason = "implements dynamic Value extractors over untyped RawValue data structures"
+)]
+
 use alloc::collections::BTreeMap;
 
 use bumpalo::Bump;

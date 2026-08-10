@@ -2263,8 +2263,13 @@ fn lambda_as_argument() {
         let func = args[0].as_function().unwrap();
         let arg = args[1];
 
-        // SAFETY: Type checker guarantees the function accepts the argument type.
-        unsafe { func.call_unchecked(ctx, &[arg]) }
+        #[expect(
+            unsafe_code,
+            reason = "test helper calls call_unchecked for host function invocation"
+        )]
+        unsafe {
+            func.call_unchecked(ctx, &[arg])
+        }
     }
 
     let apply_fn = Value::function(&arena, NativeFunction::new(apply_ty, apply)).unwrap();
@@ -2311,7 +2316,13 @@ fn lambda_with_ffi_abs() {
         assert_eq!(args.len(), 2);
         let func = args[0].as_function().unwrap();
         let arg = args[1];
-        unsafe { func.call_unchecked(ctx, &[arg]) }
+        #[expect(
+            unsafe_code,
+            reason = "test helper calls call_unchecked for host function invocation"
+        )]
+        unsafe {
+            func.call_unchecked(ctx, &[arg])
+        }
     }
 
     let apply_fn = Value::function(&arena, NativeFunction::new(apply_ty, apply)).unwrap();

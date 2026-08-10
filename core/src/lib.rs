@@ -1,5 +1,5 @@
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
-// #![deny(unsafe_code)]  // TODO: uncomment this.
+#![deny(unsafe_code)]
 // #![cfg_attr(not(test), no_std)]
 
 // Needed so that macros can uniformly refer to `::melbi_core` and still work

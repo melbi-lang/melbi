@@ -649,7 +649,13 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 // SAFETY: The type checker guarantees the function type matches,
                 // arguments have correct types, and arity is correct.
                 let ctx = FfiContext::new(self.arena, self.type_manager);
-                unsafe { func.call_unchecked(&ctx, &arg_values) }
+                #[expect(
+                    unsafe_code,
+                    reason = "AST evaluator executes type-checked function value"
+                )]
+                unsafe {
+                    func.call_unchecked(&ctx, &arg_values)
+                }
             }
             ExprInner::Lambda {
                 params,
