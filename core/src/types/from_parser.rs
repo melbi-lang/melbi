@@ -116,7 +116,7 @@ pub fn type_expr_to_type<'types>(
                     })
                     .collect();
             let field_types = field_types?;
-            Ok(type_manager.record(field_types))
+            Ok(type_manager.record(&field_types))
         }
     }
 }
@@ -223,10 +223,8 @@ mod tests {
         ]);
 
         let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        let expected = type_manager.record(vec![
-            ("name", type_manager.str()),
-            ("age", type_manager.int()),
-        ]);
+        let expected =
+            type_manager.record(&[("name", type_manager.str()), ("age", type_manager.int())]);
         assert!(core::ptr::eq(result, expected));
     }
 

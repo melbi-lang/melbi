@@ -39,7 +39,7 @@ fn postcard() {
     println!("✓ TypeVar round-trip");
 
     // Test Record
-    let record_ty = type_mgr.record(vec![("name", type_mgr.str()), ("age", type_mgr.int())]);
+    let record_ty = type_mgr.record(&[("name", type_mgr.str()), ("age", type_mgr.int())]);
     let v = to_allocvec(record_ty).unwrap();
     assert_eq!(&[8, 2, 3, 97, 103, 101, 1, 4, 110, 97, 109, 101, 4], &*v);
     let deserialized = type_mgr.deserialize_type(&v).unwrap();
@@ -61,7 +61,7 @@ fn postcard() {
     println!("✓ Function round-trip");
 
     // Test Symbol
-    let symbol_ty = type_mgr.symbol(vec!["success", "error", "pending"]);
+    let symbol_ty = type_mgr.symbol(&["success", "error", "pending"]);
     let v = to_allocvec(symbol_ty).unwrap();
     let deserialized = type_mgr.deserialize_type(&v).unwrap();
     assert!(core::ptr::eq(deserialized, symbol_ty));
@@ -70,7 +70,7 @@ fn postcard() {
     // Test complex nested type
     let complex = type_mgr.function(
         &[type_mgr.map(type_mgr.str(), type_mgr.array(type_mgr.int()))],
-        type_mgr.record(vec![("result", type_mgr.bool()), ("count", type_mgr.int())]),
+        type_mgr.record(&[("result", type_mgr.bool()), ("count", type_mgr.int())]),
     );
     let v = to_allocvec(complex).unwrap();
     let deserialized = type_mgr.deserialize_type(&v).unwrap();

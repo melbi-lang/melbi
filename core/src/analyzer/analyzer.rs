@@ -1211,7 +1211,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
             fields.push((*name, value));
         }
 
-        let record_ty = self.type_manager.record(field_types);
+        let record_ty = self.type_manager.record(&field_types);
 
         Ok(self.alloc(
             record_ty,

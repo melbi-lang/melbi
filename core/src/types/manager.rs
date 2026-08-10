@@ -138,28 +138,44 @@ impl<'a> TypeManager<'a> {
         self.alloc_and_intern(Type::Option(inner_ty))
     }
 
-    pub fn record(&self, fields: Vec<(&str, &'a Type<'a>)>) -> &'a Type<'a> {
-        // SAFETY: We own the data in the Vec, which was moved. Also, we immediately change
-        // the lifetime of the &str field to 'a.
-        let mut fields: Vec<(&str, &'a Type<'a>)> = unsafe { core::mem::transmute(fields) };
-        // Intern all field names in-place to ensure pointer equality works
-        for (name, _) in &mut fields {
-            *name = self.intern_str(name);
+    pub fn record(&self, fields: &[(&str, &'a Type<'a>)]) -> &'a Type<'a> {
+        if fields.is_empty() {
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Record(&[]))) {
+                return interned_ty;
+            }
+            return self.alloc_and_intern(Type::Record(&[]));
         }
 
-        // Sort by interned field names in-place
-        fields.sort_by_key(|(name, _)| *name);
+        let dummy_type = self.int();
+        let mut stack_buf = [("", dummy_type); 16];
+        let fields_slice: &[(&'a str, &'a Type<'a>)] = if fields.len() <= 16 {
+            for (i, &(name, ty)) in fields.iter().enumerate() {
+                stack_buf[i] = (self.intern_str(name), ty);
+            }
+            let buf = &mut stack_buf[..fields.len()];
+            buf.sort_by_key(|(name, _)| *name);
+            buf
+        } else {
+            let mut v: Vec<(&'a str, &'a Type<'a>)> = fields
+                .iter()
+                .map(|&(name, ty)| (self.intern_str(name), ty))
+                .collect();
+            v.sort_by_key(|(name, _)| *name);
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Record(&v))) {
+                return interned_ty;
+            }
+            let arena_fields = self.arena.alloc_slice_fill_iter(v);
+            return self.alloc_and_intern(Type::Record(arena_fields));
+        };
 
-        // Lookup using the Vec as a slice
         if let Some(&interned_ty) = self
             .intern_map()
-            .get(&CompareTypeArgs(Type::Record(&fields)))
+            .get(&CompareTypeArgs(Type::Record(fields_slice)))
         {
             return interned_ty;
         }
 
-        // Not found - allocate directly from Vec into arena (zero-copy move)
-        let arena_fields = self.arena.alloc_slice_fill_iter(fields);
+        let arena_fields = self.arena.alloc_slice_copy(fields_slice);
         self.alloc_and_intern(Type::Record(arena_fields))
     }
 
@@ -176,29 +192,40 @@ impl<'a> TypeManager<'a> {
         })
     }
 
-    pub fn symbol(&self, parts: Vec<&str>) -> &'a Type<'a> {
-        // SAFETY: We own the data in the Vec, which was moved. Also, we immediately change
-        // the lifetime of the &str field to 'a.
-        let mut parts: Vec<&str> = unsafe { core::mem::transmute(parts) };
-
-        // Intern all symbol parts in-place to ensure pointer equality works
-        for part in &mut parts {
-            *part = self.intern_str(part);
+    pub fn symbol(&self, parts: &[&str]) -> &'a Type<'a> {
+        if parts.is_empty() {
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Symbol(&[]))) {
+                return interned_ty;
+            }
+            return self.alloc_and_intern(Type::Symbol(&[]));
         }
 
-        // Sort by interned parts in-place
-        parts.sort_unstable();
+        let mut stack_buf = [""; 16];
+        let parts_slice: &[&'a str] = if parts.len() <= 16 {
+            for (i, &part) in parts.iter().enumerate() {
+                stack_buf[i] = self.intern_str(part);
+            }
+            let buf = &mut stack_buf[..parts.len()];
+            buf.sort_unstable();
+            buf
+        } else {
+            let mut v: Vec<&'a str> = parts.iter().map(|&part| self.intern_str(part)).collect();
+            v.sort_unstable();
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Symbol(&v))) {
+                return interned_ty;
+            }
+            let arena_parts = self.arena.alloc_slice_fill_iter(v);
+            return self.alloc_and_intern(Type::Symbol(arena_parts));
+        };
 
-        // Lookup using the Vec as a slice
         if let Some(&interned_ty) = self
             .intern_map()
-            .get(&CompareTypeArgs(Type::Symbol(&parts)))
+            .get(&CompareTypeArgs(Type::Symbol(parts_slice)))
         {
             return interned_ty;
         }
 
-        // Not found - allocate directly from Vec into arena (zero-copy move)
-        let arena_parts = self.arena.alloc_slice_fill_iter(parts);
+        let arena_parts = self.arena.alloc_slice_copy(parts_slice);
         self.alloc_and_intern(Type::Symbol(arena_parts))
     }
 
@@ -268,7 +295,7 @@ impl<'a> TypeManager<'a> {
                             (*name, t)
                         })
                         .collect();
-                    this.record(adopted_fields)
+                    this.record(&adopted_fields)
                 }
                 Type::Function { params, ret } => {
                     let adopted_params: Vec<&'a Type<'a>> =
@@ -278,7 +305,7 @@ impl<'a> TypeManager<'a> {
                 }
                 Type::Symbol(parts) => {
                     let adopted_parts: Vec<&str> = parts.to_vec();
-                    this.symbol(adopted_parts)
+                    this.symbol(&adopted_parts)
                 }
             }
         }
@@ -327,7 +354,7 @@ impl<'a> TypeManager<'a> {
                             (*name, t)
                         })
                         .collect();
-                    this.record(converted_fields)
+                    this.record(&converted_fields)
                 }
                 Type::Function { params, ret } => {
                     let converted_params: Vec<&'a Type<'a>> =
@@ -394,7 +421,7 @@ impl<'a> TypeBuilder<'a> for &'a TypeManager<'a> {
 
     fn record(&self, fields: impl Iterator<Item = (&'a str, Self::Repr)>) -> Self::Repr {
         let fields_vec: Vec<_> = fields.collect();
-        TypeManager::record(self, fields_vec)
+        TypeManager::record(self, &fields_vec)
     }
 
     fn function(&self, params: impl Iterator<Item = Self::Repr>, ret: Self::Repr) -> Self::Repr {
@@ -404,7 +431,7 @@ impl<'a> TypeBuilder<'a> for &'a TypeManager<'a> {
 
     fn symbol(&self, parts: impl Iterator<Item = &'a str>) -> Self::Repr {
         let parts_vec: Vec<_> = parts.collect();
-        TypeManager::symbol(self, parts_vec)
+        TypeManager::symbol(self, &parts_vec)
     }
 }
 
@@ -541,7 +568,7 @@ mod type_view_tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("age", mgr.int()), ("name", mgr.str())]);
+        let ty = mgr.record(&[("age", mgr.int()), ("name", mgr.str())]);
         match ty.view() {
             TypeKind::Record(fields) => {
                 let fields: Vec<_> = fields.collect();
@@ -593,7 +620,7 @@ mod type_view_tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.symbol(vec!["error", "pending", "success"]);
+        let ty = mgr.symbol(&["error", "pending", "success"]);
         match ty.view() {
             TypeKind::Symbol(parts) => {
                 let parts: Vec<_> = parts.collect();
@@ -649,7 +676,7 @@ mod type_view_tests {
         }
 
         // Test NamedTypeIter (record fields)
-        let ty = mgr.record(vec![("a", mgr.int()), ("b", mgr.str())]);
+        let ty = mgr.record(&[("a", mgr.int()), ("b", mgr.str())]);
         match ty.view() {
             TypeKind::Record(fields) => {
                 assert!(fields.len() == 2);
@@ -660,7 +687,7 @@ mod type_view_tests {
         }
 
         // Test StrIter (symbol parts)
-        let ty = mgr.symbol(vec!["a", "b", "c"]);
+        let ty = mgr.symbol(&["a", "b", "c"]);
         match ty.view() {
             TypeKind::Symbol(parts) => {
                 assert!(parts.len() == 3);
@@ -755,7 +782,7 @@ mod manager_tests {
         let v = mgr1.fresh_type_var();
         let map = mgr1.map(k, v);
         let fields = vec![("map", map), ("k", k), ("v", v)];
-        let tuple = mgr1.record(fields);
+        let tuple = mgr1.record(&fields);
         let fun = mgr1.function(&[tuple], v);
 
         // Adopt into mgr2
@@ -982,11 +1009,11 @@ mod type_builder_tests {
             let str_ty = builder.str();
 
             // Test record with iterator (goes through TypeBuilder trait)
-            let fields1 = vec![("x", int_ty), ("y", float_ty)];
-            let record_ty = builder.record(fields1.into_iter());
+            let fields1 = [("x", int_ty), ("y", float_ty)];
+            let record_ty = builder.record(fields1.iter().copied());
 
             // Test interning - same fields should produce equal type
-            let fields2 = vec![("x", int_ty), ("y", float_ty)];
+            let fields2 = [("x", int_ty), ("y", float_ty)];
             assert!(record_ty == builder.record(fields2.into_iter()));
 
             // Test function with iterator (goes through TypeBuilder trait)
@@ -998,11 +1025,11 @@ mod type_builder_tests {
             assert!(func_ty == builder.function(params2.into_iter(), float_ty));
 
             // Test symbol with iterator (goes through TypeBuilder trait)
-            let parts1 = vec!["foo", "bar", "baz"];
-            let sym_ty = builder.symbol(parts1.into_iter());
+            let parts1 = ["foo", "bar", "baz"];
+            let sym_ty = builder.symbol(parts1.iter().copied());
 
             // Test interning - same parts should produce equal type
-            let parts2 = vec!["foo", "bar", "baz"];
+            let parts2 = ["foo", "bar", "baz"];
             assert!(sym_ty == builder.symbol(parts2.into_iter()));
         }
 
@@ -1094,7 +1121,7 @@ mod type_transformer_tests {
         // Record { x: Int, y: Float }
         let int_ty = manager.int();
         let float_ty = manager.float();
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
 
         let record_transformed = transformer.transform(record_ty);
 
@@ -1127,7 +1154,7 @@ mod type_transformer_tests {
         let transformer = IdentityTransformer { builder: manager };
 
         // Symbol `foo.bar.baz`
-        let sym_ty = manager.symbol(vec!["foo", "bar", "baz"]);
+        let sym_ty = manager.symbol(&["foo", "bar", "baz"]);
 
         let sym_transformed = transformer.transform(sym_ty);
 
@@ -1146,7 +1173,7 @@ mod type_transformer_tests {
         let float_ty = manager.float();
         let str_ty = manager.str();
 
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
         let array_ty = manager.array(record_ty);
         let map_ty = manager.map(str_ty, array_ty);
         let func_ty = manager.function(&[map_ty], int_ty);
@@ -1219,7 +1246,7 @@ mod display_type_tests {
 
         let int_ty = manager.int();
         let float_ty = manager.float();
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
 
         assert!(display_type(record_ty) == "Record[x: Int, y: Float]");
     }
@@ -1258,7 +1285,7 @@ mod display_type_tests {
         let manager = TypeManager::new(&bump);
 
         // Note: Symbol parts are stored sorted
-        let sym_ty = manager.symbol(vec!["foo", "bar", "baz"]);
+        let sym_ty = manager.symbol(&["foo", "bar", "baz"]);
 
         // Output will be sorted: bar, baz, foo
         assert!(display_type(sym_ty) == "Symbol[bar|baz|foo]");
@@ -1291,7 +1318,7 @@ mod display_type_tests {
         // Complex type: (Map[Str, Int], Array[Float]) => Record[x: Int, y: Float]
         let map_ty = manager.map(str_ty, int_ty);
         let arr_ty = manager.array(float_ty);
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
         let func_ty = manager.function(&[map_ty, arr_ty], record_ty);
 
         // Both should produce identical output

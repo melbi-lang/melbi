@@ -189,7 +189,7 @@ mod tests {
 
         // Functions and Records are not hashable
         assert!(!has_instance(func, TypeClassId::Hashable));
-        let record = tm.record(vec![("x", tm.int())]);
+        let record = tm.record(&[("x", tm.int())]);
         assert!(!has_instance(record, TypeClassId::Hashable));
 
         // Maps are not hashable (for now)

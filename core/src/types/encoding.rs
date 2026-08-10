@@ -376,7 +376,8 @@ fn read_string(bytes: &[u8]) -> Result<(&str, &[u8]), DecodeError> {
     }
 
     let str_bytes = &bytes[varint_len..varint_len + len];
-    let s = unsafe { core::str::from_utf8_unchecked(str_bytes) };
+    let s = core::str::from_utf8(str_bytes)
+        .map_err(|_| DecodeError::InvalidUtf8 { offset: varint_len })?;
 
     Ok((s, &bytes[varint_len + len..]))
 }
@@ -1075,9 +1076,9 @@ mod tests {
         let ty = mgr.function(
             &[
                 mgr.map(mgr.str(), mgr.array(mgr.int())),
-                mgr.record(vec![("result", mgr.bool()), ("count", mgr.int())]),
+                mgr.record(&[("result", mgr.bool()), ("count", mgr.int())]),
             ],
-            mgr.symbol(vec!["success", "error"]),
+            mgr.symbol(&["success", "error"]),
         );
 
         let bytes = encode(ty);
@@ -1220,7 +1221,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("age", mgr.int()), ("name", mgr.str())]);
+        let ty = mgr.record(&[("age", mgr.int()), ("name", mgr.str())]);
 
         let bytes = encode(ty);
         let decoded = decode(&bytes, mgr).unwrap();
@@ -1244,7 +1245,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.symbol(vec!["error", "pending", "success"]);
+        let ty = mgr.symbol(&["error", "pending", "success"]);
         let bytes = encode(ty);
         let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
@@ -1302,7 +1303,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("age", mgr.int()), ("name", mgr.str())]);
+        let ty = mgr.record(&[("age", mgr.int()), ("name", mgr.str())]);
 
         let bytes = encode(ty);
         let (view, _) = EncodedType::new_from_buffer(&bytes).unwrap();
@@ -1350,7 +1351,7 @@ mod tests {
         let mgr = TypeManager::new(&arena);
 
         // Note: TypeManager sorts symbol parts
-        let ty = mgr.symbol(vec!["success", "error", "pending"]);
+        let ty = mgr.symbol(&["success", "error", "pending"]);
         let bytes = encode(ty);
         let (view, _) = EncodedType::new_from_buffer(&bytes).unwrap();
 
@@ -1424,7 +1425,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![]);
+        let ty = mgr.record(&[]);
         let bytes = encode(ty);
         let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
@@ -1461,11 +1462,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![
-            ("name", mgr.str()),
-            ("名前", mgr.str()),
-            ("🎉", mgr.bool()),
-        ]);
+        let ty = mgr.record(&[("name", mgr.str()), ("名前", mgr.str()), ("🎉", mgr.bool())]);
 
         let bytes = encode(ty);
         let decoded = decode(&bytes, mgr).unwrap();
@@ -1567,7 +1564,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("x", mgr.int()), ("y", mgr.float())]);
+        let ty = mgr.record(&[("x", mgr.int()), ("y", mgr.float())]);
         let bytes = encode(ty);
         let owned = OwnedType::new(bytes.as_slice().into());
 
@@ -1610,7 +1607,7 @@ mod tests {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.symbol(vec!["Option", "Some", "None"]);
+        let ty = mgr.symbol(&["Option", "Some", "None"]);
         let bytes = encode(ty);
         let owned = OwnedType::new(bytes.as_slice().into());
 
@@ -1663,7 +1660,7 @@ mod tests {
         let mgr = TypeManager::new(&arena);
 
         // Array[Map[Str, Record{x: Int, y: Float}]]
-        let inner_record = mgr.record(vec![("x", mgr.int()), ("y", mgr.float())]);
+        let inner_record = mgr.record(&[("x", mgr.int()), ("y", mgr.float())]);
         let map_ty = mgr.map(mgr.str(), inner_record);
         let ty = mgr.array(map_ty);
 

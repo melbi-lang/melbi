@@ -890,7 +890,7 @@ fn math_package_record() {
     let runner = Runner::new(&arena);
 
     // Create Math record type with PI and E fields
-    let math_ty = runner.type_mgr.record(vec![
+    let math_ty = runner.type_mgr.record(&[
         ("E", runner.type_mgr.float()),
         ("PI", runner.type_mgr.float()),
     ]);
@@ -921,9 +921,7 @@ fn math_package_circle_area() {
     let runner = Runner::new(&arena);
 
     // Create Math record type
-    let math_ty = runner
-        .type_mgr
-        .record(vec![("PI", runner.type_mgr.float())]);
+    let math_ty = runner.type_mgr.record(&[("PI", runner.type_mgr.float())]);
 
     // Create Math record value
     let math_value = Value::record(

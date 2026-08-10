@@ -3,7 +3,7 @@ use core::hash::{Hash, Hasher};
 
 use serde::Serialize;
 
-use crate::types::traits::display_type;
+use crate::types::traits::{TypeTag, display_type};
 
 #[derive(Serialize, Clone, Hash)]
 #[repr(C, u8)]
@@ -44,10 +44,20 @@ pub enum Type<'a> {
 impl Type<'_> {
     #[must_use]
     pub fn discriminant(&self) -> u8 {
-        // SAFETY: Because `Self` is marked `repr(C, u8)`, its layout is a `repr(C)` `struct`
-        // with a `u8` discriminant and a union of `structs`, so we can read the discriminant
-        // directly without offsetting the pointer.
-        unsafe { *<*const _>::from(self).cast::<u8>() }
+        match self {
+            Type::TypeVar(_) => TypeTag::TypeVar as u8,
+            Type::Int => TypeTag::Int as u8,
+            Type::Float => TypeTag::Float as u8,
+            Type::Bool => TypeTag::Bool as u8,
+            Type::Str => TypeTag::Str as u8,
+            Type::Bytes => TypeTag::Bytes as u8,
+            Type::Array(_) => TypeTag::Array as u8,
+            Type::Map(_, _) => TypeTag::Map as u8,
+            Type::Record(_) => TypeTag::Record as u8,
+            Type::Function { .. } => TypeTag::Function as u8,
+            Type::Symbol(_) => TypeTag::Symbol as u8,
+            Type::Option(_) => TypeTag::Option as u8,
+        }
     }
 }
 

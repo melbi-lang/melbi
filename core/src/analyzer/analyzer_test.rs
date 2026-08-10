@@ -991,7 +991,7 @@ fn all_literal_types() {
     assert!(result.is_ok());
     let result = result.unwrap();
 
-    let expected_type = type_manager.record(vec![
+    let expected_type = type_manager.record(&[
         ("int", type_manager.int()),
         ("float", type_manager.float()),
         ("bool", type_manager.bool()),
@@ -1246,7 +1246,7 @@ fn record_empty() {
 
     let result = analyze_source("Record{}", type_manager, &bump);
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().expr.0, type_manager.record(vec![]));
+    assert_eq!(result.unwrap().expr.0, type_manager.record(&[]));
 }
 
 #[test]
@@ -1257,7 +1257,7 @@ fn record_single_field() {
     let result = analyze_source("{ x = 42 }", type_manager, &bump);
     assert!(result.is_ok());
     let result = result.unwrap();
-    let expected = type_manager.record(vec![("x", type_manager.int())]);
+    let expected = type_manager.record(&[("x", type_manager.int())]);
     assert_eq!(result.expr.0, expected);
 }
 
@@ -1269,7 +1269,7 @@ fn record_multiple_fields() {
     let result = analyze_source("{ x = 42, y = true, z = \"hello\" }", type_manager, &bump);
     assert!(result.is_ok());
     let result = result.unwrap();
-    let expected = type_manager.record(vec![
+    let expected = type_manager.record(&[
         ("x", type_manager.int()),
         ("y", type_manager.bool()),
         ("z", type_manager.str()),
@@ -1601,7 +1601,7 @@ fn polymorphic_identity_function() {
     let typed = result.unwrap();
     assert_eq!(
         typed.expr.0,
-        type_manager.record(vec![("a", type_manager.int()), ("b", type_manager.str())])
+        type_manager.record(&[("a", type_manager.int()), ("b", type_manager.str())])
     );
 }
 
@@ -1673,7 +1673,7 @@ fn polymorphic_const_function() {
     let typed = result.unwrap();
     assert_eq!(
         typed.expr.0,
-        type_manager.record(vec![("a", type_manager.int()), ("b", type_manager.str())])
+        type_manager.record(&[("a", type_manager.int()), ("b", type_manager.str())])
     );
 }
 
@@ -1703,7 +1703,7 @@ fn sequential_polymorphic_bindings() {
     let typed = result.unwrap();
     assert_eq!(
         typed.expr.0,
-        type_manager.record(vec![
+        type_manager.record(&[
             ("id_result1", type_manager.int()),
             ("id_result2", type_manager.str()),
             ("wrap_result", type_manager.array(type_manager.int())),
@@ -1823,7 +1823,7 @@ fn polymorphic_map_function() {
     let typed = result.unwrap();
     assert_eq!(
         typed.expr.0,
-        type_manager.record(vec![
+        type_manager.record(&[
             ("int_result", type_manager.int()),
             ("str_result", type_manager.str()),
         ])
@@ -1856,7 +1856,7 @@ fn polymorphic_compose() {
     let typed = result.unwrap();
     assert_eq!(
         typed.expr.0,
-        type_manager.record(vec![
+        type_manager.record(&[
             ("result1", type_manager.array(type_manager.int())),
             ("result2", type_manager.array(type_manager.str())),
         ])

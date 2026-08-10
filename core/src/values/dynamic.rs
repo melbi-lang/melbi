@@ -1459,7 +1459,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Binder<'ty_arena, 'value_arena>
             .map(|(name, value)| (name.as_str(), value.ty))
             .collect();
 
-        let record_ty = self.type_mgr.record(field_types);
+        let record_ty = self.type_mgr.record(&field_types);
 
         // Extract the interned field names from the type to use in Value::record
         let Type::Record(interned_fields) = record_ty else {

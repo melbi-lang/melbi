@@ -1,5 +1,4 @@
 //! `Array` package for Melbi
-use alloc::vec;
 use alloc::vec::Vec;
 
 use bumpalo::Bump;
@@ -224,7 +223,7 @@ fn array_zip<'types, 'arena>(
     // Build tuple type: {first: T1, second: T2}
     let tuple_ty = ctx
         .type_mgr()
-        .record(vec![("first", elem_ty1), ("second", elem_ty2)]);
+        .record(&[("first", elem_ty1), ("second", elem_ty2)]);
 
     Ok(
         Value::array(ctx.arena(), ctx.type_mgr().array(tuple_ty), &result)
@@ -421,7 +420,7 @@ where
     // Zip: forall A, B. (Array<A>, Array<B>) -> Array<{first: A, second: B}>
     let a = type_mgr.fresh_type_var();
     let b = type_mgr.fresh_type_var();
-    let tuple_ty = type_mgr.record(vec![("first", a), ("second", b)]);
+    let tuple_ty = type_mgr.record(&[("first", a), ("second", b)]);
     builder = NativeFunction {
         name: "Zip",
         ty: type_mgr.function(

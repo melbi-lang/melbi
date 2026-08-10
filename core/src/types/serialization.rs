@@ -207,7 +207,7 @@ where
             fields.push((s, t));
         }
 
-        let result = self.mgr.record(fields);
+        let result = self.mgr.record(&fields);
         Ok(result)
     }
 }
@@ -362,7 +362,7 @@ where
         D: Deserializer<'de>,
     {
         let parts = deserializer.deserialize_seq(SymbolPartsVisitor)?;
-        Ok(self.mgr.symbol(parts))
+        Ok(self.mgr.symbol(&parts))
     }
 }
 

@@ -221,7 +221,7 @@ fn empty_record() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![]);
+    let rec_ty = type_mgr.record(&[]);
     let rec = Value::record(&arena, rec_ty, &[]).unwrap();
 
     let record = rec.as_record().unwrap();
@@ -235,7 +235,7 @@ fn simple_record() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int()), ("y", type_mgr.float())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int()), ("y", type_mgr.float())]);
     let x_val = Value::int(type_mgr, 42);
     let y_val = Value::float(type_mgr, 3.14);
 
@@ -261,7 +261,7 @@ fn record_display() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("age", type_mgr.int()), ("name", type_mgr.str())]);
+    let rec_ty = type_mgr.record(&[("age", type_mgr.int()), ("name", type_mgr.str())]);
 
     let name_val = Value::str(&arena, type_mgr.str(), "Alice");
     let age_val = Value::int(type_mgr, 30);
@@ -277,7 +277,7 @@ fn record_iteration() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![
+    let rec_ty = type_mgr.record(&[
         ("a", type_mgr.int()),
         ("b", type_mgr.int()),
         ("c", type_mgr.int()),
@@ -313,7 +313,7 @@ fn record_exact_size_iterator() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![
+    let rec_ty = type_mgr.record(&[
         ("x", type_mgr.int()),
         ("y", type_mgr.int()),
         ("z", type_mgr.int()),
@@ -349,7 +349,7 @@ fn nested_record() {
     let type_mgr = TypeManager::new(&arena);
 
     // Inner record: { x: Int, y: Int }
-    let inner_ty = type_mgr.record(vec![("x", type_mgr.int()), ("y", type_mgr.int())]);
+    let inner_ty = type_mgr.record(&[("x", type_mgr.int()), ("y", type_mgr.int())]);
 
     let inner = Value::record(
         &arena,
@@ -362,7 +362,7 @@ fn nested_record() {
     .unwrap();
 
     // Outer record: { name: Str, point: { x: Int, y: Int } }
-    let outer_ty = type_mgr.record(vec![("name", type_mgr.str()), ("point", inner_ty)]);
+    let outer_ty = type_mgr.record(&[("name", type_mgr.str()), ("point", inner_ty)]);
 
     let name_val = Value::str(&arena, type_mgr.str(), "origin");
 
@@ -400,7 +400,7 @@ fn record_field_count_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int())]);
 
     // Provide no fields when type expects one
     let result = Value::record(&arena, rec_ty, &[]);
@@ -423,7 +423,7 @@ fn record_field_name_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int())]);
 
     // Provide wrong field name
     let result = Value::record(&arena, rec_ty, &[("y", Value::int(type_mgr, 42))]);
@@ -435,7 +435,7 @@ fn record_field_type_mismatch() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int())]);
 
     // Provide wrong field type (Float instead of Int)
     let result = Value::record(&arena, rec_ty, &[("x", Value::float(type_mgr, 3.14))]);
@@ -691,7 +691,7 @@ fn record_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int()), ("y", type_mgr.float())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int()), ("y", type_mgr.float())]);
 
     let a = Value::record(
         &arena,
@@ -732,7 +732,7 @@ fn empty_record_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![]);
+    let rec_ty = type_mgr.record(&[]);
 
     let a = Value::record(&arena, rec_ty, &[]).unwrap();
     let b = Value::record(&arena, rec_ty, &[]).unwrap();
@@ -745,8 +745,8 @@ fn nested_record_equality() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let inner_ty = type_mgr.record(vec![("a", type_mgr.int())]);
-    let outer_ty = type_mgr.record(vec![("inner", inner_ty)]);
+    let inner_ty = type_mgr.record(&[("a", type_mgr.int())]);
+    let outer_ty = type_mgr.record(&[("inner", inner_ty)]);
 
     let inner1 = Value::record(&arena, inner_ty, &[("a", Value::int(type_mgr, 10))]).unwrap();
     let inner2 = Value::record(&arena, inner_ty, &[("a", Value::int(type_mgr, 10))]).unwrap();
@@ -1048,7 +1048,7 @@ fn record_hash_structural() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int()), ("y", type_mgr.int())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int()), ("y", type_mgr.int())]);
 
     // Create two separately allocated but equal records
     let a = Value::record(
@@ -1098,7 +1098,7 @@ fn record_hash_in_hashmap() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("id", type_mgr.int())]);
+    let rec_ty = type_mgr.record(&[("id", type_mgr.int())]);
 
     let rec1 = Value::record(&arena, rec_ty, &[("id", Value::int(type_mgr, 1))]).unwrap();
     let rec2 = Value::record(&arena, rec_ty, &[("id", Value::int(type_mgr, 1))]).unwrap();
@@ -1282,7 +1282,7 @@ fn record_ordering() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int()), ("y", type_mgr.int())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int()), ("y", type_mgr.int())]);
 
     let a = Value::record(
         &arena,
@@ -1542,7 +1542,7 @@ fn record_builder_vs_manual() {
         .unwrap();
 
     // Build manually (fields must be pre-sorted)
-    let rec_ty = type_mgr.record(vec![("x", type_mgr.int()), ("y", type_mgr.float())]);
+    let rec_ty = type_mgr.record(&[("x", type_mgr.int()), ("y", type_mgr.float())]);
     let manual = Value::record(
         &arena,
         rec_ty,

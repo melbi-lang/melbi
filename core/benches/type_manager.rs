@@ -28,19 +28,19 @@ fn create_complex_type<'a>(manager: &'a TypeManager<'a>, name: &str) -> &'a Type
         "array_int" => manager.array(manager.int()),
         "map_string_int" => manager.map(manager.str(), manager.int()),
         "simple_record" => {
-            let fields = vec![
+            let fields = [
                 ("name", manager.str()),
                 ("age", manager.int()),
                 ("active", manager.bool()),
             ];
-            manager.record(fields)
+            manager.record(&fields)
         }
         "nested_record" => {
-            let inner_fields = vec![("street", manager.str()), ("city", manager.str())];
-            let inner = manager.record(inner_fields);
+            let inner_fields = [("street", manager.str()), ("city", manager.str())];
+            let inner = manager.record(&inner_fields);
 
-            let outer_fields = vec![("name", manager.str()), ("address", inner)];
-            manager.record(outer_fields)
+            let outer_fields = [("name", manager.str()), ("address", inner)];
+            manager.record(&outer_fields)
         }
         "function" => {
             let params = vec![manager.int(), manager.str(), manager.bool()];
@@ -94,7 +94,7 @@ fn bench_record_creation(c: &mut Criterion) {
                     counter += 1;
 
                     // Benchmark: Create the record type (fresh each time)
-                    let record = manager.record(black_box(fields));
+                    let record = manager.record(&black_box(fields));
                     black_box(record);
                 });
             },
@@ -139,7 +139,7 @@ fn bench_record_interning(c: &mut Criterion) {
                     .collect();
 
                 // Pre-intern the record
-                let _first = manager.record(fields.clone());
+                let _first = manager.record(&fields.clone());
 
                 // Benchmark: Get the already-interned record
                 b.iter(|| {
@@ -152,7 +152,7 @@ fn bench_record_interning(c: &mut Criterion) {
                         })
                         .collect();
 
-                    let record = manager.record(black_box(fields.clone()));
+                    let record = manager.record(&black_box(fields.clone()));
                     black_box(record)
                 });
             },
@@ -207,7 +207,7 @@ fn bench_type_serialization(c: &mut Criterion) {
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
 
         b.iter(|| {
             let bytes = manager
@@ -229,7 +229,7 @@ fn bench_type_serialization(c: &mut Criterion) {
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
 
         b.iter(|| {
             let bytes = encode(black_box(record));
@@ -287,7 +287,7 @@ fn bench_type_deserialization(c: &mut Criterion) {
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes = manager
             .serialize_type(record)
             .expect("Serialization failed");
@@ -312,7 +312,7 @@ fn bench_type_deserialization(c: &mut Criterion) {
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes = encode(record);
 
         b.iter(|| {
@@ -372,7 +372,7 @@ fn bench_type_equality_bytes(c: &mut Criterion) {
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes1 = manager
             .serialize_type(record)
             .expect("Serialization failed");
@@ -396,7 +396,7 @@ fn bench_type_equality_bytes(c: &mut Criterion) {
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes1 = encode(record);
         let bytes2 = bytes1.clone();
 
