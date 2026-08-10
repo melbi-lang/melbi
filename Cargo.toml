@@ -21,9 +21,71 @@ members = [
     "values", # WIP: new value foundation based on "builder traits"
 ]
 
+[workspace.lints.rust]
+invalid_reference_casting = "warn"
+
 [workspace.lints.clippy]
+# ### ENABLES: ###
+all = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+# restriction = { level = "warn", priority = -1 }
+# pedantic = { level = "warn", priority = -1 }
+# nursery = { level = "warn", priority = -1 }
+# cargo = { level = "warn", priority = -1 }
+
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+assigning_clones = "warn"
+branches_sharing_code = "warn"
+cast_lossless = "warn"
+char_lit_as_u8 = "warn"
+clone_on_ref_ptr = "warn"
+decimal_literal_representation = "warn"
+empty_drop = "warn"
+exit = "warn"
+expl_impl_clone_on_copy = "warn"
+fn_to_numeric_cast = "warn"
+fn_to_numeric_cast_any = "warn"
+fn_to_numeric_cast_with_truncation = "warn"
+get_unwrap = "warn"
+infinite_loop = "warn"
+iter_without_into_iter = "warn"
+manual_let_else = "warn"
+match_same_arms = "warn"
+non_std_lazy_statics = "warn"
+ptr_as_ptr = "warn"
+redundant_test_prefix = "warn"
+unnecessary_cast = "warn"
+used_underscore_binding = "warn"
+
+# TODO: consider enabling the lint warnings below.
+
+# # Cast-related warnings:
+# cast_possible_truncation = "warn"
+# cast_possible_wrap = "warn"
+# cast_precision_loss = "warn"
+# cast_sign_loss = "warn"
+
+# needless_pass_by_value = "warn"
+# unreadable_literal = "warn"
+
+# ### DISABLES: ###
+
+# If new high-noise / low-utility lints appear, then disable them.
+# Important: keep useful lints enabled!
 module_inception = "allow"
 approx_constant = "allow"
+redundant_pub_crate = "allow"
+option_if_let_else = "allow"
+missing_const_for_fn = "allow"
+inline_always = "allow"
+too_many_lines = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
 
 [lints]
 workspace = true
