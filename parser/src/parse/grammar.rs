@@ -5,7 +5,7 @@
 //! parser below rather than encoded as a tower of grammar rules. That keeps the
 //! `.pest` file readable and puts every precedence decision in one table.
 
-use pest::pratt_parser::{Assoc, Op, PrattParser};
+use pest::pratt_parser::{Assoc, ConstPrattParser, Op, pratt_precedence};
 use pest_derive::Parser;
 
 /// The generated parser. [`Rule`] comes with it, one variant per grammar rule.
@@ -18,54 +18,51 @@ use pest_derive::Parser;
 #[grammar = "grammar/expression.pest"]
 pub struct ExpressionParser;
 
-/// Build the operator-precedence table, lowest precedence first.
+/// The operator-precedence table, lowest precedence first.
 ///
-/// This is constructed per parse rather than stored in a `static`. The original
-/// used `lazy_static!`, which needs `std` (or a spin lock) — and this crate is
-/// `no_std`. Building it costs one small allocation against a whole parse.
-//
-// TODO: revisit if profiling says otherwise; a `OnceLock` equivalent would need
-// a dependency purely for this.
-pub(super) fn pratt_parser() -> PrattParser<Rule> {
-    PrattParser::new()
+/// A `static`, because [`ConstPrattParser`] is built in a `const` context: no
+/// allocation, no lazy initialisation, and so nothing that needs `std` — which
+/// matters, as this crate is `no_std`. The const parameter is the number of
+/// operators in the table, counting each alternative of a `|` chain separately.
+pub(super) static PRATT_PARSER: ConstPrattParser<Rule, 27> =
+    ConstPrattParser::new_const(pratt_precedence![
         // --- lowest precedence ---
         // Lambda, and the two block postfixes.
-        .op(Op::prefix(Rule::lambda_op)) // `(...) =>`
-        .op(Op::postfix(Rule::where_op) | Op::postfix(Rule::match_op)) // `where {}`, `match {}`
+        Op::prefix(Rule::lambda_op), // `(...) =>`
+        Op::postfix(Rule::where_op) | Op::postfix(Rule::match_op), // `where {}`, `match {}`
         // Error handling.
-        .op(Op::infix(Rule::otherwise_op, Assoc::Right)) // `otherwise`
+        Op::infix(Rule::otherwise_op, Assoc::Right), // `otherwise`
         // Logical.
-        .op(Op::prefix(Rule::if_op)) // `if ... then ... else`
-        .op(Op::infix(Rule::or, Assoc::Left)) // `or`
-        .op(Op::infix(Rule::and, Assoc::Left)) // `and`
-        .op(Op::prefix(Rule::not)) // `not`
+        Op::prefix(Rule::if_op),           // `if ... then ... else`
+        Op::infix(Rule::or, Assoc::Left),  // `or`
+        Op::infix(Rule::and, Assoc::Left), // `and`
+        Op::prefix(Rule::not),             // `not`
         // Comparison and membership.
-        .op(Op::infix(Rule::eq, Assoc::Left)
+        Op::infix(Rule::eq, Assoc::Left)
             | Op::infix(Rule::neq, Assoc::Left)
             | Op::infix(Rule::lt, Assoc::Left)
             | Op::infix(Rule::gt, Assoc::Left)
             | Op::infix(Rule::le, Assoc::Left)
             | Op::infix(Rule::ge, Assoc::Left)
             | Op::infix(Rule::in_op, Assoc::Left)
-            | Op::infix(Rule::not_in, Assoc::Left))
+            | Op::infix(Rule::not_in, Assoc::Left),
         // Arithmetic.
-        .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left)) // `+`, `-`
-        .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left)) // `*`, `/`
-        .op(Op::prefix(Rule::neg) | Op::prefix(Rule::some_op)) // `-`, `some`
-        .op(Op::infix(Rule::pow, Assoc::Right)) // `^`
+        Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left), // `+`, `-`
+        Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left), // `*`, `/`
+        Op::prefix(Rule::neg) | Op::prefix(Rule::some_op),                     // `-`, `some`
+        Op::infix(Rule::pow, Assoc::Right),                                    // `^`
         // Postfix.
-        .op(Op::postfix(Rule::call_op)) // `()`
-        .op(Op::postfix(Rule::index_op)) // `[]`
-        .op(Op::postfix(Rule::field_op)) // `.`
-        .op(Op::postfix(Rule::cast_op)) // `as`
-    // --- highest precedence ---
-}
+        Op::postfix(Rule::call_op),  // `()`
+        Op::postfix(Rule::index_op), // `[]`
+        Op::postfix(Rule::field_op), // `.`
+        Op::postfix(Rule::cast_op),  // `as`
+                                     // --- highest precedence ---
+    ]);
 
 /// The pattern grammar's precedence table.
 ///
 /// Patterns have exactly one operator today, so this exists to run patterns
 /// through the same Pratt machinery as expressions rather than because they need
 /// precedence.
-pub(super) fn pattern_pratt_parser() -> PrattParser<Rule> {
-    PrattParser::new().op(Op::prefix(Rule::pattern_some))
-}
+pub(super) static PATTERN_PRATT_PARSER: ConstPrattParser<Rule, 1> =
+    ConstPrattParser::new_const(pratt_precedence![Op::prefix(Rule::pattern_some)]);
