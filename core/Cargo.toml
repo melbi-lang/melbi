@@ -15,7 +15,6 @@ melbi-macros.workspace = true
 allocator-api2 = "0.2.21" # Match bumpalo and hashbrown
 bumpalo.workspace = true
 hashbrown.workspace = true
-lazy_static = "1.4"
 pest.workspace = true
 pest_derive.workspace = true
 static_assertions.workspace = true

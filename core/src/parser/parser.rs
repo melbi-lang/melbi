@@ -1,16 +1,9 @@
-// Must be module-level: lazy_static! macro expansion emits generated items outside localized attribute blocks.
-#![allow(
-    clippy::non_std_lazy_statics,
-    reason = "std::sync::LazyLock is unavailable in no_std mode"
-)]
-
 use alloc::string::ToString;
 
 use bumpalo::Bump;
-use lazy_static::lazy_static;
 use pest::Parser;
 use pest::iterators::Pair;
-use pest::pratt_parser::{Assoc, Op, PrattParser};
+use pest::pratt_parser::{Assoc, ConstPrattParser, Op, pratt_precedence};
 use pest_derive::Parser;
 
 use crate::parser::error::{ParseError, convert_pest_error};
@@ -21,46 +14,45 @@ use crate::parser::{
 };
 use crate::{Vec, format};
 
-lazy_static! {
-    // Note: precedence is defined lowest to highest.
-    static ref PRATT_PARSER: PrattParser<Rule> = PrattParser::new()
-        // (lowest precedence)
-        // Lambda, where, and match operators.
-        .op(Op::prefix(Rule::lambda_op)) // `(...) =>`
-        .op(Op::postfix(Rule::where_op) | Op::postfix(Rule::match_op)) // `where {}`, `match {}`
-        // Fallback (error handling) operator.
-        .op(Op::infix(Rule::otherwise_op, Assoc::Right)) // `otherwise`
-        // Logical operators.
-        .op(Op::prefix(Rule::if_op)) // `if`
-        .op(Op::infix(Rule::or, Assoc::Left)) // `or`
-        .op(Op::infix(Rule::and, Assoc::Left)) // `and`
-        .op(Op::prefix(Rule::not)) // `not`
-        // Comparison operators.
-        .op(Op::infix(Rule::eq, Assoc::Left)
-            | Op::infix(Rule::neq, Assoc::Left)
-            | Op::infix(Rule::lt, Assoc::Left)
-            | Op::infix(Rule::gt, Assoc::Left)
-            | Op::infix(Rule::le, Assoc::Left)
-            | Op::infix(Rule::ge, Assoc::Left)
-            | Op::infix(Rule::in_op, Assoc::Left)
-            | Op::infix(Rule::not_in, Assoc::Left)) // `==`, `!=`, `<`, `>`, `<=`, `>=`, `in`, `not in`
-        // Arithmetic operators.
-        .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left)) // `+`, `-`
-        .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left)) // `*`, `/`
-        .op(Op::prefix(Rule::neg) | Op::prefix(Rule::some_op)) // `-`, `some`
-        .op(Op::infix(Rule::pow, Assoc::Right)) // `^` (right-assoc))
-        // Postfix operators.
-        .op(Op::postfix(Rule::call_op)) // `()`
-        .op(Op::postfix(Rule::index_op)) // `[]`
-        .op(Op::postfix(Rule::field_op)) // `.`
-        .op(Op::postfix(Rule::cast_op)); // `as`
-        // (highest precedence)
+// Note: precedence is defined lowest to highest.
+static PRATT_PARSER: ConstPrattParser<Rule, 27> = ConstPrattParser::new_const(pratt_precedence![
+    // (lowest precedence)
+    // Lambda, where, and match operators.
+    Op::prefix(Rule::lambda_op), // `(...) =>`
+    Op::postfix(Rule::where_op) | Op::postfix(Rule::match_op), // `where {}` `match {}`
+    // Fallback (error handling) operator.
+    Op::infix(Rule::otherwise_op, Assoc::Right), // `otherwise`
+    // Logical operators.
+    Op::prefix(Rule::if_op),           // `if`
+    Op::infix(Rule::or, Assoc::Left),  // `or`
+    Op::infix(Rule::and, Assoc::Left), // `and`
+    Op::prefix(Rule::not),             // `not`
+    // Comparison operators.
+    Op::infix(Rule::eq, Assoc::Left)
+        | Op::infix(Rule::neq, Assoc::Left)
+        | Op::infix(Rule::lt, Assoc::Left)
+        | Op::infix(Rule::gt, Assoc::Left)
+        | Op::infix(Rule::le, Assoc::Left)
+        | Op::infix(Rule::ge, Assoc::Left)
+        | Op::infix(Rule::in_op, Assoc::Left)
+        | Op::infix(Rule::not_in, Assoc::Left), // `==` `!=` `<` `>` `<=` `>=` `in` `not in`
+    // Arithmetic operators.
+    Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left), // `+` `-`
+    Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left), // `*` `/`
+    Op::prefix(Rule::neg) | Op::prefix(Rule::some_op),                     // `-` `some`
+    Op::infix(Rule::pow, Assoc::Right),                                    // `^` (right-assoc)
+    // Postfix operators.
+    Op::postfix(Rule::call_op),  // `()`
+    Op::postfix(Rule::index_op), // `[]`
+    Op::postfix(Rule::field_op), // `.`
+    Op::postfix(Rule::cast_op),  // `as`
+                                 // (highest precedence)
+]);
 
-    // Pattern Pratt parser (for pattern matching)
-    // Note: Currently only has prefix operators for Phase 3
-    static ref PATTERN_PRATT_PARSER: PrattParser<Rule> = PrattParser::new()
-        .op(Op::prefix(Rule::pattern_some)); // `some` pattern
-}
+// Pattern Pratt parser (for pattern matching)
+// Note: Currently only has prefix operators for Phase 3
+static PATTERN_PRATT_PARSER: ConstPrattParser<Rule, 1> =
+    ConstPrattParser::new_const(pratt_precedence![Op::prefix(Rule::pattern_some)]); // `some` pattern
 
 #[derive(Parser)]
 #[grammar = "parser/expression.pest"]
