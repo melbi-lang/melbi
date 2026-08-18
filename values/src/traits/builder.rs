@@ -16,11 +16,13 @@
 //! # Storage is inline, never borrowed
 //!
 //! A [`Val`] is the storage cell for a single value: a small, cheaply cloned bag
-//! of bytes (one word for the arena builder). Collections hold their elements
-//! *inline* as `[Val<B>]`, so an `Array[Int]` with three elements is one
-//! allocation of three words — not three separate allocations plus a slice of
-//! pointers to them. [`Value`] holds its `Val` inline for the same reason, which
-//! also means scalars need no allocation at all.
+//! of bytes (one storage cell — a single word on 64-bit targets — for the arena
+//! builder). Collections hold their elements *inline* as `[Val<B>]`, so an
+//! `Array[Int]` with three elements is one allocation of three cells — not three
+//! separate allocations plus a slice of pointers to them. [`Value`] holds its
+//! `Val` inline for the same reason, so a scalar needs no value-storage
+//! allocation at all (its [`Ty`](melbi_types::Ty) is still built by the type
+//! builder).
 //!
 //! # No Footguns
 //!

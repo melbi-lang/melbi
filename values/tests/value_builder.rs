@@ -287,6 +287,8 @@ test_both_builders!(value_clone_is_independent);
 // =============================================================================
 
 // Two words for the arena builder: the type handle plus the one-word `Val`.
+// Only on 64-bit targets, where a `Val` is one word (it holds an `i64`/`f64`).
+#[cfg(target_pointer_width = "64")]
 static_assertions::assert_eq_size!(Value<ArenaValueBuilder<'static>>, [usize; 2]);
 
 // Arena values own nothing, so they are Copy; box values reference-count.

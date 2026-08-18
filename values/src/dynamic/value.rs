@@ -11,7 +11,8 @@ use crate::traits::{Val, ValueBuilder, ValueView};
 /// level. When values are stored in arrays/maps, only the raw [`Val`] storage is
 /// kept internally, and types are re-attached when elements are accessed.
 ///
-/// The `Val` is held inline, so a scalar `Value` needs no allocation at all.
+/// The `Val` is held inline, so a scalar `Value` needs no separate
+/// value-storage allocation — only its `Ty` is built by the type builder.
 ///
 /// # Example
 ///

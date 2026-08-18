@@ -32,14 +32,15 @@ pub union ArenaRaw<'arena> {
     array: ThinRef<'arena, [Val<ArenaValueBuilder<'arena>>]>,
 }
 
-// 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data).
-// Only asserted on architectures where we care about this layout guarantee
-// (e.g., wasm32 has different pointer sizes and is excluded intentionally).
-#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+// 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data),
+// and the widest field (`i64`/`f64`) is 8 bytes too. Only asserted where a word is
+// 8 bytes; on 32-bit targets the `i64`/`f64` fields make this two words, which is
+// still correct, just not what the equation below says.
+#[cfg(target_pointer_width = "64")]
 static_assertions::assert_eq_size!(ArenaRaw<'static>, usize);
 
 // An array element is therefore one word too — no pointer indirection per element.
-#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+#[cfg(target_pointer_width = "64")]
 static_assertions::assert_eq_size!(Val<ArenaValueBuilder<'static>>, usize);
 
 // Union can't derive Copy/Clone — implement manually.

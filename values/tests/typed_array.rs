@@ -308,7 +308,12 @@ fn arena_nested_array_is_copy() {
 // Storage layout — elements live inline, not behind a per-element reference
 // =============================================================================
 
-// An array element is a `Val`, which for the arena builder is one word.
+// An array element is a `Val`, which for the arena builder is one word on 64-bit
+// targets. The byte-count tests below spell out their expectations in words, so
+// they carry the same gate: on a 32-bit target a `Val` is still two words (it
+// holds an `i64`/`f64`) and the equations would not hold even though the layout
+// is correct.
+#[cfg(target_pointer_width = "64")]
 static_assertions::assert_eq_size!(Val<ArenaValueBuilder<'static>>, usize);
 
 /// Bytes the arena has handed out so far.
@@ -318,10 +323,12 @@ static_assertions::assert_eq_size!(Val<ArenaValueBuilder<'static>>, usize);
 /// chunk. Exact as long as no new chunk is started — true for a fresh arena and
 /// allocations this small; a chunk switch would also count the abandoned tail of
 /// the previous chunk.
+#[cfg(target_pointer_width = "64")]
 fn arena_bytes_used(arena: &Bump) -> usize {
     arena.allocated_bytes() - arena.chunk_capacity()
 }
 
+#[cfg(target_pointer_width = "64")]
 #[test]
 fn arena_array_stores_elements_inline() {
     let arena = Bump::new();
@@ -340,6 +347,7 @@ fn arena_array_stores_elements_inline() {
     assert_eq!(arr.get(2), Some(3));
 }
 
+#[cfg(target_pointer_width = "64")]
 #[test]
 fn arena_nested_array_stores_elements_inline() {
     let arena = Bump::new();
