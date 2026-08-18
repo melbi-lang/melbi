@@ -4,11 +4,9 @@ use alloc::vec;
 
 use bumpalo::Bump;
 use melbi_types::ty;
-use melbi_values::{
-    builders::{ArenaValueBuilder, BoxValueBuilder},
-    dynamic::Value,
-    traits::{ArrayView, ValueBuilder, ValueView},
-};
+use melbi_values::builders::{ArenaValueBuilder, BoxValueBuilder};
+use melbi_values::dynamic::Value;
+use melbi_values::traits::{ArrayView, ValueBuilder, ValueView};
 
 /// Generates `#[test]` wrappers that run a generic test function against both
 /// `BoxValueBuilder` and `ArenaValueBuilder`.
@@ -220,7 +218,7 @@ fn nested_array<B: ValueBuilder>(b: &B) {
     let int_ty = ty!(tb, Int);
 
     let inner1 = Value::array(b, int_ty.clone(), vec![Value::int(b, 1), Value::int(b, 2)]);
-    let inner2 = Value::array(b, int_ty.clone(), vec![Value::int(b, 3), Value::int(b, 4)]);
+    let inner2 = Value::array(b, int_ty, vec![Value::int(b, 3), Value::int(b, 4)]);
 
     let inner_ty = ty!(tb, Array[Int]);
     let outer = Value::array(b, inner_ty, vec![inner1, inner2]);

@@ -3,7 +3,7 @@ use nu_ansi_term::Color;
 use reedline::Highlighter as _;
 
 #[test]
-fn test_highlight_number() {
+fn highlight_number() {
     let highlighter = Highlighter::new();
 
     // "1" should be an integer -> @number -> Cyan
@@ -27,7 +27,7 @@ fn test_highlight_number() {
 }
 
 #[test]
-fn test_highlight_keyword() {
+fn highlight_keyword() {
     let highlighter = Highlighter::new();
 
     // "if" should be a keyword -> @keyword -> Magenta
@@ -44,7 +44,7 @@ fn test_highlight_keyword() {
 }
 
 #[test]
-fn test_highlight_complex() {
+fn highlight_complex() {
     let highlighter = Highlighter::new();
     let output = highlighter.highlight("if true then 1 else 0", 0);
 
@@ -75,7 +75,7 @@ fn test_highlight_complex() {
 }
 
 #[test]
-fn test_highlight_error() {
+fn highlight_error() {
     let highlighter = Highlighter::new();
     let output = highlighter.highlight("1 + @", 0);
 

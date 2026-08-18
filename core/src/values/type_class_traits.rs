@@ -51,11 +51,11 @@ pub trait Melbi: Copy + Bridge {}
 impl Melbi for i64 {}
 impl Melbi for f64 {}
 impl Melbi for bool {}
-impl<'a> Melbi for Str<'a> {}
-impl<'a> Melbi for &'a [u8] {}
-impl<'a, T: Bridge> Melbi for Optional<'a, T> {}
-impl<'a, T: Bridge> Melbi for Array<'a, T> {}
-impl<'a, K: Bridge, V: Bridge> Melbi for Map<'a, K, V> {}
+impl Melbi for Str<'_> {}
+impl Melbi for &[u8] {}
+impl<T: Bridge> Melbi for Optional<'_, T> {}
+impl<T: Bridge> Melbi for Array<'_, T> {}
+impl<K: Bridge, V: Bridge> Melbi for Map<'_, K, V> {}
 
 /// Numeric trait for arithmetic operations.
 ///

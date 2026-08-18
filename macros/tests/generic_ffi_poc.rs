@@ -1,6 +1,6 @@
 //! Proof of concept for generic FFI functions with runtime dispatch.
 //!
-//! This demonstrates the "Internal Dispatch" strategy from ffi_generics.md:
+//! This demonstrates the "Internal Dispatch" strategy from `ffi_generics.md`:
 //!
 //! 1. **Closed Expansion** (Numeric): Fully specialized to concrete types (i64, f64)
 //! 2. **Structural Expansion** (Indexable): Uses `Any<N>` for infinite type families
@@ -9,20 +9,18 @@
 
 extern crate alloc;
 
-use bumpalo::Bump;
 use core::marker::PhantomData;
-use melbi_core::{
-    evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError},
-    parser::Span,
-    types::{Type, manager::TypeManager},
-    values::{
-        FfiContext,
-        dynamic::Value,
-        function::{AnnotatedFunction, Function},
-        raw::RawValue,
-        typed::{Array, Bridge, Optional, RawConvertible},
-    },
-};
+
+use bumpalo::Bump;
+use melbi_core::evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError};
+use melbi_core::parser::Span;
+use melbi_core::types::Type;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::FfiContext;
+use melbi_core::values::dynamic::Value;
+use melbi_core::values::function::{AnnotatedFunction, Function};
+use melbi_core::values::raw::RawValue;
+use melbi_core::values::typed::{Array, Bridge, Optional, RawConvertible};
 
 // ============================================================================
 // Helper for type mismatch errors
@@ -31,7 +29,7 @@ use melbi_core::{
 fn type_mismatch_error(expected: &str, actual: &str) -> ExecutionError {
     ExecutionError {
         kind: ExecutionErrorKind::Runtime(RuntimeError::CastError {
-            message: format!("expected {}, got {}", expected, actual),
+            message: format!("expected {expected}, got {actual}"),
         }),
         source: String::new(),
         span: Span::new(0, 0),
@@ -46,7 +44,7 @@ fn type_mismatch_error(expected: &str, actual: &str) -> ExecutionError {
 // We generate exhaustive match arms for each - no Any<N> needed.
 
 /// Numeric trait - implemented by i64 and f64.
-/// This would typically be defined in melbi_core.
+/// This would typically be defined in `melbi_core`.
 trait Numeric:
     Copy
     + Sized
@@ -177,14 +175,15 @@ pub struct Any<'a, const N: usize> {
     _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, const N: usize> Any<'a, N> {
+impl<const N: usize> Any<'_, N> {
+    #[must_use]
     pub fn raw(self) -> RawValue {
         self.raw
     }
 }
 
 // RawConvertible impl for Any<N>
-impl<'a, const N: usize> RawConvertible for Any<'a, N> {
+impl<const N: usize> RawConvertible for Any<'_, N> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         value.raw
     }
@@ -200,7 +199,7 @@ impl<'a, const N: usize> RawConvertible for Any<'a, N> {
 }
 
 // Bridge impl for Any<N> - needed for Array<Any<N>>, Optional<Any<N>>, etc.
-impl<'a, const N: usize> Bridge for Any<'a, N> {
+impl<const N: usize> Bridge for Any<'_, N> {
     type Raw = RawValue;
 
     fn type_from<'b>(_type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
@@ -222,7 +221,7 @@ impl<'a, const N: usize> Bridge for Any<'a, N> {
 
 /// User-written function: get the first element of an array.
 ///
-/// This is EXACTLY what the user writes. Copy is needed for array.get().
+/// This is EXACTLY what the user writes. Copy is needed for `array.get()`.
 /// The macro will call it with T = Any<0>.
 fn first_element<'a, T: Bridge + Copy>(
     ctx: &FfiContext<'a, 'a>,
@@ -238,7 +237,7 @@ fn first_element<'a, T: Bridge + Copy>(
 ///
 /// This wrapper handles ANY array type. The dispatch:
 /// 1. Extracts the element type from the input array
-/// 2. Calls first_element::<Any<0>>(array)
+/// 2. Calls `first_element::`<Any<0>>(array)
 /// 3. Reconstructs the proper Optional<ElemTy> type for the result
 pub struct FirstElement<'a> {
     ty: &'a Type<'a>,
@@ -373,11 +372,11 @@ fn check_optional_str(v: &Value, expected: Option<&str>) {
     match (opt, expected) {
         (None, None) => {}
         (Some(inner), Some(exp)) => {
-            assert_eq!(&*inner.as_str().unwrap(), exp);
+            assert_eq!(inner.as_str().unwrap(), exp);
         }
-        (None, Some(exp)) => panic!("Expected Some({:?}), got None", exp),
+        (None, Some(exp)) => panic!("Expected Some({exp:?}), got None"),
         (Some(inner), None) => {
-            panic!("Expected None, got Some({:?})", &*inner.as_str().unwrap())
+            panic!("Expected None, got Some({:?})", inner.as_str().unwrap())
         }
     }
 }
@@ -387,7 +386,7 @@ fn check_optional_str(v: &Value, expected: Option<&str>) {
 // ============================================================================
 
 #[test]
-fn test_square_int() {
+fn square_int() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -399,7 +398,7 @@ fn test_square_int() {
 }
 
 #[test]
-fn test_square_float() {
+fn square_float() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -411,7 +410,7 @@ fn test_square_float() {
 }
 
 #[test]
-fn test_square_type_mismatch() {
+fn square_type_mismatch() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -426,13 +425,12 @@ fn test_square_type_mismatch() {
             err.kind,
             ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
         ),
-        "Expected CastError, got {:?}",
-        err
+        "Expected CastError, got {err:?}"
     );
 }
 
 #[test]
-fn test_square_negative() {
+fn square_negative() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -443,7 +441,7 @@ fn test_square_negative() {
 }
 
 #[test]
-fn test_square_zero() {
+fn square_zero() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -458,7 +456,7 @@ fn test_square_zero() {
 // ============================================================================
 
 #[test]
-fn test_first_element_int_array() {
+fn first_element_int_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -470,7 +468,7 @@ fn test_first_element_int_array() {
 }
 
 #[test]
-fn test_first_element_str_array() {
+fn first_element_str_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -482,7 +480,7 @@ fn test_first_element_str_array() {
 }
 
 #[test]
-fn test_first_element_nested_array() {
+fn first_element_nested_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -500,7 +498,7 @@ fn test_first_element_nested_array() {
 }
 
 #[test]
-fn test_first_element_empty_array() {
+fn first_element_empty_array() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -511,7 +509,7 @@ fn test_first_element_empty_array() {
 }
 
 #[test]
-fn test_first_element_type_mismatch() {
+fn first_element_type_mismatch() {
     let arena = Bump::new();
     let ctx = TestCtx::new(&arena);
 
@@ -524,8 +522,7 @@ fn test_first_element_type_mismatch() {
             err.kind,
             ExecutionErrorKind::Runtime(RuntimeError::CastError { .. })
         ),
-        "Expected CastError, got {:?}",
-        err
+        "Expected CastError, got {err:?}"
     );
 }
 

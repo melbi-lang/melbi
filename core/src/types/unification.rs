@@ -1,17 +1,16 @@
 use alloc::string::ToString;
-use core::{cell::RefCell, marker::PhantomData};
+use core::cell::RefCell;
+use core::marker::PhantomData;
 
 use hashbrown::{HashMap, HashSet};
 
-use crate::{
-    String, Vec,
-    types::{
-        TypeScheme,
-        manager::TypeManager,
-        traits::{TypeBuilder, TypeKind, TypeTransformer, TypeView, TypeVisitor, display_type},
-        type_class_resolver::TypeClassResolver,
-    },
+use crate::types::TypeScheme;
+use crate::types::manager::TypeManager;
+use crate::types::traits::{
+    TypeBuilder, TypeKind, TypeTransformer, TypeView, TypeVisitor, display_type,
 };
+use crate::types::type_class_resolver::TypeClassResolver;
+use crate::{String, Vec};
 
 /// Types of unification errors.
 #[derive(Debug)]
@@ -117,7 +116,7 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
     /// Resolve a type variable by its ID.
     ///
     /// This is a convenience method that looks up the type variable in the substitution
-    /// and resolves it. If the variable has no substitution, returns a TypeVar constructed
+    /// and resolves it. If the variable has no substitution, returns a `TypeVar` constructed
     /// from the builder.
     pub fn resolve_var(&self, var_id: u16) -> B::Repr {
         let ty = self.subst.borrow().get(&var_id).copied();
@@ -187,14 +186,16 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
     ///
     /// Prevents creating infinite types like `a = Array[a]`.
     fn occurs_in(&self, id: u16, t: B::Repr) -> bool {
-        use TypeKind::*;
+        use TypeKind::{
+            Array, Bool, Bytes, Float, Function, Int, Map, Option, Record, Str, Symbol, TypeVar,
+        };
 
         let resolved = self.resolve(t).view();
 
-        if let TypeVar(resolved_id) = resolved {
-            if resolved_id == id {
-                return true;
-            }
+        if let TypeVar(resolved_id) = resolved
+            && resolved_id == id
+        {
+            return true;
         }
 
         // Recursively check for occurrence in composite types
@@ -240,8 +241,13 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
             return Ok(t1);
         }
 
-        use Error::*;
-        use TypeKind::*;
+        use Error::{
+            FieldCountMismatch, FieldNameMismatch, FunctionParamCountMismatch, OccursCheckFailed,
+            TypeMismatch,
+        };
+        use TypeKind::{
+            Array, Bool, Bytes, Float, Function, Int, Map, Option, Record, Str, Symbol, TypeVar,
+        };
 
         match (t1.view(), t2.view()) {
             // Type variable cases - bind variable to the other type
@@ -430,7 +436,7 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
     /// the provided instantiation substitution. Resolution happens recursively to handle
     /// nested substitutions correctly.
     ///
-    /// Note: This uses a manual TypeTransformer implementation rather than ClosureTransformer
+    /// Note: This uses a manual `TypeTransformer` implementation rather than `ClosureTransformer`
     /// because it requires custom resolution logic that must happen before recursion.
     ///
     /// # Example
@@ -448,7 +454,7 @@ impl<'a, B: TypeBuilder<'a> + 'a> Unification<'a, B> {
             inst_subst: &'b HashMap<u16, B::Repr>,
         }
 
-        impl<'a, 'b, B: TypeBuilder<'a> + 'a> TypeTransformer<'a, B> for Substitutor<'a, 'b, B> {
+        impl<'a, B: TypeBuilder<'a> + 'a> TypeTransformer<'a, B> for Substitutor<'a, '_, B> {
             type Input = B::Repr;
 
             fn builder(&self) -> &B {
@@ -492,7 +498,7 @@ impl<'a> Unification<'a, &'a TypeManager<'a>> {
     /// Generalize a type into a type scheme by quantifying free variables.
     ///
     /// Creates a type scheme by quantifying all type variables that are free in the type
-    /// but not free in the environment (env_vars). This implements the generalization
+    /// but not free in the environment (`env_vars`). This implements the generalization
     /// step of Algorithm W.
     ///
     /// # Arguments
@@ -600,7 +606,7 @@ mod tests {
     use crate::types::manager::TypeManager;
 
     #[test]
-    fn test_unifies_to_success() {
+    fn unifies_to_success() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -616,7 +622,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unifies_to_failure() {
+    fn unifies_to_failure() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -637,7 +643,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_empty() {
+    fn free_type_vars_empty() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -649,7 +655,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_single() {
+    fn free_type_vars_single() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -662,7 +668,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_function() {
+    fn free_type_vars_function() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -680,7 +686,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_after_unification() {
+    fn free_type_vars_after_unification() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -698,7 +704,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generalize_monomorphic() {
+    fn generalize_monomorphic() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -713,7 +719,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generalize_polymorphic() {
+    fn generalize_polymorphic() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -732,7 +738,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generalize_with_env_vars() {
+    fn generalize_with_env_vars() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -754,7 +760,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instantiate_monomorphic() {
+    fn instantiate_monomorphic() {
         use crate::parser::Span;
 
         let arena = bumpalo::Bump::new();
@@ -772,7 +778,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instantiate_polymorphic() {
+    fn instantiate_polymorphic() {
         use crate::parser::Span;
 
         let arena = bumpalo::Bump::new();
@@ -800,7 +806,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instantiate_creates_fresh_vars() {
+    fn instantiate_creates_fresh_vars() {
         use crate::parser::Span;
 
         let arena = bumpalo::Bump::new();
@@ -837,7 +843,7 @@ mod tests {
     }
 
     #[test]
-    fn test_substitute_with_nested_unification() {
+    fn substitute_with_nested_unification() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -872,27 +878,20 @@ mod tests {
         if let crate::types::Type::Array(inner) = result {
             if let crate::types::Type::Array(innermost) = inner {
                 if let crate::types::Type::TypeVar(id) = innermost {
-                    assert_eq!(
-                        *id, 50,
-                        "Expected innermost type var to be _50, got _{}",
-                        id
-                    );
+                    assert_eq!(*id, 50, "Expected innermost type var to be _50, got _{id}");
                 } else {
-                    panic!(
-                        "Expected TypeVar(_50) as innermost type, got {:?}",
-                        innermost
-                    );
+                    panic!("Expected TypeVar(_50) as innermost type, got {innermost:?}");
                 }
             } else {
-                panic!("Expected Array as inner type, got {:?}", inner);
+                panic!("Expected Array as inner type, got {inner:?}");
             }
         } else {
-            panic!("Expected Array as outer type, got {:?}", result);
+            panic!("Expected Array as outer type, got {result:?}");
         }
     }
 
     #[test]
-    fn test_path_compression_basic() {
+    fn path_compression_basic() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -920,7 +919,7 @@ mod tests {
     }
 
     #[test]
-    fn test_path_compression_long_chain() {
+    fn path_compression_long_chain() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -950,7 +949,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fully_resolve_array() {
+    fn fully_resolve_array() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -971,7 +970,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fully_resolve_function() {
+    fn fully_resolve_function() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1002,7 +1001,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fully_resolve_with_chain() {
+    fn fully_resolve_with_chain() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1033,7 +1032,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_option_same_inner() {
+    fn unify_option_same_inner() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1051,7 +1050,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_option_different_inner() {
+    fn unify_option_different_inner() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1070,7 +1069,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_option_with_type_var() {
+    fn unify_option_with_type_var() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1093,7 +1092,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unify_nested_option() {
+    fn unify_nested_option() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);
@@ -1109,7 +1108,7 @@ mod tests {
     }
 
     #[test]
-    fn test_free_type_vars_option() {
+    fn free_type_vars_option() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let unify = Unification::new(type_manager);
@@ -1124,7 +1123,7 @@ mod tests {
     }
 
     #[test]
-    fn test_occurs_check_option() {
+    fn occurs_check_option() {
         let arena = bumpalo::Bump::new();
         let type_manager = TypeManager::new(&arena);
         let mut unify = Unification::new(type_manager);

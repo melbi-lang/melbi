@@ -9,16 +9,15 @@
 //! instantiation observed at call sites. At runtime, `call_unchecked` selects the
 //! appropriate instantiation based on argument types.
 
+use bumpalo::Bump;
+
 use super::dynamic::Value;
 use super::function::{FfiContext, Function};
 use crate::evaluator::ExecutionError;
-use crate::types::{
-    Type,
-    traits::{TypeKind, TypeView},
-};
+use crate::types::Type;
+use crate::types::traits::{TypeKind, TypeView};
 use crate::values::RawValue;
 use crate::vm::{Code, VM};
-use bumpalo::Bump;
 
 /// A single compiled instantiation of a lambda.
 ///
@@ -40,7 +39,7 @@ pub struct LambdaInstantiation<'types, 'arena> {
 /// # Closure Support
 ///
 /// Lambdas can capture variables from their enclosing scope. Captured variables are stored
-/// as a slice of RawValues and passed to the VM when the lambda is called.
+/// as a slice of `RawValues` and passed to the VM when the lambda is called.
 ///
 /// # Polymorphism
 ///
@@ -68,6 +67,7 @@ impl<'types, 'arena> BytecodeLambda<'types, 'arena> {
     /// - `ty`: The function's type (must be a Function type)
     /// - `instantiations`: All compiled instantiations (concrete type + Code)
     /// - `captures`: Captured values from the enclosing scope
+    #[must_use]
     pub fn new(
         ty: &'types Type<'types>,
         instantiations: &'arena [LambdaInstantiation<'types, 'arena>],
@@ -147,6 +147,10 @@ impl<'types, 'arena> Function<'types, 'arena> for BytecodeLambda<'types, 'arena>
         self.ty
     }
 
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for bytecode lambda execution"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,
@@ -158,7 +162,7 @@ impl<'types, 'arena> Function<'types, 'arena> for BytecodeLambda<'types, 'arena>
         tracing::trace!(fn_type = %inst.fn_type, code = ?inst.code, "call_unchecked: selected instantiation");
 
         // Collect arguments as locals
-        let locals = args.iter().map(|arg| arg.as_raw()).collect();
+        let locals = args.iter().map(super::dynamic::Value::as_raw).collect();
 
         // Create VM with locals and captures, then execute
         let mut vm = VM::new(ctx.arena(), inst.code, locals, self.captures);
@@ -167,9 +171,11 @@ impl<'types, 'arena> Function<'types, 'arena> for BytecodeLambda<'types, 'arena>
         tracing::trace!(result = ?result, "call_unchecked: result raw");
 
         // Convert RawValue back to Value using the instantiation's return type
-        let return_type = match inst.fn_type.view() {
-            TypeKind::Function { ret, .. } => ret,
-            _ => unreachable!("BytecodeLambda type must be Function"),
+        let TypeKind::Function {
+            ret: return_type, ..
+        } = inst.fn_type.view()
+        else {
+            unreachable!("BytecodeLambda type must be Function");
         };
 
         tracing::trace!(return_type = %return_type, "call_unchecked: return type");

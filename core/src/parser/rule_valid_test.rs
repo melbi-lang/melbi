@@ -1,8 +1,9 @@
 // Tests with valid expressions for each rule in the parser.
 
-use crate::parser::{ExpressionParser, Rule};
 use pest::Parser;
 use pest::iterators::Pair;
+
+use crate::parser::{ExpressionParser, Rule};
 
 fn contains_rule(pair: Pair<Rule>, target: Rule) -> bool {
     if pair.as_rule() == target {

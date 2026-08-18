@@ -42,36 +42,36 @@ impl<B: TreeBuilder> Visit<B, parsed::Expr, Census> for ExprKind<B> {
     fn visit(&self, _data: &Data, ctx: &mut Census) {
         ctx.exprs += 1;
         match self {
-            ExprKind::Literal(literal) => visit_literal(literal, ctx),
-            ExprKind::Ident(_) => ctx.idents += 1,
-            ExprKind::None => {}
+            Self::Literal(literal) => visit_literal(literal, ctx),
+            Self::Ident(_) => ctx.idents += 1,
+            Self::None => {}
 
-            ExprKind::Unary { expr, .. } | ExprKind::Some(expr) => expr.visit(ctx),
-            ExprKind::Field { value, .. } => value.visit(ctx),
-            ExprKind::Lambda { body, .. } => body.visit(ctx),
+            Self::Unary { expr, .. } | Self::Some(expr) => expr.visit(ctx),
+            Self::Field { value, .. } => value.visit(ctx),
+            Self::Lambda { body, .. } => body.visit(ctx),
 
-            ExprKind::Binary { left, right, .. }
-            | ExprKind::Boolean { left, right, .. }
-            | ExprKind::Comparison { left, right, .. } => {
+            Self::Binary { left, right, .. }
+            | Self::Boolean { left, right, .. }
+            | Self::Comparison { left, right, .. } => {
                 left.visit(ctx);
                 right.visit(ctx);
             }
-            ExprKind::Index { value, index } => {
+            Self::Index { value, index } => {
                 value.visit(ctx);
                 index.visit(ctx);
             }
-            ExprKind::Otherwise { primary, fallback } => {
+            Self::Otherwise { primary, fallback } => {
                 primary.visit(ctx);
                 fallback.visit(ctx);
             }
 
             // Into the type-syntax tree.
-            ExprKind::Cast { expr, ty } => {
+            Self::Cast { expr, ty } => {
                 expr.visit(ctx);
                 ty.visit(ctx);
             }
 
-            ExprKind::If {
+            Self::If {
                 cond,
                 then_branch,
                 else_branch,
@@ -81,39 +81,39 @@ impl<B: TreeBuilder> Visit<B, parsed::Expr, Census> for ExprKind<B> {
                 else_branch.visit(ctx);
             }
 
-            ExprKind::Call { callable, args } => {
+            Self::Call { callable, args } => {
                 callable.visit(ctx);
                 for arg in args.iter() {
                     arg.visit(ctx);
                 }
             }
-            ExprKind::Array(items) | ExprKind::FormatStr { exprs: items, .. } => {
+            Self::Array(items) | Self::FormatStr { exprs: items, .. } => {
                 for item in items.iter() {
                     item.visit(ctx);
                 }
             }
 
             // Into the match-arm tree, and from there into patterns.
-            ExprKind::Match { scrutinee, arms } => {
+            Self::Match { scrutinee, arms } => {
                 scrutinee.visit(ctx);
                 for arm in arms.iter() {
                     arm.visit(ctx);
                 }
             }
             // Into the binding tree.
-            ExprKind::Where { expr, bindings } => {
+            Self::Where { expr, bindings } => {
                 expr.visit(ctx);
                 for binding in bindings.iter() {
                     binding.visit(ctx);
                 }
             }
-            ExprKind::Record(bindings) => {
+            Self::Record(bindings) => {
                 for binding in bindings.iter() {
                     binding.visit(ctx);
                 }
             }
             // Into the map-entry tree.
-            ExprKind::Map(entries) => {
+            Self::Map(entries) => {
                 for entry in entries.iter() {
                     entry.visit(ctx);
                 }
@@ -142,10 +142,10 @@ impl<B: TreeBuilder> Visit<B, parsed::Pattern, Census> for PatternKind<B> {
     fn visit(&self, _data: &Data, ctx: &mut Census) {
         ctx.patterns += 1;
         match self {
-            PatternKind::Wildcard | PatternKind::Binding(_) | PatternKind::None => {}
+            Self::Wildcard | Self::Binding(_) | Self::None => {}
             // A pattern holds the very same literal enum an expression does.
-            PatternKind::Literal(literal) => visit_literal(literal, ctx),
-            PatternKind::Some(inner) => inner.visit(ctx),
+            Self::Literal(literal) => visit_literal(literal, ctx),
+            Self::Some(inner) => inner.visit(ctx),
         }
     }
 }
@@ -185,13 +185,13 @@ impl<B: TreeBuilder> Visit<B, parsed::TypeExpr, Census> for TypeExprKind<B> {
     fn visit(&self, _data: &Data, ctx: &mut Census) {
         ctx.type_exprs += 1;
         match self {
-            TypeExprKind::Path(_) => {}
-            TypeExprKind::Parametrized { params, .. } => {
+            Self::Path(_) => {}
+            Self::Parametrized { params, .. } => {
                 for param in params.iter() {
                     param.visit(ctx);
                 }
             }
-            TypeExprKind::Record(fields) => {
+            Self::Record(fields) => {
                 for field in fields.iter() {
                     field.visit(ctx);
                 }

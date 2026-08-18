@@ -1,16 +1,17 @@
 //! Format string adapter for f-string interpolation in the VM.
 
 use alloc::boxed::Box;
-use bumpalo::Bump;
 use core::fmt::Write;
 
-use crate::{
-    String, Vec,
-    evaluator::ExecutionErrorKind,
-    types::{Type, manager::TypeManager},
-    values::{RawValue, dynamic::Value},
-    vm::GenericAdapter,
-};
+use bumpalo::Bump;
+
+use crate::evaluator::ExecutionErrorKind;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::RawValue;
+use crate::values::dynamic::Value;
+use crate::vm::GenericAdapter;
+use crate::{String, Vec};
 
 /// Adapter for format string operations (`f"Hello {name}"`).
 ///
@@ -20,7 +21,7 @@ pub struct FormatStrAdapter<'t> {
     type_mgr: &'t TypeManager<'t>,
     /// Types of each expression to format (for Display conversion)
     expr_types: Vec<&'t Type<'t>>,
-    /// String parts to interleave (len = expr_types.len() + 1), owned to avoid AST lifetime
+    /// String parts to interleave (len = `expr_types.len()` + 1), owned to avoid AST lifetime
     strs: Vec<Box<str>>,
 }
 
@@ -39,7 +40,7 @@ impl<'t> FormatStrAdapter<'t> {
     }
 }
 
-impl<'t> GenericAdapter for FormatStrAdapter<'t> {
+impl GenericAdapter for FormatStrAdapter<'_> {
     fn num_args(&self) -> usize {
         self.expr_types.len()
     }
@@ -53,7 +54,7 @@ impl<'t> GenericAdapter for FormatStrAdapter<'t> {
             // Convert RawValue to Value for formatting
             let value = Value::from_raw_unchecked(ty, *raw);
             // Use Display trait (outputs strings without quotes)
-            write!(result, "{}", value).expect("Writing to String should not fail");
+            write!(result, "{value}").expect("Writing to String should not fail");
             result.push_str(&self.strs[i + 1]);
         }
 
@@ -66,7 +67,11 @@ impl<'t> GenericAdapter for FormatStrAdapter<'t> {
         if self.expr_types.is_empty() {
             String::from("FormatStr()")
         } else {
-            let types: Vec<_> = self.expr_types.iter().map(|t| alloc::format!("{}", t)).collect();
+            let types: Vec<_> = self
+                .expr_types
+                .iter()
+                .map(|t| alloc::format!("{t}"))
+                .collect();
             alloc::format!("FormatStr({})", types.join(", "))
         }
     }

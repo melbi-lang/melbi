@@ -1,7 +1,7 @@
 use melbi_lsp::document::DocumentState;
 
 #[test]
-fn test_semantic_tokens_for_simple_expression() {
+fn semantic_tokens_for_simple_expression() {
     let mut doc = DocumentState::new("1 + 2".to_string());
     doc.analyze();
 
@@ -16,7 +16,7 @@ fn test_semantic_tokens_for_simple_expression() {
 }
 
 #[test]
-fn test_semantic_tokens_for_identifiers() {
+fn semantic_tokens_for_identifiers() {
     let mut doc = DocumentState::new("x where { x = 10 }".to_string());
     doc.analyze();
 
@@ -29,7 +29,7 @@ fn test_semantic_tokens_for_identifiers() {
 }
 
 #[test]
-fn test_semantic_tokens_for_keywords() {
+fn semantic_tokens_for_keywords() {
     let mut doc = DocumentState::new("if true then 1 else 2".to_string());
     doc.analyze();
 
@@ -45,7 +45,7 @@ fn test_semantic_tokens_for_keywords() {
 }
 
 #[test]
-fn test_semantic_tokens_for_string() {
+fn semantic_tokens_for_string() {
     let mut doc = DocumentState::new(r#""hello""#.to_string());
     doc.analyze();
 
@@ -54,7 +54,7 @@ fn test_semantic_tokens_for_string() {
 }
 
 #[test]
-fn test_semantic_tokens_for_lambda() {
+fn semantic_tokens_for_lambda() {
     let mut doc = DocumentState::new("x => x + 1".to_string());
     doc.analyze();
 
@@ -66,7 +66,7 @@ fn test_semantic_tokens_for_lambda() {
 }
 
 #[test]
-fn test_semantic_tokens_for_record() {
+fn semantic_tokens_for_record() {
     let mut doc = DocumentState::new("{ x = 10, y = 20 }".to_string());
     doc.analyze();
 
@@ -82,7 +82,7 @@ fn test_semantic_tokens_for_record() {
 }
 
 #[test]
-fn test_semantic_tokens_for_array() {
+fn semantic_tokens_for_array() {
     let mut doc = DocumentState::new("[1, 2, 3]".to_string());
     doc.analyze();
 
@@ -91,7 +91,7 @@ fn test_semantic_tokens_for_array() {
 }
 
 #[test]
-fn test_semantic_tokens_for_suffix_expression() {
+fn semantic_tokens_for_suffix_expression() {
     let mut doc = DocumentState::new("10`m/s`".to_string());
     doc.analyze();
 
@@ -105,7 +105,7 @@ fn test_semantic_tokens_for_suffix_expression() {
 }
 
 #[test]
-fn test_semantic_tokens_for_comment() {
+fn semantic_tokens_for_comment() {
     let mut doc = DocumentState::new("# This is a comment\n42".to_string());
     doc.analyze();
 
@@ -121,7 +121,7 @@ fn test_semantic_tokens_for_comment() {
 }
 
 #[test]
-fn test_semantic_tokens_multiline() {
+fn semantic_tokens_multiline() {
     let mut doc = DocumentState::new("x + y\nwhere {\n  x = 1,\n  y = 2\n}".to_string());
     doc.analyze();
 
@@ -137,7 +137,7 @@ fn test_semantic_tokens_multiline() {
 }
 
 #[test]
-fn test_semantic_tokens_on_error() {
+fn semantic_tokens_on_error() {
     let mut doc = DocumentState::new("1 + +".to_string());
     doc.analyze();
 
@@ -148,7 +148,7 @@ fn test_semantic_tokens_on_error() {
 }
 
 #[test]
-fn test_semantic_tokens_operators() {
+fn semantic_tokens_operators() {
     let mut doc = DocumentState::new("1 + 2 - 3 * 4 / 5".to_string());
     doc.analyze();
 
@@ -164,7 +164,7 @@ fn test_semantic_tokens_operators() {
 }
 
 #[test]
-fn test_semantic_tokens_field_access() {
+fn semantic_tokens_field_access() {
     let mut doc = DocumentState::new("record.field".to_string());
     doc.analyze();
 
@@ -180,7 +180,7 @@ fn test_semantic_tokens_field_access() {
 }
 
 #[test]
-fn test_semantic_tokens_boolean_operators() {
+fn semantic_tokens_boolean_operators() {
     let mut doc = DocumentState::new("true and false or not true".to_string());
     doc.analyze();
 
@@ -195,8 +195,8 @@ fn test_semantic_tokens_boolean_operators() {
 }
 
 #[test]
-fn test_semantic_tokens_empty_document() {
-    let mut doc = DocumentState::new("".to_string());
+fn semantic_tokens_empty_document() {
+    let mut doc = DocumentState::new(String::new());
     doc.analyze();
 
     let tokens = doc.semantic_tokens();

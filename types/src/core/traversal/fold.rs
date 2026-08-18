@@ -5,9 +5,11 @@
 //! - Collect information (`Output = HashSet<u16>`)
 //! - Perform side effects (`Output = ()`)
 
-use alloc::{vec, vec::Vec};
+use alloc::vec;
+use alloc::vec::Vec;
 
-use crate::{Ty, core::TyBuilder};
+use crate::Ty;
+use crate::core::TyBuilder;
 
 /// Control flow for the fold traversal.
 ///
@@ -48,7 +50,7 @@ pub trait Fold<B: TyBuilder> {
     /// - `Map`: `[key, value]`
     /// - `Record`: `[field0, field1, ...]`
     /// - `Function`: `[param0, param1, ..., ret]`
-    /// - Leaves (TypeVar, Scalar, Symbol): `[]`
+    /// - Leaves (`TypeVar`, Scalar, Symbol): `[]`
     fn combine(
         &mut self,
         builder: &B,
@@ -171,12 +173,8 @@ pub trait TypeFolder<In: TyBuilder, Out: TyBuilder = In> {
     /// - `FoldStep::Recurse` to process children and rebuild in the output builder
     /// - `FoldStep::Done(ty)` to skip children and use `ty` as the result
     /// - `FoldStep::Replace(ty)` to visit `ty` instead (for chained substitution)
-    fn fold_ty(
-        &mut self,
-        builder_in: &In,
-        builder_out: &Out,
-        ty: &Ty<In>,
-    ) -> FoldStep<In, Ty<Out>>;
+    fn fold_ty(&mut self, builder_in: &In, builder_out: &Out, ty: &Ty<In>)
+    -> FoldStep<In, Ty<Out>>;
 }
 
 struct TypeFolderAdapter<'a, In: TyBuilder, Out: TyBuilder, F: TypeFolder<In, Out>> {
@@ -185,7 +183,7 @@ struct TypeFolderAdapter<'a, In: TyBuilder, Out: TyBuilder, F: TypeFolder<In, Ou
     _marker: core::marker::PhantomData<(In, Out)>,
 }
 
-impl<'a, In, Out, F> Fold<In> for TypeFolderAdapter<'a, In, Out, F>
+impl<In, Out, F> Fold<In> for TypeFolderAdapter<'_, In, Out, F>
 where
     In: TyBuilder,
     Out: TyBuilder,

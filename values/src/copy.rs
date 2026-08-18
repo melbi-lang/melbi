@@ -63,8 +63,8 @@ pub fn copy_value<Src: ValueBuilder, Dst: ValueBuilder>(
             let dst_elem_ty = copy_type(elem_ty, dst.ty_builder());
             let array = value.as_array().unwrap();
             // Stream elements directly through alloc_array (no Vec)
-            let handles = (0..array.len())
-                .map(|i| copy_value(&array.get(i).unwrap(), dst).into_handle());
+            let handles =
+                (0..array.len()).map(|i| copy_value(&array.get(i).unwrap(), dst).into_handle());
             let array_handle = dst.alloc_array(handles);
             let val_handle = dst.alloc_val(Dst::Raw::from_array(array_handle));
             let ty = TyKind::Array(dst_elem_ty).alloc(dst.ty_builder());

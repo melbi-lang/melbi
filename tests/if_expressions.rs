@@ -18,34 +18,34 @@ test_case! {
 
 test_case! {
     name: if_with_newline_before_then,
-    input: { r#"
+    input: { r"
 if true
-then 1 else 2"#.trim_start() },
-    formatted: { r#"
+then 1 else 2".trim_start() },
+    formatted: { r"
 if true
-then 1 else 2"#.trim_start() },
+then 1 else 2".trim_start() },
 }
 
 test_case! {
     name: if_with_newline_before_else,
-    input: { r#"
+    input: { r"
 if true then 1
-else 2"#.trim_start() },
-    formatted: { r#"
+else 2".trim_start() },
+    formatted: { r"
 if true then 1
-else 2"#.trim_start() },
+else 2".trim_start() },
 }
 
 test_case! {
     name: if_all_on_separate_lines,
-    input: { r#"
+    input: { r"
 if true
 then 1
-else 2"#.trim_start() },
-    formatted: { r#"
+else 2".trim_start() },
+    formatted: { r"
 if true
 then 1
-else 2"#.trim_start() },
+else 2".trim_start() },
 }
 
 test_case! {
@@ -63,18 +63,18 @@ test_case! {
 
 test_case! {
     name: if_with_comments,
-    input: { r#"
+    input: { r"
 if true then  // condition
     1        // then branch
 else         // else branch
-    2"#.trim_start() },
+    2".trim_start() },
     // This is a valid formatting; but it can be controversial.
     // I think what could be argued is that the "then" should be on the next line.
-    formatted: { r#"
+    formatted: { r"
 if true then // condition
 1 // then branch
 else // else branch
-2"#.trim_start() },
+2".trim_start() },
 }
 
 test_case! {
@@ -86,25 +86,25 @@ test_case! {
 
 test_case! {
     name: if_multiline_condition,
-    input: { r#"
+    input: { r"
 if a and
-   b then 1 else 2"#.trim_start() },
-    formatted: { r#"
-if a and b then 1 else 2"#.trim_start() },
+   b then 1 else 2".trim_start() },
+    formatted: { r"
+if a and b then 1 else 2".trim_start() },
 }
 // Multi-line conditions
 
 test_case! {
     name: if_multiline_branches,
-    input: { r#"
+    input: { r"
 if true then
     x + y +
     z
 else
     a * b -
-    c"#.trim_start() },
-    formatted: { r#"
+    c".trim_start() },
+    formatted: { r"
 if true then x + y + z
-else a * b - c"#.trim_start() },
+else a * b - c".trim_start() },
 }
 // Multi-line branches

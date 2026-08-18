@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! Benchmark: Function call dispatch methods
 //!
 //! Compares performance of:
@@ -7,7 +6,9 @@
 //!
 //! Run with: `cargo bench --bench function_dispatch`
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use std::hint::black_box;
+
+use criterion::{Criterion, criterion_group, criterion_main};
 
 // ============================================================================
 // Approach 1: Enum + Pattern Matching + Function Pointer
@@ -30,9 +31,9 @@ enum BuiltinFunction {
 impl FunctionData {
     fn call(&self, a: i64, b: i64) -> i64 {
         match self {
-            FunctionData::Native(f) => f(a, b),
-            FunctionData::Closure(f) => f(a, b),
-            FunctionData::Builtin(bf) => match bf {
+            Self::Native(f) => f(a, b),
+            Self::Closure(f) => f(a, b),
+            Self::Builtin(bf) => match bf {
                 BuiltinFunction::Add => a + b,
                 BuiltinFunction::Sub => a - b,
                 BuiltinFunction::Mul => a * b,
@@ -61,7 +62,7 @@ where
     F: Fn(i64, i64) -> i64,
 {
     fn new(f: F) -> Self {
-        NativeFunction { func: f }
+        Self { func: f }
     }
 }
 
@@ -95,24 +96,36 @@ fn sub(a: i64, b: i64) -> i64 {
 // ============================================================================
 
 fn bench_enum_dispatch(c: &mut Criterion) {
-    let func = FunctionData::Native(add);
-
+    let func_native = FunctionData::Native(add);
     c.bench_function("enum_dispatch_native", |b| {
         b.iter(|| {
             let mut sum = 0i64;
             for i in 0i64..1000 {
-                sum = func.call(black_box(sum), black_box(i));
+                sum = func_native.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
+    });
+
+    let func_closure = FunctionData::Closure(Box::new(|a, b| a - b));
+    c.bench_function("enum_dispatch_closure", |b| {
+        b.iter(|| {
+            let mut sum = 0i64;
+            for i in 0i64..1000 {
+                sum = func_closure.call(black_box(sum), black_box(i));
+            }
+            sum
+        });
     });
 
     // Also benchmark with different variants to show realistic case
-    let funcs = vec![
+    let funcs = [
         FunctionData::Native(add),
         FunctionData::Native(mul),
         FunctionData::Native(sub),
         FunctionData::Builtin(BuiltinFunction::Add),
+        FunctionData::Builtin(BuiltinFunction::Mul),
+        FunctionData::Builtin(BuiltinFunction::Sub),
     ];
 
     c.bench_function("enum_dispatch_mixed", |b| {
@@ -123,7 +136,7 @@ fn bench_enum_dispatch(c: &mut Criterion) {
                 sum = func.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 }
 
@@ -137,7 +150,7 @@ fn bench_trait_dispatch(c: &mut Criterion) {
                 sum = func.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 
     // Mixed variants
@@ -156,7 +169,7 @@ fn bench_trait_dispatch(c: &mut Criterion) {
                 sum = func.call(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 }
 
@@ -169,7 +182,7 @@ fn bench_direct_call(c: &mut Criterion) {
                 sum = add(black_box(sum), black_box(i));
             }
             sum
-        })
+        });
     });
 }
 

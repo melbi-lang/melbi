@@ -30,16 +30,16 @@ use pest::Parser as _;
 use pest::iterators::{Pair, Pairs};
 use pest::pratt_parser::PrattParser;
 
+use super::error::{ParseError, ParseErrorKind};
+use super::grammar::{ExpressionParser, Rule, pattern_pratt_parser, pratt_parser};
 use crate::ast::parsed::{
     Binding, BindingKind, Data, Expr, ExprKind, LiteralKind, MapEntry, MapEntryKind, MatchArm,
     MatchArmKind, Pattern, PatternKind, TypeExpr, TypeExprKind, TypeField, TypeFieldKind,
 };
 use crate::ast::{BinaryOp, BoolOp, ComparisonOp, UnaryOp};
-use crate::literal::{bytes::unescape_bytes, string::unescape_string};
+use crate::literal::bytes::unescape_bytes;
+use crate::literal::string::unescape_string;
 use crate::{Span, Tree, TreeBuilder, TreeDescriptor, TreeNode};
-
-use super::error::{ParseError, ParseErrorKind};
-use super::grammar::{ExpressionParser, Rule, pattern_pratt_parser, pratt_parser};
 
 /// How deep expressions may nest before the parser gives up.
 ///
@@ -129,7 +129,11 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
     /// The results are collected before allocating because
     /// [`TreeBuilder::alloc_list`] needs a known length and cannot fail
     /// part-way, while parsing a child can.
-    fn node_list<D, F>(&self, pairs: Pairs<'_, Rule>, parse_one: F) -> Result<B::List<D>, ParseError>
+    fn node_list<D, F>(
+        &self,
+        pairs: Pairs<'_, Rule>,
+        parse_one: F,
+    ) -> Result<B::List<D>, ParseError>
     where
         D: TreeDescriptor<Data = Data>,
         F: Fn(&Self, Pair<'_, Rule>) -> Result<Tree<B, D>, ParseError>,
@@ -286,9 +290,12 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
                     Rule::not => self.node(span, unary(UnaryOp::Not, rhs.tree)),
                     Rule::some_op => self.node(span, ExprKind::Some(rhs.tree)),
                     Rule::if_op => self.parse_if(op, rhs.tree, span)?,
-                    Rule::lambda_op => self.parse_lambda(op, rhs.tree, span)?,
+                    Rule::lambda_op => self.parse_lambda(op, rhs.tree, span),
                     other => {
-                        return Err(malformed(span, &format!("unknown prefix operator {other:?}")));
+                        return Err(malformed(
+                            span,
+                            &format!("unknown prefix operator {other:?}"),
+                        ));
                     }
                 };
                 Ok(Operand::spanning(tree, span))
@@ -318,7 +325,10 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
                         fallback: right,
                     },
                     other => {
-                        return Err(malformed(span, &format!("unknown infix operator {other:?}")));
+                        return Err(malformed(
+                            span,
+                            &format!("unknown infix operator {other:?}"),
+                        ));
                     }
                 };
                 Ok(Operand::spanning(self.node(span, kind), span))
@@ -377,12 +387,7 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
 
     /// `lambda_op = { "(" ~ lambda_params? ~ ")" ~ "=>" }`, with the body
     /// arriving as the prefix operator's operand.
-    fn parse_lambda(
-        &self,
-        op: Pair<'_, Rule>,
-        body: Tree<B, Expr>,
-        span: Span,
-    ) -> Result<Tree<B, Expr>, ParseError> {
+    fn parse_lambda(&self, op: Pair<'_, Rule>, body: Tree<B, Expr>, span: Span) -> Tree<B, Expr> {
         let params = match op.into_inner().next() {
             Some(list) => {
                 let names = list
@@ -394,7 +399,7 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
             None => self.builder.alloc_str_list([]),
         };
 
-        Ok(self.node(span, ExprKind::Lambda { params, body }))
+        self.node(span, ExprKind::Lambda { params, body })
     }
 
     fn parse_call(

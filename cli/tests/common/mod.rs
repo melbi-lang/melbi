@@ -1,11 +1,15 @@
 //! Shared test utilities for CLI integration tests.
 
-#![allow(dead_code)]
+#![allow(
+    dead_code,
+    reason = "Shared test helpers used across integration test binaries"
+)]
+
+use std::io::Write;
+use std::process::ExitStatus;
 
 use assert_cmd::Command;
 use expect_test::Expect;
-use std::io::Write;
-use std::process::ExitStatus;
 
 /// Create a new command for the melbi binary.
 pub fn melbi() -> Command {
@@ -85,5 +89,5 @@ fn trim_trailing_whitespace(s: &str) -> String {
         result.pop();
     }
 
-    result.to_string()
+    result.clone()
 }

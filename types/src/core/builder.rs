@@ -1,8 +1,11 @@
-use core::{fmt::Debug, hash, hash::Hash, ops::Deref};
+use core::fmt::Debug;
+use core::hash;
+use core::hash::Hash;
+use core::ops::Deref;
 
+use super::kind::TyKind;
+use super::ty::TyNode;
 use crate::{Ident, Ty};
-
-use super::{kind::TyKind, ty::TyNode};
 
 pub trait TyBuilder: Clone + Debug + Eq + Hash + Sized {
     // Relevant concrete types:
@@ -57,17 +60,17 @@ pub trait TyBuilder: Clone + Debug + Eq + Hash + Sized {
     fn resolve_ty_node(ty: &Ty<Self>) -> &TyNode<Self>;
 
     /// Compare two types for equality.
-    /// Default: structural equality via TyNode.
+    /// Default: structural equality via `TyNode`.
     #[inline]
     fn ty_eq(a: &Ty<Self>, b: &Ty<Self>) -> bool {
         Self::resolve_ty_node(a) == Self::resolve_ty_node(b)
     }
 
     /// Hash a type.
-    /// Default: structural hash via TyNode.
+    /// Default: structural hash via `TyNode`.
     #[inline]
     fn ty_hash<H: hash::Hasher>(ty: &Ty<Self>, state: &mut H) {
-        Self::resolve_ty_node(ty).hash(state)
+        Self::resolve_ty_node(ty).hash(state);
     }
 
     /// Compare two identifiers for equality.
@@ -81,6 +84,6 @@ pub trait TyBuilder: Clone + Debug + Eq + Hash + Sized {
     /// Default: structural hash via string content.
     #[inline]
     fn ident_hash<H: hash::Hasher>(ident: &Ident<Self>, state: &mut H) {
-        ident.hash(state)
+        ident.hash(state);
     }
 }

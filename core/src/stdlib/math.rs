@@ -6,12 +6,14 @@
 //! Functions: Abs, Min, Max, Clamp, Floor, Ceil, Round, Sqrt, Pow,
 //!            Sin, Cos, Tan, Asin, Acos, Atan, Atan2, Log, Log10, Exp
 
-use crate::{types::manager::TypeManager, values::dynamic::Value};
 use melbi_macros::{melbi_const, melbi_fn, melbi_package};
+
+use crate::types::manager::TypeManager;
+use crate::values::dynamic::Value;
 
 #[melbi_package]
 mod math {
-    use super::*;
+    use super::{TypeManager, Value, melbi_const, melbi_fn};
 
     // ========================================================================
     // Constants

@@ -13,13 +13,12 @@
 
 use bumpalo::Bump;
 
-use crate::{
-    evaluator::ExecutionErrorKind,
-    parser::ComparisonOp,
-    types::Type,
-    values::{RawValue, dynamic::Value},
-    vm::GenericAdapter,
-};
+use crate::evaluator::ExecutionErrorKind;
+use crate::parser::ComparisonOp;
+use crate::types::Type;
+use crate::values::RawValue;
+use crate::values::dynamic::Value;
+use crate::vm::GenericAdapter;
 
 /// Adapter for array containment operations (`elem in array` / `elem not in array`).
 ///
@@ -31,17 +30,22 @@ pub struct ArrayContainsAdapter<'t> {
 }
 
 impl<'t> ArrayContainsAdapter<'t> {
+    #[must_use]
     pub fn new(element_type: &'t Type<'t>, op: ComparisonOp) -> Self {
         debug_assert!(matches!(op, ComparisonOp::In | ComparisonOp::NotIn));
         ArrayContainsAdapter { element_type, op }
     }
 }
 
-impl<'t> GenericAdapter for ArrayContainsAdapter<'t> {
+impl GenericAdapter for ArrayContainsAdapter<'_> {
     fn num_args(&self) -> usize {
         2 // elem and array
     }
 
+    #[expect(
+        unsafe_code,
+        reason = "accesses array elements via RawValue pointer arithmetic"
+    )]
     fn call(&self, _arena: &Bump, args: &[RawValue]) -> Result<RawValue, ExecutionErrorKind> {
         let elem_raw = args[0];
         let array_raw = args[1];

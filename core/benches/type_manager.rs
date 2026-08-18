@@ -1,24 +1,21 @@
-//! Benchmarks for the TypeManager.
+//! Benchmarks for the `TypeManager`.
 //!
 //! This file contains benchmarks to measure type interning and serialization performance.
 //! Run with: `cargo bench --bench type_manager` in the core/ directory.
 //!
 //! Benchmark groups:
-//! 1. record_creation: Creating new record types (not yet interned)
-//! 2. record_interning: Getting already-interned record types
+//! 1. `record_creation`: Creating new record types (not yet interned)
+//! 2. `record_interning`: Getting already-interned record types
 //! 3. serialization: Serializing types to bytes
 //! 4. deserialization: Deserializing types from bytes
 
+use std::hint::black_box;
+
 use bumpalo::Bump;
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use melbi_core::{
-    types::Type,
-    types::{
-        encoding::{decode, encode},
-        manager::TypeManager,
-    },
-};
-use pprof::criterion::{Output, PProfProfiler};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use melbi_core::types::Type;
+use melbi_core::types::encoding::{decode, encode};
+use melbi_core::types::manager::TypeManager;
 
 /// Helper function to create various complex types by name
 fn create_complex_type<'a>(manager: &'a TypeManager<'a>, name: &str) -> &'a Type<'a> {
@@ -31,25 +28,25 @@ fn create_complex_type<'a>(manager: &'a TypeManager<'a>, name: &str) -> &'a Type
         "array_int" => manager.array(manager.int()),
         "map_string_int" => manager.map(manager.str(), manager.int()),
         "simple_record" => {
-            let fields = vec![
+            let fields = [
                 ("name", manager.str()),
                 ("age", manager.int()),
                 ("active", manager.bool()),
             ];
-            manager.record(fields)
+            manager.record(&fields)
         }
         "nested_record" => {
-            let inner_fields = vec![("street", manager.str()), ("city", manager.str())];
-            let inner = manager.record(inner_fields);
+            let inner_fields = [("street", manager.str()), ("city", manager.str())];
+            let inner = manager.record(&inner_fields);
 
-            let outer_fields = vec![("name", manager.str()), ("address", inner)];
-            manager.record(outer_fields)
+            let outer_fields = [("name", manager.str()), ("address", inner)];
+            manager.record(&outer_fields)
         }
         "function" => {
             let params = vec![manager.int(), manager.str(), manager.bool()];
             manager.function(&params, manager.int())
         }
-        _ => manager.int(),
+        _ => panic!("Unknown type name: {name}"),
     }
 }
 
@@ -87,7 +84,7 @@ fn bench_record_creation(c: &mut Criterion) {
                     let fields: Vec<(&str, _)> = (0..num_fields)
                         .map(|i| {
                             // Make field names unique per iteration to avoid cache hits
-                            let name = arena.alloc_str(&format!("field_{}_{}", i, counter));
+                            let name = arena.alloc_str(&format!("field_{i}_{counter}"));
                             let type_name = type_names[i % type_names.len()];
                             let ty = create_complex_type(manager, type_name);
                             (name as &str, ty)
@@ -97,7 +94,7 @@ fn bench_record_creation(c: &mut Criterion) {
                     counter += 1;
 
                     // Benchmark: Create the record type (fresh each time)
-                    let record = manager.record(black_box(fields));
+                    let record = manager.record(&black_box(fields));
                     black_box(record);
                 });
             },
@@ -110,7 +107,7 @@ fn bench_record_creation(c: &mut Criterion) {
 /// Benchmark: Getting already-interned record types.
 ///
 /// Measures the cost of getting a record type that's already been interned.
-/// This should be fast - just a HashMap lookup.
+/// This should be fast - just a `HashMap` lookup.
 fn bench_record_interning(c: &mut Criterion) {
     let mut group = c.benchmark_group("record_interning");
 
@@ -134,7 +131,7 @@ fn bench_record_interning(c: &mut Criterion) {
 
                 let fields: Vec<(&str, _)> = (0..num_fields)
                     .map(|i| {
-                        let name = arena.alloc_str(&format!("field_{}", i));
+                        let name = arena.alloc_str(&format!("field_{i}"));
                         let type_name = type_names[i % type_names.len()];
                         let ty = create_complex_type(manager, type_name);
                         (name as &str, ty)
@@ -142,20 +139,20 @@ fn bench_record_interning(c: &mut Criterion) {
                     .collect();
 
                 // Pre-intern the record
-                let _first = manager.record(fields.clone());
+                let _first = manager.record(&fields.clone());
 
                 // Benchmark: Get the already-interned record
                 b.iter(|| {
                     let fields: Vec<(&str, _)> = (0..num_fields)
                         .map(|i| {
-                            let name = arena.alloc_str(&format!("field_{}", i));
+                            let name = arena.alloc_str(&format!("field_{i}"));
                             let type_name = type_names[i % type_names.len()];
                             let ty = create_complex_type(manager, type_name);
                             (name as &str, ty)
                         })
                         .collect();
 
-                    let record = manager.record(black_box(fields.clone()));
+                    let record = manager.record(&black_box(fields.clone()));
                     black_box(record)
                 });
             },
@@ -205,12 +202,12 @@ fn bench_type_serialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
 
         b.iter(|| {
             let bytes = manager
@@ -227,12 +224,12 @@ fn bench_type_serialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
 
         b.iter(|| {
             let bytes = encode(black_box(record));
@@ -285,12 +282,12 @@ fn bench_type_deserialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes = manager
             .serialize_type(record)
             .expect("Serialization failed");
@@ -310,12 +307,12 @@ fn bench_type_deserialization(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..10)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes = encode(record);
 
         b.iter(|| {
@@ -370,12 +367,12 @@ fn bench_type_equality_bytes(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..50)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes1 = manager
             .serialize_type(record)
             .expect("Serialization failed");
@@ -394,12 +391,12 @@ fn bench_type_equality_bytes(c: &mut Criterion) {
 
         let fields: Vec<(&str, _)> = (0..50)
             .map(|i| {
-                let name = arena.alloc_str(&format!("field_{}", i));
+                let name = arena.alloc_str(&format!("field_{i}"));
                 (name as &str, manager.int())
             })
             .collect();
 
-        let record = manager.record(fields);
+        let record = manager.record(&fields);
         let bytes1 = encode(record);
         let bytes2 = bytes1.clone();
 
@@ -455,12 +452,14 @@ fn bench_read_discriminant(c: &mut Criterion) {
     group.finish();
 }
 
-// Configure Criterion with profiling support
-criterion_group! {
-    name = benches;
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
-    targets = bench_record_creation, bench_record_interning, bench_type_serialization,
-              bench_type_deserialization, bench_type_equality_bytes, bench_type_equality_pointers,
-              bench_read_discriminant
-}
+criterion_group!(
+    benches,
+    bench_record_creation,
+    bench_record_interning,
+    bench_type_serialization,
+    bench_type_deserialization,
+    bench_type_equality_bytes,
+    bench_type_equality_pointers,
+    bench_read_discriminant
+);
 criterion_main!(benches);

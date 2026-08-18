@@ -1,12 +1,12 @@
-//! Test the #[melbi_package] macro
+//! Test the #[`melbi_package`] macro
 
 extern crate alloc;
 
 use bumpalo::Bump;
-use melbi_core::{
-    types::manager::TypeManager,
-    values::{FfiContext, binder::Binder, dynamic::Value},
-};
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::FfiContext;
+use melbi_core::values::binder::Binder;
+use melbi_core::values::dynamic::Value;
 use melbi_macros::{melbi_const, melbi_fn, melbi_package};
 
 // ============================================================================
@@ -29,7 +29,7 @@ mod basic_pkg {
 }
 
 #[test]
-fn test_basic_package_builds() {
+fn basic_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -44,7 +44,7 @@ fn test_basic_package_builds() {
 }
 
 #[test]
-fn test_basic_package_functions_work() {
+fn basic_package_functions_work() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -106,7 +106,7 @@ mod math_pkg {
 }
 
 #[test]
-fn test_package_with_constants_builds() {
+fn package_with_constants_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -121,7 +121,7 @@ fn test_package_with_constants_builds() {
 }
 
 #[test]
-fn test_package_constants_have_correct_values() {
+fn package_constants_have_correct_values() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -141,7 +141,7 @@ fn test_package_constants_have_correct_values() {
 }
 
 #[test]
-fn test_package_with_constants_functions_work() {
+fn package_with_constants_functions_work() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -184,14 +184,15 @@ mod custom_pkg {
 }
 
 #[test]
-fn test_custom_package_name() {
+fn custom_package_name() {
     use melbi_core::api::EnvironmentBuilder;
 
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     // register_custom_pkg_package should bind the package as "Custom"
-    let env = custom_pkg::register_custom_pkg_package(&arena, type_mgr, EnvironmentBuilder::new(&arena));
+    let env =
+        custom_pkg::register_custom_pkg_package(&arena, type_mgr, EnvironmentBuilder::new(&arena));
     let env = env.build().unwrap();
 
     // Should have one entry named "Custom"
@@ -228,7 +229,7 @@ pub mod public_pkg {
 }
 
 #[test]
-fn test_public_module_stays_public() {
+fn public_module_stays_public() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -263,7 +264,7 @@ mod constants_only_pkg {
 }
 
 #[test]
-fn test_constants_only_package() {
+fn constants_only_package() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -306,7 +307,7 @@ mod derived_names_pkg {
 }
 
 #[test]
-fn test_derived_names() {
+fn derived_names() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -365,7 +366,7 @@ mod mixed_names_pkg {
 }
 
 #[test]
-fn test_mixed_explicit_and_derived_names() {
+fn mixed_explicit_and_derived_names() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -415,7 +416,7 @@ mod empty_parens_pkg {
 }
 
 #[test]
-fn test_empty_parentheses_variants() {
+fn empty_parentheses_variants() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 

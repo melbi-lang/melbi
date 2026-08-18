@@ -1,13 +1,12 @@
-use crate::{String, format};
 use alloc::string::ToString;
 
-use crate::{
-    types::manager::TypeManager,
-    values::{TypeError, dynamic::Value},
-};
+use crate::types::manager::TypeManager;
+use crate::values::TypeError;
+use crate::values::dynamic::Value;
+use crate::{String, format};
 
 #[test]
-fn test_array_value() {
+fn array_value() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -37,7 +36,7 @@ fn test_array_value() {
 // --- New Dynamic API Tests ---
 
 #[test]
-fn test_primitives() {
+fn primitives() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -49,11 +48,11 @@ fn test_primitives() {
     // Extract using dynamic API (no compile-time type knowledge)
     assert_eq!(int_val.as_int().unwrap(), 42);
     assert_eq!(float_val.as_float().unwrap(), 3.14);
-    assert_eq!(bool_val.as_bool().unwrap(), true);
+    assert!(bool_val.as_bool().unwrap());
 }
 
 #[test]
-fn test_array_simple() {
+fn array_simple() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -83,7 +82,7 @@ fn test_array_simple() {
 }
 
 #[test]
-fn test_array_nested() {
+fn array_nested() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -123,7 +122,7 @@ fn test_array_nested() {
 }
 
 #[test]
-fn test_array_type_mismatch() {
+fn array_type_mismatch() {
     use crate::values::TypeError;
 
     let arena = bumpalo::Bump::new();
@@ -143,11 +142,11 @@ fn test_array_type_mismatch() {
     );
 
     assert!(result.is_err());
-    assert!(matches!(result, Err(TypeError::Mismatch { .. })));
+    assert!(matches!(result, Err(TypeError::Mismatch)));
 }
 
 #[test]
-fn test_array_empty() {
+fn array_empty() {
     let arena = bumpalo::Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -162,7 +161,7 @@ fn test_array_empty() {
 }
 
 #[test]
-fn test_dynamic_array_formatting() {
+fn dynamic_array_formatting() {
     use crate::types::Type;
 
     let arena = bumpalo::Bump::new();

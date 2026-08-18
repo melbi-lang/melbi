@@ -5,14 +5,14 @@ echo "🖖 Building Melbi Playground..."
 echo ""
 
 # Check if wasm-pack is installed
-if ! command -v wasm-pack &> /dev/null; then
+if ! command -v wasm-pack &>/dev/null; then
     echo "❌ wasm-pack not found. Install it with:"
     echo "   cargo install wasm-pack"
     exit 1
 fi
 
 # Check if npm is installed
-if ! command -v npm &> /dev/null; then
+if ! command -v npm &>/dev/null; then
     echo "❌ npm not found. Please install Node.js"
     exit 1
 fi

@@ -18,7 +18,7 @@
 ///     },
 /// };
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EngineOptions {
     /// Default options for compilation.
     ///
@@ -29,15 +29,6 @@ pub struct EngineOptions {
     ///
     /// These can be overridden when calling `CompiledExpression::run()`.
     pub default_run_options: RunOptions,
-}
-
-impl Default for EngineOptions {
-    fn default() -> Self {
-        Self {
-            default_compile_options: CompileOptions::default(),
-            default_run_options: RunOptions::default(),
-        }
-    }
 }
 
 /// Configuration options for compilation.
@@ -51,7 +42,7 @@ impl Default for EngineOptions {
 ///
 /// let options = CompileOptions::default();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CompileOptions {
     // Future: optimization level, type checking strictness, etc.
 }
@@ -62,12 +53,6 @@ impl CompileOptions {
     /// For each field, if `other` specifies a value (is `Some`), use it.
     /// Otherwise, keep the value from `self`.
     pub fn override_with(&mut self, _other: &CompileOptionsOverride) {}
-}
-
-impl Default for CompileOptions {
-    fn default() -> Self {
-        Self {}
-    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]

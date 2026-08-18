@@ -1,11 +1,12 @@
-//! Conversion from parser TypeExpr to type system Type.
+//! Conversion from parser `TypeExpr` to type system Type.
 
 use alloc::string::ToString;
 
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::{String, Vec, parser};
 
-/// Error returned when converting a TypeExpr to a Type.
+/// Error returned when converting a `TypeExpr` to a Type.
 #[derive(Debug)]
 pub enum TypeConversionError {
     UnknownType {
@@ -21,10 +22,10 @@ pub enum TypeConversionError {
 impl core::fmt::Display for TypeConversionError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            TypeConversionError::UnknownType { name } => {
-                write!(f, "Unknown type: {}", name)
+            Self::UnknownType { name } => {
+                write!(f, "Unknown type: {name}")
             }
-            TypeConversionError::WrongParameterCount {
+            Self::WrongParameterCount {
                 type_name,
                 expected,
                 got,
@@ -44,7 +45,7 @@ impl core::fmt::Display for TypeConversionError {
 
 impl core::error::Error for TypeConversionError {}
 
-/// Converts a parser TypeExpr into the type system's Type representation.
+/// Converts a parser `TypeExpr` into the type system's Type representation.
 ///
 /// Returns a `TypeConversionError` without span information. The caller should
 /// annotate this error with the appropriate source span using the Error type.
@@ -115,19 +116,20 @@ pub fn type_expr_to_type<'types>(
                     })
                     .collect();
             let field_types = field_types?;
-            Ok(type_manager.record(field_types))
+            Ok(type_manager.record(&field_types))
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parser::TypeExpr;
     use bumpalo::Bump;
 
+    use super::*;
+    use crate::parser::TypeExpr;
+
     #[test]
-    fn test_simple_types() {
+    fn simple_types() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -147,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unknown_type() {
+    fn unknown_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -157,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_type() {
+    fn array_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -174,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_type() {
+    fn map_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -191,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_parametrized_type() {
+    fn nested_parametrized_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -211,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_record_type() {
+    fn record_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -221,15 +223,13 @@ mod tests {
         ]);
 
         let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        let expected = type_manager.record(vec![
-            ("name", type_manager.str()),
-            ("age", type_manager.int()),
-        ]);
+        let expected =
+            type_manager.record(&[("name", type_manager.str()), ("age", type_manager.int())]);
         assert!(core::ptr::eq(result, expected));
     }
 
     #[test]
-    fn test_array_wrong_param_count() {
+    fn array_wrong_param_count() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -243,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_wrong_param_count() {
+    fn map_wrong_param_count() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -257,7 +257,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_type() {
+    fn option_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -274,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_with_complex_inner_type() {
+    fn option_with_complex_inner_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -294,7 +294,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_option() {
+    fn nested_option() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -314,7 +314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_wrong_param_count_zero() {
+    fn option_wrong_param_count_zero() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
@@ -328,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn test_option_wrong_param_count_multiple() {
+    fn option_wrong_param_count_multiple() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 

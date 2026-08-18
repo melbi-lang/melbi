@@ -6,7 +6,7 @@
 //!
 //! ## Design
 //!
-//! - Uses TreeTransformer pattern for AST traversal
+//! - Uses `TreeTransformer` pattern for AST traversal
 //! - Tracks stack depth precisely for debugging
 //! - Implements jump patching for control flow (if/else, boolean short-circuit)
 //! - Builds Code struct for VM execution

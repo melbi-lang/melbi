@@ -3,235 +3,237 @@
 //! Display: User-facing output (strings without quotes, native formatting)
 //! Debug: Melbi literal representation (strings with quotes, decimal points on floats)
 
-use crate::{Vec, format, types::manager::TypeManager, values::{FfiContext, dynamic::Value}};
 use bumpalo::Bump;
 
+use crate::types::manager::TypeManager;
+use crate::values::FfiContext;
+use crate::values::dynamic::Value;
+use crate::{Vec, format};
+
 #[test]
-fn test_display_int_positive() {
+fn display_int_positive() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::int(type_mgr, 42);
-    assert_eq!(format!("{}", value), "42");
+    assert_eq!(format!("{value}"), "42");
 }
 
 #[test]
-fn test_display_int_negative() {
+fn display_int_negative() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::int(type_mgr, -100);
-    assert_eq!(format!("{}", value), "-100");
+    assert_eq!(format!("{value}"), "-100");
 }
 
 #[test]
-fn test_display_int_zero() {
+fn display_int_zero() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::int(type_mgr, 0);
-    assert_eq!(format!("{}", value), "0");
+    assert_eq!(format!("{value}"), "0");
 }
 
 #[test]
-fn test_display_float_with_decimal() {
+fn display_float_with_decimal() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::float(type_mgr, 3.14);
-    assert_eq!(format!("{}", value), "3.14");
+    assert_eq!(format!("{value}"), "3.14");
 }
 
 #[test]
-fn test_display_float_whole_number() {
+fn display_float_whole_number() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     // Display uses native Rust formatting (no decimal point required)
     let value = Value::float(type_mgr, 42.0);
-    assert_eq!(format!("{}", value), "42");
+    assert_eq!(format!("{value}"), "42");
 
     // Debug enforces Melbi convention (decimal point required)
-    let output = format!("{:?}", value);
+    let output = format!("{value:?}");
     assert!(
         output.contains('.'),
-        "Float Debug must have decimal point: {}",
-        output
+        "Float Debug must have decimal point: {output}"
     );
     assert_eq!(output, "42.");
 }
 
 #[test]
-fn test_display_float_zero() {
+fn display_float_zero() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     // Display uses native Rust formatting
     let value = Value::float(type_mgr, 0.0);
-    assert_eq!(format!("{}", value), "0");
+    assert_eq!(format!("{value}"), "0");
 
     // Debug enforces Melbi convention (decimal point required)
-    let output = format!("{:?}", value);
+    let output = format!("{value:?}");
     assert!(
         output.contains('.'),
-        "Float Debug must have decimal point: {}",
-        output
+        "Float Debug must have decimal point: {output}"
     );
     assert_eq!(output, "0.");
 }
 
 #[test]
-fn test_display_float_negative() {
+fn display_float_negative() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::float(type_mgr, -3.14);
-    assert_eq!(format!("{}", value), "-3.14");
+    assert_eq!(format!("{value}"), "-3.14");
 }
 
 #[test]
-fn test_display_float_infinity() {
+fn display_float_infinity() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::float(type_mgr, f64::INFINITY);
     // Display uses native Rust formatting
-    assert_eq!(format!("{}", value), "inf");
+    assert_eq!(format!("{value}"), "inf");
     // Debug uses Melbi convention
-    assert_eq!(format!("{:?}", value), "inf");
+    assert_eq!(format!("{value:?}"), "inf");
 }
 
 #[test]
-fn test_display_float_neg_infinity() {
+fn display_float_neg_infinity() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::float(type_mgr, f64::NEG_INFINITY);
     // Display uses native Rust formatting
-    assert_eq!(format!("{}", value), "-inf");
+    assert_eq!(format!("{value}"), "-inf");
     // Debug uses Melbi convention
-    assert_eq!(format!("{:?}", value), "-inf");
+    assert_eq!(format!("{value:?}"), "-inf");
 }
 
 #[test]
-fn test_display_float_nan() {
+fn display_float_nan() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::float(type_mgr, f64::NAN);
     // Display uses native Rust formatting
-    assert_eq!(format!("{}", value), "NaN");
+    assert_eq!(format!("{value}"), "NaN");
     // Debug uses Melbi convention (lowercase)
-    assert_eq!(format!("{:?}", value), "nan");
+    assert_eq!(format!("{value:?}"), "nan");
 }
 
 #[test]
-fn test_display_bool_true() {
+fn display_bool_true() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::bool(type_mgr, true);
-    assert_eq!(format!("{}", value), "true");
+    assert_eq!(format!("{value}"), "true");
 }
 
 #[test]
-fn test_display_bool_false() {
+fn display_bool_false() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::bool(type_mgr, false);
-    assert_eq!(format!("{}", value), "false");
+    assert_eq!(format!("{value}"), "false");
 }
 
 #[test]
-fn test_display_str_simple() {
+fn display_str_simple() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::str(&arena, type_mgr.str(), "hello");
     // Display: no quotes (for format strings)
-    assert_eq!(format!("{}", value), "hello");
+    assert_eq!(format!("{value}"), "hello");
     // Debug: with quotes (for Melbi literals)
-    assert_eq!(format!("{:?}", value), "\"hello\"");
+    assert_eq!(format!("{value:?}"), "\"hello\"");
 }
 
 #[test]
-fn test_display_str_empty() {
+fn display_str_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::str(&arena, type_mgr.str(), "");
     // Display: no quotes
-    assert_eq!(format!("{}", value), "");
+    assert_eq!(format!("{value}"), "");
     // Debug: with quotes
-    assert_eq!(format!("{:?}", value), "\"\"");
+    assert_eq!(format!("{value:?}"), "\"\"");
 }
 
 #[test]
-fn test_display_str_with_quotes() {
+fn display_str_with_quotes() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::str(&arena, type_mgr.str(), "say \"hi\"");
     // Display: raw string content (no escaping)
-    assert_eq!(format!("{}", value), "say \"hi\"");
+    assert_eq!(format!("{value}"), "say \"hi\"");
     // Debug: with quotes and escaped (prefers single quotes when string has double quotes)
-    assert_eq!(format!("{:?}", value), "'say \"hi\"'");
+    assert_eq!(format!("{value:?}"), "'say \"hi\"'");
 }
 
 #[test]
-fn test_display_str_with_newline() {
+fn display_str_with_newline() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::str(&arena, type_mgr.str(), "hello\nworld");
     // Display: raw string content (actual newline)
-    assert_eq!(format!("{}", value), "hello\nworld");
+    assert_eq!(format!("{value}"), "hello\nworld");
     // Debug: with quotes and escaped
-    assert_eq!(format!("{:?}", value), "\"hello\\nworld\"");
+    assert_eq!(format!("{value:?}"), "\"hello\\nworld\"");
 }
 
 #[test]
-fn test_display_str_with_backslash() {
+fn display_str_with_backslash() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::str(&arena, type_mgr.str(), "path\\to\\file");
     // Display: raw string content (actual backslashes)
-    assert_eq!(format!("{}", value), "path\\to\\file");
+    assert_eq!(format!("{value}"), "path\\to\\file");
     // Debug: with quotes and escaped
-    assert_eq!(format!("{:?}", value), "\"path\\\\to\\\\file\"");
+    assert_eq!(format!("{value:?}"), "\"path\\\\to\\\\file\"");
 }
 
 #[test]
-fn test_display_bytes_empty() {
+fn display_bytes_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::bytes(&arena, type_mgr.bytes(), &[]);
-    assert_eq!(format!("{}", value), "b\"\"");
+    assert_eq!(format!("{value}"), "b\"\"");
 }
 
 #[test]
-fn test_display_bytes_simple() {
+fn display_bytes_simple() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::bytes(&arena, type_mgr.bytes(), &[0x48, 0x69]);
-    assert_eq!(format!("{}", value), "b\"Hi\"");
+    assert_eq!(format!("{value}"), "b\"Hi\"");
 }
 
 #[test]
-fn test_display_bytes_full_range() {
+fn display_bytes_full_range() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
     let value = Value::bytes(&arena, type_mgr.bytes(), &[0x00, 0xFF, 0x42]);
-    assert_eq!(format!("{}", value), "b\"\\x00\\xffB\"");
+    assert_eq!(format!("{value}"), "b\"\\x00\\xffB\"");
 }
 
 #[test]
-fn test_display_array_empty() {
+fn display_array_empty() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -240,11 +242,11 @@ fn test_display_array_empty() {
 
     let value = Value::array(&arena, array_ty, &[]).unwrap();
 
-    assert_eq!(format!("{}", value), "[]");
+    assert_eq!(format!("{value}"), "[]");
 }
 
 #[test]
-fn test_display_array_int_simple() {
+fn display_array_int_simple() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -262,11 +264,11 @@ fn test_display_array_int_simple() {
     )
     .unwrap();
 
-    assert_eq!(format!("{}", value), "[1, 2, 3]");
+    assert_eq!(format!("{value}"), "[1, 2, 3]");
 }
 
 #[test]
-fn test_display_array_float() {
+fn display_array_float() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -285,7 +287,7 @@ fn test_display_array_float() {
     )
     .unwrap();
 
-    let output = format!("{}", value);
+    let output = format!("{value}");
     assert_eq!("[1.1, 2., 3.14, 0.5]", output);
     // All floats must have decimal points
     assert!(output.contains("1.1") || output.contains("1.0"));
@@ -295,7 +297,7 @@ fn test_display_array_float() {
 }
 
 #[test]
-fn test_display_array_bool() {
+fn display_array_bool() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -313,11 +315,11 @@ fn test_display_array_bool() {
     )
     .unwrap();
 
-    assert_eq!(format!("{}", value), "[true, false, true]");
+    assert_eq!(format!("{value}"), "[true, false, true]");
 }
 
 #[test]
-fn test_display_array_nested() {
+fn display_array_nested() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -343,11 +345,11 @@ fn test_display_array_nested() {
     // Create outer array containing the two inner arrays
     let value = Value::array(&arena, outer_array_ty, &[inner1, inner2]).unwrap();
 
-    assert_eq!(format!("{}", value), "[[1, 2], [3, 4]]");
+    assert_eq!(format!("{value}"), "[[1, 2], [3, 4]]");
 }
 
 #[test]
-fn test_display_array_deeply_nested() {
+fn display_array_deeply_nested() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -368,11 +370,11 @@ fn test_display_array_deeply_nested() {
 
     let value = Value::array(&arena, level3_ty, &[l2]).unwrap();
 
-    assert_eq!(format!("{}", value), "[[[1, 2]]]");
+    assert_eq!(format!("{value}"), "[[[1, 2]]]");
 }
 
 #[test]
-fn test_display_array_with_negatives() {
+fn display_array_with_negatives() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -390,11 +392,11 @@ fn test_display_array_with_negatives() {
     )
     .unwrap();
 
-    assert_eq!(format!("{}", value), "[-10, 0, 10]");
+    assert_eq!(format!("{value}"), "[-10, 0, 10]");
 }
 
 #[test]
-fn test_display_array_single_element() {
+fn display_array_single_element() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -403,11 +405,11 @@ fn test_display_array_single_element() {
 
     let value = Value::array(&arena, array_ty, &[Value::int(type_mgr, 42)]).unwrap();
 
-    assert_eq!(format!("{}", value), "[42]");
+    assert_eq!(format!("{value}"), "[42]");
 }
 
 #[test]
-fn test_display_large_array() {
+fn display_large_array() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
@@ -418,17 +420,17 @@ fn test_display_large_array() {
 
     let value = Value::array(&arena, array_ty, &values).unwrap();
 
-    let output = format!("{}", value);
+    let output = format!("{value}");
     assert!(output.starts_with('['));
     assert!(output.ends_with(']'));
-    assert!(output.contains("0"));
+    assert!(output.contains('0'));
     assert!(output.contains("99"));
 }
 
 // Function Display Tests
 
 #[test]
-fn test_display_function_single_param() {
+fn display_function_single_param() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -446,14 +448,14 @@ fn test_display_function_single_param() {
 
     let func_value = Value::function(&arena, NativeFunction::new(func_ty, test_fn)).unwrap();
 
-    let output = format!("{}", func_value);
+    let output = format!("{func_value}");
     // Should contain: <Function @ 0x...: (Int) => Bool>
     assert!(output.starts_with("<Function @ 0x"));
     assert!(output.contains(": (Int) => Bool>"));
 }
 
 #[test]
-fn test_display_function_multiple_params() {
+fn display_function_multiple_params() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -471,13 +473,13 @@ fn test_display_function_multiple_params() {
 
     let func_value = Value::function(&arena, NativeFunction::new(func_ty, test_fn)).unwrap();
 
-    let output = format!("{}", func_value);
+    let output = format!("{func_value}");
     assert!(output.starts_with("<Function @ 0x"));
     assert!(output.contains(": (Int, Int) => Int>"));
 }
 
 #[test]
-fn test_display_function_no_params() {
+fn display_function_no_params() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -495,13 +497,13 @@ fn test_display_function_no_params() {
 
     let func_value = Value::function(&arena, NativeFunction::new(func_ty, test_fn)).unwrap();
 
-    let output = format!("{}", func_value);
+    let output = format!("{func_value}");
     assert!(output.starts_with("<Function @ 0x"));
     assert!(output.contains(": () => Int>"));
 }
 
 #[test]
-fn test_display_function_higher_order() {
+fn display_function_higher_order() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -520,13 +522,13 @@ fn test_display_function_higher_order() {
 
     let func_value = Value::function(&arena, NativeFunction::new(outer_func_ty, test_fn)).unwrap();
 
-    let output = format!("{}", func_value);
+    let output = format!("{func_value}");
     assert!(output.starts_with("<Function @ 0x"));
     assert!(output.contains(": (Int) => (Int) => Bool>"));
 }
 
 #[test]
-fn test_display_function_uniqueness() {
+fn display_function_uniqueness() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -552,8 +554,8 @@ fn test_display_function_uniqueness() {
     let func1 = Value::function(&arena, NativeFunction::new(func_ty, test_fn1)).unwrap();
     let func2 = Value::function(&arena, NativeFunction::new(func_ty, test_fn2)).unwrap();
 
-    let output1 = format!("{}", func1);
-    let output2 = format!("{}", func2);
+    let output1 = format!("{func1}");
+    let output2 = format!("{func2}");
 
     // Both should have same type signature
     assert!(output1.contains(": (Int) => Bool>"));
@@ -564,7 +566,7 @@ fn test_display_function_uniqueness() {
 }
 
 #[test]
-fn test_display_function_debug_same_as_display() {
+fn display_function_debug_same_as_display() {
     use crate::values::function::NativeFunction;
 
     let arena = Bump::new();
@@ -582,8 +584,8 @@ fn test_display_function_debug_same_as_display() {
     let func_value = Value::function(&arena, NativeFunction::new(func_ty, test_fn)).unwrap();
 
     // Display and Debug should be the same for functions
-    let display_output = format!("{}", func_value);
-    let debug_output = format!("{:?}", func_value);
+    let display_output = format!("{func_value}");
+    let debug_output = format!("{func_value:?}");
 
     assert_eq!(display_output, debug_output);
 }

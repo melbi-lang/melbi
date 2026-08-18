@@ -1,12 +1,13 @@
 use bumpalo::Bump;
 
-use crate::{
-    Vec,
-    evaluator::ExecutionErrorKind,
-    types::{Type, manager::TypeManager},
-    values::{RawValue, dynamic::Value, function::FfiContext},
-    vm::GenericAdapter,
-};
+use crate::Vec;
+use crate::evaluator::ExecutionErrorKind;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::RawValue;
+use crate::values::dynamic::Value;
+use crate::values::function::FfiContext;
+use crate::vm::GenericAdapter;
 
 /// Melbi's VM doesn't have knowledge of types: it just executes instructions
 /// over data in memory. However, to provide a type-safe API to FFI authors
@@ -24,18 +25,22 @@ impl<'t> FunctionAdapter<'t> {
     }
 
     /// Get the parameter types for debugging.
+    #[must_use]
     pub fn param_types(&self) -> &[&'t Type<'t>] {
         &self.types
     }
 }
 
-impl<'t> GenericAdapter for FunctionAdapter<'t> {
+impl GenericAdapter for FunctionAdapter<'_> {
     fn num_args(&self) -> usize {
         // +1 for the function itself (last element in args)
         self.types.len() + 1
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "low-level FFI conversion between RawValue and typed Values"
+    )]
     fn call(&self, arena: &Bump, args: &[RawValue]) -> Result<RawValue, ExecutionErrorKind> {
         debug_assert_eq!(args.len(), self.num_args());
 
@@ -66,7 +71,7 @@ impl<'t> GenericAdapter for FunctionAdapter<'t> {
         if self.types.is_empty() {
             alloc::string::String::from("Call()")
         } else {
-            let types: Vec<_> = self.types.iter().map(|t| alloc::format!("{}", t)).collect();
+            let types: Vec<_> = self.types.iter().map(|t| alloc::format!("{t}")).collect();
             alloc::format!("Call({})", types.join(", "))
         }
     }

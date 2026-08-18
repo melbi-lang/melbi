@@ -1,5 +1,5 @@
 #[derive(Clone)]
-struct Cond<const B: bool>;
+pub struct Cond<const B: bool>;
 
 pub trait StoragePolicy<T: Clone>: Clone {
     type Inner: Clone;
@@ -52,7 +52,6 @@ impl<T: Clone> StoragePolicy<T> for Cond<true> {
 /// assert_eq!(opt.get(), None);
 /// ```
 #[derive(Clone)]
-#[allow(private_bounds)]
 pub struct CompileTimeOption<const STORE: bool, T: Clone>
 where
     Cond<STORE>: StoragePolicy<T>,
@@ -60,7 +59,6 @@ where
     inner: <Cond<STORE> as StoragePolicy<T>>::Inner,
 }
 
-#[allow(private_bounds)]
 impl<const STORE: bool, T: Clone> CompileTimeOption<STORE, T>
 where
     Cond<STORE>: StoragePolicy<T>,
@@ -80,8 +78,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::mem::size_of;
+
+    use super::*;
 
     #[test]
     fn enabled_stores_and_returns_value() {
@@ -113,11 +112,11 @@ mod tests {
     #[test]
     fn clone_works() {
         let opt: CompileTimeOption<true, i32> = CompileTimeOption::new(42);
-        let cloned = opt.clone();
+        let cloned = opt;
         assert_eq!(cloned.get(), Some(42));
 
         let opt: CompileTimeOption<false, i32> = CompileTimeOption::new(42);
-        let cloned = opt.clone();
+        let cloned = opt;
         assert_eq!(cloned.get(), None);
     }
 }

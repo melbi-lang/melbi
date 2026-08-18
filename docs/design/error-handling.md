@@ -703,7 +703,7 @@ This is a new design, not a migration. Current ad-hoc error handling will be rep
 **Integration Tests**:
 ```rust
 #[test]
-fn test_multiple_type_errors() {
+fn multiple_type_errors() {
     let source = r#"
         {
             a = 1 + "string",

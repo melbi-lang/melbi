@@ -1,11 +1,9 @@
+use core::fmt::{self, Debug, Display};
+use core::hash::{Hash, Hasher};
+
 use serde::Serialize;
 
-use core::{
-    fmt::{self, Debug, Display},
-    hash::{Hash, Hasher},
-};
-
-use crate::types::traits::display_type;
+use crate::types::traits::{TypeTag, display_type};
 
 #[derive(Serialize, Clone, Hash)]
 #[repr(C, u8)]
@@ -21,35 +19,45 @@ pub enum Type<'a> {
     Bytes = 5,
 
     // Collections.
-    Array(&'a Type<'a>) = 6,
-    Map(&'a Type<'a>, &'a Type<'a>) = 7,
+    Array(&'a Self) = 6,
+    Map(&'a Self, &'a Self) = 7,
 
     // Structural records.
-    Record(&'a [(&'a str, &'a Type<'a>)]) = 8, // Must be sorted by field name.
+    Record(&'a [(&'a str, &'a Self)]) = 8, // Must be sorted by field name.
 
     // Functions.
     Function {
-        params: &'a [&'a Type<'a>],
-        ret: &'a Type<'a>,
+        params: &'a [&'a Self],
+        ret: &'a Self,
     } = 9,
 
     // Symbols.
     Symbol(&'a [&'a str]) = 10, // Must be sorted.
 
     // Option type.
-    Option(&'a Type<'a>) = 11,
-
+    Option(&'a Self) = 11,
     // TODO: More types to add later:
     //   Custom(&'a str),
     //   Union(&'a [&'a Type<'a>]),  // Must be sorted.
 }
 
-impl<'a> Type<'a> {
+impl Type<'_> {
+    #[must_use]
     pub fn discriminant(&self) -> u8 {
-        // SAFETY: Because `Self` is marked `repr(C, u8)`, its layout is a `repr(C)` `struct`
-        // with a `u8` discriminant and a union of `structs`, so we can read the discriminant
-        // directly without offsetting the pointer.
-        unsafe { *<*const _>::from(self).cast::<u8>() }
+        match self {
+            Type::TypeVar(_) => TypeTag::TypeVar as u8,
+            Type::Int => TypeTag::Int as u8,
+            Type::Float => TypeTag::Float as u8,
+            Type::Bool => TypeTag::Bool as u8,
+            Type::Str => TypeTag::Str as u8,
+            Type::Bytes => TypeTag::Bytes as u8,
+            Type::Array(_) => TypeTag::Array as u8,
+            Type::Map(_, _) => TypeTag::Map as u8,
+            Type::Record(_) => TypeTag::Record as u8,
+            Type::Function { .. } => TypeTag::Function as u8,
+            Type::Symbol(_) => TypeTag::Symbol as u8,
+            Type::Option(_) => TypeTag::Option as u8,
+        }
     }
 }
 
@@ -68,30 +76,30 @@ impl Hash for CompareTypeArgs<'_> {
             }
 
             Type::Array(elem) => {
-                (*elem as *const Type<'_>).hash(state);
+                core::ptr::from_ref::<Type<'_>>(*elem).hash(state);
             }
             Type::Map(key, val) => {
-                (*key as *const Type<'_>).hash(state);
-                (*val as *const Type<'_>).hash(state);
+                core::ptr::from_ref::<Type<'_>>(*key).hash(state);
+                core::ptr::from_ref::<Type<'_>>(*val).hash(state);
             }
             Type::Option(inner) => {
-                (*inner as *const Type<'_>).hash(state);
+                core::ptr::from_ref::<Type<'_>>(*inner).hash(state);
             }
             Type::Function { params, ret } => {
                 for param in *params {
-                    (*param as *const Type<'_>).hash(state);
+                    core::ptr::from_ref::<Type<'_>>(*param).hash(state);
                 }
-                (*ret as *const Type<'_>).hash(state);
+                core::ptr::from_ref::<Type<'_>>(*ret).hash(state);
             }
             Type::Symbol(parts) => {
                 for part in *parts {
-                    (*part as *const str).hash(state);
+                    core::ptr::from_ref::<str>(*part).hash(state);
                 }
             }
             Type::Record(fields) => {
                 for (name, ty) in *fields {
-                    (*name as *const str).hash(state);
-                    (*ty as *const Type<'_>).hash(state);
+                    core::ptr::from_ref::<str>(*name).hash(state);
+                    core::ptr::from_ref::<Type<'_>>(*ty).hash(state);
                 }
             }
         }
@@ -136,10 +144,12 @@ impl PartialEq for CompareTypeArgs<'_> {
                 }
                 (Type::Symbol(parts1), Type::Symbol(parts2)) => {
                     parts1.len() == parts2.len()
-                        && parts1
-                            .iter()
-                            .zip(*parts2)
-                            .all(|(a, b)| core::ptr::eq(*a as *const str, *b as *const str))
+                        && parts1.iter().zip(*parts2).all(|(a, b)| {
+                            core::ptr::eq(
+                                core::ptr::from_ref::<str>(*a),
+                                core::ptr::from_ref::<str>(*b),
+                            )
+                        })
                 }
                 (Type::Record(fields1), Type::Record(fields2)) => {
                     fields1.len() == fields2.len()
@@ -147,8 +157,10 @@ impl PartialEq for CompareTypeArgs<'_> {
                             .iter()
                             .zip(*fields2)
                             .all(|((name1, ty1), (name2, ty2))| {
-                                core::ptr::eq(*name1 as *const str, *name2 as *const str)
-                                    && core::ptr::eq(*ty1, *ty2)
+                                core::ptr::eq(
+                                    core::ptr::from_ref::<str>(*name1),
+                                    core::ptr::from_ref::<str>(*name2),
+                                ) && core::ptr::eq(*ty1, *ty2)
                             })
                 }
                 _ => false,
@@ -163,7 +175,10 @@ impl Eq for CompareTypeArgs<'_> {}
 // This enables fast O(1) equality checks via interning
 impl<'a> PartialEq for &'a Type<'a> {
     fn eq(&self, other: &Self) -> bool {
-        core::ptr::eq(*self as *const Type<'a>, *other as *const Type<'a>)
+        core::ptr::eq(
+            core::ptr::from_ref::<Type<'a>>(*self),
+            core::ptr::from_ref::<Type<'a>>(*other),
+        )
     }
 }
 
@@ -188,14 +203,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_type_eq() {
+    fn type_eq() {
         let ty1 = &Type::Int;
         let ty2 = &Type::Int;
         assert_eq!(ty1, ty2);
     }
 
     #[test]
-    fn test_discriminant() {
+    fn discriminant() {
         let ty = &Type::Int;
         assert_eq!(ty.discriminant(), 1);
     }

@@ -1,8 +1,7 @@
 //! Literals, shared by expressions and patterns.
 
-use crate::{Tree, TreeBuilder};
-
 use super::Expr;
+use crate::{Tree, TreeBuilder};
 
 /// A literal, inlined into [`ExprKind::Literal`] and [`PatternKind::Literal`].
 ///
@@ -53,7 +52,7 @@ impl<B: TreeBuilder> LiteralKind<B> {
     /// The unit suffix, if this is a numeric literal carrying one.
     pub fn suffix(&self) -> Option<&Tree<B, Expr>> {
         match self {
-            LiteralKind::Int { suffix, .. } | LiteralKind::Float { suffix, .. } => suffix.as_ref(),
+            Self::Int { suffix, .. } | Self::Float { suffix, .. } => suffix.as_ref(),
             _ => None,
         }
     }

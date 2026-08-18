@@ -1,6 +1,6 @@
-use bumpalo::Bump;
 use core::fmt;
 
+use bumpalo::Bump;
 use melbi_thin_ref::ThinRef;
 use melbi_types::ArenaBuilder;
 
@@ -26,7 +26,7 @@ pub union ArenaRaw<'arena> {
     int: i64,
     bool: bool,
     float: f64,
-    array: ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>,
+    array: ThinRef<'arena, [Val<ArenaValueBuilder<'arena>>]>,
 }
 
 // 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data).
@@ -52,7 +52,10 @@ impl fmt::Debug for ArenaRaw<'_> {
     }
 }
 
-#[allow(unsafe_code)] // Union field access requires unsafe; each use has a SAFETY comment.
+#[expect(
+    unsafe_code,
+    reason = "Union field access requires unsafe; each use has a SAFETY comment."
+)]
 impl<'arena> RawValue for ArenaRaw<'arena> {
     type ArrayHandle = ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>;
 

@@ -1,6 +1,8 @@
-use bumpalo::Bump;
-use melbi_core::{analyzer, parser, types::manager::TypeManager};
 use std::env;
+
+use bumpalo::Bump;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::{analyzer, parser};
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -14,7 +16,7 @@ fn main() -> std::io::Result<()> {
     };
     println!("Parsed AST:\n{:#?}", ast.expr);
 
-    let result = analyzer::analyze(type_manager, &arena, &ast, &[], &[]);
+    let result = analyzer::analyze(type_manager, &arena, ast, &[], &[]);
     let Ok(expr) = result else {
         eprintln!("{:?}", result.unwrap_err());
         return Ok(());

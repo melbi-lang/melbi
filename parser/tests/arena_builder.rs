@@ -10,7 +10,6 @@ mod common;
 use std::ptr;
 
 use bumpalo::Bump;
-
 use common::builders::HeapBuilder;
 use common::sample_tree::{Expr, Rebuild, SumLiterals, sample, sample_with_literals};
 use melbi_parser::{ArenaBuilder, Span};

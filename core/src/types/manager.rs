@@ -1,13 +1,11 @@
-use crate::{
-    Vec,
-    types::{
-        traits::{TypeKind, TypeView},
-        types::{CompareTypeArgs, Type},
-    },
-};
-use bumpalo::Bump;
 use core::cell::{Cell, Ref, RefCell};
+
+use bumpalo::Bump;
 use hashbrown::{DefaultHashBuilder, HashMap};
+
+use crate::Vec;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::types::types::{CompareTypeArgs, Type};
 
 pub struct TypeManager<'a> {
     // Arena holding all types from this TypeManager.
@@ -140,28 +138,44 @@ impl<'a> TypeManager<'a> {
         self.alloc_and_intern(Type::Option(inner_ty))
     }
 
-    pub fn record(&self, fields: Vec<(&str, &'a Type<'a>)>) -> &'a Type<'a> {
-        // SAFETY: We own the data in the Vec, which was moved. Also, we immediately change
-        // the lifetime of the &str field to 'a.
-        let mut fields: Vec<(&str, &'a Type<'a>)> = unsafe { core::mem::transmute(fields) };
-        // Intern all field names in-place to ensure pointer equality works
-        for (name, _) in fields.iter_mut() {
-            *name = self.intern_str(name);
+    pub fn record(&self, fields: &[(&str, &'a Type<'a>)]) -> &'a Type<'a> {
+        if fields.is_empty() {
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Record(&[]))) {
+                return interned_ty;
+            }
+            return self.alloc_and_intern(Type::Record(&[]));
         }
 
-        // Sort by interned field names in-place
-        fields.sort_by_key(|(name, _)| *name);
+        let dummy_type = self.int();
+        let mut stack_buf = [("", dummy_type); 16];
+        let fields_slice: &[(&'a str, &'a Type<'a>)] = if fields.len() <= 16 {
+            for (i, &(name, ty)) in fields.iter().enumerate() {
+                stack_buf[i] = (self.intern_str(name), ty);
+            }
+            let buf = &mut stack_buf[..fields.len()];
+            buf.sort_by_key(|(name, _)| *name);
+            buf
+        } else {
+            let mut v: Vec<(&'a str, &'a Type<'a>)> = fields
+                .iter()
+                .map(|&(name, ty)| (self.intern_str(name), ty))
+                .collect();
+            v.sort_by_key(|(name, _)| *name);
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Record(&v))) {
+                return interned_ty;
+            }
+            let arena_fields = self.arena.alloc_slice_fill_iter(v);
+            return self.alloc_and_intern(Type::Record(arena_fields));
+        };
 
-        // Lookup using the Vec as a slice
         if let Some(&interned_ty) = self
             .intern_map()
-            .get(&CompareTypeArgs(Type::Record(&fields)))
+            .get(&CompareTypeArgs(Type::Record(fields_slice)))
         {
             return interned_ty;
         }
 
-        // Not found - allocate directly from Vec into arena (zero-copy move)
-        let arena_fields = self.arena.alloc_slice_fill_iter(fields.into_iter());
+        let arena_fields = self.arena.alloc_slice_copy(fields_slice);
         self.alloc_and_intern(Type::Record(arena_fields))
     }
 
@@ -178,29 +192,40 @@ impl<'a> TypeManager<'a> {
         })
     }
 
-    pub fn symbol(&self, parts: Vec<&str>) -> &'a Type<'a> {
-        // SAFETY: We own the data in the Vec, which was moved. Also, we immediately change
-        // the lifetime of the &str field to 'a.
-        let mut parts: Vec<&str> = unsafe { core::mem::transmute(parts) };
-
-        // Intern all symbol parts in-place to ensure pointer equality works
-        for part in parts.iter_mut() {
-            *part = self.intern_str(part);
+    pub fn symbol(&self, parts: &[&str]) -> &'a Type<'a> {
+        if parts.is_empty() {
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Symbol(&[]))) {
+                return interned_ty;
+            }
+            return self.alloc_and_intern(Type::Symbol(&[]));
         }
 
-        // Sort by interned parts in-place
-        parts.sort();
+        let mut stack_buf = [""; 16];
+        let parts_slice: &[&'a str] = if parts.len() <= 16 {
+            for (i, &part) in parts.iter().enumerate() {
+                stack_buf[i] = self.intern_str(part);
+            }
+            let buf = &mut stack_buf[..parts.len()];
+            buf.sort_unstable();
+            buf
+        } else {
+            let mut v: Vec<&'a str> = parts.iter().map(|&part| self.intern_str(part)).collect();
+            v.sort_unstable();
+            if let Some(&interned_ty) = self.intern_map().get(&CompareTypeArgs(Type::Symbol(&v))) {
+                return interned_ty;
+            }
+            let arena_parts = self.arena.alloc_slice_fill_iter(v);
+            return self.alloc_and_intern(Type::Symbol(arena_parts));
+        };
 
-        // Lookup using the Vec as a slice
         if let Some(&interned_ty) = self
             .intern_map()
-            .get(&CompareTypeArgs(Type::Symbol(&parts)))
+            .get(&CompareTypeArgs(Type::Symbol(parts_slice)))
         {
             return interned_ty;
         }
 
-        // Not found - allocate directly from Vec into arena (zero-copy move)
-        let arena_parts = self.arena.alloc_slice_fill_iter(parts.into_iter());
+        let arena_parts = self.arena.alloc_slice_copy(parts_slice);
         self.alloc_and_intern(Type::Symbol(arena_parts))
     }
 
@@ -224,12 +249,11 @@ impl<'a> TypeManager<'a> {
     //     self.type_registry.get_capabilities(type_name)
     // }
 
-    /// Recursively copies a type from another TypeManager into this TypeManager's arena,
+    /// Recursively copies a type from another `TypeManager` into this `TypeManager`'s arena,
     /// returning the interned equivalent in this manager.
-    pub fn adopt<'b>(&self, other: &TypeManager<'b>, ty: &'b Type<'b>) -> &'a Type<'a> {
+    pub fn adopt<'b>(&self, _other: &TypeManager<'b>, ty: &'b Type<'b>) -> &'a Type<'a> {
         fn inner<'a, 'b>(
             this: &TypeManager<'a>,
-            _other: &TypeManager<'b>,
             ty: &'b Type<'b>,
             var_map: &mut HashMap<*const Type<'b>, &'a Type<'a>>,
         ) -> &'a Type<'a> {
@@ -240,7 +264,7 @@ impl<'a> TypeManager<'a> {
                 Type::Str => this.str(),
                 Type::Bytes => this.bytes(),
                 Type::TypeVar(_id) => {
-                    let ptr = ty as *const Type<'b>;
+                    let ptr = core::ptr::from_ref::<Type<'b>>(ty);
                     if let Some(&mapped) = var_map.get(&ptr) {
                         mapped
                     } else {
@@ -251,44 +275,42 @@ impl<'a> TypeManager<'a> {
                     }
                 }
                 Type::Array(elem_ty) => {
-                    let elem = inner(this, _other, elem_ty, var_map);
+                    let elem = inner(this, elem_ty, var_map);
                     this.array(elem)
                 }
                 Type::Map(key_ty, val_ty) => {
-                    let key = inner(this, _other, key_ty, var_map);
-                    let val = inner(this, _other, val_ty, var_map);
+                    let key = inner(this, key_ty, var_map);
+                    let val = inner(this, val_ty, var_map);
                     this.map(key, val)
                 }
                 Type::Option(inner_ty) => {
-                    let inner_adopted = inner(this, _other, inner_ty, var_map);
+                    let inner_adopted = inner(this, inner_ty, var_map);
                     this.option(inner_adopted)
                 }
                 Type::Record(fields) => {
                     let adopted_fields: Vec<(&str, &'a Type<'a>)> = fields
                         .iter()
                         .map(|(name, t)| {
-                            let t = inner(this, _other, t, var_map);
+                            let t = inner(this, t, var_map);
                             (*name, t)
                         })
                         .collect();
-                    this.record(adopted_fields)
+                    this.record(&adopted_fields)
                 }
                 Type::Function { params, ret } => {
-                    let adopted_params: Vec<&'a Type<'a>> = params
-                        .iter()
-                        .map(|p| inner(this, _other, p, var_map))
-                        .collect();
-                    let adopted_ret = inner(this, _other, ret, var_map);
+                    let adopted_params: Vec<&'a Type<'a>> =
+                        params.iter().map(|p| inner(this, p, var_map)).collect();
+                    let adopted_ret = inner(this, ret, var_map);
                     this.function(&adopted_params, adopted_ret)
                 }
                 Type::Symbol(parts) => {
-                    let adopted_parts: Vec<&str> = (*parts).iter().copied().collect();
-                    this.symbol(adopted_parts)
+                    let adopted_parts: Vec<&str> = parts.to_vec();
+                    this.symbol(&adopted_parts)
                 }
             }
         }
         let mut var_map = HashMap::new();
-        inner(self, other, ty, &mut var_map)
+        inner(self, ty, &mut var_map)
     }
 
     /// Performs alpha conversion (renaming) of type variables in a type.
@@ -302,7 +324,7 @@ impl<'a> TypeManager<'a> {
             match ty {
                 Type::Int | Type::Float | Type::Bool | Type::Str | Type::Bytes => ty,
                 Type::TypeVar(_) => {
-                    let ptr = ty as *const Type<'a>;
+                    let ptr = core::ptr::from_ref::<Type<'a>>(ty);
                     if let Some(&mapped) = var_map.get(&ptr) {
                         mapped
                     } else {
@@ -332,7 +354,7 @@ impl<'a> TypeManager<'a> {
                             (*name, t)
                         })
                         .collect();
-                    this.record(converted_fields)
+                    this.record(&converted_fields)
                 }
                 Type::Function { params, ret } => {
                     let converted_params: Vec<&'a Type<'a>> =
@@ -344,7 +366,7 @@ impl<'a> TypeManager<'a> {
             }
         }
         let mut var_map = HashMap::new();
-        inner(&self, ty, &mut var_map)
+        inner(self, ty, &mut var_map)
     }
 }
 
@@ -399,7 +421,7 @@ impl<'a> TypeBuilder<'a> for &'a TypeManager<'a> {
 
     fn record(&self, fields: impl Iterator<Item = (&'a str, Self::Repr)>) -> Self::Repr {
         let fields_vec: Vec<_> = fields.collect();
-        TypeManager::record(self, fields_vec)
+        TypeManager::record(self, &fields_vec)
     }
 
     fn function(&self, params: impl Iterator<Item = Self::Repr>, ret: Self::Repr) -> Self::Repr {
@@ -409,7 +431,7 @@ impl<'a> TypeBuilder<'a> for &'a TypeManager<'a> {
 
     fn symbol(&self, parts: impl Iterator<Item = &'a str>) -> Self::Repr {
         let parts_vec: Vec<_> = parts.collect();
-        TypeManager::symbol(self, parts_vec)
+        TypeManager::symbol(self, &parts_vec)
     }
 }
 
@@ -447,12 +469,13 @@ impl<'a> TypeView<'a> for &'a Type<'a> {
 
 #[cfg(test)]
 mod type_view_tests {
-    use super::*;
-    use crate::types::manager::TypeManager;
     use bumpalo::Bump;
 
+    use super::*;
+    use crate::types::manager::TypeManager;
+
     #[test]
-    fn test_primitives() {
+    fn primitives() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -493,7 +516,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_type_var() {
+    fn type_var() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -505,7 +528,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_array() {
+    fn array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -520,7 +543,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_map() {
+    fn map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -541,11 +564,11 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_record() {
+    fn record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("age", mgr.int()), ("name", mgr.str())]);
+        let ty = mgr.record(&[("age", mgr.int()), ("name", mgr.str())]);
         match ty.view() {
             TypeKind::Record(fields) => {
                 let fields: Vec<_> = fields.collect();
@@ -566,7 +589,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_function() {
+    fn function() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -593,11 +616,11 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_symbol() {
+    fn symbol() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.symbol(vec!["error", "pending", "success"]);
+        let ty = mgr.symbol(&["error", "pending", "success"]);
         match ty.view() {
             TypeKind::Symbol(parts) => {
                 let parts: Vec<_> = parts.collect();
@@ -612,7 +635,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_nested_types() {
+    fn nested_types() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -637,7 +660,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_iterator_exact_size() {
+    fn iterator_exact_size() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -653,7 +676,7 @@ mod type_view_tests {
         }
 
         // Test NamedTypeIter (record fields)
-        let ty = mgr.record(vec![("a", mgr.int()), ("b", mgr.str())]);
+        let ty = mgr.record(&[("a", mgr.int()), ("b", mgr.str())]);
         match ty.view() {
             TypeKind::Record(fields) => {
                 assert!(fields.len() == 2);
@@ -664,7 +687,7 @@ mod type_view_tests {
         }
 
         // Test StrIter (symbol parts)
-        let ty = mgr.symbol(vec!["a", "b", "c"]);
+        let ty = mgr.symbol(&["a", "b", "c"]);
         match ty.view() {
             TypeKind::Symbol(parts) => {
                 assert!(parts.len() == 3);
@@ -676,7 +699,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_view_with_temporaries() {
+    fn view_with_temporaries() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -706,7 +729,7 @@ mod type_view_tests {
     }
 
     #[test]
-    fn test_typeview_equality() {
+    fn typeview_equality() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -735,7 +758,7 @@ mod manager_tests {
     use super::*;
 
     #[test]
-    fn test_interning() {
+    fn interning() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -748,7 +771,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_adopt_preserves_typevar_identity() {
+    fn adopt_preserves_typevar_identity() {
         let bump1 = Bump::new();
         let bump2 = Bump::new();
         let mgr1 = TypeManager::new(&bump1);
@@ -759,11 +782,11 @@ mod manager_tests {
         let v = mgr1.fresh_type_var();
         let map = mgr1.map(k, v);
         let fields = vec![("map", map), ("k", k), ("v", v)];
-        let tuple = mgr1.record(fields);
+        let tuple = mgr1.record(&fields);
         let fun = mgr1.function(&[tuple], v);
 
         // Adopt into mgr2
-        let adopted = mgr2.adopt(&mgr1, fun);
+        let adopted = mgr2.adopt(mgr1, fun);
 
         // Extract adopted typevars
         if let Type::Function { params, ret } = adopted {
@@ -800,7 +823,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_simple_typevar() {
+    fn alpha_convert_simple_typevar() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -821,7 +844,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_function_type_same_var() {
+    fn alpha_convert_function_type_same_var() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -848,7 +871,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_function_type_different_vars() {
+    fn alpha_convert_function_type_different_vars() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -877,7 +900,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_complex_type() {
+    fn alpha_convert_complex_type() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -911,7 +934,7 @@ mod manager_tests {
     }
 
     #[test]
-    fn test_alpha_convert_no_typevars() {
+    fn alpha_convert_no_typevars() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -934,7 +957,7 @@ mod type_builder_tests {
     use crate::types::traits::TypeBuilder;
 
     #[test]
-    fn test_type_builder_primitives() {
+    fn type_builder_primitives() {
         fn test_with_builder<'a, B: TypeBuilder<'a>>(builder: &B) {
             // All calls go through the TypeBuilder trait
             let int_ty = builder.int();
@@ -959,7 +982,7 @@ mod type_builder_tests {
     }
 
     #[test]
-    fn test_type_builder_collections() {
+    fn type_builder_collections() {
         fn test_with_builder<'a, B: TypeBuilder<'a>>(builder: &B) {
             let int_ty = builder.int();
             let str_ty = builder.str();
@@ -979,18 +1002,18 @@ mod type_builder_tests {
     }
 
     #[test]
-    fn test_type_builder_structural() {
+    fn type_builder_structural() {
         fn test_with_builder<'a, B: TypeBuilder<'a>>(builder: &B) {
             let int_ty = builder.int();
             let float_ty = builder.float();
             let str_ty = builder.str();
 
             // Test record with iterator (goes through TypeBuilder trait)
-            let fields1 = vec![("x", int_ty), ("y", float_ty)];
-            let record_ty = builder.record(fields1.into_iter());
+            let fields1 = [("x", int_ty), ("y", float_ty)];
+            let record_ty = builder.record(fields1.iter().copied());
 
             // Test interning - same fields should produce equal type
-            let fields2 = vec![("x", int_ty), ("y", float_ty)];
+            let fields2 = [("x", int_ty), ("y", float_ty)];
             assert!(record_ty == builder.record(fields2.into_iter()));
 
             // Test function with iterator (goes through TypeBuilder trait)
@@ -1002,11 +1025,11 @@ mod type_builder_tests {
             assert!(func_ty == builder.function(params2.into_iter(), float_ty));
 
             // Test symbol with iterator (goes through TypeBuilder trait)
-            let parts1 = vec!["foo", "bar", "baz"];
-            let sym_ty = builder.symbol(parts1.into_iter());
+            let parts1 = ["foo", "bar", "baz"];
+            let sym_ty = builder.symbol(parts1.iter().copied());
 
             // Test interning - same parts should produce equal type
-            let parts2 = vec!["foo", "bar", "baz"];
+            let parts2 = ["foo", "bar", "baz"];
             assert!(sym_ty == builder.symbol(parts2.into_iter()));
         }
 
@@ -1021,7 +1044,7 @@ mod type_transformer_tests {
     use super::*;
     use crate::types::traits::TypeTransformer;
 
-    /// Identity transformer - transforms a type to itself using the same TypeManager
+    /// Identity transformer - transforms a type to itself using the same `TypeManager`
     struct IdentityTransformer<'a> {
         builder: &'a TypeManager<'a>,
     }
@@ -1035,7 +1058,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_primitives() {
+    fn identity_transform_primitives() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1056,7 +1079,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_typevar() {
+    fn identity_transform_typevar() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1070,7 +1093,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_collections() {
+    fn identity_transform_collections() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1090,7 +1113,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_record() {
+    fn identity_transform_record() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1098,7 +1121,7 @@ mod type_transformer_tests {
         // Record { x: Int, y: Float }
         let int_ty = manager.int();
         let float_ty = manager.float();
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
 
         let record_transformed = transformer.transform(record_ty);
 
@@ -1107,7 +1130,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_function() {
+    fn identity_transform_function() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1125,13 +1148,13 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_symbol() {
+    fn identity_transform_symbol() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
 
         // Symbol `foo.bar.baz`
-        let sym_ty = manager.symbol(vec!["foo", "bar", "baz"]);
+        let sym_ty = manager.symbol(&["foo", "bar", "baz"]);
 
         let sym_transformed = transformer.transform(sym_ty);
 
@@ -1140,7 +1163,7 @@ mod type_transformer_tests {
     }
 
     #[test]
-    fn test_identity_transform_nested() {
+    fn identity_transform_nested() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
         let transformer = IdentityTransformer { builder: manager };
@@ -1150,7 +1173,7 @@ mod type_transformer_tests {
         let float_ty = manager.float();
         let str_ty = manager.str();
 
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
         let array_ty = manager.array(record_ty);
         let map_ty = manager.map(str_ty, array_ty);
         let func_ty = manager.function(&[map_ty], int_ty);
@@ -1168,7 +1191,7 @@ mod display_type_tests {
     use crate::types::traits::display_type;
 
     #[test]
-    fn test_display_primitives() {
+    fn display_primitives() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1180,7 +1203,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_type_var() {
+    fn display_type_var() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1194,7 +1217,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_array() {
+    fn display_array() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1205,7 +1228,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_map() {
+    fn display_map() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1217,19 +1240,19 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_record() {
+    fn display_record() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
         let int_ty = manager.int();
         let float_ty = manager.float();
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
 
         assert!(display_type(record_ty) == "Record[x: Int, y: Float]");
     }
 
     #[test]
-    fn test_display_function() {
+    fn display_function() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1244,7 +1267,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_function_no_params() {
+    fn display_function_no_params() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1257,19 +1280,19 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_symbol() {
+    fn display_symbol() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
         // Note: Symbol parts are stored sorted
-        let sym_ty = manager.symbol(vec!["foo", "bar", "baz"]);
+        let sym_ty = manager.symbol(&["foo", "bar", "baz"]);
 
         // Output will be sorted: bar, baz, foo
         assert!(display_type(sym_ty) == "Symbol[bar|baz|foo]");
     }
 
     #[test]
-    fn test_display_nested() {
+    fn display_nested() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1283,7 +1306,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_matches_display_impl() {
+    fn display_matches_display_impl() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1295,23 +1318,21 @@ mod display_type_tests {
         // Complex type: (Map[Str, Int], Array[Float]) => Record[x: Int, y: Float]
         let map_ty = manager.map(str_ty, int_ty);
         let arr_ty = manager.array(float_ty);
-        let record_ty = manager.record(vec![("x", int_ty), ("y", float_ty)]);
+        let record_ty = manager.record(&[("x", int_ty), ("y", float_ty)]);
         let func_ty = manager.function(&[map_ty, arr_ty], record_ty);
 
         // Both should produce identical output
-        let display_output = alloc::format!("{}", func_ty);
+        let display_output = alloc::format!("{func_ty}");
         let generic_output = display_type(func_ty);
 
         assert!(
             display_output == generic_output,
-            "Display impl output: {}\nGeneric display_type output: {}",
-            display_output,
-            generic_output
+            "Display impl output: {display_output}\nGeneric display_type output: {generic_output}"
         );
     }
 
     #[test]
-    fn test_display_option() {
+    fn display_option() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1322,7 +1343,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_option_complex_inner() {
+    fn display_option_complex_inner() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1335,7 +1356,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_nested_option() {
+    fn display_nested_option() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1348,7 +1369,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_display_option_in_complex_type() {
+    fn display_option_in_complex_type() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1362,7 +1383,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_option_interning() {
+    fn option_interning() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 
@@ -1375,7 +1396,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_option_adopt() {
+    fn option_adopt() {
         let bump1 = Bump::new();
         let bump2 = Bump::new();
         let mgr1 = TypeManager::new(&bump1);
@@ -1399,7 +1420,7 @@ mod display_type_tests {
     }
 
     #[test]
-    fn test_option_alpha_convert() {
+    fn option_alpha_convert() {
         let bump = Bump::new();
         let manager = TypeManager::new(&bump);
 

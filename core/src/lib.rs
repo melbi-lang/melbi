@@ -1,5 +1,5 @@
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
-// #![deny(unsafe_code)]  // TODO: uncomment this.
+#![deny(unsafe_code)]
 // #![cfg_attr(not(test), no_std)]
 
 // Needed so that macros can uniformly refer to `::melbi_core` and still work
@@ -12,12 +12,19 @@ extern crate alloc;
 // Exports some symbols publicly basically so that macros can always refer to these.
 #[doc(hidden)]
 pub mod shim {
-    pub use alloc::{boxed::Box, fmt, format, string::String, string::ToString, vec, vec::Vec};
+    pub use alloc::boxed::Box;
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec::Vec;
+    pub use alloc::{fmt, format, vec};
 }
 
 // Re-export (crate only) for convenience so other modules don't need alloc:: prefix
-#[allow(unused_imports)]
-pub(crate) use shim::*;
+#[allow(
+    clippy::allow_attributes,
+    unused_imports,
+    reason = "Re-exports macro shims for internal crate convenience in #![no_std] mode"
+)]
+pub(crate) use shim::{Box, String, ToString, Vec, format, vec};
 
 pub mod analyzer;
 pub mod api;
@@ -34,14 +41,6 @@ pub mod values;
 pub mod visitor;
 pub mod vm;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert!(true);
-    }
-}
-
 /// Test utilities for enabling logging in tests
 #[cfg(test)]
 pub mod test_utils {
@@ -51,7 +50,7 @@ pub mod test_utils {
     /// # Example
     /// ```ignore
     /// #[test]
-    /// fn test_type_inference() {
+    /// fn type_inference() {
     ///     test_utils::init_test_logging();
     ///     // ... your test code
     /// }

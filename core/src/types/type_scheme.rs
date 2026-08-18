@@ -28,6 +28,7 @@ pub struct TypeScheme<'types, 'arena> {
 
 impl<'types, 'arena> TypeScheme<'types, 'arena> {
     /// Create a new type scheme without a lambda expression.
+    #[must_use]
     pub fn new(quantified: &'types [u16], ty: &'types Type<'types>) -> Self {
         TypeScheme {
             quantified,
@@ -37,6 +38,7 @@ impl<'types, 'arena> TypeScheme<'types, 'arena> {
     }
 
     /// Create a new type scheme with an associated lambda expression.
+    #[must_use]
     pub fn new_with_lambda(
         quantified: &'types [u16],
         ty: &'types Type<'types>,
@@ -50,6 +52,7 @@ impl<'types, 'arena> TypeScheme<'types, 'arena> {
     }
 
     /// Returns true if this is a monomorphic type (no quantified variables).
+    #[must_use]
     pub fn is_monomorphic(&self) -> bool {
         self.quantified.is_empty()
     }
@@ -57,12 +60,13 @@ impl<'types, 'arena> TypeScheme<'types, 'arena> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::types::manager::TypeManager;
     use bumpalo::Bump;
 
+    use super::*;
+    use crate::types::manager::TypeManager;
+
     #[test]
-    fn test_monomorphic_scheme() {
+    fn monomorphic_scheme() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -75,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn test_polymorphic_scheme() {
+    fn polymorphic_scheme() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 
@@ -89,7 +93,7 @@ mod tests {
     }
 
     #[test]
-    fn test_polymorphic_function_scheme() {
+    fn polymorphic_function_scheme() {
         let bump = Bump::new();
         let mgr = TypeManager::new(&bump);
 

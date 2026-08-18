@@ -7,6 +7,7 @@ use std::process::ExitCode;
 const GITHUB_ISSUES_URL: &str = "https://github.com/melbi-lang/melbi/issues/new";
 
 /// Run the bug command.
+#[must_use]
 pub fn run() -> ExitCode {
     let url = build_bug_report_url();
 

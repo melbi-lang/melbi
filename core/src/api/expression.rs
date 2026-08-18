@@ -1,12 +1,14 @@
 //! Compiled Melbi expressions.
 
+use bumpalo::Bump;
+
 use super::{Error, RunOptions, RunOptionsOverride};
 use crate::analyzer::typed_expr::TypedExpr;
 use crate::evaluator::{Evaluator, EvaluatorOptions};
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::values::dynamic::Value;
 use crate::{Vec, format};
-use bumpalo::Bump;
 
 /// A compiled Melbi expression ready for execution.
 ///
@@ -70,7 +72,7 @@ pub struct CompiledExpression<'arena> {
 impl<'arena> CompiledExpression<'arena> {
     /// Create a new compiled expression.
     ///
-    /// This is called internally by Engine::compile().
+    /// This is called internally by `Engine::compile()`.
     pub(crate) fn new(
         typed_expr: &'arena TypedExpr<'arena, 'arena>,
         type_manager: &'arena TypeManager<'arena>,
@@ -160,14 +162,16 @@ impl<'arena> CompiledExpression<'arena> {
         {
             if !core::ptr::eq(arg.ty, *expected_ty) {
                 return Err(Error::Api(format!(
-                    "Type mismatch for parameter {}: types don't match",
-                    i
+                    "Type mismatch for parameter {i}: types don't match"
                 )));
             }
         }
 
         // Execute with validation complete
-        unsafe { self.run_unchecked(options_override, arena, args) }
+        #[expect(unsafe_code, reason = "run must eventually call run_unchecked")]
+        unsafe {
+            self.run_unchecked(options_override, arena, args)
+        }
     }
 
     /// Execute the expression without validation.
@@ -181,7 +185,7 @@ impl<'arena> CompiledExpression<'arena> {
     /// The caller must ensure:
     /// - Argument count matches `self.params().len()`
     /// - Each argument's type matches the corresponding parameter type
-    /// - Arguments were created with the same TypeManager as the expression
+    /// - Arguments were created with the same `TypeManager` as the expression
     ///
     /// Violating these invariants may cause panics or incorrect results.
     ///
@@ -223,6 +227,10 @@ impl<'arena> CompiledExpression<'arena> {
     /// }.unwrap();
     /// assert_eq!(result.as_int().unwrap(), 42);
     /// ```
+    #[expect(
+        unsafe_code,
+        reason = "low-level building block for safe expression evaluation"
+    )]
     pub unsafe fn run_unchecked<'value_arena>(
         &self,
         options_override: RunOptionsOverride,
@@ -230,7 +238,7 @@ impl<'arena> CompiledExpression<'arena> {
         args: &[Value<'arena, 'value_arena>],
     ) -> Result<Value<'arena, 'value_arena>, Error> {
         // Merge execution options (defaults + provided)
-        let mut run_options = self.default_run_options.clone();
+        let mut run_options = self.default_run_options;
         run_options.override_with(&options_override);
 
         // Create evaluator options from execution options
@@ -278,11 +286,13 @@ impl<'arena> CompiledExpression<'arena> {
     /// Get the expression's parameters.
     ///
     /// Returns a slice of (name, type) pairs.
+    #[must_use]
     pub fn params(&self) -> &[(&'arena str, &'arena Type<'arena>)] {
         self.params
     }
 
     /// Get the expression's return type.
+    #[must_use]
     pub fn return_type(&self) -> &'arena Type<'arena> {
         self.typed_expr.expr.0
     }

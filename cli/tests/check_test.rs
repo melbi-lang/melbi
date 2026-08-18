@@ -22,18 +22,22 @@ fn check_valid_expression() {
 
 #[test]
 fn check_from_stdin() {
-    check_stdout(&["check", "-"], Some("1 + 2"), expect![[r#"
+    check_stdout(
+        &["check", "-"],
+        Some("1 + 2"),
+        expect![[r"
         <stdin>: OK
-    "#]]);
+    "]],
+    );
 }
 
 #[test]
 fn check_complex_expression() {
     let file = temp_file(
-        r#"result where {
+        r"result where {
     double = (x) => x * 2,
     result = double(21),
-}"#,
+}",
     );
     melbi()
         .args(["check", file.path().to_str().unwrap()])
@@ -51,7 +55,7 @@ fn check_type_error_output_format() {
     check_stderr(
         &["--no-color", "check", "-"],
         Some("1 + true"),
-        expect![[r#"
+        expect![[r"
             [E001] Error: Type mismatch: expected Int, found Bool
                ╭─[ <stdin>:1:5 ]
                │
@@ -61,7 +65,7 @@ fn check_type_error_output_format() {
                │
                │ Help: Types must match in this context
             ───╯
-        "#]],
+        "]],
     );
 }
 
@@ -70,7 +74,7 @@ fn check_undefined_variable_output_format() {
     check_stderr(
         &["--no-color", "check", "-"],
         Some("undefined_var + 1"),
-        expect![[r#"
+        expect![[r"
             [E002] Error: Undefined variable 'undefined_var'
                ╭─[ <stdin>:1:1 ]
                │
@@ -80,7 +84,7 @@ fn check_undefined_variable_output_format() {
                │
                │ Help: Make sure the variable is declared before use
             ───╯
-        "#]],
+        "]],
     );
 }
 
@@ -89,7 +93,7 @@ fn check_parse_error_output_format() {
     check_stderr(
         &["--no-color", "check", "-"],
         Some("1 + +"),
-        expect![[r#"
+        expect![[r"
             [P001] Error: Expected expression, literal or identifier, found unexpected token
                ╭─[ <stdin>:1:5 ]
                │
@@ -97,7 +101,7 @@ fn check_parse_error_output_format() {
                │     │
                │     ╰─ Expected expression, literal or identifier, found unexpected token
             ───╯
-        "#]],
+        "]],
     );
 }
 

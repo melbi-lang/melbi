@@ -1,15 +1,17 @@
+use alloc::string::ToString;
+use core::fmt;
+
+use bumpalo::Bump;
+
 /// String literal escaping and unescaping for Melbi syntax.
 ///
 /// This module provides utilities for converting between:
 /// - Runtime strings (e.g., "hello\n" with actual newline character)
 /// - Melbi source code string literals (e.g., "hello\n" with backslash-n sequence)
 use crate::{String, format};
-use alloc::string::ToString;
-use bumpalo::Bump;
-use core::fmt;
 
 /// Controls which quote style to use when escaping strings.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum QuoteStyle {
     /// Always use single quotes: `'...'`
     AlwaysSingle,
@@ -18,13 +20,8 @@ pub enum QuoteStyle {
     /// Prefer single quotes, use double if string contains single quotes but not double
     PreferSingle,
     /// Prefer double quotes, use single if string contains double quotes but not single
+    #[default]
     PreferDouble,
-}
-
-impl Default for QuoteStyle {
-    fn default() -> Self {
-        QuoteStyle::PreferDouble
-    }
 }
 
 /// Errors that can occur when unescaping string literals.
@@ -49,31 +46,28 @@ pub enum UnescapeError {
 impl fmt::Display for UnescapeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UnescapeError::InvalidEscape { pos, seq } => {
-                write!(f, "invalid escape sequence '{}' at position {}", seq, pos)
+            Self::InvalidEscape { pos, seq } => {
+                write!(f, "invalid escape sequence '{seq}' at position {pos}")
             }
-            UnescapeError::InvalidHexDigit { pos, seq } => {
-                write!(f, "invalid hex digit in '{}' at position {}", seq, pos)
+            Self::InvalidHexDigit { pos, seq } => {
+                write!(f, "invalid hex digit in '{seq}' at position {pos}")
             }
-            UnescapeError::IncompleteUnicodeEscape { pos, expected, got } => {
+            Self::IncompleteUnicodeEscape { pos, expected, got } => {
                 write!(
                     f,
-                    "incomplete Unicode escape at position {}: expected {} digits, got {}",
-                    pos, expected, got
+                    "incomplete Unicode escape at position {pos}: expected {expected} digits, got {got}"
                 )
             }
-            UnescapeError::InvalidUnicodeScalar { pos, value } => {
+            Self::InvalidUnicodeScalar { pos, value } => {
                 write!(
                     f,
-                    "invalid Unicode scalar value U+{:X} at position {}",
-                    value, pos
+                    "invalid Unicode scalar value U+{value:X} at position {pos}"
                 )
             }
-            UnescapeError::UnpairedBrace { pos, brace } => {
+            Self::UnpairedBrace { pos, brace } => {
                 write!(
                     f,
-                    "unpaired '{}' in format string at position {} (must be '{{{{' or '}}}}')",
-                    brace, pos
+                    "unpaired '{brace}' in format string at position {pos} (must be '{{{{' or '}}}}')"
                 )
             }
         }
@@ -125,11 +119,11 @@ pub fn escape_string(f: &mut impl fmt::Write, s: &str, style: QuoteStyle) -> fmt
         }
     };
 
-    write!(f, "{}", quote_char)?;
+    write!(f, "{quote_char}")?;
 
     for ch in s.chars() {
         if ch == needs_escape {
-            write!(f, "\\{}", quote_char)?;
+            write!(f, "\\{quote_char}")?;
         } else {
             match ch {
                 '\\' => write!(f, "\\\\")?,
@@ -138,12 +132,12 @@ pub fn escape_string(f: &mut impl fmt::Write, s: &str, style: QuoteStyle) -> fmt
                 '\t' => write!(f, "\\t")?,
                 '\0' => write!(f, "\\0")?,
                 c if c.is_control() => write!(f, "\\u{:04x}", c as u32)?,
-                c => write!(f, "{}", c)?,
+                c => write!(f, "{c}")?,
             }
         }
     }
 
-    write!(f, "{}", quote_char)?;
+    write!(f, "{quote_char}")?;
     Ok(())
 }
 
@@ -281,7 +275,7 @@ pub fn unescape_string<'a>(
                             None => {
                                 return Err(UnescapeError::InvalidHexDigit {
                                     pos: hex_start,
-                                    seq: format!("\\u{}", ch),
+                                    seq: format!("\\u{ch}"),
                                 });
                             }
                         },
@@ -321,7 +315,7 @@ pub fn unescape_string<'a>(
                             None => {
                                 return Err(UnescapeError::InvalidHexDigit {
                                     pos: hex_start,
-                                    seq: format!("\\U{}", ch),
+                                    seq: format!("\\U{ch}"),
                                 });
                             }
                         },
@@ -348,7 +342,7 @@ pub fn unescape_string<'a>(
             Some((_, other)) => {
                 return Err(UnescapeError::InvalidEscape {
                     pos,
-                    seq: format!("\\{}", other),
+                    seq: format!("\\{other}"),
                 });
             }
             None => {
@@ -382,19 +376,19 @@ mod tests {
     // ===== escape_string tests =====
 
     #[test]
-    fn test_escape_empty() {
+    fn escape_empty() {
         assert_eq!(escape("", QuoteStyle::PreferDouble), r#""""#);
         assert_eq!(escape("", QuoteStyle::PreferSingle), "''");
     }
 
     #[test]
-    fn test_escape_no_special_chars() {
+    fn escape_no_special_chars() {
         assert_eq!(escape("hello", QuoteStyle::PreferDouble), r#""hello""#);
         assert_eq!(escape("hello", QuoteStyle::PreferSingle), "'hello'");
     }
 
     #[test]
-    fn test_escape_common_escapes() {
+    fn escape_common_escapes() {
         assert_eq!(
             escape("hello\nworld", QuoteStyle::PreferDouble),
             r#""hello\nworld""#
@@ -418,7 +412,7 @@ mod tests {
     }
 
     #[test]
-    fn test_escape_quotes() {
+    fn escape_quotes() {
         assert_eq!(
             escape(r#"say "hi""#, QuoteStyle::AlwaysDouble),
             r#""say \"hi\"""#
@@ -430,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    fn test_escape_quote_selection_prefer_double() {
+    fn escape_quote_selection_prefer_double() {
         // No quotes -> double
         assert_eq!(escape("hello", QuoteStyle::PreferDouble), r#""hello""#);
         // Has double but not single -> use single
@@ -451,7 +445,7 @@ mod tests {
     }
 
     #[test]
-    fn test_escape_quote_selection_prefer_single() {
+    fn escape_quote_selection_prefer_single() {
         // No quotes -> single
         assert_eq!(escape("hello", QuoteStyle::PreferSingle), "'hello'");
         // Has single but not double -> use double
@@ -472,7 +466,7 @@ mod tests {
     }
 
     #[test]
-    fn test_escape_control_characters() {
+    fn escape_control_characters() {
         assert_eq!(
             escape("\x01\x02\x03", QuoteStyle::PreferDouble),
             r#""\u0001\u0002\u0003""#
@@ -481,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn test_escape_unicode() {
+    fn escape_unicode() {
         // UTF-8 characters should pass through as-is (not escaped)
         assert_eq!(escape("café", QuoteStyle::PreferDouble), r#""café""#);
         assert_eq!(escape("🌍", QuoteStyle::PreferDouble), r#""🌍""#);
@@ -494,13 +488,13 @@ mod tests {
     // ===== unescape_string tests =====
 
     #[test]
-    fn test_unescape_empty() {
+    fn unescape_empty() {
         let arena = Bump::new();
         assert_eq!(unescape_string(&arena, "", false).unwrap(), "");
     }
 
     #[test]
-    fn test_unescape_no_escapes() {
+    fn unescape_no_escapes() {
         let arena = Bump::new();
         let input = "hello world";
         // Should return input directly (zero-copy)
@@ -508,7 +502,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_common_escapes() {
+    fn unescape_common_escapes() {
         let arena = Bump::new();
         assert_eq!(
             unescape_string(&arena, r"hello\nworld", false).unwrap(),
@@ -533,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_quotes() {
+    fn unescape_quotes() {
         let arena = Bump::new();
         assert_eq!(
             unescape_string(&arena, r#"say \"hi\""#, false).unwrap(),
@@ -546,7 +540,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_unicode_4digit() {
+    fn unescape_unicode_4digit() {
         let arena = Bump::new();
         assert_eq!(
             unescape_string(&arena, r"\u0048\u0065\u006c\u006c\u006f", false).unwrap(),
@@ -563,7 +557,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_unicode_8digit() {
+    fn unescape_unicode_8digit() {
         let arena = Bump::new();
         assert_eq!(
             unescape_string(
@@ -579,7 +573,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_mixed_unicode() {
+    fn unescape_mixed_unicode() {
         let arena = Bump::new();
         assert_eq!(
             unescape_string(&arena, r"Hello \u4e16\u754c \U0001F30D", false).unwrap(),
@@ -588,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_utf8_in_source() {
+    fn unescape_utf8_in_source() {
         let arena = Bump::new();
         // UTF-8 characters in source should pass through
         assert_eq!(unescape_string(&arena, "café", false).unwrap(), "café");
@@ -600,7 +594,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_line_continuation() {
+    fn unescape_line_continuation() {
         let arena = Bump::new();
         // Backslash + newline should be removed
         assert_eq!(
@@ -619,7 +613,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_invalid_escape() {
+    fn unescape_invalid_escape() {
         let arena = Bump::new();
         assert!(matches!(
             unescape_string(&arena, r"\q", false),
@@ -632,7 +626,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_invalid_hex_digit() {
+    fn unescape_invalid_hex_digit() {
         let arena = Bump::new();
         assert!(matches!(
             unescape_string(&arena, r"\u00GG", false),
@@ -645,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_incomplete_unicode() {
+    fn unescape_incomplete_unicode() {
         let arena = Bump::new();
         assert!(matches!(
             unescape_string(&arena, r"\u00", false),
@@ -666,7 +660,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_invalid_unicode_scalar() {
+    fn unescape_invalid_unicode_scalar() {
         let arena = Bump::new();
         // D800-DFFF are surrogate code points (invalid in UTF-8)
         assert!(matches!(
@@ -684,7 +678,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_incomplete_at_end() {
+    fn unescape_incomplete_at_end() {
         let arena = Bump::new();
         assert!(matches!(
             unescape_string(&arena, r"hello\", false),
@@ -693,7 +687,7 @@ mod tests {
     }
 
     #[test]
-    fn test_roundtrip() {
+    fn roundtrip() {
         let arena = Bump::new();
         let test_cases = [
             "hello world",
@@ -712,14 +706,14 @@ mod tests {
             // Remove surrounding quotes
             let escaped_inner = &escaped[1..escaped.len() - 1];
             let unescaped = unescape_string(&arena, escaped_inner, false).unwrap();
-            assert_eq!(unescaped, test, "Roundtrip failed for: {:?}", test);
+            assert_eq!(unescaped, test, "Roundtrip failed for: {test:?}");
         }
     }
 
     // ===== Format string mode tests =====
 
     #[test]
-    fn test_unescape_format_braces() {
+    fn unescape_format_braces() {
         let arena = Bump::new();
         // Double braces should become single braces
         assert_eq!(unescape_string(&arena, "{{", true).unwrap(), "{");
@@ -732,7 +726,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_format_with_escapes() {
+    fn unescape_format_with_escapes() {
         let arena = Bump::new();
         // Combine brace escaping with string escapes
         assert_eq!(unescape_string(&arena, r"{{\n}}", true).unwrap(), "{\n}");
@@ -747,7 +741,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_format_complex() {
+    fn unescape_format_complex() {
         let arena = Bump::new();
         // Test combinations
         assert_eq!(
@@ -765,7 +759,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_format_unpaired_brace_left() {
+    fn unescape_format_unpaired_brace_left() {
         let arena = Bump::new();
         // NOTE: The grammar (format_text rule) prevents unpaired braces from reaching
         // this function in normal parsing. This test verifies the defensive behavior
@@ -782,7 +776,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_format_unpaired_brace_right() {
+    fn unescape_format_unpaired_brace_right() {
         let arena = Bump::new();
         // NOTE: The grammar (format_text rule) prevents unpaired braces from reaching
         // this function in normal parsing. This test verifies the defensive behavior
@@ -799,14 +793,14 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape_format_no_braces_same_as_normal() {
+    fn unescape_format_no_braces_same_as_normal() {
         let arena = Bump::new();
         // If there are no braces, format mode should behave like normal mode
         let test_cases = ["hello", r"hello\nworld", r"\u0048i"];
         for test in test_cases {
             let normal = unescape_string(&arena, test, false).unwrap();
             let format = unescape_string(&arena, test, true).unwrap();
-            assert_eq!(normal, format, "Mismatch for: {}", test);
+            assert_eq!(normal, format, "Mismatch for: {test}");
         }
     }
 }

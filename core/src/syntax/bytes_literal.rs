@@ -4,13 +4,14 @@
 /// - Runtime bytes (e.g., `[104, 101, 108, 108, 111]` for "hello")
 /// - Melbi source code bytes literals (e.g., `b"hello"` or `b"\x68\x65\x6c\x6c\x6f"`)
 use alloc::string::ToString;
-use bumpalo::Bump;
 use core::fmt;
+
+use bumpalo::Bump;
 
 use crate::{String, format};
 
 /// Style for quoting bytes literals.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum QuoteStyle {
     /// Always use single quotes: `b'...'`
     AlwaysSingle,
@@ -19,13 +20,8 @@ pub enum QuoteStyle {
     /// Prefer single quotes, use double if content contains single quote
     PreferSingle,
     /// Prefer double quotes, use single if content contains double quote (but not single)
+    #[default]
     PreferDouble,
-}
-
-impl Default for QuoteStyle {
-    fn default() -> Self {
-        QuoteStyle::PreferDouble
-    }
 }
 
 /// Errors that can occur when unescaping bytes literals.
@@ -44,20 +40,19 @@ pub enum UnescapeError {
 impl fmt::Display for UnescapeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UnescapeError::InvalidEscape { pos, seq } => {
-                write!(f, "invalid escape sequence '{}' at position {}", seq, pos)
+            Self::InvalidEscape { pos, seq } => {
+                write!(f, "invalid escape sequence '{seq}' at position {pos}")
             }
-            UnescapeError::InvalidHexDigit { pos, seq } => {
-                write!(f, "invalid hex digit in '{}' at position {}", seq, pos)
+            Self::InvalidHexDigit { pos, seq } => {
+                write!(f, "invalid hex digit in '{seq}' at position {pos}")
             }
-            UnescapeError::IncompleteHexEscape { pos } => {
-                write!(f, "incomplete hex escape at position {}", pos)
+            Self::IncompleteHexEscape { pos } => {
+                write!(f, "incomplete hex escape at position {pos}")
             }
-            UnescapeError::NonAsciiCharacter { pos, character } => {
+            Self::NonAsciiCharacter { pos, character } => {
                 write!(
                     f,
-                    "non-ASCII character '{}' at position {} (use \\xNN escapes)",
-                    character, pos
+                    "non-ASCII character '{character}' at position {pos} (use \\xNN escapes)"
                 )
             }
         }
@@ -106,11 +101,11 @@ pub fn escape_bytes(f: &mut impl fmt::Write, bytes: &[u8], style: QuoteStyle) ->
         }
     };
 
-    write!(f, "b{}", quote_char)?;
+    write!(f, "b{quote_char}")?;
 
     for &byte in bytes {
         if byte == needs_escape {
-            write!(f, "\\{}", quote_char)?;
+            write!(f, "\\{quote_char}")?;
         } else {
             match byte {
                 b'\\' => write!(f, "\\\\")?,
@@ -121,12 +116,12 @@ pub fn escape_bytes(f: &mut impl fmt::Write, bytes: &[u8], style: QuoteStyle) ->
                 // Printable ASCII characters (excluding control characters)
                 0x20..=0x7E => write!(f, "{}", byte as char)?,
                 // Non-printable bytes as hex
-                _ => write!(f, "\\x{:02x}", byte)?,
+                _ => write!(f, "\\x{byte:02x}")?,
             }
         }
     }
 
-    write!(f, "{}", quote_char)?;
+    write!(f, "{quote_char}")?;
     Ok(())
 }
 
@@ -256,14 +251,14 @@ pub fn unescape_bytes<'a>(arena: &'a Bump, input: &'a str) -> Result<&'a [u8], U
                     .to_digit(16)
                     .ok_or_else(|| UnescapeError::InvalidHexDigit {
                         pos: hex_start,
-                        seq: format!("\\x{}{}", d1, d2),
+                        seq: format!("\\x{d1}{d2}"),
                     })?;
 
                 let low = d2
                     .to_digit(16)
                     .ok_or_else(|| UnescapeError::InvalidHexDigit {
                         pos: hex_start,
-                        seq: format!("\\x{}{}", d1, d2),
+                        seq: format!("\\x{d1}{d2}"),
                     })?;
 
                 output[write_pos] = ((high << 4) | low) as u8;
@@ -273,7 +268,7 @@ pub fn unescape_bytes<'a>(arena: &'a Bump, input: &'a str) -> Result<&'a [u8], U
                 // Invalid escape sequence
                 return Err(UnescapeError::InvalidEscape {
                     pos: escape_start,
-                    seq: format!("\\{}", other),
+                    seq: format!("\\{other}"),
                 });
             }
             None => {
@@ -303,7 +298,7 @@ mod tests {
     // Helper to unescape bytes
     fn unescape(input: &str) -> Result<Vec<u8>, UnescapeError> {
         let arena = Bump::new();
-        unescape_bytes(&arena, input).map(|s| s.to_vec())
+        unescape_bytes(&arena, input).map(<[u8]>::to_vec)
     }
 
     // ========================================================================
@@ -399,7 +394,7 @@ mod tests {
     fn escape_quotes_always_single() {
         assert_eq!(
             escape_to_string(b"it's", QuoteStyle::AlwaysSingle),
-            r#"b'it\'s'"#
+            r"b'it\'s'"
         );
         assert_eq!(
             escape_to_string(b"say \"hi\"", QuoteStyle::AlwaysSingle),
@@ -449,41 +444,41 @@ mod tests {
 
     #[test]
     fn unescape_standard_escapes() {
-        assert_eq!(unescape(r#"\n"#).unwrap(), b"\n");
-        assert_eq!(unescape(r#"\r"#).unwrap(), b"\r");
-        assert_eq!(unescape(r#"\t"#).unwrap(), b"\t");
-        assert_eq!(unescape(r#"\\"#).unwrap(), b"\\");
+        assert_eq!(unescape(r"\n").unwrap(), b"\n");
+        assert_eq!(unescape(r"\r").unwrap(), b"\r");
+        assert_eq!(unescape(r"\t").unwrap(), b"\t");
+        assert_eq!(unescape(r"\\").unwrap(), b"\\");
         assert_eq!(unescape(r#"\""#).unwrap(), b"\"");
-        assert_eq!(unescape(r#"\'"#).unwrap(), b"'");
+        assert_eq!(unescape(r"\'").unwrap(), b"'");
     }
 
     #[test]
     fn unescape_multiple_escapes() {
-        assert_eq!(unescape(r#"\n\r\t"#).unwrap(), b"\n\r\t");
+        assert_eq!(unescape(r"\n\r\t").unwrap(), b"\n\r\t");
         assert_eq!(unescape(r#"\\\"\'"#).unwrap(), b"\\\"'");
     }
 
     #[test]
     fn unescape_hex_escapes() {
-        assert_eq!(unescape(r#"\x00"#).unwrap(), b"\x00");
-        assert_eq!(unescape(r#"\xff"#).unwrap(), b"\xff");
-        assert_eq!(unescape(r#"\x42"#).unwrap(), b"B");
-        assert_eq!(unescape(r#"\x00\xff\x42"#).unwrap(), b"\x00\xff\x42");
+        assert_eq!(unescape(r"\x00").unwrap(), b"\x00");
+        assert_eq!(unescape(r"\xff").unwrap(), b"\xff");
+        assert_eq!(unescape(r"\x42").unwrap(), b"B");
+        assert_eq!(unescape(r"\x00\xff\x42").unwrap(), b"\x00\xff\x42");
     }
 
     #[test]
     fn unescape_hex_case_insensitive() {
-        assert_eq!(unescape(r#"\xFF"#).unwrap(), b"\xff");
-        assert_eq!(unescape(r#"\xAb"#).unwrap(), b"\xab");
-        assert_eq!(unescape(r#"\xCd"#).unwrap(), b"\xcd");
+        assert_eq!(unescape(r"\xFF").unwrap(), b"\xff");
+        assert_eq!(unescape(r"\xAb").unwrap(), b"\xab");
+        assert_eq!(unescape(r"\xCd").unwrap(), b"\xcd");
     }
 
     #[test]
     fn unescape_mixed() {
-        assert_eq!(unescape(r#"Hello\x20World"#).unwrap(), b"Hello World");
-        assert_eq!(unescape(r#"line1\nline2"#).unwrap(), b"line1\nline2");
+        assert_eq!(unescape(r"Hello\x20World").unwrap(), b"Hello World");
+        assert_eq!(unescape(r"line1\nline2").unwrap(), b"line1\nline2");
         assert_eq!(
-            unescape(r#"tab\there\nand\\slash"#).unwrap(),
+            unescape(r"tab\there\nand\\slash").unwrap(),
             b"tab\there\nand\\slash"
         );
     }
@@ -495,21 +490,21 @@ mod tests {
     #[test]
     fn unescape_invalid_escape() {
         assert_eq!(
-            unescape(r#"\a"#),
+            unescape(r"\a"),
             Err(UnescapeError::InvalidEscape {
                 pos: 0,
                 seq: "\\a".to_string()
             })
         );
         assert_eq!(
-            unescape(r#"\z"#),
+            unescape(r"\z"),
             Err(UnescapeError::InvalidEscape {
                 pos: 0,
                 seq: "\\z".to_string()
             })
         );
         assert_eq!(
-            unescape(r#"hello\b"#),
+            unescape(r"hello\b"),
             Err(UnescapeError::InvalidEscape {
                 pos: 5,
                 seq: "\\b".to_string()
@@ -520,14 +515,14 @@ mod tests {
     #[test]
     fn unescape_invalid_hex_digit() {
         assert_eq!(
-            unescape(r#"\xGG"#),
+            unescape(r"\xGG"),
             Err(UnescapeError::InvalidHexDigit {
                 pos: 0,
                 seq: "\\xGG".to_string()
             })
         );
         assert_eq!(
-            unescape(r#"\xZ0"#),
+            unescape(r"\xZ0"),
             Err(UnescapeError::InvalidHexDigit {
                 pos: 0,
                 seq: "\\xZ0".to_string()
@@ -538,15 +533,15 @@ mod tests {
     #[test]
     fn unescape_incomplete_hex_escape() {
         assert_eq!(
-            unescape(r#"\x"#),
+            unescape(r"\x"),
             Err(UnescapeError::IncompleteHexEscape { pos: 0 })
         );
         assert_eq!(
-            unescape(r#"\x0"#),
+            unescape(r"\x0"),
             Err(UnescapeError::IncompleteHexEscape { pos: 0 })
         );
         assert_eq!(
-            unescape(r#"hello\x"#),
+            unescape(r"hello\x"),
             Err(UnescapeError::IncompleteHexEscape { pos: 5 })
         );
     }
@@ -554,7 +549,7 @@ mod tests {
     #[test]
     fn unescape_backslash_at_end() {
         assert_eq!(
-            unescape(r#"\"#),
+            unescape(r"\"),
             Err(UnescapeError::InvalidEscape {
                 pos: 0,
                 seq: "\\".to_string()
@@ -601,7 +596,7 @@ mod tests {
     #[test]
     fn unescape_null_escape() {
         // Note: Grammar doesn't support \0 yet, but unescape function does
-        assert_eq!(unescape(r#"\0"#).unwrap(), b"\x00");
+        assert_eq!(unescape(r"\0").unwrap(), b"\x00");
     }
 
     #[test]

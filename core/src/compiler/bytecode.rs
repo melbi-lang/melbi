@@ -2,27 +2,23 @@
 
 use alloc::boxed::Box;
 
-use crate::{
-    Vec,
-    analyzer::typed_expr::{Expr, ExprBuilder, LambdaInstantiations, TypedExpr},
-    parser::ComparisonOp,
-    scope_stack::{CompleteScope, IncompleteScope, ScopeStack},
-    types::{
-        Type,
-        manager::TypeManager,
-        traits::{TypeKind, TypeView},
-        unification::Unification,
-    },
-    values::dynamic::Value,
-    visitor::TreeTransformer,
-    vm::{
-        ArrayContainsAdapter, CastAdapter, Code, FormatStrAdapter, FunctionAdapter, GenericAdapter,
-        Instruction, LambdaCode, LambdaKind,
-    },
-};
 use bumpalo::Bump;
 
 use super::error::CompileError;
+use crate::Vec;
+use crate::analyzer::typed_expr::{Expr, ExprBuilder, LambdaInstantiations, TypedExpr};
+use crate::parser::ComparisonOp;
+use crate::scope_stack::{CompleteScope, IncompleteScope, ScopeStack};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::types::unification::Unification;
+use crate::values::dynamic::Value;
+use crate::visitor::TreeTransformer;
+use crate::vm::{
+    ArrayContainsAdapter, CastAdapter, Code, FormatStrAdapter, FunctionAdapter, GenericAdapter,
+    Instruction, LambdaCode, LambdaKind,
+};
 
 /// A pending jump that needs to be patched to the next match arm.
 ///
@@ -45,9 +41,9 @@ enum ScopeEntry<'types, 'arena> {
 
 /// Bytecode compiler that transforms typed expressions into VM bytecode.
 ///
-/// The compiler implements the TreeTransformer pattern to traverse the AST
+/// The compiler implements the `TreeTransformer` pattern to traverse the AST
 /// and emit bytecode instructions. It tracks the operand stack precisely
-/// to set exact max_stack_size for debugging.
+/// to set exact `max_stack_size` for debugging.
 pub struct BytecodeCompiler<'types, 'arena> {
     /// Type manager for creating function adapters
     type_mgr: &'types TypeManager<'types>,
@@ -58,9 +54,9 @@ pub struct BytecodeCompiler<'types, 'arena> {
     /// Constant pool for literal values
     ///
     /// We store `Value` (not `RawValue`) to preserve type information for debugging.
-    /// At runtime, the VM will extract the RawValue when loading constants.
+    /// At runtime, the VM will extract the `RawValue` when loading constants.
     ///
-    /// Future: In release mode, we could strip types and store only RawValue.
+    /// Future: In release mode, we could strip types and store only `RawValue`.
     constants: alloc::vec::Vec<Value<'types, 'arena>>,
 
     /// Constant deduplication map: Value -> index
@@ -76,7 +72,7 @@ pub struct BytecodeCompiler<'types, 'arena> {
 
     /// Scope stack for lexical scoping
     ///
-    /// Uses ScopeStack from scope_stack.rs which handles:
+    /// Uses `ScopeStack` from `scope_stack.rs` which handles:
     /// - Globals (Math, String packages, etc.) at the bottom
     /// - Expression params (future) in the middle
     /// - Where bindings (pushed/popped dynamically) at the top
@@ -88,7 +84,7 @@ pub struct BytecodeCompiler<'types, 'arena> {
     /// TODO: Deduplicate adapters with same parameter types.
     adapters: alloc::vec::Vec<FunctionAdapter<'types>>,
 
-    /// Generic adapters for other operations (Cast, FormatStr, etc.)
+    /// Generic adapters for other operations (Cast, `FormatStr`, etc.)
     ///
     /// These use dynamic dispatch to allow different adapter types.
     generic_adapters: alloc::vec::Vec<Box<dyn GenericAdapter + 'types>>,
@@ -220,7 +216,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
 
     /// Finalize compilation and return the bytecode.
     ///
-    /// Converts Value constants (with type info) to RawValue for VM execution.
+    /// Converts Value constants (with type info) to `RawValue` for VM execution.
     pub fn finalize(self) -> Code<'types> {
         // Convert Values to RawValues for VM
         // TODO: In debug mode, we could keep Values for better error messages
@@ -304,8 +300,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
     fn resolve_type(&self, ty: &'types Type<'types>) -> &'types Type<'types> {
         self.monomorphism
             .as_ref()
-            .map(|m| m.fully_resolve(ty))
-            .unwrap_or(ty)
+            .map_or(ty, |m| m.fully_resolve(ty))
     }
 
     // === Instruction Emission ===
@@ -315,10 +310,10 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
         self.instructions.push(instruction);
     }
 
-    /// Emit an instruction with a u32 argument, handling WideArg automatically.
+    /// Emit an instruction with a u32 argument, handling `WideArg` automatically.
     ///
     /// This is the non-generic implementation to avoid code bloat from monomorphization.
-    /// For arg 0x00_12_34_56:
+    /// For arg `0x00_12_34_56`:
     ///   - 0x56 goes in the instruction itself (passed in `instruction`)
     ///   - 0x00 is not emitted (leading zero)
     ///   - Emit WideArg(0x12), WideArg(0x34) before the instruction
@@ -339,7 +334,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
     /// Emit an instruction with a u32 argument.
     ///
     /// The generic wrapper constructs the instruction with the low byte,
-    /// then delegates to emit_with_arg_impl for WideArg handling.
+    /// then delegates to `emit_with_arg_impl` for `WideArg` handling.
     fn emit_with_arg(&mut self, make_instr: fn(u8) -> Instruction, arg: u32) {
         self.emit_with_arg_impl(make_instr((arg & 0xFF) as u8), arg >> 8);
     }
@@ -366,27 +361,24 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
                 self.emit_with_arg(Instruction::LoadLocal, *index);
             }
             Some(ScopeEntry::Capture(index)) => {
-                self.emit_with_arg(Instruction::LoadCapture, *index as u32);
+                self.emit_with_arg(Instruction::LoadCapture, *index);
             }
             Some(ScopeEntry::Global(value)) => {
                 let const_index = self.add_constant(*value)?;
                 self.emit_with_arg(Instruction::ConstLoad, const_index);
             }
             None => {
-                panic!(
-                    "Undefined variable '{}' (should be caught by type checker)",
-                    name
-                );
+                panic!("Undefined variable '{name}' (should be caught by type checker)");
             }
         }
         self.push_stack();
         Ok(())
     }
 
-    /// Compile a lambda body into a LambdaCode with Mono kind.
+    /// Compile a lambda body into a `LambdaCode` with Mono kind.
     ///
     /// Creates a fresh compiler for the lambda, sets up parameters as locals,
-    /// compiles the body, and returns the resulting LambdaCode.
+    /// compiles the body, and returns the resulting `LambdaCode`.
     ///
     /// # Arguments
     /// * `params` - Parameter names
@@ -456,7 +448,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
     /// Add a constant to the pool (or reuse existing) and return its index.
     ///
     /// Deduplicates constants by value equality.
-    /// Returns the index as u32 - emit_with_arg handles WideArg if needed.
+    /// Returns the index as u32 - `emit_with_arg` handles `WideArg` if needed.
     fn add_constant(&mut self, value: Value<'types, 'arena>) -> Result<u32, CompileError> {
         // Check if this constant already exists
         if let Some(&existing_index) = self.constant_map.get(&value) {
@@ -496,7 +488,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
     /// * `target_label` - The target instruction index from `label()`
     /// * `make_jump` - Function that creates the jump instruction with the offset
     ///
-    /// Uses 1 instruction for offsets <= 255, or 2 instructions (WideArg + Jump) for larger offsets.
+    /// Uses 1 instruction for offsets <= 255, or 2 instructions (`WideArg` + Jump) for larger offsets.
     fn patch_jump(
         &mut self,
         placeholder_index: usize,
@@ -510,7 +502,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
         let offset = target_label - placeholder_index - 1;
         debug_assert_eq!(self.instructions[placeholder_index], make_jump(0));
 
-        if offset <= u8::MAX as usize {
+        if u8::try_from(offset).is_ok() {
             // Single instruction: Jump(offset)
             self.instructions[placeholder_index] = make_jump(offset as u8);
             // Second slot stays Nop (already there from placeholder)
@@ -581,16 +573,16 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
                 self.pop_stack_n(2); // depth = N - 1 (value consumed)
                 match value_type.view() {
                     TypeKind::Int => {
-                        self.emit(Instruction::IntCmpOp(crate::parser::ComparisonOp::Eq))
+                        self.emit(Instruction::IntCmpOp(crate::parser::ComparisonOp::Eq));
                     }
                     TypeKind::Float => {
-                        self.emit(Instruction::FloatCmpOp(crate::parser::ComparisonOp::Eq))
+                        self.emit(Instruction::FloatCmpOp(crate::parser::ComparisonOp::Eq));
                     }
                     TypeKind::Str => {
-                        self.emit(Instruction::StringCmpOp(crate::parser::ComparisonOp::Eq))
+                        self.emit(Instruction::StringCmpOp(crate::parser::ComparisonOp::Eq));
                     }
                     TypeKind::Bytes => {
-                        self.emit(Instruction::BytesCmpOp(crate::parser::ComparisonOp::Eq))
+                        self.emit(Instruction::BytesCmpOp(crate::parser::ComparisonOp::Eq));
                     }
                     TypeKind::Bool => self.emit(Instruction::EqBool),
                     _ => panic!("Literal pattern on unsupported type (type checker bug)"),
@@ -623,12 +615,10 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
                 self.push_stack();
 
                 // Get the inner type for recursive pattern matching
-                let inner_type = match value_type.view() {
-                    TypeKind::Option(inner) => inner,
-                    _ => panic!(
-                        "Some pattern on non-Option type (type checker bug): value_type = {:?}",
-                        value_type
-                    ),
+                let TypeKind::Option(inner_type) = value_type.view() else {
+                    panic!(
+                        "Some pattern on non-Option type (type checker bug): value_type = {value_type:?}"
+                    );
                 };
 
                 // Recursively compile the inner pattern
@@ -665,28 +655,23 @@ where
     type Output = Result<(), CompileError>;
 
     fn transform(&mut self, tree: &'arena Expr<'types, 'arena>) -> Self::Output {
-        use crate::{
-            analyzer::typed_expr::ExprInner,
-            parser::{BinaryOp, BoolOp},
-            visitor::TreeView,
-        };
+        use crate::analyzer::typed_expr::ExprInner;
+        use crate::parser::{BinaryOp, BoolOp};
+        use crate::visitor::TreeView;
 
         match tree.view() {
             // === Constants ===
             ExprInner::Constant(value) => {
                 if let Ok(i) = value.as_int() {
                     // Use immediate encoding for small integers
-                    if i >= i8::MIN as i64 && i <= i8::MAX as i64 {
+                    if i8::try_from(i).is_ok() {
                         self.emit(Instruction::ConstInt(i as i8));
-                        self.push_stack();
-                    } else if i >= 0 && i <= u8::MAX as i64 {
+                    } else if u8::try_from(i).is_ok() {
                         self.emit(Instruction::ConstUInt(i as u8));
-                        self.push_stack();
                     } else {
                         // Large integer - use constant pool
                         let const_index = self.add_constant(value)?;
                         self.emit_with_arg(Instruction::ConstLoad, const_index);
-                        self.push_stack();
                     }
                 } else if let Ok(b) = value.as_bool() {
                     // Use immediate encoding for booleans
@@ -695,13 +680,12 @@ where
                     } else {
                         self.emit(Instruction::ConstBool(0));
                     }
-                    self.push_stack();
                 } else {
                     // Other types (float, string, etc.) - use constant pool
                     let const_index = self.add_constant(value)?;
                     self.emit_with_arg(Instruction::ConstLoad, const_index);
-                    self.push_stack();
                 }
+                self.push_stack();
             }
 
             // === Binary Operations ===
@@ -729,8 +713,7 @@ where
                     TypeKind::Float => self.emit(Instruction::FloatBinOp(op_byte)),
                     TypeKind::Int => self.emit(Instruction::IntBinOp(op_byte)),
                     _ => panic!(
-                        "Binary operation on non-numeric type: {} (type checker bug)",
-                        resolved_type
+                        "Binary operation on non-numeric type: {resolved_type} (type checker bug)"
                     ),
                 }
                 self.push_stack();
@@ -754,8 +737,7 @@ where
                             TypeKind::Float => self.emit(Instruction::NegFloat),
                             TypeKind::Int => self.emit(Instruction::NegInt),
                             _ => panic!(
-                                "Negation on non-numeric type: {} (type checker bug)",
-                                resolved_type
+                                "Negation on non-numeric type: {resolved_type} (type checker bug)"
                             ),
                         }
                     }
@@ -801,8 +783,7 @@ where
                             }
                         }
                         _ => panic!(
-                            "Containment on unsupported type: {} (type checker bug)",
-                            haystack_type
+                            "Containment on unsupported type: {haystack_type} (type checker bug)"
                         ),
                     }
                 } else {
@@ -813,8 +794,7 @@ where
                         TypeKind::Str => self.emit(Instruction::StringCmpOp(op)),
                         TypeKind::Bytes => self.emit(Instruction::BytesCmpOp(op)),
                         _ => panic!(
-                            "Comparison on unsupported type: {} (type checker bug)",
-                            resolved_type
+                            "Comparison on unsupported type: {resolved_type} (type checker bug)"
                         ),
                     }
                 }
@@ -928,7 +908,7 @@ where
             ExprInner::Array { elements } => {
                 // Compile all element expressions
                 // They will be pushed onto the stack in order
-                for element in elements.iter() {
+                for element in elements {
                     self.transform(element)?;
                 }
 
@@ -958,7 +938,7 @@ where
                 );
 
                 // Compile all bindings first (in order)
-                for (name, value_expr) in bindings.iter() {
+                for (name, value_expr) in bindings {
                     // Compile the value expression
                     self.transform(value_expr)?;
                     self.pop_stack();
@@ -992,26 +972,25 @@ where
                 let container_type = self.resolve_type(value.0);
 
                 // Check if index is a constant for optimization
-                if let ExprInner::Constant(idx_val) = index.view() {
-                    if let Ok(i) = idx_val.as_int() {
-                        if 0 <= i && i <= i8::MAX as i64 {
-                            // Use constant index optimization for arrays and bytes
-                            match container_type.view() {
-                                TypeKind::Array(_) => {
-                                    self.pop_stack(); // Pop array
-                                    self.emit_with_arg(Instruction::ArrayGetConst, i as u32);
-                                    self.push_stack(); // Push result
-                                    return Ok(());
-                                }
-                                TypeKind::Bytes => {
-                                    self.pop_stack(); // Pop bytes
-                                    self.emit(Instruction::BytesGetConst(i as u8));
-                                    self.push_stack(); // Push result (Int)
-                                    return Ok(());
-                                }
-                                _ => {} // Fall through to generic case (including maps)
-                            }
+                if let ExprInner::Constant(idx_val) = index.view()
+                    && let Ok(i) = idx_val.as_int()
+                    && (0..=i64::from(i8::MAX)).contains(&i)
+                {
+                    // Use constant index optimization for arrays and bytes
+                    match container_type.view() {
+                        TypeKind::Array(_) => {
+                            self.pop_stack(); // Pop array
+                            self.emit_with_arg(Instruction::ArrayGetConst, i as u32);
+                            self.push_stack(); // Push result
+                            return Ok(());
                         }
+                        TypeKind::Bytes => {
+                            self.pop_stack(); // Pop bytes
+                            self.emit(Instruction::BytesGetConst(i as u8));
+                            self.push_stack(); // Push result (Int)
+                            return Ok(());
+                        }
+                        _ => {} // Fall through to generic case (including maps)
                     }
                 }
 
@@ -1031,8 +1010,7 @@ where
                         self.emit(Instruction::BytesGet);
                     }
                     _ => panic!(
-                        "Index operation on non-indexable type (type checker bug): {}",
-                        container_type
+                        "Index operation on non-indexable type (type checker bug): {container_type}"
                     ),
                 }
                 self.push_stack(); // Push result
@@ -1080,7 +1058,7 @@ where
                 sorted_fields.sort_by_key(|(name, _)| *name);
 
                 // Compile field values in sorted order
-                for (_name, value_expr) in sorted_fields.iter() {
+                for (_name, value_expr) in &sorted_fields {
                     self.transform(value_expr)?;
                 }
 
@@ -1097,7 +1075,7 @@ where
             ExprInner::Map { elements } => {
                 // Compile all key-value pairs
                 // Each pair pushes key then value onto the stack
-                for (key_expr, value_expr) in elements.iter() {
+                for (key_expr, value_expr) in elements {
                     self.transform(key_expr)?; // Push key
                     self.transform(value_expr)?; // Push value
                 }
@@ -1151,21 +1129,17 @@ where
 
             // === Option Construction ===
             ExprInner::Option { inner } => {
-                match inner {
-                    Some(value_expr) => {
-                        // some expr: compile the inner expression, then wrap with MakeOption(1)
-                        self.transform(value_expr)?;
-                        // MakeOption(1) pops 1 value and pushes 1 option
-                        self.pop_stack();
-                        self.emit(Instruction::MakeOption(1));
-                        self.push_stack();
-                    }
-                    None => {
-                        // none: just create a None value with MakeOption(0)
-                        self.emit(Instruction::MakeOption(0));
-                        self.push_stack();
-                    }
+                if let Some(value_expr) = inner {
+                    // some expr: compile the inner expression, then wrap with MakeOption(1)
+                    self.transform(value_expr)?;
+                    // MakeOption(1) pops 1 value and pushes 1 option
+                    self.pop_stack();
+                    self.emit(Instruction::MakeOption(1));
+                } else {
+                    // none: just create a None value with MakeOption(0)
+                    self.emit(Instruction::MakeOption(0));
                 }
+                self.push_stack();
             }
 
             // === Function Calls ===
@@ -1173,7 +1147,7 @@ where
                 use crate::types::traits::{TypeKind, TypeView};
 
                 // 1. Compile arguments first (they go on stack before function)
-                for arg in args.iter() {
+                for arg in args {
                     self.transform(arg)?;
                 }
 
@@ -1226,7 +1200,7 @@ where
                 captures,
             } => {
                 // Push captured values onto stack (for MakeClosure to consume)
-                for &capture_name in captures.iter() {
+                for &capture_name in captures {
                     self.compile_variable_load(capture_name)?;
                 }
 
@@ -1243,7 +1217,7 @@ where
 
                         // Compile each Mono instantiation and collect their indices
                         let mut monos = Vec::new();
-                        for substitution in info.substitutions.iter() {
+                        for substitution in &info.substitutions {
                             let mono_index = self.lambdas.len() as u32;
                             monos.push(mono_index);
 
@@ -1378,7 +1352,7 @@ where
 
             ExprInner::FormatStr { strs, exprs } => {
                 // 1. Compile all expressions (push values onto stack in order)
-                for expr in exprs.iter() {
+                for expr in exprs {
                     self.transform(expr)?;
                 }
 

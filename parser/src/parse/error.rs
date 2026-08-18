@@ -21,9 +21,8 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
-use crate::Span;
-
 use super::grammar::Rule;
+use crate::Span;
 
 /// A parse failure, and where in the source it happened.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,6 +32,7 @@ pub struct ParseError {
 }
 
 impl ParseError {
+    #[must_use]
     pub fn new(kind: ParseErrorKind, span: Span) -> Self {
         Self { kind, span }
     }

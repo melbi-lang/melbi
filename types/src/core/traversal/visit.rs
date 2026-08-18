@@ -1,7 +1,9 @@
-use crate::core::{builder::TyBuilder, kind::TyKind, ty::Ty};
+use crate::core::builder::TyBuilder;
+use crate::core::kind::TyKind;
+use crate::core::ty::Ty;
 
 /// A generic trait for traversing a type while modifying a context.
-/// This is supposed to be implemented on TyKind<B>.
+/// This is supposed to be implemented on `TyKind`<B>.
 pub trait Visit<B: TyBuilder, C> {
     /// Visit the node.
     /// The implementation on `Ty<B>` handles the data (flags) and forwards
@@ -19,12 +21,12 @@ where
     B: TyBuilder,
     TyKind<B>: Visit<B, C>,
 {
-    /// This implementation just forwards to TyKind for convenience.
+    /// This implementation just forwards to `TyKind` for convenience.
     fn visit(&self, builder: &B, ctx: &mut C) {
-        self.kind().visit(builder, ctx)
+        self.kind().visit(builder, ctx);
     }
 
-    /// This arbitrarily forwards the call to a visit on TyKind.
+    /// This arbitrarily forwards the call to a visit on `TyKind`.
     fn walk(&self, builder: &B, ctx: &mut C) {
         self.kind().visit(builder, ctx);
     }
@@ -43,11 +45,11 @@ mod tests {
     impl Visit<BoxBuilder, IntCounterCtx> for TyKind<BoxBuilder> {
         fn visit(&self, builder: &BoxBuilder, ctx: &mut IntCounterCtx) {
             match self {
-                TyKind::Scalar(Scalar::Int) => {
+                Self::Scalar(Scalar::Int) => {
                     ctx.count += 1;
                 }
                 _ => self.walk(builder, ctx),
-            };
+            }
         }
 
         fn walk(&self, builder: &BoxBuilder, ctx: &mut IntCounterCtx) {
@@ -58,7 +60,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_int_two() {
+    fn count_int_two() {
         let builder = BoxBuilder::new();
         let map = TyKind::Map(
             TyKind::Scalar(Scalar::Int).alloc(&builder),
@@ -72,7 +74,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_int_one() {
+    fn count_int_one() {
         let builder = BoxBuilder::new();
         let map = TyKind::Map(
             TyKind::Array(TyKind::Scalar(Scalar::Int).alloc(&builder)).alloc(&builder),

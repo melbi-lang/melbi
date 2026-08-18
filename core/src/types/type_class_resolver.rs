@@ -1,12 +1,13 @@
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::parser::Span;
 use crate::types::Type;
 use crate::types::constraint_set::{ConstraintSet, TypeClassConstraint};
 use crate::types::traits::TypeView;
 use crate::types::type_class::{TypeClassId, has_instance};
 use crate::types::unification::Unification;
-use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
 
 /// Error type for constraint resolution failures.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +32,7 @@ pub struct ConstraintError {
 
 impl ConstraintError {
     /// Creates a user-friendly error message.
+    #[must_use]
     pub fn message(&self) -> String {
         format!(
             "Type '{}' does not implement {}\n\
@@ -67,6 +69,7 @@ pub struct TypeClassResolver<'types> {
 
 impl<'types> TypeClassResolver<'types> {
     /// Creates a new resolver with an empty constraint set.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             constraints: ConstraintSet::new(),
@@ -168,22 +171,22 @@ impl<'types> TypeClassResolver<'types> {
                 index,
                 result,
                 spans,
-            } => self.resolve_indexable(*container, *index, *result, unification, spans),
+            } => self.resolve_indexable(container, index, result, unification, spans),
             TypeClassConstraint::Numeric {
                 left,
                 right,
                 result,
                 spans,
-            } => self.resolve_numeric(*left, *right, *result, unification, spans),
+            } => self.resolve_numeric(left, right, result, unification, spans),
             TypeClassConstraint::Hashable { ty, spans } => {
-                self.resolve_hashable(*ty, unification, spans)
+                self.resolve_hashable(ty, unification, spans)
             }
-            TypeClassConstraint::Ord { ty, spans } => self.resolve_ord(*ty, unification, spans),
+            TypeClassConstraint::Ord { ty, spans } => self.resolve_ord(ty, unification, spans),
             TypeClassConstraint::Containable {
                 needle,
                 haystack,
                 spans,
-            } => self.resolve_containable(*needle, *haystack, unification, spans),
+            } => self.resolve_containable(needle, haystack, unification, spans),
         }
     }
 
@@ -234,11 +237,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(index_resolved, int_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "array indexing requires Int index, found {}",
-                            index_resolved
+                            "array indexing requires Int index, found {index_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -247,11 +249,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(result_resolved, elem_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "array indexing returns {}, but expected {}",
-                            elem_ty, result_resolved
+                            "array indexing returns {elem_ty}, but expected {result_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -271,11 +272,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(index_resolved, key_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "map indexing requires {} key, found {}",
-                            key_ty, index_resolved
+                            "map indexing requires {key_ty} key, found {index_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -290,11 +290,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(result_resolved, value_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "map indexing returns {}, but expected {}",
-                            value_ty, result_resolved
+                            "map indexing returns {value_ty}, but expected {result_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -314,11 +313,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(index_resolved, int_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "bytes indexing requires Int index, found {}",
-                            index_resolved
+                            "bytes indexing requires Int index, found {index_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -326,11 +324,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(result_resolved, int_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", container_resolved),
+                        ty: format!("{container_resolved}"),
                         type_class: TypeClassId::Indexable,
                         details: format!(
-                            "bytes indexing returns Int, but expected {}",
-                            result_resolved
+                            "bytes indexing returns Int, but expected {result_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -343,7 +340,7 @@ impl<'types> TypeClassResolver<'types> {
                 Ok(())
             }
             _ => Err(ConstraintError {
-                ty: format!("{}", container_resolved),
+                ty: format!("{container_resolved}"),
                 type_class: TypeClassId::Indexable,
                 details: String::new(),
                 spans: spans.to_vec(),
@@ -376,11 +373,10 @@ impl<'types> TypeClassResolver<'types> {
         unification
             .unifies_to(left_resolved, right_resolved)
             .map_err(|_| ConstraintError {
-                ty: format!("{}", left_resolved),
+                ty: format!("{left_resolved}"),
                 type_class: TypeClassId::Numeric,
                 details: format!(
-                    "operands must have the same numeric type, found {} and {}",
-                    left_resolved, right_resolved
+                    "operands must have the same numeric type, found {left_resolved} and {right_resolved}"
                 ),
                 spans: spans.to_vec(),
             })?;
@@ -390,11 +386,10 @@ impl<'types> TypeClassResolver<'types> {
         unification
             .unifies_to(result_resolved, unified_operand)
             .map_err(|_| ConstraintError {
-                ty: format!("{}", unified_operand),
+                ty: format!("{unified_operand}"),
                 type_class: TypeClassId::Numeric,
                 details: format!(
-                    "operation returns {}, but expected {}",
-                    unified_operand, result_resolved
+                    "operation returns {unified_operand}, but expected {result_resolved}"
                 ),
                 spans: spans.to_vec(),
             })?;
@@ -402,10 +397,9 @@ impl<'types> TypeClassResolver<'types> {
         // Check that the final type is numeric (if resolved to concrete type)
         let final_ty = unification.resolve(unified_operand);
         match final_ty.view() {
-            TypeKind::Int | TypeKind::Float => Ok(()),
-            TypeKind::TypeVar(_) => Ok(()), // Still polymorphic, OK
+            TypeKind::Int | TypeKind::Float | TypeKind::TypeVar(_) => Ok(()),
             _ => Err(ConstraintError {
-                ty: format!("{}", final_ty),
+                ty: format!("{final_ty}"),
                 type_class: TypeClassId::Numeric,
                 details: String::new(),
                 spans: spans.to_vec(),
@@ -438,7 +432,7 @@ impl<'types> TypeClassResolver<'types> {
                     Ok(())
                 } else {
                     Err(ConstraintError {
-                        ty: format!("{}", resolved),
+                        ty: format!("{resolved}"),
                         type_class: TypeClassId::Hashable,
                         details: String::new(),
                         spans: spans.to_vec(),
@@ -473,7 +467,7 @@ impl<'types> TypeClassResolver<'types> {
                     Ok(())
                 } else {
                     Err(ConstraintError {
-                        ty: format!("{}", resolved),
+                        ty: format!("{resolved}"),
                         type_class: TypeClassId::Ord,
                         details: String::new(),
                         spans: spans.to_vec(),
@@ -525,11 +519,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, str_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "string containment requires Str needle, found {}",
-                            needle_resolved
+                            "string containment requires Str needle, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -541,11 +534,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, bytes_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "bytes containment requires Bytes needle, found {}",
-                            needle_resolved
+                            "bytes containment requires Bytes needle, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -556,11 +548,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, elem_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "array containment requires {} element, found {}",
-                            elem_ty, needle_resolved
+                            "array containment requires {elem_ty} element, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -571,11 +562,10 @@ impl<'types> TypeClassResolver<'types> {
                 unification
                     .unifies_to(needle_resolved, key_ty)
                     .map_err(|_| ConstraintError {
-                        ty: format!("{}", haystack_resolved),
+                        ty: format!("{haystack_resolved}"),
                         type_class: TypeClassId::Containable,
                         details: format!(
-                            "map containment requires {} key, found {}",
-                            key_ty, needle_resolved
+                            "map containment requires {key_ty} key, found {needle_resolved}"
                         ),
                         spans: spans.to_vec(),
                     })?;
@@ -589,7 +579,7 @@ impl<'types> TypeClassResolver<'types> {
             _ => {
                 // Other types don't support containment
                 Err(ConstraintError {
-                    ty: format!("{}", haystack_resolved),
+                    ty: format!("{haystack_resolved}"),
                     type_class: TypeClassId::Containable,
                     details: String::new(),
                     spans: spans.to_vec(),
@@ -599,6 +589,7 @@ impl<'types> TypeClassResolver<'types> {
     }
 
     /// Returns a reference to the constraint set.
+    #[must_use]
     pub fn constraint_set(&self) -> &ConstraintSet<'types> {
         &self.constraints
     }
@@ -701,9 +692,7 @@ impl<'types> TypeClassResolver<'types> {
                     });
                 }
                 TypeClassConstraint::Containable {
-                    needle,
-                    haystack,
-                    ..
+                    needle, haystack, ..
                 } => {
                     self.constraints.push(TypeClassConstraint::Containable {
                         needle: unification.substitute(needle, &extended_subst),
@@ -732,9 +721,9 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.collect_vars_from_type(*left, unification, subst);
-                self.collect_vars_from_type(*right, unification, subst);
-                self.collect_vars_from_type(*result, unification, subst);
+                self.collect_vars_from_type(left, unification, subst);
+                self.collect_vars_from_type(right, unification, subst);
+                self.collect_vars_from_type(result, unification, subst);
             }
             TypeClassConstraint::Indexable {
                 container,
@@ -742,21 +731,18 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.collect_vars_from_type(*container, unification, subst);
-                self.collect_vars_from_type(*index, unification, subst);
-                self.collect_vars_from_type(*result, unification, subst);
+                self.collect_vars_from_type(container, unification, subst);
+                self.collect_vars_from_type(index, unification, subst);
+                self.collect_vars_from_type(result, unification, subst);
             }
-            TypeClassConstraint::Hashable { ty, .. } => {
-                self.collect_vars_from_type(*ty, unification, subst);
-            }
-            TypeClassConstraint::Ord { ty, .. } => {
-                self.collect_vars_from_type(*ty, unification, subst);
+            TypeClassConstraint::Hashable { ty, .. } | TypeClassConstraint::Ord { ty, .. } => {
+                self.collect_vars_from_type(ty, unification, subst);
             }
             TypeClassConstraint::Containable {
                 needle, haystack, ..
             } => {
-                self.collect_vars_from_type(*needle, unification, subst);
-                self.collect_vars_from_type(*haystack, unification, subst);
+                self.collect_vars_from_type(needle, unification, subst);
+                self.collect_vars_from_type(haystack, unification, subst);
             }
         }
     }
@@ -829,9 +815,9 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.type_mentions_var_resolved(*left, var_id, unification)
-                    || self.type_mentions_var_resolved(*right, var_id, unification)
-                    || self.type_mentions_var_resolved(*result, var_id, unification)
+                self.type_mentions_var_resolved(left, var_id, unification)
+                    || self.type_mentions_var_resolved(right, var_id, unification)
+                    || self.type_mentions_var_resolved(result, var_id, unification)
             }
             TypeClassConstraint::Indexable {
                 container,
@@ -839,21 +825,18 @@ impl<'types> TypeClassResolver<'types> {
                 result,
                 ..
             } => {
-                self.type_mentions_var_resolved(*container, var_id, unification)
-                    || self.type_mentions_var_resolved(*index, var_id, unification)
-                    || self.type_mentions_var_resolved(*result, var_id, unification)
+                self.type_mentions_var_resolved(container, var_id, unification)
+                    || self.type_mentions_var_resolved(index, var_id, unification)
+                    || self.type_mentions_var_resolved(result, var_id, unification)
             }
-            TypeClassConstraint::Hashable { ty, .. } => {
-                self.type_mentions_var_resolved(*ty, var_id, unification)
-            }
-            TypeClassConstraint::Ord { ty, .. } => {
-                self.type_mentions_var_resolved(*ty, var_id, unification)
+            TypeClassConstraint::Hashable { ty, .. } | TypeClassConstraint::Ord { ty, .. } => {
+                self.type_mentions_var_resolved(ty, var_id, unification)
             }
             TypeClassConstraint::Containable {
                 needle, haystack, ..
             } => {
-                self.type_mentions_var_resolved(*needle, var_id, unification)
-                    || self.type_mentions_var_resolved(*haystack, var_id, unification)
+                self.type_mentions_var_resolved(needle, var_id, unification)
+                    || self.type_mentions_var_resolved(haystack, var_id, unification)
             }
         }
     }
@@ -926,7 +909,7 @@ impl<'types> TypeClassResolver<'types> {
     }
 }
 
-impl<'types> Default for TypeClassResolver<'types> {
+impl Default for TypeClassResolver<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -934,13 +917,14 @@ impl<'types> Default for TypeClassResolver<'types> {
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::types::manager::TypeManager;
     use crate::types::unification::Unification;
-    use bumpalo::Bump;
 
     #[test]
-    fn test_indexable_array() {
+    fn indexable_array() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -958,7 +942,7 @@ mod tests {
     }
 
     #[test]
-    fn test_indexable_map() {
+    fn indexable_map() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -976,7 +960,7 @@ mod tests {
     }
 
     #[test]
-    fn test_numeric_constraint() {
+    fn numeric_constraint() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -993,7 +977,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_string() {
+    fn containable_string() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1009,7 +993,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_bytes() {
+    fn containable_bytes() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1025,7 +1009,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_array() {
+    fn containable_array() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1042,7 +1026,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_map() {
+    fn containable_map() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1059,7 +1043,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_invalid() {
+    fn containable_invalid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();
@@ -1077,7 +1061,7 @@ mod tests {
     }
 
     #[test]
-    fn test_containable_type_mismatch() {
+    fn containable_type_mismatch() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut resolver = TypeClassResolver::new();

@@ -1,9 +1,7 @@
-use std::{
-    alloc::Layout,
-    marker::PhantomData,
-    ptr::{self, NonNull},
-    slice,
-};
+use std::alloc::Layout;
+use std::marker::PhantomData;
+use std::ptr::{self, NonNull};
+use std::slice;
 
 use bumpalo::Bump;
 
@@ -62,9 +60,9 @@ impl<'a, H, T> Flex<'a, H, T> {
         unsafe {
             let inner: &FlexSliceWithLength<H, T> = self.inner.as_ref();
             let len = inner.len;
-            let p = &inner.data as *const _ as *const T;
+            let p = (&raw const inner.data).cast::<T>();
             let dst = slice::from_raw_parts(p, len);
-            let ret = dst as *const _ as *const FlexSlice<H, [T]>;
+            let ret = std::ptr::from_ref(dst) as *const FlexSlice<H, [T]>;
             &*ret
         }
     }
@@ -78,7 +76,7 @@ impl<'a, H, T> Flex<'a, H, T> {
 }
 
 #[test]
-fn test_flex_inner() {
+fn flex_inner() {
     let arena = Bump::new();
     let a = Flex::from_iter(&arena, "something", [1, 2, 3]);
     assert_eq!(a.as_fat_ref().header, "something");

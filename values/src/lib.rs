@@ -1,6 +1,5 @@
 #![no_std]
 #![deny(unsafe_code)]
-#![allow(dead_code)]
 
 extern crate alloc;
 

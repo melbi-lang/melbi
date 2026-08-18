@@ -23,19 +23,19 @@ pub(crate) fn parse_name_value(tokens: TokenStream2, key: &str) -> syn::Result<O
     match meta {
         Meta::NameValue(nv) if nv.path.is_ident(key) => {
             // Handle `key = ident`
-            if let Expr::Path(expr_path) = &nv.value {
-                if let Some(ident) = expr_path.path.get_ident() {
-                    return Ok(Some(ident.clone()));
-                }
+            if let Expr::Path(expr_path) = &nv.value
+                && let Some(ident) = expr_path.path.get_ident()
+            {
+                return Ok(Some(ident.clone()));
             }
             Err(syn::Error::new_spanned(
                 &nv.value,
-                format!("[melbi] {} must be an identifier", key),
+                format!("[melbi] {key} must be an identifier"),
             ))
         }
         _ => Err(syn::Error::new_spanned(
             meta,
-            format!("[melbi] expected `{} = identifier`, or no arguments", key),
+            format!("[melbi] expected `{key} = identifier`, or no arguments"),
         )),
     }
 }
@@ -44,7 +44,7 @@ pub(crate) fn parse_name_value(tokens: TokenStream2, key: &str) -> syn::Result<O
 ///
 /// # Arguments
 /// - `item_attrs`: A slice of the item's attributes.
-/// - `attr_name`: The name of the attribute to look for (e.g., "melbi_fn", "melbi_const").
+/// - `attr_name`: The name of the attribute to look for (e.g., "`melbi_fn`", "`melbi_const`").
 /// - `rust_item_name`: The Rust item's name (e.g., function name) for derivation.
 ///
 /// # Returns
@@ -71,7 +71,7 @@ pub(crate) fn get_name_from_item(
             // #[attr = ...] - invalid syntax for these attributes
             return Err(syn::Error::new_spanned(
                 attr,
-                format!("[melbi] invalid attribute syntax for `#[{}]`", attr_name),
+                format!("[melbi] invalid attribute syntax for `#[{attr_name}]`"),
             ));
         }
     };
@@ -84,7 +84,7 @@ pub(crate) fn get_name_from_item(
 ///
 /// # Arguments
 /// - `attr_tokens`: The token stream passed directly to the attribute macro (e.g., `attr: TokenStream`).
-/// - `attr_name`: The name of the attribute macro (e.g., "melbi_fn", "melbi_package").
+/// - `attr_name`: The name of the attribute macro (e.g., "`melbi_fn`", "`melbi_package`").
 /// - `item_name`: The Rust item's name (e.g., function name, module name) for derivation.
 ///
 /// # Returns
@@ -104,9 +104,8 @@ pub(crate) fn get_name_from_tokens(
 
     // If no explicit name, derive it based on the attribute type
     let derived_name_str = match attr_name {
-        "melbi_fn" => to_pascal_case(&item_name.to_string()),
+        "melbi_fn" | "melbi_package" => to_pascal_case(&item_name.to_string()),
         "melbi_const" => to_screaming_snake_case(&item_name.to_string()),
-        "melbi_package" => to_pascal_case(&item_name.to_string()), // math -> Math (package name)
         _ => item_name.to_string(), // Should not happen given the key match above
     };
     Ok(format_ident!(
@@ -116,7 +115,7 @@ pub(crate) fn get_name_from_tokens(
     ))
 }
 
-/// Convert snake_case to PascalCase.
+/// Convert `snake_case` to `PascalCase`.
 ///
 /// Examples:
 /// - `add` -> `Add`
@@ -140,7 +139,7 @@ pub fn to_pascal_case(s: &str) -> String {
     result
 }
 
-/// Convert snake_case to SCREAMING_SNAKE_CASE.
+/// Convert `snake_case` to `SCREAMING_SNAKE_CASE`.
 ///
 /// Examples:
 /// - `pi` -> `PI`
@@ -155,7 +154,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_to_pascal_case() {
+    fn to_pascal_case_works() {
         assert_eq!(to_pascal_case("add"), "Add");
         assert_eq!(to_pascal_case("safe_div"), "SafeDiv");
         assert_eq!(to_pascal_case("get_first_element"), "GetFirstElement");
@@ -165,7 +164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_screaming_snake_case() {
+    fn to_screaming_snake_case_works() {
         assert_eq!(to_screaming_snake_case("pi"), "PI");
         assert_eq!(to_screaming_snake_case("euler_constant"), "EULER_CONSTANT");
         assert_eq!(to_screaming_snake_case("speed_of_light"), "SPEED_OF_LIGHT");

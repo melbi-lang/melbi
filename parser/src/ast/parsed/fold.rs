@@ -24,12 +24,11 @@
 
 use alloc::vec::Vec;
 
-use crate::{Tree, TreeBuilder, TreeNode};
-
 use super::{
     Binding, BindingKind, Data, Expr, ExprKind, LiteralKind, MapEntry, MapEntryKind, MatchArm,
     MatchArmKind, Pattern, PatternKind, TypeExpr, TypeExprKind, TypeField, TypeFieldKind,
 };
+use crate::{Tree, TreeBuilder, TreeNode};
 
 /// What a `fold_*` method decides about one node.
 ///
@@ -244,7 +243,6 @@ macro_rules! step {
             Step::Replace(other) => $stack.push(Task::$combine(other)),
             Step::Recurse => {
                 $stack.push(Task::Combine(Combine::$combine(tree.clone())));
-                #[allow(clippy::redundant_closure_call)]
                 ($push_children)(&tree, $stack);
             }
         }
@@ -544,7 +542,7 @@ where
 fn rebuild_literal<In, Out, F>(
     literal: &LiteralKind<In>,
     results: &mut Results<Out>,
-    folder: &mut F,
+    folder: &F,
 ) -> Result<LiteralKind<Out>, F::Error>
 where
     In: TreeBuilder,
@@ -716,7 +714,7 @@ where
 fn rebuild_type_expr<In, Out, F>(
     kind: &TypeExprKind<In>,
     results: &mut Results<Out>,
-    folder: &mut F,
+    folder: &F,
 ) -> Result<TypeExprKind<Out>, F::Error>
 where
     In: TreeBuilder,

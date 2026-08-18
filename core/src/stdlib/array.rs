@@ -1,19 +1,15 @@
 //! `Array` package for Melbi
-use crate::{
-    evaluator::ExecutionError,
-    types::{
-        Type,
-        manager::TypeManager,
-        traits::{TypeKind, TypeView},
-    },
-    values::{
-        binder::Binder,
-        dynamic::Value,
-        function::{AnnotatedFunction, FfiContext, Function},
-    },
-};
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
+
 use bumpalo::Bump;
+
+use crate::evaluator::ExecutionError;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::values::binder::Binder;
+use crate::values::dynamic::Value;
+use crate::values::function::{AnnotatedFunction, FfiContext, Function};
 
 // ============================================================================
 // Basic Functions
@@ -85,9 +81,8 @@ fn array_slice<'types, 'arena>(
     let end_idx = end.min(len);
 
     // Get element type from the array's type
-    let elem_ty = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
 
     if start_idx >= end_idx {
@@ -137,9 +132,8 @@ fn array_concat<'types, 'arena>(
     result.extend(arr2.iter());
 
     // Get element type from the first array's type
-    let elem_ty = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
 
     Ok(
@@ -170,7 +164,7 @@ fn array_flatten<'types, 'arena>(
                 // Empty array with type variable - use fresh type var for inner type
                 ctx.type_mgr().fresh_type_var()
             }
-            _ => panic!("Expected array of arrays, got {:?}", arr_ty),
+            _ => panic!("Expected array of arrays, got {arr_ty:?}"),
         },
         _ => panic!("Expected array type"),
     };
@@ -208,13 +202,11 @@ fn array_zip<'types, 'arena>(
     let arr2 = args[1].as_array().expect("Expected array");
 
     // Get element types
-    let elem_ty1 = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty1) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
-    let elem_ty2 = match args[1].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty2) = args[1].ty.view() else {
+        panic!("Expected array type");
     };
 
     let mut result = Vec::new();
@@ -231,7 +223,7 @@ fn array_zip<'types, 'arena>(
     // Build tuple type: {first: T1, second: T2}
     let tuple_ty = ctx
         .type_mgr()
-        .record(vec![("first", elem_ty1), ("second", elem_ty2)]);
+        .record(&[("first", elem_ty1), ("second", elem_ty2)]);
 
     Ok(
         Value::array(ctx.arena(), ctx.type_mgr().array(tuple_ty), &result)
@@ -266,9 +258,8 @@ fn array_reverse<'types, 'arena>(
     result.reverse();
 
     // Get element type from the array's type
-    let elem_ty = match args[0].ty.view() {
-        TypeKind::Array(elem_ty) => elem_ty,
-        _ => panic!("Expected array type"),
+    let TypeKind::Array(elem_ty) = args[0].ty.view() else {
+        panic!("Expected array type");
     };
 
     Ok(
@@ -299,14 +290,21 @@ fn array_map<'types, 'arena>(
 
     let mut results = Vec::new();
     for elem in arr.iter() {
+        #[expect(
+            unsafe_code,
+            reason = "Array.map executes function callback on array elements"
+        )]
         let result = unsafe { func.call_unchecked(ctx, &[elem]) }?;
         results.push(result);
     }
 
     // Get result element type from function's return type
-    let result_elem_ty = match args[1].ty.view() {
-        TypeKind::Function { ret, .. } => ret,
-        _ => panic!("Expected function type"),
+    let TypeKind::Function {
+        ret: result_elem_ty,
+        ..
+    } = args[1].ty.view()
+    else {
+        panic!("Expected function type");
     };
 
     Ok(
@@ -334,6 +332,10 @@ impl<'types> Function<'types, 'types> for NativeFunction<'types> {
         self.ty
     }
 
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for native stdlib function pointer"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'types>,
@@ -426,7 +428,7 @@ where
     // Zip: forall A, B. (Array<A>, Array<B>) -> Array<{first: A, second: B}>
     let a = type_mgr.fresh_type_var();
     let b = type_mgr.fresh_type_var();
-    let tuple_ty = type_mgr.record(vec![("first", a), ("second", b)]);
+    let tuple_ty = type_mgr.record(&[("first", a), ("second", b)]);
     builder = NativeFunction {
         name: "Zip",
         ty: type_mgr.function(

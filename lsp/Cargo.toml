@@ -15,10 +15,14 @@ path = "src/lib.rs"
 [dependencies]
 melbi-core.workspace = true
 melbi-fmt.workspace = true
-tokio.workspace = true
+tokio = { version = "1.47.1", features = ["full"] }
 pest.workspace = true
 tower-lsp = "0.20.0"
-tree-sitter = "0.25"
+tree-sitter.workspace = true
 tree-sitter-melbi.workspace = true
 bumpalo = "3.16.0"
 dashmap = "6.1.0"
+
+[lints]
+workspace = true
+

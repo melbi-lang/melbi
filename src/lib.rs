@@ -80,22 +80,20 @@
 // Error rendering utilities
 pub mod error_renderer;
 pub use error_renderer::{CharSet, RenderConfig, render_error, render_error_to};
-
 // Re-export public API from melbi_core
 pub use melbi_core::api::{
     CompileOptions, CompileOptionsOverride, CompiledExpression, Diagnostic, Engine, EngineOptions,
     EnvironmentBuilder, Error, RelatedInfo, RunOptions, RunOptionsOverride, Severity,
 };
-
+// Re-export errors
+// TODO: Currently this is user facing only because FFI functions need
+// to return this same error type. Should we have a separate error type for FFI?
+pub use melbi_core::evaluator::ExecutionError;
 // Re-export commonly used types and values
 pub use melbi_core::types::{
     self, Type,
     manager::TypeManager,
     traits::{TypeBuilder, TypeView},
 };
-pub use melbi_core::values::{self, Function, NativeFn, NativeFunction, dynamic::Value};
-
-// Re-export errors
-// TODO: Currently this is user facing only because FFI functions need
-// to return this same error type. Should we have a separate error type for FFI?
-pub use melbi_core::evaluator::ExecutionError;
+pub use melbi_core::values::dynamic::Value;
+pub use melbi_core::values::{self, Function, NativeFn, NativeFunction};

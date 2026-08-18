@@ -1,19 +1,20 @@
-#![allow(unsafe_code)]
+#![allow(
+    unsafe_code,
+    reason = "VM execution loop performs raw pointer arithmetic and unchecked stack accesses for performance"
+)]
 
 use core::cmp::Ordering;
 
 use bumpalo::Bump;
 
 use super::instruction_set::Instruction;
-
-use crate::{
-    String, Vec,
-    evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError},
-    format,
-    parser::{ComparisonOp, Span},
-    values::{ArrayData, BytecodeLambda, LambdaInstantiation, MapData, RawValue, RecordData},
-    vm::{Code, GenericAdapter, LambdaKind, Stack},
+use crate::evaluator::{ExecutionError, ExecutionErrorKind, RuntimeError};
+use crate::parser::{ComparisonOp, Span};
+use crate::values::{
+    ArrayData, BytecodeLambda, LambdaInstantiation, MapData, RawValue, RecordData,
 };
+use crate::vm::{Code, GenericAdapter, LambdaKind, Stack};
+use crate::{String, Vec, format};
 
 struct OtherwiseBlock {
     fallback: *const Instruction,
@@ -105,17 +106,28 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
         loop {
             self.ip = unsafe { self.ip.add(1) };
 
-            use Instruction::*;
+            use Instruction::{
+                And, ArrayAppend, ArrayConcat, ArrayGet, ArrayGetConst, ArrayLen, ArraySlice,
+                Breakpoint, BytesCmpOp, BytesGet, BytesGetConst, BytesSlice, BytesToString, Call,
+                CallGenericAdapter, CheckLimits, ConstBool, ConstInt, ConstLoad, ConstUInt, DupN,
+                Eq, EqBool, FloatBinOp, FloatCmpOp, Halt, InlineCache, IntBinOp, IntCmpOp,
+                JumpForward, LoadCapture, LoadLocal, MakeArray, MakeClosure, MakeMap, MakeOption,
+                MakeRecord, MapGet, MapHas, MapInsert, MapKeys, MapLen, MapRemove, MapValues,
+                MatchNoneOrJump, MatchSomeOrJump, NegFloat, NegInt, Nop, Not, NotEq, Or, Pop,
+                PopJumpIfFalse, PopJumpIfTrue, PopOtherwise, PopOtherwiseAndJump, PushOtherwise,
+                RecordGet, RecordMerge, Return, StoreLocal, StringCmpOp, StringFormat,
+                StringToBytes, Swap, Trace, WideArg,
+            };
             match unsafe { *self.ip } {
                 ConstLoad(arg) => {
                     let index = wide_arg | arg as usize;
                     self.stack.push(self.code.constants[index]);
                 }
                 ConstInt(value) => {
-                    self.stack.push(RawValue::make_int(value as i64));
+                    self.stack.push(RawValue::make_int(i64::from(value)));
                 }
                 ConstUInt(value) => {
-                    self.stack.push(RawValue::make_int(value as i64));
+                    self.stack.push(RawValue::make_int(i64::from(value)));
                 }
                 ConstBool(value) => {
                     self.stack.push(RawValue::make_bool(value != 0));
@@ -182,12 +194,9 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                 IntBinOp(b'^') => {
                     let b = self.stack.pop().as_int_unchecked();
                     let a = self.stack.pop().as_int_unchecked();
-                    let result = if b < 0 {
-                        0
-                    } else if b > u32::MAX as i64 {
-                        0
-                    } else {
-                        a.wrapping_pow(b as u32)
+                    let result = match u32::try_from(b) {
+                        Ok(exp) => a.wrapping_pow(exp),
+                        Err(_) => 0,
                     };
                     self.stack.push(RawValue::make_int(result));
                 }
@@ -283,7 +292,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                         }
                         .into());
                     };
-                    self.stack.push(RawValue::make_int(bytes[index] as i64));
+                    self.stack.push(RawValue::make_int(i64::from(bytes[index])));
                 }
 
                 BytesGetConst(arg) => {
@@ -296,7 +305,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                         }
                         .into());
                     }
-                    self.stack.push(RawValue::make_int(bytes[index] as i64));
+                    self.stack.push(RawValue::make_int(i64::from(bytes[index])));
                 }
 
                 BytesCmpOp(op) => {
@@ -429,10 +438,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                     }
                 }
 
-                Halt => {
-                    return Ok(());
-                }
-                Return => {
+                Halt | Return => {
                     return Ok(());
                 }
 
@@ -540,10 +546,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                             self.arena.alloc_slice_fill_iter(monos.iter().map(|&idx| {
                                 let mono = &self.code.lambdas[idx as usize];
                                 let LambdaKind::Mono { code } = &mono.kind else {
-                                    panic!(
-                                        "Poly lambda references non-Mono lambda at index {}",
-                                        idx
-                                    )
+                                    panic!("Poly lambda references non-Mono lambda at index {idx}")
                                 };
                                 LambdaInstantiation {
                                     fn_type: mono.lambda_type,
@@ -625,13 +628,12 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                         }
                     }
 
-                    match found {
-                        Some(value) => self.stack.push(value),
-                        None => {
-                            // Format key for error message (simple int display for now)
-                            let key_display = format!("{}", key.as_int_unchecked());
-                            return Err(RuntimeError::KeyNotFound { key_display }.into());
-                        }
+                    if let Some(value) = found {
+                        self.stack.push(value);
+                    } else {
+                        // Format key for error message (simple int display for now)
+                        let key_display = format!("{}", key.as_int_unchecked());
+                        return Err(RuntimeError::KeyNotFound { key_display }.into());
                     }
                 }
 
@@ -659,7 +661,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
 
                     // Sort entries by key (integer comparison for now)
                     // TODO: Proper multi-type key comparison
-                    entries.sort_by(|a, b| a.key.as_int_unchecked().cmp(&b.key.as_int_unchecked()));
+                    entries.sort_by_key(|a| a.key.as_int_unchecked());
 
                     // Create the map
                     let map = MapData::new_with_sorted(self.arena, &entries);
@@ -718,7 +720,7 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                             let value = self.stack.pop();
                             Some(value)
                         }
-                        _ => panic!("Invalid MakeOption operand: {}", is_some),
+                        _ => panic!("Invalid MakeOption operand: {is_some}"),
                     };
                     self.stack
                         .push(RawValue::make_optional(self.arena, option_value));
@@ -750,14 +752,11 @@ impl<'a, 'b, 'c> VM<'a, 'b, 'c> {
                 MatchNoneOrJump(arg) => {
                     let delta = wide_arg | arg as usize;
                     let option = self.stack.pop();
-                    match option.as_optional_unchecked() {
-                        Some(_) => {
-                            // Some: jump forward
-                            self.ip = unsafe { self.ip.add(delta) };
-                        }
-                        None => {
-                            // None: fall through (value already popped)
-                        }
+                    if option.as_optional_unchecked().is_some() {
+                        // Some: jump forward
+                        self.ip = unsafe { self.ip.add(delta) };
+                    } else {
+                        // None: fall through (value already popped)
                     }
                 }
                 Breakpoint(_) | CheckLimits | Trace(_) | InlineCache(_) => {
@@ -791,7 +790,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_works() {
+    fn works() {
         use Instruction::*;
         let code = Code {
             constants: vec![RawValue::make_int(42)],
@@ -808,7 +807,7 @@ mod tests {
     }
 
     #[test]
-    fn test_wide() {
+    fn wide() {
         use Instruction::*;
         let mut code = Code {
             constants: vec![RawValue::make_int(2)],
@@ -833,7 +832,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_comparisons() {
+    fn int_comparisons() {
         use Instruction::*;
 
         // Test <
@@ -853,7 +852,7 @@ mod tests {
         };
         let arena = Bump::new();
         let mut vm = VM::new(&arena, &code, Vec::new(), &[]);
-        assert_eq!(vm.run().unwrap().as_bool_unchecked(), true);
+        assert!(vm.run().unwrap().as_bool_unchecked());
 
         // Test ==
         let code = Code {
@@ -875,7 +874,7 @@ mod tests {
     }
 
     #[test]
-    fn test_float_ops() {
+    fn float_ops() {
         use Instruction::*;
 
         let code = Code {
@@ -893,7 +892,7 @@ mod tests {
     }
 
     #[test]
-    fn test_logical_ops() {
+    fn logical_ops() {
         use Instruction::*;
 
         // Test AND
@@ -908,7 +907,7 @@ mod tests {
         };
         let arena = Bump::new();
         let mut vm = VM::new(&arena, &code, Vec::new(), &[]);
-        assert_eq!(vm.run().unwrap().as_bool_unchecked(), false);
+        assert!(!vm.run().unwrap().as_bool_unchecked());
 
         // Test OR
         let code = Code {
@@ -938,7 +937,7 @@ mod tests {
     }
 
     #[test]
-    fn test_stack_ops() {
+    fn stack_ops() {
         use Instruction::*;
 
         // Test Dup
@@ -970,7 +969,7 @@ mod tests {
     }
 
     #[test]
-    fn test_local_vars() {
+    fn local_vars() {
         use Instruction::*;
 
         // Store and load local variable
@@ -996,7 +995,7 @@ mod tests {
     }
 
     #[test]
-    fn test_jumps() {
+    fn jumps() {
         use Instruction::*;
 
         // Unconditional jump
@@ -1023,7 +1022,7 @@ mod tests {
     }
 
     #[test]
-    fn test_conditional_jumps() {
+    fn conditional_jumps() {
         use Instruction::*;
 
         // JumpIfTrue - should jump
@@ -1067,7 +1066,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unary_ops() {
+    fn unary_ops() {
         use Instruction::*;
 
         // NegInt
@@ -1090,7 +1089,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_int_division_basic() {
+    fn int_division_basic() {
         use Instruction::*;
 
         let code = Code {
@@ -1108,7 +1107,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_euclidean_negative_dividend() {
+    fn int_division_euclidean_negative_dividend() {
         use Instruction::*;
 
         // Euclidean: -7 / 3 = -3 (not -2 like truncated)
@@ -1128,7 +1127,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_euclidean_negative_divisor() {
+    fn int_division_euclidean_negative_divisor() {
         use Instruction::*;
 
         // Euclidean: 7 / -3 = -2
@@ -1148,7 +1147,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_euclidean_both_negative() {
+    fn int_division_euclidean_both_negative() {
         use Instruction::*;
 
         // Euclidean: -7 / -3 = 3 (not 2 like truncated)
@@ -1168,7 +1167,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_by_zero() {
+    fn int_division_by_zero() {
         use Instruction::*;
 
         let code = Code {
@@ -1193,7 +1192,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_i64_min_overflow() {
+    fn int_division_i64_min_overflow() {
         use Instruction::*;
 
         // i64::MIN / -1 would overflow
@@ -1224,7 +1223,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_int_modulo_basic() {
+    fn int_modulo_basic() {
         use Instruction::*;
 
         let code = Code {
@@ -1242,7 +1241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_exact_division() {
+    fn int_modulo_exact_division() {
         use Instruction::*;
 
         let code = Code {
@@ -1260,7 +1259,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_euclidean_negative_dividend() {
+    fn int_modulo_euclidean_negative_dividend() {
         use Instruction::*;
 
         // Euclidean: -7 % 3 = 2 (always non-negative)
@@ -1280,7 +1279,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_euclidean_negative_divisor() {
+    fn int_modulo_euclidean_negative_divisor() {
         use Instruction::*;
 
         // Euclidean: 7 % -3 = 1 (always non-negative)
@@ -1299,7 +1298,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_euclidean_both_negative() {
+    fn int_modulo_euclidean_both_negative() {
         use Instruction::*;
 
         // Euclidean: -7 % -3 = 2 (always non-negative)
@@ -1318,7 +1317,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_by_zero() {
+    fn int_modulo_by_zero() {
         use Instruction::*;
 
         let code = Code {
@@ -1343,7 +1342,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_modulo_i64_min_overflow() {
+    fn int_modulo_i64_min_overflow() {
         use Instruction::*;
 
         // i64::MIN % -1 would overflow during computation
@@ -1370,7 +1369,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_division_modulo_invariant() {
+    fn int_division_modulo_invariant() {
         use Instruction::*;
 
         // Verify the invariant: a == (a / b) * b + (a % b)

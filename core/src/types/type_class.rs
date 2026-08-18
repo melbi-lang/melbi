@@ -49,37 +49,40 @@ pub enum TypeClassId {
 
 impl TypeClassId {
     /// Returns a human-readable name for this type class.
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
-            TypeClassId::Numeric => "Numeric",
-            TypeClassId::Indexable => "Indexable",
-            TypeClassId::Hashable => "Hashable",
-            TypeClassId::Ord => "Ord",
-            TypeClassId::Containable => "Containable",
+            Self::Numeric => "Numeric",
+            Self::Indexable => "Indexable",
+            Self::Hashable => "Hashable",
+            Self::Ord => "Ord",
+            Self::Containable => "Containable",
         }
     }
 
     /// Returns a description of what operations this type class enables.
+    #[must_use]
     pub fn description(self) -> &'static str {
         match self {
-            TypeClassId::Numeric => "arithmetic operations (+, -, *, /, ^)",
-            TypeClassId::Indexable => "indexing operations (value[index])",
-            TypeClassId::Hashable => "use as Map keys",
-            TypeClassId::Ord => "comparison operations (<, >, <=, >=)",
-            TypeClassId::Containable => "containment operations (in, not in)",
+            Self::Numeric => "arithmetic operations (+, -, *, /, ^)",
+            Self::Indexable => "indexing operations (value[index])",
+            Self::Hashable => "use as Map keys",
+            Self::Ord => "comparison operations (<, >, <=, >=)",
+            Self::Containable => "containment operations (in, not in)",
         }
     }
 
     /// Returns which types implement this type class.
+    #[must_use]
     pub fn instances(self) -> &'static str {
         match self {
-            TypeClassId::Numeric => "Int, Float",
-            TypeClassId::Indexable => "Array, Map, Bytes",
-            TypeClassId::Hashable => {
+            Self::Numeric => "Int, Float",
+            Self::Indexable => "Array, Map, Bytes",
+            Self::Hashable => {
                 "Int, Float, Bool, Str, Bytes, Symbol, Array (if elements are Hashable)"
             }
-            TypeClassId::Ord => "Int, Float, Str, Bytes",
-            TypeClassId::Containable => "(Str, Str), (Bytes, Bytes), (element, Array), (key, Map)",
+            Self::Ord => "Int, Float, Str, Bytes",
+            Self::Containable => "(Str, Str), (Bytes, Bytes), (element, Array), (key, Map)",
         }
     }
 }
@@ -96,53 +99,50 @@ impl TypeClassId {
 ///
 /// Note: Type variables should be resolved before calling this function.
 /// If a type variable is passed, it will return `false`.
+#[must_use]
 pub fn has_instance<'a>(ty: &'a Type<'a>, class: TypeClassId) -> bool {
     use crate::types::traits::TypeKind;
 
     match (ty.view(), class) {
         // Numeric: Int, Float
-        (TypeKind::Int | TypeKind::Float, TypeClassId::Numeric) => true,
-
+        (TypeKind::Int | TypeKind::Float, TypeClassId::Numeric)
         // Indexable: Array, Map, Bytes
-        (TypeKind::Array(_), TypeClassId::Indexable) => true,
-        (TypeKind::Map(_, _), TypeClassId::Indexable) => true,
-        (TypeKind::Bytes, TypeClassId::Indexable) => true,
-
+        | (TypeKind::Array(_) | TypeKind::Map(_, _) | TypeKind::Bytes, TypeClassId::Indexable)
         // Hashable: Most types except Function, Record, Map
-        (TypeKind::Int, TypeClassId::Hashable) => true,
-        (TypeKind::Float, TypeClassId::Hashable) => true,
-        (TypeKind::Bool, TypeClassId::Hashable) => true,
-        (TypeKind::Str, TypeClassId::Hashable) => true,
-        (TypeKind::Bytes, TypeClassId::Hashable) => true,
-        (TypeKind::Symbol(_), TypeClassId::Hashable) => true,
+        | (
+            TypeKind::Int
+            | TypeKind::Float
+            | TypeKind::Bool
+            | TypeKind::Str
+            | TypeKind::Bytes
+            | TypeKind::Symbol(_),
+            TypeClassId::Hashable,
+        )
+        // Ord: Int, Float, Str, Bytes
+        | (
+            TypeKind::Int | TypeKind::Float | TypeKind::Str | TypeKind::Bytes,
+            TypeClassId::Ord,
+        ) => true,
 
         // Array[e] is Hashable if e is Hashable (recursive check)
         (TypeKind::Array(elem_ty), TypeClassId::Hashable) => {
             has_instance(elem_ty, TypeClassId::Hashable)
         }
 
-        // Ord: Int, Float, Str, Bytes
-        (TypeKind::Int, TypeClassId::Ord) => true,
-        (TypeKind::Float, TypeClassId::Ord) => true,
-        (TypeKind::Str, TypeClassId::Ord) => true,
-        (TypeKind::Bytes, TypeClassId::Ord) => true,
-
-        // Type variables should be resolved before checking instances
-        (TypeKind::TypeVar(_), _) => false,
-
-        // All other combinations don't have instances
+        // All other combinations (including unresolved TypeVars) don't have instances
         _ => false,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::types::manager::TypeManager;
     use bumpalo::Bump;
 
+    use super::*;
+    use crate::types::manager::TypeManager;
+
     #[test]
-    fn test_numeric_instances() {
+    fn numeric_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn test_indexable_instances() {
+    fn indexable_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hashable_instances() {
+    fn hashable_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -189,7 +189,7 @@ mod tests {
 
         // Functions and Records are not hashable
         assert!(!has_instance(func, TypeClassId::Hashable));
-        let record = tm.record(vec![("x", tm.int())]);
+        let record = tm.record(&[("x", tm.int())]);
         assert!(!has_instance(record, TypeClassId::Hashable));
 
         // Maps are not hashable (for now)
@@ -198,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ord_instances() {
+    fn ord_instances() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -210,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_class_names() {
+    fn type_class_names() {
         assert_eq!(TypeClassId::Numeric.name(), "Numeric");
         assert_eq!(TypeClassId::Indexable.name(), "Indexable");
         assert_eq!(TypeClassId::Hashable.name(), "Hashable");

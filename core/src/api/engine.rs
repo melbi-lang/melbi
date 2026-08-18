@@ -1,17 +1,19 @@
 //! The Melbi compilation engine.
 
+use bumpalo::Bump;
+
 use super::{CompileOptionsOverride, CompiledExpression, EngineOptions, EnvironmentBuilder, Error};
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::values::binder::Binder;
 use crate::values::dynamic::Value;
 use crate::{Vec, analyzer, parser};
-use bumpalo::Bump;
 
 /// The Melbi compilation and execution engine.
 ///
 /// The engine manages:
-/// - Runtime configuration (EngineOptions)
-/// - Type system (TypeManager)
+/// - Runtime configuration (`EngineOptions`)
+/// - Type system (`TypeManager`)
 /// - Global environment (constants, functions, packages)
 ///
 /// # Lifetimes
@@ -48,7 +50,7 @@ pub struct Engine<'arena> {
     type_manager: &'arena TypeManager<'arena>,
     environment: &'arena [(&'arena str, Value<'arena, 'arena>)],
     /// Precomputed globals for analyzer (name, type) pairs
-    /// TODO: Switch to TypeScheme when generic functions are supported
+    /// TODO: Switch to `TypeScheme` when generic functions are supported
     globals_for_analyzer: &'arena [(&'arena str, &'arena Type<'arena>)],
     options: EngineOptions,
 }
@@ -116,6 +118,7 @@ impl<'arena> Engine<'arena> {
     /// Access the type manager.
     ///
     /// Useful for creating types when building expressions programmatically.
+    #[must_use]
     pub fn type_manager(&self) -> &'arena TypeManager<'arena> {
         self.type_manager
     }
@@ -123,11 +126,13 @@ impl<'arena> Engine<'arena> {
     /// Access the global environment.
     ///
     /// Returns a sorted slice of (name, value) pairs.
+    #[must_use]
     pub fn environment(&self) -> &[(&'arena str, Value<'arena, 'arena>)] {
         self.environment
     }
 
     /// Access the engine options.
+    #[must_use]
     pub fn options(&self) -> &EngineOptions {
         &self.options
     }
@@ -174,8 +179,8 @@ impl<'arena> Engine<'arena> {
         params: &[(&'arena str, &'arena Type<'arena>)],
     ) -> Result<CompiledExpression<'arena>, Error> {
         // Merge compilation options (defaults + provided)
-        let mut _options = self.options.default_compile_options.clone();
-        _options.override_with(&options_override);
+        let mut options = self.options.default_compile_options.clone();
+        options.override_with(&options_override);
         // TODO: Use merged_options when CompileOptions has fields
 
         // Parse the source
@@ -189,7 +194,7 @@ impl<'arena> Engine<'arena> {
         let typed_expr = analyzer::analyze(
             self.type_manager,
             self.arena,
-            &parsed,
+            parsed,
             self.globals_for_analyzer,
             params_slice,
         )?;
@@ -200,7 +205,7 @@ impl<'arena> Engine<'arena> {
             self.type_manager,
             params_slice,
             self.environment,
-            self.options.default_run_options.clone(),
+            self.options.default_run_options,
         ))
     }
 }

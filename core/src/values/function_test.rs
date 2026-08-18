@@ -2,11 +2,11 @@
 
 use bumpalo::Bump;
 
-use crate::{
-    evaluator::ExecutionError,
-    types::manager::TypeManager,
-    values::{dynamic::Value, from_raw::TypeError, function::{FfiContext, NativeFunction}},
-};
+use crate::evaluator::ExecutionError;
+use crate::types::manager::TypeManager;
+use crate::values::dynamic::Value;
+use crate::values::from_raw::TypeError;
+use crate::values::function::{FfiContext, NativeFunction};
 
 // ============================================================================
 // Test FFI Functions
@@ -38,7 +38,7 @@ fn test_not<'types, 'arena>(
 // ============================================================================
 
 #[test]
-fn test_value_function_construction() {
+fn value_function_construction() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -58,7 +58,7 @@ fn test_value_function_construction() {
 }
 
 #[test]
-fn test_value_function_wrong_type() {
+fn value_function_wrong_type() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -71,7 +71,7 @@ fn test_value_function_wrong_type() {
 }
 
 #[test]
-fn test_value_function_different_signatures() {
+fn value_function_different_signatures() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -93,7 +93,7 @@ fn test_value_function_different_signatures() {
 // ============================================================================
 
 #[test]
-fn test_value_as_function_extraction() {
+fn value_as_function_extraction() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -106,7 +106,7 @@ fn test_value_as_function_extraction() {
 }
 
 #[test]
-fn test_value_as_function_wrong_type() {
+fn value_as_function_wrong_type() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -119,7 +119,7 @@ fn test_value_as_function_wrong_type() {
 }
 
 #[test]
-fn test_value_as_function_call_through() {
+fn value_as_function_call_through() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -131,9 +131,8 @@ fn test_value_as_function_call_through() {
     let func_trait = func_value.as_function().unwrap();
     let args = [Value::int(type_mgr, 100), Value::int(type_mgr, 23)];
 
-    // SAFETY: We constructed the function with correct type (Int, Int) -> Int
-    // and are passing two Int arguments as expected.
     let ctx = FfiContext::new(&bump, type_mgr);
+    #[expect(unsafe_code, reason = "test verifies call_unchecked trait invocation")]
     let result = unsafe { func_trait.call_unchecked(&ctx, &args) };
     assert!(result.is_ok());
 
@@ -146,7 +145,7 @@ fn test_value_as_function_call_through() {
 // ============================================================================
 
 #[test]
-fn test_multiple_functions_same_arena() {
+fn multiple_functions_same_arena() {
     let bump = Bump::new();
     let type_mgr = TypeManager::new(&bump);
 
@@ -162,8 +161,8 @@ fn test_multiple_functions_same_arena() {
     assert!(not_value.as_function().is_ok());
 
     // Verify they're different functions (different trait object pointers)
-    let add_ptr = add_value.as_function().unwrap() as *const _;
-    let not_ptr = not_value.as_function().unwrap() as *const _;
+    let add_ptr = std::ptr::from_ref(add_value.as_function().unwrap());
+    let not_ptr = std::ptr::from_ref(not_value.as_function().unwrap());
 
     assert_ne!(
         add_ptr, not_ptr,
@@ -172,10 +171,11 @@ fn test_multiple_functions_same_arena() {
 }
 
 #[test]
-fn test_trait_object_size() {
+fn trait_object_size() {
     // Verify trait object is a fat pointer (2 words)
-    use crate::values::function::Function;
     use core::mem::size_of;
+
+    use crate::values::function::Function;
 
     // Trait object reference is a fat pointer: data pointer + vtable pointer
     assert_eq!(

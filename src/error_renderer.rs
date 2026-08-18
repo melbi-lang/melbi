@@ -3,9 +3,11 @@
 //! This module provides utilities for rendering Melbi errors with
 //! rich formatting, source code snippets, and helpful annotations.
 
-use crate::{Diagnostic, Error, Severity};
-use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use std::io::Write;
+
+use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
+
+use crate::{Diagnostic, Error, Severity};
 
 /// Character set for rendering error messages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -23,7 +25,7 @@ pub struct RenderConfig<'a> {
     /// Whether to use ANSI color codes in output.
     pub color: bool,
     /// The filename to display in error messages.
-    /// Defaults to "<unknown>" if not provided.
+    /// Defaults to `"<unknown>"` if not provided.
     pub filename: Option<&'a str>,
     /// The character set to use for rendering.
     /// Defaults to Unicode for rich visual output.
@@ -100,10 +102,7 @@ pub fn render_error_to(
     config: &RenderConfig,
 ) -> std::io::Result<()> {
     // Prefer filename from error, fall back to config, then "<unknown>"
-    let filename = error
-        .filename()
-        .or(config.filename)
-        .unwrap_or("<unknown>");
+    let filename = error.filename().or(config.filename).unwrap_or("<unknown>");
 
     match error {
         Error::Compilation {
@@ -113,12 +112,18 @@ pub fn render_error_to(
         } => render_diagnostics(source, diagnostics, writer, config, filename),
         Error::Runtime {
             diagnostic, source, ..
-        } => render_diagnostics(source, &[diagnostic.clone()], writer, config, filename),
+        } => render_diagnostics(
+            source,
+            std::slice::from_ref(diagnostic),
+            writer,
+            config,
+            filename,
+        ),
         Error::ResourceExceeded(msg) => {
-            writeln!(writer, "Resource limit exceeded: {}", msg)
+            writeln!(writer, "Resource limit exceeded: {msg}")
         }
         Error::Api(msg) => {
-            writeln!(writer, "API error: {}", msg)
+            writeln!(writer, "API error: {msg}")
         }
     }
 }
@@ -191,10 +196,11 @@ fn render_diagnostics(
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+    use expect_test::{Expect, expect};
+
     use super::*;
     use crate::{Engine, EngineOptions};
-    use bumpalo::Bump;
-    use expect_test::{expect, Expect};
 
     const UNICODE_CONFIG: RenderConfig = RenderConfig {
         color: false,
@@ -229,11 +235,11 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_error_unicode() {
+    fn parse_error_unicode() {
         check_error(
             "1 + + 2",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, literal or identifier, found unexpected token
                    ╭─[ test.melbi:1:5 ]
                    │
@@ -241,16 +247,16 @@ mod tests {
                    │     │ 
                    │     ╰─ Expected expression, literal or identifier, found unexpected token
                 ───╯
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_parse_error_ascii() {
+    fn parse_error_ascii() {
         check_error(
             "1 + + 2",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, literal or identifier, found unexpected token
                    ,-[ test.melbi:1:5 ]
                    |
@@ -258,16 +264,16 @@ mod tests {
                    |     | 
                    |     `- Expected expression, literal or identifier, found unexpected token
                 ---'
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_type_error_unicode() {
+    fn type_error_unicode() {
         check_error(
             "1 + true",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E001] Error: Type mismatch: expected Int, found Bool
                    ╭─[ test.melbi:1:5 ]
                    │
@@ -277,16 +283,16 @@ mod tests {
                    │ 
                    │ Help: Types must match in this context
                 ───╯
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_type_error_ascii() {
+    fn type_error_ascii() {
         check_error(
             "1 + true",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E001] Error: Type mismatch: expected Int, found Bool
                    ,-[ test.melbi:1:5 ]
                    |
@@ -296,16 +302,16 @@ mod tests {
                    | 
                    | Help: Types must match in this context
                 ---'
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_unknown_identifier_unicode() {
+    fn unknown_identifier_unicode() {
         check_error(
             "foo + 1",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E002] Error: Undefined variable 'foo'
                    ╭─[ test.melbi:1:1 ]
                    │
@@ -315,16 +321,16 @@ mod tests {
                    │ 
                    │ Help: Make sure the variable is declared before use
                 ───╯
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_unknown_identifier_ascii() {
+    fn unknown_identifier_ascii() {
         check_error(
             "foo + 1",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [E002] Error: Undefined variable 'foo'
                    ,-[ test.melbi:1:1 ]
                    |
@@ -334,16 +340,16 @@ mod tests {
                    | 
                    | Help: Make sure the variable is declared before use
                 ---'
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_unclosed_brace_unicode() {
+    fn unclosed_brace_unicode() {
         check_error(
             "{ x = 1",
             &UNICODE_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, found unexpected token
                    ╭─[ test.melbi:1:8 ]
                    │
@@ -351,16 +357,16 @@ mod tests {
                    │        │ 
                    │        ╰─ Expected expression, found unexpected token
                 ───╯
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_unclosed_brace_ascii() {
+    fn unclosed_brace_ascii() {
         check_error(
             "{ x = 1",
             &ASCII_CONFIG,
-            expect![[r#"
+            expect![[r"
                 [P001] Error: Expected expression, found unexpected token
                    ,-[ test.melbi:1:8 ]
                    |
@@ -368,17 +374,17 @@ mod tests {
                    |        | 
                    |        `- Expected expression, found unexpected token
                 ---'
-            "#]],
+            "]],
         );
     }
 
     #[test]
-    fn test_charset_default_is_unicode() {
+    fn charset_default_is_unicode() {
         assert_eq!(CharSet::default(), CharSet::Unicode);
     }
 
     #[test]
-    fn test_render_config_default_charset() {
+    fn render_config_default_charset() {
         let config = RenderConfig::default();
         assert_eq!(config.charset, CharSet::Unicode);
     }

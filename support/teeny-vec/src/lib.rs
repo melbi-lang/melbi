@@ -1,20 +1,17 @@
-//! TeenyVec: A 16-byte small vector optimized for inline storage.
+//! `TeenyVec`: A 16-byte small vector optimized for inline storage.
 //!
-//! TeenyVec provides a compact vector type that:
+//! `TeenyVec` provides a compact vector type that:
 //! - Is exactly 16 bytes (2 registers on x86-64/arm64)
 //! - Stores up to 14 bytes inline without heap allocation
 //! - Grows to heap seamlessly when needed
 //! - Uses odd/even discriminant for stack/heap detection
-#![allow(unsafe_code)]
 
 extern crate alloc;
 
 use alloc::alloc::{Layout, alloc};
-use core::{
-    mem::ManuallyDrop,
-    ops::Add,
-    ptr::{self, NonNull},
-};
+use core::mem::ManuallyDrop;
+use core::ops::Add;
+use core::ptr::{self, NonNull};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TeenyVecKind {
@@ -70,7 +67,12 @@ pub struct TeenyVec {
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 static_assertions::assert_eq_size!(TeenyVec, [usize; 2]);
 
+#[expect(
+    unsafe_code,
+    reason = "unsafe code is used to detect stack/heap usage and to access the data"
+)]
 impl TeenyVec {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             repr: TeenyVecRepr {
@@ -92,6 +94,7 @@ impl TeenyVec {
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn len(&self) -> usize {
         match self.kind() {
             TeenyVecKind::Stack => (unsafe { (self.repr.stack.len - 1) / 2 }) as usize,
@@ -99,11 +102,13 @@ impl TeenyVec {
         }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn cap(&self) -> usize {
         match self.kind() {
             TeenyVecKind::Stack => 14usize,
@@ -138,18 +143,19 @@ impl TeenyVec {
     }
 
     fn set_cap(&mut self, new_cap: usize) {
-        assert!(new_cap % 2 == 0);
+        assert!(new_cap.is_multiple_of(2));
         let heap = unsafe { &mut self.repr.heap };
         heap.cap = new_cap.try_into().expect("capacity overflow");
     }
 
-    #[allow(dead_code)] // Not currently used.
+    #[expect(dead_code, reason = "Utility method for TeenyVec")]
     #[inline(always)]
     fn set_len(&mut self, new_len: usize) {
         match self.kind() {
             TeenyVecKind::Stack => {
                 let stack = unsafe { &mut self.repr.stack };
-                stack.len = (2 * new_len + 1) as u16;
+                stack.len =
+                    u16::try_from(2 * new_len + 1).expect("TeenyVec inline capacity overflow");
             }
             TeenyVecKind::Heap => {
                 let heap = unsafe { &mut self.repr.heap };
@@ -207,6 +213,7 @@ impl TeenyVec {
         }
     }
 
+    #[must_use]
     pub fn as_slice(&self) -> &[u8] {
         match self.kind() {
             TeenyVecKind::Stack => {
@@ -282,7 +289,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_grow() {
+    fn grow() {
         let mut vec = TeenyVec::new();
         vec.push(1);
         vec.push(2);
@@ -311,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn test_heap_to_heap_grow() {
+    fn heap_to_heap_grow() {
         let mut vec = TeenyVec::new();
         // Fill to trigger stack->heap
         for i in 0..16 {
@@ -332,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_drop_stack() {
+    fn drop_stack() {
         // Just create and drop a stack variant
         let mut vec = TeenyVec::new();
         vec.push(1);
@@ -342,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    fn test_drop_heap() {
+    fn drop_heap() {
         // Create and drop a heap variant
         let mut vec = TeenyVec::new();
         for i in 0..20 {
@@ -354,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inline_capacity() {
+    fn inline_capacity() {
         let mut vec = TeenyVec::new();
         // Push exactly 15 items (max inline)
         for i in 0..14 {
@@ -372,7 +379,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clone_stack() {
+    fn clone_stack() {
         let mut vec = TeenyVec::new();
         for i in 0..14 {
             vec.push(i);
@@ -384,7 +391,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clone_heap() {
+    fn clone_heap() {
         let mut vec = TeenyVec::new();
         for i in 0..100 {
             vec.push(i);

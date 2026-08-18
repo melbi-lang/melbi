@@ -1,10 +1,12 @@
-#![allow(unsafe_code)]
+#![allow(
+    unsafe_code,
+    reason = "low-level FFI type-casting and pointer conversions from raw representation"
+)]
 use core::marker::PhantomData;
 
-use crate::{
-    types::{Type, manager::TypeManager},
-    values::raw::{ArrayData, RawValue},
-};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::raw::{ArrayData, RawValue};
 
 #[derive(Debug)]
 pub enum TypeError {
@@ -14,7 +16,7 @@ pub enum TypeError {
 
 impl core::fmt::Display for TypeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -172,10 +174,17 @@ impl<'a, T: FromRawValue<'a>> Array<'a, T> {
         T::from_raw(type_mgr, self.elem_ty, raw)
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.array_data.length()
     }
 
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[must_use]
     pub fn as_raw_value(&self) -> RawValue {
         self.array_data.as_raw_value()
     }

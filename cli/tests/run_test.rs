@@ -13,44 +13,69 @@ use predicates::prelude::*;
 #[test]
 fn run_simple_expression() {
     let file = temp_file("1 + 2");
-    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["3\n"]);
+    check_stdout(
+        &["run", file.path().to_str().unwrap()],
+        None,
+        expect!["3\n"],
+    );
 }
 
 #[test]
 fn run_arithmetic() {
     let file = temp_file("10 * 5 - 3");
-    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["47\n"]);
+    check_stdout(
+        &["run", file.path().to_str().unwrap()],
+        None,
+        expect!["47\n"],
+    );
 }
 
 #[test]
 fn run_where_binding() {
     let file = temp_file("x + y where { x = 10, y = 20 }");
-    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["30\n"]);
+    check_stdout(
+        &["run", file.path().to_str().unwrap()],
+        None,
+        expect!["30\n"],
+    );
 }
 
 #[test]
 fn run_multiline_expression() {
     let file = temp_file(
-        r#"result where {
+        r"result where {
     a = 1,
     b = 2,
     result = a + b,
-}"#,
+}",
     );
-    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["3\n"]);
+    check_stdout(
+        &["run", file.path().to_str().unwrap()],
+        None,
+        expect!["3\n"],
+    );
 }
 
 #[test]
 fn run_stdlib_function() {
     let file = temp_file("Math.Floor(3.7)");
-    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["3\n"]);
+    check_stdout(
+        &["run", file.path().to_str().unwrap()],
+        None,
+        expect!["3\n"],
+    );
 }
 
 #[test]
 fn run_with_runtime_evaluator() {
     let file = temp_file("1 + 2");
     check_stdout(
-        &["run", "--runtime", "evaluator", file.path().to_str().unwrap()],
+        &[
+            "run",
+            "--runtime",
+            "evaluator",
+            file.path().to_str().unwrap(),
+        ],
         None,
         expect!["3\n"],
     );
@@ -143,7 +168,11 @@ fn run_from_stdin_multiline() {
 
 #[test]
 fn run_from_stdin_with_runtime() {
-    check_stdout(&["run", "--runtime", "vm", "-"], Some("5 * 6"), expect!["30\n"]);
+    check_stdout(
+        &["run", "--runtime", "vm", "-"],
+        Some("5 * 6"),
+        expect!["30\n"],
+    );
 }
 
 /// Test that errors from stdin are displayed correctly with full error message.
@@ -155,7 +184,7 @@ fn run_from_stdin_error() {
     check_stderr(
         &["--no-color", "run", "-"],
         Some("1 + true"),
-        expect![[r#"
+        expect![[r"
             [E001] Error: Type mismatch: expected Int, found Bool
                ╭─[ <stdin>:1:5 ]
                │
@@ -165,7 +194,7 @@ fn run_from_stdin_error() {
                │
                │ Help: Types must match in this context
             ───╯
-        "#]],
+        "]],
     );
 }
 
@@ -202,13 +231,21 @@ fn run_error_shows_stdin_label() {
 #[test]
 fn run_with_shebang() {
     let file = temp_file("#!/usr/bin/env melbi run\n1 + 2 + 3");
-    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["6\n"]);
+    check_stdout(
+        &["run", file.path().to_str().unwrap()],
+        None,
+        expect!["6\n"],
+    );
 }
 
 #[test]
 fn run_with_shebang_multiline() {
     let file = temp_file("#!/usr/bin/env melbi run\nx + y where {\n    x = 10,\n    y = 20,\n}");
-    check_stdout(&["run", file.path().to_str().unwrap()], None, expect!["30\n"]);
+    check_stdout(
+        &["run", file.path().to_str().unwrap()],
+        None,
+        expect!["30\n"],
+    );
 }
 
 #[test]

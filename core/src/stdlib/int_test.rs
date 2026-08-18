@@ -1,19 +1,21 @@
 //! Tests for the Int package
 
-use super::{register_int_functions, register_int_package};
-use crate::{
-    api::{CompileOptionsOverride, Engine, EngineOptions},
-    types::manager::TypeManager,
-    values::{binder::Binder, dynamic::{RecordBuilder, Value}},
-};
 use bumpalo::Bump;
 
+use super::{register_int_functions, register_int_package};
+use crate::api::{CompileOptionsOverride, Engine, EngineOptions};
+use crate::types::manager::TypeManager;
+use crate::values::binder::Binder;
+use crate::values::dynamic::{RecordBuilder, Value};
+
 #[test]
-fn test_int_package_builds() {
+fn int_package_builds() {
     let arena = Bump::new();
     let type_mgr = TypeManager::new(&arena);
 
-    let int_pkg = register_int_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr)).build().unwrap();
+    let int_pkg = register_int_functions(&arena, type_mgr, RecordBuilder::new(&arena, type_mgr))
+        .build()
+        .unwrap();
     let record = int_pkg.as_record().unwrap();
 
     // Should have all functions
@@ -52,7 +54,7 @@ where
 // ============================================================================
 
 #[test]
-fn test_int_quot_positive_positive() {
+fn int_quot_positive_positive() {
     // 7 / 3 = 2 (truncated)
     test_int_expr("Int.Quot(7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 2);
@@ -65,7 +67,7 @@ fn test_int_quot_positive_positive() {
 }
 
 #[test]
-fn test_int_quot_negative_positive() {
+fn int_quot_negative_positive() {
     // -7 / 3 = -2 (truncated towards zero)
     test_int_expr("Int.Quot(-7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), -2);
@@ -73,7 +75,7 @@ fn test_int_quot_negative_positive() {
 }
 
 #[test]
-fn test_int_quot_positive_negative() {
+fn int_quot_positive_negative() {
     // 7 / -3 = -2 (truncated towards zero)
     test_int_expr("Int.Quot(7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), -2);
@@ -81,7 +83,7 @@ fn test_int_quot_positive_negative() {
 }
 
 #[test]
-fn test_int_quot_negative_negative() {
+fn int_quot_negative_negative() {
     // -7 / -3 = 2 (truncated towards zero)
     test_int_expr("Int.Quot(-7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 2);
@@ -89,7 +91,7 @@ fn test_int_quot_negative_negative() {
 }
 
 #[test]
-fn test_int_quot_zero_dividend() {
+fn int_quot_zero_dividend() {
     test_int_expr("Int.Quot(0, 5)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 0);
     });
@@ -100,7 +102,7 @@ fn test_int_quot_zero_dividend() {
 // ============================================================================
 
 #[test]
-fn test_int_rem_positive_positive() {
+fn int_rem_positive_positive() {
     // 7 % 3 = 1
     test_int_expr("Int.Rem(7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 1);
@@ -113,7 +115,7 @@ fn test_int_rem_positive_positive() {
 }
 
 #[test]
-fn test_int_rem_negative_positive() {
+fn int_rem_negative_positive() {
     // -7 % 3 = -1 (sign matches dividend)
     test_int_expr("Int.Rem(-7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), -1);
@@ -121,7 +123,7 @@ fn test_int_rem_negative_positive() {
 }
 
 #[test]
-fn test_int_rem_positive_negative() {
+fn int_rem_positive_negative() {
     // 7 % -3 = 1 (sign matches dividend)
     test_int_expr("Int.Rem(7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 1);
@@ -129,7 +131,7 @@ fn test_int_rem_positive_negative() {
 }
 
 #[test]
-fn test_int_rem_negative_negative() {
+fn int_rem_negative_negative() {
     // -7 % -3 = -1 (sign matches dividend)
     test_int_expr("Int.Rem(-7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), -1);
@@ -137,7 +139,7 @@ fn test_int_rem_negative_negative() {
 }
 
 #[test]
-fn test_int_rem_zero_dividend() {
+fn int_rem_zero_dividend() {
     test_int_expr("Int.Rem(0, 5)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 0);
     });
@@ -148,7 +150,7 @@ fn test_int_rem_zero_dividend() {
 // ============================================================================
 
 #[test]
-fn test_int_div_positive_positive() {
+fn int_div_positive_positive() {
     // Same as truncated for positive numbers
     test_int_expr("Int.Div(7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 2);
@@ -156,7 +158,7 @@ fn test_int_div_positive_positive() {
 }
 
 #[test]
-fn test_int_div_negative_positive() {
+fn int_div_negative_positive() {
     // -7 div 3 = -3 (so that mod is non-negative: -7 = -3*3 + 2)
     test_int_expr("Int.Div(-7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), -3);
@@ -164,7 +166,7 @@ fn test_int_div_negative_positive() {
 }
 
 #[test]
-fn test_int_div_positive_negative() {
+fn int_div_positive_negative() {
     // 7 div -3 = -2 (so that mod is non-negative: 7 = -2*(-3) + 1)
     test_int_expr("Int.Div(7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), -2);
@@ -172,7 +174,7 @@ fn test_int_div_positive_negative() {
 }
 
 #[test]
-fn test_int_div_negative_negative() {
+fn int_div_negative_negative() {
     // -7 div -3 = 3 (so that mod is non-negative: -7 = 3*(-3) + 2)
     test_int_expr("Int.Div(-7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 3);
@@ -180,7 +182,7 @@ fn test_int_div_negative_negative() {
 }
 
 #[test]
-fn test_int_div_zero_dividend() {
+fn int_div_zero_dividend() {
     test_int_expr("Int.Div(0, 5)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 0);
     });
@@ -191,7 +193,7 @@ fn test_int_div_zero_dividend() {
 // ============================================================================
 
 #[test]
-fn test_int_mod_positive_positive() {
+fn int_mod_positive_positive() {
     // Same as truncated for positive numbers
     test_int_expr("Int.Mod(7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 1);
@@ -199,7 +201,7 @@ fn test_int_mod_positive_positive() {
 }
 
 #[test]
-fn test_int_mod_negative_positive() {
+fn int_mod_negative_positive() {
     // -7 mod 3 = 2 (always non-negative)
     test_int_expr("Int.Mod(-7, 3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 2);
@@ -207,7 +209,7 @@ fn test_int_mod_negative_positive() {
 }
 
 #[test]
-fn test_int_mod_positive_negative() {
+fn int_mod_positive_negative() {
     // 7 mod -3 = 1 (always non-negative)
     test_int_expr("Int.Mod(7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 1);
@@ -215,7 +217,7 @@ fn test_int_mod_positive_negative() {
 }
 
 #[test]
-fn test_int_mod_negative_negative() {
+fn int_mod_negative_negative() {
     // -7 mod -3 = 2 (always non-negative, even when b is negative)
     test_int_expr("Int.Mod(-7, -3)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 2);
@@ -223,7 +225,7 @@ fn test_int_mod_negative_negative() {
 }
 
 #[test]
-fn test_int_mod_zero_dividend() {
+fn int_mod_zero_dividend() {
     test_int_expr("Int.Mod(0, 5)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 0);
     });
@@ -235,7 +237,7 @@ fn test_int_mod_zero_dividend() {
 
 /// Verify the invariant: a == (Int.Quot(a, b) * b) + Int.Rem(a, b)
 #[test]
-fn test_truncated_division_invariant() {
+fn truncated_division_invariant() {
     // Test multiple combinations
     let test_cases: [(i64, i64); 8] = [
         (7, 3),
@@ -262,7 +264,7 @@ fn test_truncated_division_invariant() {
 
 /// Verify the invariant: a == (Int.Div(a, b) * b) + Int.Mod(a, b)
 #[test]
-fn test_euclidean_division_invariant() {
+fn euclidean_division_invariant() {
     // Test multiple combinations
     let test_cases: [(i64, i64); 8] = [
         (7, 3),
@@ -289,7 +291,7 @@ fn test_euclidean_division_invariant() {
 
 /// Verify that Int.Mod always returns non-negative values
 #[test]
-fn test_mod_always_non_negative() {
+fn mod_always_non_negative() {
     let test_cases: [(i64, i64); 6] = [(-7, 3), (-7, -3), (-100, 7), (-1, 5), (-999, 13), (7, -3)];
 
     for (a, b) in test_cases {
@@ -313,7 +315,7 @@ fn test_mod_always_non_negative() {
 // ============================================================================
 
 #[test]
-fn test_mod_for_array_indexing() {
+fn mod_for_array_indexing() {
     // Using Int.Mod for circular array access with negative indices
     // If array has 5 elements, index -1 should map to 4
     test_int_expr("Int.Mod(-1, 5)", |r: Value| {
@@ -326,7 +328,7 @@ fn test_mod_for_array_indexing() {
 }
 
 #[test]
-fn test_quot_rem_for_digit_extraction() {
+fn quot_rem_for_digit_extraction() {
     // Extract last digit of -123 (should be -3 with truncated division)
     test_int_expr("Int.Rem(-123, 10)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), -3);
@@ -343,7 +345,7 @@ fn test_quot_rem_for_digit_extraction() {
 // ============================================================================
 
 #[test]
-fn test_division_by_one() {
+fn division_by_one() {
     test_int_expr("Int.Quot(42, 1)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 42);
     });
@@ -362,7 +364,7 @@ fn test_division_by_one() {
 }
 
 #[test]
-fn test_large_numbers() {
+fn large_numbers() {
     // Test with larger numbers to ensure no overflow in intermediate calculations
     test_int_expr("Int.Quot(1000000007, 1000000)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 1000);
@@ -402,80 +404,52 @@ fn test_int_expr_expects_error(source: &str, expected_error_substring: &str) {
     match result {
         Ok(val) => {
             panic!(
-                "Expected error containing '{}', but got success with value: {:?}",
-                expected_error_substring, val
+                "Expected error containing '{expected_error_substring}', but got success with value: {val:?}"
             );
         }
         Err(e) => {
-            let error_msg = format!("{:?}", e);
+            let error_msg = format!("{e:?}");
             assert!(
                 error_msg.contains(expected_error_substring),
-                "Expected error containing '{}', but got: {}",
-                expected_error_substring,
-                error_msg
+                "Expected error containing '{expected_error_substring}', but got: {error_msg}"
             );
         }
     }
 }
 
-/// Helper to test expressions that might panic (for documenting known bugs).
-/// Returns true if the expression panics, false if it succeeds or returns an error.
-#[allow(dead_code)]
-fn test_int_expr_panics(source: &str) -> bool {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    catch_unwind(AssertUnwindSafe(|| {
-        use crate::api::{CompileOptionsOverride, Engine, EngineOptions};
-
-        let options = EngineOptions::default();
-        let arena = Bump::new();
-
-        let engine = Engine::new(options, &arena, register_int_package);
-
-        let compile_opts = CompileOptionsOverride::default();
-        let expr = engine
-            .compile(compile_opts, source, &[])
-            .expect("compilation should succeed");
-
-        let val_arena = Bump::new();
-        let _ = expr.run(Default::default(), &val_arena, &[]);
-    }))
-    .is_err()
-}
-
 #[test]
-fn test_quot_division_by_zero_returns_error() {
+fn quot_division_by_zero_returns_error() {
     // Int.Quot(a, 0) returns a DivisionByZero error
     test_int_expr_expects_error("Int.Quot(7, 0)", "Division by zero");
 }
 
 #[test]
-fn test_rem_division_by_zero_returns_error() {
+fn rem_division_by_zero_returns_error() {
     // Int.Rem(a, 0) returns a DivisionByZero error
     test_int_expr_expects_error("Int.Rem(7, 0)", "Division by zero");
 }
 
 #[test]
-fn test_div_euclid_division_by_zero_returns_error() {
+fn div_euclid_division_by_zero_returns_error() {
     // Int.Div(a, 0) returns a DivisionByZero error
     test_int_expr_expects_error("Int.Div(7, 0)", "Division by zero");
 }
 
 #[test]
-fn test_mod_euclid_division_by_zero_returns_error() {
+fn mod_euclid_division_by_zero_returns_error() {
     // Int.Mod(a, 0) returns a DivisionByZero error
     test_int_expr_expects_error("Int.Mod(7, 0)", "Division by zero");
 }
 
 #[test]
-fn test_division_by_zero_with_negative_dividend() {
+fn division_by_zero_with_negative_dividend() {
     // Division by zero with negative dividend also returns DivisionByZero error
     test_int_expr_expects_error("Int.Quot(-7, 0)", "Division by zero");
     test_int_expr_expects_error("Int.Rem(-7, 0)", "Division by zero");
 }
 
 #[test]
-fn test_division_by_zero_with_zero_dividend() {
+fn division_by_zero_with_zero_dividend() {
     // Even 0 / 0 returns DivisionByZero error (undefined in mathematics)
     test_int_expr_expects_error("Int.Quot(0, 0)", "Division by zero");
     test_int_expr_expects_error("Int.Mod(0, 0)", "Division by zero");
@@ -493,26 +467,26 @@ fn test_division_by_zero_with_zero_dividend() {
 // All Int functions now properly return IntegerOverflow errors for this case.
 
 #[test]
-fn test_quot_i64_min_divided_by_negative_one_returns_overflow_error() {
+fn quot_i64_min_divided_by_negative_one_returns_overflow_error() {
     // i64::MIN / -1 causes overflow - returns IntegerOverflow error
     test_int_expr_expects_error("Int.Quot(-9223372036854775808, -1)", "Integer overflow");
 }
 
 #[test]
-fn test_rem_i64_min_divided_by_negative_one_returns_overflow_error() {
+fn rem_i64_min_divided_by_negative_one_returns_overflow_error() {
     // i64::MIN % -1 causes overflow during computation - returns IntegerOverflow error
     // (The mathematical result would be 0, but the operation overflows internally)
     test_int_expr_expects_error("Int.Rem(-9223372036854775808, -1)", "Integer overflow");
 }
 
 #[test]
-fn test_div_euclid_i64_min_divided_by_negative_one_returns_overflow_error() {
+fn div_euclid_i64_min_divided_by_negative_one_returns_overflow_error() {
     // i64::MIN.div_euclid(-1) causes overflow - returns IntegerOverflow error
     test_int_expr_expects_error("Int.Div(-9223372036854775808, -1)", "Integer overflow");
 }
 
 #[test]
-fn test_mod_euclid_i64_min_divided_by_negative_one_returns_overflow_error() {
+fn mod_euclid_i64_min_divided_by_negative_one_returns_overflow_error() {
     // i64::MIN.rem_euclid(-1) causes overflow - returns IntegerOverflow error
     test_int_expr_expects_error("Int.Mod(-9223372036854775808, -1)", "Integer overflow");
 }
@@ -522,13 +496,13 @@ fn test_mod_euclid_i64_min_divided_by_negative_one_returns_overflow_error() {
 // ============================================================================
 
 #[test]
-fn test_i64_max_operations() {
+fn i64_max_operations() {
     // i64::MAX = 9223372036854775807
     // These should work correctly without overflow
 
     // i64::MAX / 2 = 4611686018427387903
     test_int_expr("Int.Quot(9223372036854775807, 2)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), 4611686018427387903);
+        assert_eq!(r.as_int().unwrap(), 0x3FFF_FFFF_FFFF_FFFF);
     });
 
     // i64::MAX % 2 = 1 (i64::MAX is odd)
@@ -548,13 +522,13 @@ fn test_i64_max_operations() {
 }
 
 #[test]
-fn test_i64_min_safe_operations() {
+fn i64_min_safe_operations() {
     // i64::MIN = -9223372036854775808
     // These operations should be safe (no overflow)
 
     // i64::MIN / 2 = -4611686018427387904
     test_int_expr("Int.Quot(-9223372036854775808, 2)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), -4611686018427387904);
+        assert_eq!(r.as_int().unwrap(), -0x4000_0000_0000_0000);
     });
 
     // i64::MIN % 2 = 0 (i64::MIN is even in two's complement)
@@ -574,10 +548,10 @@ fn test_i64_min_safe_operations() {
 }
 
 #[test]
-fn test_i64_max_divided_by_negative_one() {
+fn i64_max_divided_by_negative_one() {
     // i64::MAX / -1 = -i64::MAX = -9223372036854775807 (fits in i64)
     test_int_expr("Int.Quot(9223372036854775807, -1)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), -9223372036854775807);
+        assert_eq!(r.as_int().unwrap(), -0x7FFF_FFFF_FFFF_FFFF);
     });
 
     // i64::MAX % -1 = 0
@@ -587,7 +561,7 @@ fn test_i64_max_divided_by_negative_one() {
 }
 
 #[test]
-fn test_i64_min_divided_by_i64_max() {
+fn i64_min_divided_by_i64_max() {
     // i64::MIN / i64::MAX = -1 (truncated towards zero: -1.0000...)
     test_int_expr(
         "Int.Quot(-9223372036854775808, 9223372036854775807)",
@@ -607,7 +581,7 @@ fn test_i64_min_divided_by_i64_max() {
 }
 
 #[test]
-fn test_i64_max_divided_by_i64_min() {
+fn i64_max_divided_by_i64_min() {
     // i64::MAX / i64::MIN = 0 (truncated towards zero)
     test_int_expr(
         "Int.Quot(9223372036854775807, -9223372036854775808)",
@@ -626,7 +600,7 @@ fn test_i64_max_divided_by_i64_min() {
 }
 
 #[test]
-fn test_i64_min_divided_by_i64_min() {
+fn i64_min_divided_by_i64_min() {
     // i64::MIN / i64::MIN = 1
     test_int_expr(
         "Int.Quot(-9223372036854775808, -9223372036854775808)",
@@ -645,7 +619,7 @@ fn test_i64_min_divided_by_i64_min() {
 }
 
 #[test]
-fn test_i64_max_divided_by_i64_max() {
+fn i64_max_divided_by_i64_max() {
     // i64::MAX / i64::MAX = 1
     test_int_expr(
         "Int.Quot(9223372036854775807, 9223372036854775807)",
@@ -668,10 +642,10 @@ fn test_i64_max_divided_by_i64_max() {
 // ============================================================================
 
 #[test]
-fn test_euclidean_div_i64_min_with_positive_divisor() {
+fn euclidean_div_i64_min_with_positive_divisor() {
     // Int.Div(-9223372036854775808, 2) should work
     test_int_expr("Int.Div(-9223372036854775808, 2)", |r: Value| {
-        assert_eq!(r.as_int().unwrap(), -4611686018427387904);
+        assert_eq!(r.as_int().unwrap(), -0x4000_0000_0000_0000);
     });
 
     // Int.Mod(-9223372036854775808, 2) should return 0 (i64::MIN is even)
@@ -681,7 +655,7 @@ fn test_euclidean_div_i64_min_with_positive_divisor() {
 }
 
 #[test]
-fn test_euclidean_div_i64_min_with_large_positive_divisor() {
+fn euclidean_div_i64_min_with_large_positive_divisor() {
     // Test with divisor close to i64::MAX
     test_int_expr(
         "Int.Div(-9223372036854775808, 9223372036854775807)",
@@ -696,7 +670,7 @@ fn test_euclidean_div_i64_min_with_large_positive_divisor() {
         "Int.Mod(-9223372036854775808, 9223372036854775807)",
         |r: Value| {
             // The mod should be positive: 9223372036854775806
-            assert_eq!(r.as_int().unwrap(), 9223372036854775806);
+            assert_eq!(r.as_int().unwrap(), 0x7FFF_FFFF_FFFF_FFFE);
         },
     );
 }
@@ -706,7 +680,7 @@ fn test_euclidean_div_i64_min_with_large_positive_divisor() {
 // ============================================================================
 
 #[test]
-fn test_small_divisors() {
+fn small_divisors() {
     // Division by 1 and -1 are boundary cases
 
     // Any number / 1 = that number
@@ -738,7 +712,7 @@ fn test_small_divisors() {
 }
 
 #[test]
-fn test_divisor_larger_than_dividend() {
+fn divisor_larger_than_dividend() {
     // When |divisor| > |dividend|, truncated division returns 0
     test_int_expr("Int.Quot(5, 100)", |r: Value| {
         assert_eq!(r.as_int().unwrap(), 0);
@@ -759,7 +733,7 @@ fn test_divisor_larger_than_dividend() {
 }
 
 #[test]
-fn test_euclidean_divisor_larger_than_dividend() {
+fn euclidean_divisor_larger_than_dividend() {
     // Euclidean division with larger divisor
 
     // Positive dividend: same as truncated
@@ -787,7 +761,7 @@ fn test_euclidean_divisor_larger_than_dividend() {
 // ============================================================================
 
 #[test]
-fn test_truncated_invariant_with_extreme_values() {
+fn truncated_invariant_with_extreme_values() {
     // Verify a == (a / b) * b + (a % b) for extreme values
     // (Skipping i64::MIN / -1 cases which overflow)
 
@@ -819,7 +793,7 @@ fn test_truncated_invariant_with_extreme_values() {
 }
 
 #[test]
-fn test_euclidean_invariant_with_extreme_values() {
+fn euclidean_invariant_with_extreme_values() {
     // Verify a == (a div b) * b + (a mod b) for extreme values
     // (Skipping i64::MIN / -1 cases which overflow)
 
@@ -855,7 +829,7 @@ fn test_euclidean_invariant_with_extreme_values() {
 // ============================================================================
 
 #[test]
-fn test_powers_of_two_divisors() {
+fn powers_of_two_divisors() {
     // Powers of two are common divisors and can trigger off-by-one bugs
 
     // 2^62 as divisor (largest power of 2 that fits cleanly)
@@ -871,13 +845,13 @@ fn test_powers_of_two_divisors() {
         "Int.Rem(9223372036854775807, 4611686018427387904)",
         |r: Value| {
             // i64::MAX % 2^62 = i64::MAX - 2^62 = 4611686018427387903
-            assert_eq!(r.as_int().unwrap(), 4611686018427387903);
+            assert_eq!(r.as_int().unwrap(), 0x3FFF_FFFF_FFFF_FFFF);
         },
     );
 }
 
 #[test]
-fn test_negative_dividend_power_of_two_divisor() {
+fn negative_dividend_power_of_two_divisor() {
     // Negative dividend with power of two divisor
     // This is where truncated and Euclidean division differ
 
@@ -908,7 +882,7 @@ fn test_negative_dividend_power_of_two_divisor() {
 // ============================================================================
 
 #[test]
-fn test_euclidean_with_negative_divisors() {
+fn euclidean_with_negative_divisors() {
     // Euclidean division with negative divisors has subtle behavior
     // The quotient is adjusted so that remainder is always in [0, |divisor|)
 
@@ -934,7 +908,7 @@ fn test_euclidean_with_negative_divisors() {
 }
 
 #[test]
-fn test_euclidean_with_large_negative_divisor() {
+fn euclidean_with_large_negative_divisor() {
     // Test with i64::MIN as divisor (but not i64::MIN/-1 case)
 
     // i64::MAX with divisor i64::MIN
@@ -961,7 +935,7 @@ fn test_euclidean_with_large_negative_divisor() {
 // ============================================================================
 
 #[test]
-fn test_values_near_i64_min() {
+fn values_near_i64_min() {
     // Test i64::MIN + 1 which should not have the overflow issue
 
     // (i64::MIN + 1) / -1 should work without overflow
@@ -989,7 +963,7 @@ fn test_values_near_i64_min() {
 // ============================================================================
 
 #[test]
-fn test_truncated_vs_euclidean_positive_inputs() {
+fn truncated_vs_euclidean_positive_inputs() {
     // For positive dividend and divisor, truncated and Euclidean should match
     let test_cases = [(7, 3), (100, 7), (1000000, 999), (i64::MAX, 2)];
 
@@ -1029,7 +1003,7 @@ fn test_truncated_vs_euclidean_positive_inputs() {
 }
 
 #[test]
-fn test_truncated_vs_euclidean_differ_for_negative() {
+fn truncated_vs_euclidean_differ_for_negative() {
     // For negative dividend and positive divisor, they should differ
     // (unless remainder would be 0)
 

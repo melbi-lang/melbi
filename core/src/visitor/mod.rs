@@ -25,8 +25,8 @@ pub trait TreeBuilder: Copy + Clone + Debug + Eq {
 pub trait TreeView<B: TreeBuilder>: Sized + Clone {
     /// Get the kind/variant of this node.
     ///
-    /// Note: The "kind" is application-specific. For Melbi's TypedExpr,
-    /// this would return the ExprInner enum.
+    /// Note: The "kind" is application-specific. For Melbi's `TypedExpr`,
+    /// this would return the `ExprInner` enum.
     type Kind;
 
     /// Deconstruct this node into its kind.

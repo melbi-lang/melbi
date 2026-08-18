@@ -1,10 +1,10 @@
-use super::parser::ExpressionParser;
-use super::parser::Rule;
 use pest::Parser;
 use pest::error::Error;
 
+use super::parser::{ExpressionParser, Rule};
+
 #[test]
-fn test_valid_expressions() -> Result<(), Error<Rule>> {
+fn valid_expressions() -> Result<(), Error<Rule>> {
     let examples = [
         "1 + 2",
         "a * b + c",
@@ -63,14 +63,14 @@ fn test_valid_expressions() -> Result<(), Error<Rule>> {
 
     for expr in examples {
         ExpressionParser::parse(Rule::main, expr)
-            .unwrap_or_else(|e| panic!("Failed to parse '{}': {}", expr, e));
+            .unwrap_or_else(|e| panic!("Failed to parse '{expr}': {e}"));
     }
 
     Ok(())
 }
 
 #[test]
-fn test_invalid_expressions() {
+fn invalid_expressions() {
     let examples = [
         "1 +",
         "if x then else y",
@@ -105,16 +105,16 @@ fn test_invalid_expressions() {
     for expr in examples {
         assert!(
             ExpressionParser::parse(Rule::main, expr).is_err(),
-            "Expected failure parsing '{}'",
-            expr
+            "Expected failure parsing '{expr}'"
         );
     }
 }
 
 #[test]
-fn test_pattern_matching_syntax() {
-    use crate::parser;
+fn pattern_matching_syntax() {
     use bumpalo::Bump;
+
+    use crate::parser;
 
     let examples = [
         // Basic patterns
@@ -144,7 +144,6 @@ fn test_pattern_matching_syntax() {
 
     let arena = Bump::new();
     for expr in examples {
-        parser::parse(&arena, expr)
-            .unwrap_or_else(|e| panic!("Failed to parse '{}': {}", expr, e));
+        parser::parse(&arena, expr).unwrap_or_else(|e| panic!("Failed to parse '{expr}': {e}"));
     }
 }

@@ -1,11 +1,9 @@
-//! Tests for the generic Fold trait and TypeFolder convenience trait.
+//! Tests for the generic Fold trait and `TypeFolder` convenience trait.
 
 use bumpalo::Bump;
 use hashbrown::{HashMap, HashSet};
-use melbi_types::{
-    core::traversal::{drive_fold, fold_type, Fold, FoldStep, TypeFolder},
-    ty, ArenaBuilder, BoxBuilder, Scalar, Ty, TyBuilder, TyKind,
-};
+use melbi_types::core::traversal::{Fold, FoldStep, TypeFolder, drive_fold, fold_type};
+use melbi_types::{ArenaBuilder, BoxBuilder, Scalar, Ty, TyBuilder, TyKind, ty};
 
 // ============================================================================
 // Identity Fold - rebuilds the same type
@@ -20,7 +18,7 @@ impl<B: TyBuilder> TypeFolder<B> for IdentityFolder {
 }
 
 #[test]
-fn test_identity_fold_scalar() {
+fn identity_fold_scalar() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -29,7 +27,7 @@ fn test_identity_fold_scalar() {
 }
 
 #[test]
-fn test_identity_fold_array() {
+fn identity_fold_array() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -38,7 +36,7 @@ fn test_identity_fold_array() {
 }
 
 #[test]
-fn test_identity_fold_map() {
+fn identity_fold_map() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -47,7 +45,7 @@ fn test_identity_fold_map() {
 }
 
 #[test]
-fn test_identity_fold_nested() {
+fn identity_fold_nested() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -63,20 +61,20 @@ struct Substitution<'a, B: TyBuilder> {
     mapping: &'a HashMap<u16, Ty<B>>,
 }
 
-impl<'a, B: TyBuilder> TypeFolder<B> for Substitution<'a, B> {
+impl<B: TyBuilder> TypeFolder<B> for Substitution<'_, B> {
     fn fold_ty(&mut self, _b_in: &B, _b_out: &B, ty: &Ty<B>) -> FoldStep<B, Ty<B>> {
-        if let TyKind::TypeVar(id) = ty.kind() {
-            if let Some(replacement) = self.mapping.get(id) {
-                // Use Replace to continue traversal into the replacement
-                return FoldStep::Replace(replacement.clone());
-            }
+        if let TyKind::TypeVar(id) = ty.kind()
+            && let Some(replacement) = self.mapping.get(id)
+        {
+            // Use Replace to continue traversal into the replacement
+            return FoldStep::Replace(replacement.clone());
         }
         FoldStep::Recurse
     }
 }
 
 #[test]
-fn test_substitution_simple() {
+fn substitution_simple() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -90,7 +88,7 @@ fn test_substitution_simple() {
 }
 
 #[test]
-fn test_substitution_in_array() {
+fn substitution_in_array() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -105,7 +103,7 @@ fn test_substitution_in_array() {
 }
 
 #[test]
-fn test_substitution_chained() {
+fn substitution_chained() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -124,7 +122,7 @@ fn test_substitution_chained() {
 }
 
 #[test]
-fn test_substitution_preserves_unbound() {
+fn substitution_preserves_unbound() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -172,7 +170,7 @@ impl<B: TyBuilder> Fold<B> for CountingFolder {
 }
 
 #[test]
-fn test_visit_counts_all_nodes() {
+fn visit_counts_all_nodes() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -209,7 +207,7 @@ impl<B: TyBuilder> Fold<B> for EarlyExitFolder {
 }
 
 #[test]
-fn test_early_exit_done() {
+fn early_exit_done() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -248,7 +246,7 @@ impl<B: TyBuilder> Fold<B> for CollectTypeVars {
 }
 
 #[test]
-fn test_collect_type_vars_none() {
+fn collect_type_vars_none() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -260,7 +258,7 @@ fn test_collect_type_vars_none() {
 }
 
 #[test]
-fn test_collect_type_vars_simple() {
+fn collect_type_vars_simple() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -275,7 +273,7 @@ fn test_collect_type_vars_simple() {
 }
 
 #[test]
-fn test_collect_type_vars_nested() {
+fn collect_type_vars_nested() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -283,7 +281,12 @@ fn test_collect_type_vars_nested() {
     let mut collector = CollectTypeVars {
         vars: HashSet::new(),
     };
-    drive_fold(&b, ty!(b, [a, x] => Array[Map[a, Array[x]]]), &mut collector).unwrap();
+    drive_fold(
+        &b,
+        ty!(b, [a, x] => Array[Map[a, Array[x]]]),
+        &mut collector,
+    )
+    .unwrap();
 
     assert_eq!(collector.vars.len(), 2);
     assert!(collector.vars.contains(&0));
@@ -291,7 +294,7 @@ fn test_collect_type_vars_nested() {
 }
 
 #[test]
-fn test_collect_type_vars_duplicates() {
+fn collect_type_vars_duplicates() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -324,7 +327,7 @@ impl<'arena> TypeFolder<BoxBuilder, ArenaBuilder<'arena>> for BoxToArenaFolder {
 }
 
 #[test]
-fn test_box_to_arena_scalar() {
+fn box_to_arena_scalar() {
     let b_box = BoxBuilder;
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
@@ -334,27 +337,37 @@ fn test_box_to_arena_scalar() {
 }
 
 #[test]
-fn test_box_to_arena_array() {
+fn box_to_arena_array() {
     let b_box = BoxBuilder;
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
 
-    let result = fold_type(&b_box, &b_arena, ty!(b_box, Array[Int]), &mut BoxToArenaFolder);
+    let result = fold_type(
+        &b_box,
+        &b_arena,
+        ty!(b_box, Array[Int]),
+        &mut BoxToArenaFolder,
+    );
     assert_eq!(result, ty!(b_arena, Array[Int]));
 }
 
 #[test]
-fn test_box_to_arena_map() {
+fn box_to_arena_map() {
     let b_box = BoxBuilder;
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
 
-    let result = fold_type(&b_box, &b_arena, ty!(b_box, Map[Str, Int]), &mut BoxToArenaFolder);
+    let result = fold_type(
+        &b_box,
+        &b_arena,
+        ty!(b_box, Map[Str, Int]),
+        &mut BoxToArenaFolder,
+    );
     assert_eq!(result, ty!(b_arena, Map[Str, Int]));
 }
 
 #[test]
-fn test_box_to_arena_nested() {
+fn box_to_arena_nested() {
     let b_box = BoxBuilder;
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
@@ -369,7 +382,7 @@ fn test_box_to_arena_nested() {
 }
 
 #[test]
-fn test_box_to_arena_type_var() {
+fn box_to_arena_type_var() {
     let b_box = BoxBuilder;
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
@@ -401,7 +414,7 @@ impl<'arena> TypeFolder<ArenaBuilder<'arena>, BoxBuilder> for ArenaToBoxFolder {
 }
 
 #[test]
-fn test_arena_to_box_roundtrip() {
+fn arena_to_box_roundtrip() {
     let b_box = BoxBuilder;
     let arena = Bump::new();
     let b_arena = ArenaBuilder::new(&arena);
@@ -428,10 +441,10 @@ impl<B: TyBuilder> Fold<B> for FailingFolder {
     type Error = String;
 
     fn visit(&mut self, _builder: &B, ty: &Ty<B>) -> Result<FoldStep<B, ()>, String> {
-        if let TyKind::TypeVar(id) = ty.kind() {
-            if *id == self.fail_on_var {
-                return Err(format!("Failed on TypeVar({})", id));
-            }
+        if let TyKind::TypeVar(id) = ty.kind()
+            && *id == self.fail_on_var
+        {
+            return Err(format!("Failed on TypeVar({id})"));
         }
         Ok(FoldStep::Recurse)
     }
@@ -447,17 +460,21 @@ impl<B: TyBuilder> Fold<B> for FailingFolder {
 }
 
 #[test]
-fn test_error_propagation() {
+fn error_propagation() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
-    let result = drive_fold(&b, ty!(b, [a, x] => Map[a, x]), FailingFolder { fail_on_var: 1 });
+    let result = drive_fold(
+        &b,
+        ty!(b, [a, x] => Map[a, x]),
+        FailingFolder { fail_on_var: 1 },
+    );
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Failed on TypeVar(1)");
 }
 
 #[test]
-fn test_error_no_propagation_when_ok() {
+fn error_no_propagation_when_ok() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -471,7 +488,7 @@ fn test_error_no_propagation_when_ok() {
 // ============================================================================
 
 #[test]
-fn test_fold_type_var() {
+fn fold_type_var() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -481,7 +498,7 @@ fn test_fold_type_var() {
 }
 
 #[test]
-fn test_fold_all_scalars() {
+fn fold_all_scalars() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -515,8 +532,7 @@ impl<B: TyBuilder> Fold<B> for ChildOrderCollector {
             TyKind::Scalar(Scalar::Int) => "int",
             TyKind::Scalar(Scalar::Str) => "str",
             TyKind::Scalar(Scalar::Bool) => "bool",
-            TyKind::Array(_) => return Ok(FoldStep::Recurse),
-            TyKind::Map(_, _) => return Ok(FoldStep::Recurse),
+            TyKind::Array(_) | TyKind::Map(_, _) => return Ok(FoldStep::Recurse),
             _ => "other",
         };
         self.order.push(label);
@@ -545,7 +561,7 @@ impl<B: TyBuilder> Fold<B> for ChildOrderCollector {
 }
 
 #[test]
-fn test_map_child_order() {
+fn map_child_order() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 
@@ -558,7 +574,7 @@ fn test_map_child_order() {
 }
 
 #[test]
-fn test_nested_child_order() {
+fn nested_child_order() {
     let arena = Bump::new();
     let b = ArenaBuilder::new(&arena);
 

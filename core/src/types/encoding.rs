@@ -29,7 +29,7 @@
 //! Types are encoded prefixed with a wire tag or wire byte indicating the variant,
 //! but sometimes containing additional packed information.
 //!
-//! - **0-63**: Direct TypeTag for all Melbi types (with reserved space for new types).
+//! - **0-63**: Direct `TypeTag` for all Melbi types (with reserved space for new types).
 //! - **64-95**: Packed TypeVar(0..31).
 //! - **96-100**: Packed Array(e) for all unitary types.
 //! - **101-126**: Packed Map(k, v) for all composite types.
@@ -54,12 +54,11 @@
 //!
 //! See the design document for full specification.
 
-use crate::types::{
-    Type,
-    encoding::wire::{ChosenEncoding, Payload, WireEncoding, WireTag},
-    traits::{TypeKind, TypeTag, TypeView},
-};
 use smallvec::SmallVec;
+
+use crate::types::Type;
+use crate::types::encoding::wire::{ChosenEncoding, Payload, WireEncoding, WireTag};
+use crate::types::traits::{TypeKind, TypeTag, TypeView};
 
 // ============================================================================
 // Wire Format Encoding
@@ -157,7 +156,7 @@ mod wire {
                 0..64 => {
                     let type_tag: TypeTag = byte
                         .try_into()
-                        .map_err(|_| DecodeError::InvalidWireTag { tag: byte })?;
+                        .map_err(|()| DecodeError::InvalidWireTag { tag: byte })?;
 
                     if Self::is_unitary_type(type_tag) {
                         // Unitary types have no payload
@@ -188,7 +187,7 @@ mod wire {
 
                 // Packed TypeVar (64-95): IDs 0-31
                 64..96 => {
-                    let id = (byte as u16) - 64u16;
+                    let id = u16::from(byte) - 64u16;
                     Ok(Decoded {
                         type_tag: TypeTag::TypeVar,
                         payload: Payload::PackedTypeVar(id),
@@ -226,21 +225,21 @@ mod wire {
             }
         }
 
-        /// Create WireTag for encoding (tries to use packed format when possible)
+        /// Create `WireTag` for encoding (tries to use packed format when possible)
         // TODO: Rewrite this for more flexibility on what can or cannot get packed.
         pub(super) fn for_encoding(type_tag: TypeTag, encoding: WireEncoding) -> Self {
             match (type_tag, encoding) {
-                (TypeTag::TypeVar, WireEncoding::PackedTypeVar(id)) if id < 32 => WireTag {
+                (TypeTag::TypeVar, WireEncoding::PackedTypeVar(id)) if id < 32 => Self {
                     wire_tag: 64 + (id as u8),
                     chosen_encoding: ChosenEncoding::WithoutPayload,
                 },
                 (TypeTag::Array, WireEncoding::PackedArray(elem)) => {
                     match Self::packed_id_from_type_tag(elem) {
-                        Some(packed_type_id) => WireTag {
+                        Some(packed_type_id) => Self {
                             wire_tag: 96 + packed_type_id,
                             chosen_encoding: ChosenEncoding::WithoutPayload,
                         },
-                        None => WireTag {
+                        None => Self {
                             wire_tag: type_tag as u8,
                             chosen_encoding: ChosenEncoding::WithPayload,
                         },
@@ -251,21 +250,21 @@ mod wire {
                         Self::packed_id_from_type_tag(key_type),
                         Self::packed_id_from_type_tag(value_type),
                     ) {
-                        (Some(key_type_id), Some(value_type_id)) => WireTag {
+                        (Some(key_type_id), Some(value_type_id)) => Self {
                             wire_tag: 101 + key_type_id * 5 + value_type_id,
                             chosen_encoding: ChosenEncoding::WithoutPayload,
                         },
-                        _ => WireTag {
+                        _ => Self {
                             wire_tag: type_tag as u8,
                             chosen_encoding: ChosenEncoding::WithPayload,
                         },
                     }
                 }
-                (type_tag, _) if Self::is_unitary_type(type_tag) => WireTag {
+                (type_tag, _) if Self::is_unitary_type(type_tag) => Self {
                     wire_tag: type_tag as u8,
                     chosen_encoding: ChosenEncoding::WithoutPayload,
                 },
-                _ => WireTag {
+                _ => Self {
                     wire_tag: type_tag as u8,
                     chosen_encoding: ChosenEncoding::WithPayload, // Fallback to standard encoding
                 },
@@ -273,7 +272,7 @@ mod wire {
         }
 
         /// Encode to wire byte
-        pub(super) fn to_byte(&self) -> u8 {
+        pub(super) fn as_byte(&self) -> u8 {
             self.wire_tag
         }
 
@@ -326,9 +325,8 @@ fn write_varint(buf: &mut BufferType, mut n: usize) {
         if n == 0 {
             buf.push(byte);
             break;
-        } else {
-            buf.push(byte | 0x80);
         }
+        buf.push(byte | 0x80);
     }
 }
 
@@ -378,7 +376,8 @@ fn read_string(bytes: &[u8]) -> Result<(&str, &[u8]), DecodeError> {
     }
 
     let str_bytes = &bytes[varint_len..varint_len + len];
-    let s = unsafe { core::str::from_utf8_unchecked(str_bytes) };
+    let s = core::str::from_utf8(str_bytes)
+        .map_err(|_| DecodeError::InvalidUtf8 { offset: varint_len })?;
 
     Ok((s, &bytes[varint_len + len..]))
 }
@@ -399,7 +398,7 @@ fn write_u16_le(buf: &mut BufferType, val: u16) {
 
 pub type BufferType = SmallVec<[u8; 16]>;
 
-/// Encodes a composite type with the standard 3-byte header: [disc][size_lo][size_hi][payload]
+/// Encodes a composite type with the standard 3-byte header: [disc][size_lo][`size_hi`][payload]
 /// The payload is encoded by the provided closure.
 #[inline]
 fn encode_composite<F>(buf: &mut BufferType, disc: u8, encode_payload: F)
@@ -416,6 +415,7 @@ where
     buf[start + 2] = ((size >> 8) & 0xFF) as u8;
 }
 
+#[must_use]
 pub fn encode(ty: &Type) -> BufferType {
     let mut buf = BufferType::new();
     encode_inner(ty, &mut buf);
@@ -459,8 +459,8 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
         ),
         _ => WireTag::for_encoding(type_to_tag(ty), WireEncoding::Standard),
     };
-    if let ChosenEncoding::WithoutPayload = tag.chosen_encoding() {
-        buf.push(tag.to_byte());
+    if matches!(tag.chosen_encoding(), ChosenEncoding::WithoutPayload) {
+        buf.push(tag.as_byte());
         return;
     }
     match ty {
@@ -468,48 +468,48 @@ fn encode_inner(ty: &Type, buf: &mut BufferType) {
             unreachable!("types are always packed");
         }
         Type::TypeVar(id) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 write_u16_le(buf, *id);
             });
         }
         Type::Array(elem) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(elem, buf);
             });
         }
         Type::Map(key, val) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(key, buf);
                 encode_inner(val, buf);
             });
         }
         Type::Option(inner) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(inner, buf);
             });
         }
         Type::Record(fields) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 write_varint(buf, fields.len());
-                for (name, ty) in fields.iter() {
+                for (name, ty) in *fields {
                     write_string(buf, name);
                     encode_inner(ty, buf);
                 }
             });
         }
         Type::Function { params, ret } => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 encode_inner(ret, buf); // return type FIRST
                 write_varint(buf, params.len()); // then count
-                for param in params.iter() {
+                for param in *params {
                     encode_inner(param, buf); // then params
                 }
             });
         }
         Type::Symbol(parts) => {
-            encode_composite(buf, tag.to_byte(), |buf| {
+            encode_composite(buf, tag.as_byte(), |buf| {
                 write_varint(buf, parts.len());
-                for part in parts.iter() {
+                for part in *parts {
                     write_string(buf, part);
                 }
             });
@@ -527,11 +527,13 @@ pub struct OwnedType {
 }
 
 impl OwnedType {
+    #[must_use]
     pub fn new(buffer: BufferType) -> Self {
-        OwnedType { buffer }
+        Self { buffer }
     }
 
-    pub fn view<'a>(&'a self) -> TypeKind<'a, EncodedType<'a>> {
+    #[must_use]
+    pub fn view(&self) -> TypeKind<'_, EncodedType<'_>> {
         EncodedType::new_from_buffer(&self.buffer[..])
             .unwrap()
             .0
@@ -694,7 +696,7 @@ impl<'a> Iterator for RecordIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for RecordIter<'a> {}
+impl ExactSizeIterator for RecordIter<'_> {}
 
 pub struct ParamsIter<'a> {
     payload: &'a [u8],
@@ -735,7 +737,7 @@ impl<'a> Iterator for ParamsIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for ParamsIter<'a> {}
+impl ExactSizeIterator for ParamsIter<'_> {}
 
 pub struct SymbolIter<'a> {
     payload: &'a [u8],
@@ -772,7 +774,7 @@ impl<'a> Iterator for SymbolIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for SymbolIter<'a> {}
+impl ExactSizeIterator for SymbolIter<'_> {}
 
 // ============================================================================
 // Decoding
@@ -780,7 +782,7 @@ impl<'a> ExactSizeIterator for SymbolIter<'a> {}
 
 use crate::types::traits::TypeTransformer;
 
-/// Simple transformer that decodes EncodedType to &Type using TypeManager
+/// Simple transformer that decodes `EncodedType` to &Type using `TypeManager`
 struct Decoder<'a> {
     mgr: &'a crate::types::manager::TypeManager<'a>,
 }
@@ -813,15 +815,16 @@ pub fn decode<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::types::manager::TypeManager;
     use bumpalo::Bump;
 
+    use super::*;
+    use crate::types::manager::TypeManager;
+
     #[test]
-    fn test_smallvec_size() {
+    fn smallvec_size() {
         let v = Vec::<u8>::with_capacity(32);
         let p = v.leak();
-        dbg!(std::mem::size_of_val(&p));
+        dbg!(std::mem::size_of_val(p));
         dbg!(std::any::type_name_of_val(&p));
 
         dbg!(core::mem::size_of::<SmallVec<[u8; 1]>>());
@@ -829,7 +832,6 @@ mod tests {
         dbg!(core::mem::size_of::<SmallVec<[u8; 16]>>());
         dbg!(core::mem::size_of::<SmallVec<[u8; 18]>>());
         dbg!(core::mem::size_of::<SmallVec<[u8; 24]>>());
-        assert!(true);
     }
 
     // ============================================================================
@@ -837,7 +839,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_discriminant_normalization() {
+    fn discriminant_normalization() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -866,7 +868,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_packed_array_int() {
+    fn navigate_packed_array_int() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -887,7 +889,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_packed_map_str_int() {
+    fn navigate_packed_map_str_int() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -909,7 +911,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_all_packed_arrays() {
+    fn navigate_all_packed_arrays() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -965,7 +967,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_all_packed_maps() {
+    fn navigate_all_packed_maps() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1015,33 +1017,33 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_decode_via_typeview_primitives() {
+    fn decode_via_typeview_primitives() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         let int_bytes = encode(mgr.int());
-        let decoded = decode(&int_bytes, &mgr).unwrap();
+        let decoded = decode(&int_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.int(), decoded));
 
         let float_bytes = encode(mgr.float());
-        let decoded = decode(&float_bytes, &mgr).unwrap();
+        let decoded = decode(&float_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.float(), decoded));
 
         let bool_bytes = encode(mgr.bool());
-        let decoded = decode(&bool_bytes, &mgr).unwrap();
+        let decoded = decode(&bool_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bool(), decoded));
 
         let str_bytes = encode(mgr.str());
-        let decoded = decode(&str_bytes, &mgr).unwrap();
+        let decoded = decode(&str_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.str(), decoded));
 
         let bytes_bytes = encode(mgr.bytes());
-        let decoded = decode(&bytes_bytes, &mgr).unwrap();
+        let decoded = decode(&bytes_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bytes(), decoded));
     }
 
     #[test]
-    fn test_decode_via_typeview_packed_array() {
+    fn decode_via_typeview_packed_array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1049,12 +1051,12 @@ mod tests {
         let bytes = encode(ty);
 
         // decode() uses only TypeView navigation
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_decode_via_typeview_packed_map() {
+    fn decode_via_typeview_packed_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1062,25 +1064,25 @@ mod tests {
         let bytes = encode(ty);
 
         // decode() uses only TypeView navigation
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_decode_via_typeview_complex() {
+    fn decode_via_typeview_complex() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         let ty = mgr.function(
             &[
                 mgr.map(mgr.str(), mgr.array(mgr.int())),
-                mgr.record(vec![("result", mgr.bool()), ("count", mgr.int())]),
+                mgr.record(&[("result", mgr.bool()), ("count", mgr.int())]),
             ],
-            mgr.symbol(vec!["success", "error"]),
+            mgr.symbol(&["success", "error"]),
         );
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1089,7 +1091,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_lenient_decode_non_packed_array_int() {
+    fn lenient_decode_non_packed_array_int() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1098,7 +1100,7 @@ mod tests {
         let int_byte = TypeTag::Int as u8;
         let bytes = vec![array_byte, 1, 0, int_byte];
 
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         let expected = mgr.array(mgr.int());
 
         // Should intern to same pointer as canonical encoding
@@ -1106,7 +1108,7 @@ mod tests {
     }
 
     #[test]
-    fn test_lenient_decode_non_packed_map() {
+    fn lenient_decode_non_packed_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1116,7 +1118,7 @@ mod tests {
         let int_byte = TypeTag::Int as u8;
         let bytes = vec![map_byte, 2, 0, str_byte, int_byte];
 
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         let expected = mgr.map(mgr.str(), mgr.int());
 
         // Should intern to same pointer as canonical encoding
@@ -1124,7 +1126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_both_encodings_intern_same() {
+    fn both_encodings_intern_same() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1138,8 +1140,8 @@ mod tests {
         let int_byte = TypeTag::Int as u8;
         let alternative_bytes = vec![array_byte, 1, 0, int_byte]; // Long format: [disc][size_lo][size_hi][elem]
 
-        let decoded_canonical = decode(&canonical_bytes, &mgr).unwrap();
-        let decoded_alternative = decode(&alternative_bytes, &mgr).unwrap();
+        let decoded_canonical = decode(&canonical_bytes, mgr).unwrap();
+        let decoded_alternative = decode(&alternative_bytes, mgr).unwrap();
 
         // Both should intern to same pointer (lenient decoding)
         assert!(core::ptr::eq(ty, decoded_canonical));
@@ -1152,100 +1154,100 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_primitives_round_trip() {
+    fn primitives_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         let int_bytes = encode(mgr.int());
-        let decoded = decode(&int_bytes, &mgr).unwrap();
+        let decoded = decode(&int_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.int(), decoded));
 
         let float_bytes = encode(mgr.float());
-        let decoded = decode(&float_bytes, &mgr).unwrap();
+        let decoded = decode(&float_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.float(), decoded));
 
         let bool_bytes = encode(mgr.bool());
-        let decoded = decode(&bool_bytes, &mgr).unwrap();
+        let decoded = decode(&bool_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bool(), decoded));
 
         let str_bytes = encode(mgr.str());
-        let decoded = decode(&str_bytes, &mgr).unwrap();
+        let decoded = decode(&str_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.str(), decoded));
 
         let bytes_bytes = encode(mgr.bytes());
-        let decoded = decode(&bytes_bytes, &mgr).unwrap();
+        let decoded = decode(&bytes_bytes, mgr).unwrap();
         assert!(core::ptr::eq(mgr.bytes(), decoded));
     }
 
     #[test]
-    fn test_typevar_round_trip() {
+    fn typevar_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         // Test packed and non-packed
         let ty0 = mgr.type_var(0);
         let bytes0 = encode(ty0);
-        let decoded0 = decode(&bytes0, &mgr).unwrap();
+        let decoded0 = decode(&bytes0, mgr).unwrap();
         assert!(core::ptr::eq(ty0, decoded0));
 
         let ty15 = mgr.type_var(15);
         let bytes15 = encode(ty15);
-        let decoded15 = decode(&bytes15, &mgr).unwrap();
+        let decoded15 = decode(&bytes15, mgr).unwrap();
         assert!(core::ptr::eq(ty15, decoded15));
 
         let ty31 = mgr.type_var(31);
         let bytes31 = encode(ty31);
-        let decoded31 = decode(&bytes31, &mgr).unwrap();
+        let decoded31 = decode(&bytes31, mgr).unwrap();
         assert!(core::ptr::eq(ty31, decoded31));
 
         let ty32 = mgr.type_var(32);
         let bytes32 = encode(ty32);
-        let decoded32 = decode(&bytes32, &mgr).unwrap();
+        let decoded32 = decode(&bytes32, mgr).unwrap();
         assert!(core::ptr::eq(ty32, decoded32));
 
         let ty100 = mgr.type_var(100);
         let bytes100 = encode(ty100);
-        let decoded100 = decode(&bytes100, &mgr).unwrap();
+        let decoded100 = decode(&bytes100, mgr).unwrap();
         assert!(core::ptr::eq(ty100, decoded100));
 
         let ty1000 = mgr.type_var(1000);
         let bytes1000 = encode(ty1000);
-        let decoded1000 = decode(&bytes1000, &mgr).unwrap();
+        let decoded1000 = decode(&bytes1000, mgr).unwrap();
         assert!(core::ptr::eq(ty1000, decoded1000));
     }
 
     #[test]
-    fn test_record_round_trip() {
+    fn record_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("age", mgr.int()), ("name", mgr.str())]);
+        let ty = mgr.record(&[("age", mgr.int()), ("name", mgr.str())]);
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_function_round_trip() {
+    fn function_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         let ty = mgr.function(&[mgr.int(), mgr.str()], mgr.bool());
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_symbol_round_trip() {
+    fn symbol_round_trip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.symbol(vec!["error", "pending", "success"]);
+        let ty = mgr.symbol(&["error", "pending", "success"]);
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
@@ -1254,7 +1256,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_navigate_non_packed_array() {
+    fn navigate_non_packed_array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1278,7 +1280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_non_packed_map() {
+    fn navigate_non_packed_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1297,11 +1299,11 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_record() {
+    fn navigate_record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("age", mgr.int()), ("name", mgr.str())]);
+        let ty = mgr.record(&[("age", mgr.int()), ("name", mgr.str())]);
 
         let bytes = encode(ty);
         let (view, _) = EncodedType::new_from_buffer(&bytes).unwrap();
@@ -1321,7 +1323,7 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_function() {
+    fn navigate_function() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1344,12 +1346,12 @@ mod tests {
     }
 
     #[test]
-    fn test_navigate_symbol() {
+    fn navigate_symbol() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         // Note: TypeManager sorts symbol parts
-        let ty = mgr.symbol(vec!["success", "error", "pending"]);
+        let ty = mgr.symbol(&["success", "error", "pending"]);
         let bytes = encode(ty);
         let (view, _) = EncodedType::new_from_buffer(&bytes).unwrap();
 
@@ -1372,16 +1374,16 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_decode_empty_buffer() {
+    fn decode_empty_buffer() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let result = decode(&[], &mgr);
+        let result = decode(&[], mgr);
         assert!(matches!(result, Err(DecodeError::Truncated { .. })));
     }
 
     #[test]
-    fn test_decode_trailing_bytes() {
+    fn decode_trailing_bytes() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1389,28 +1391,28 @@ mod tests {
         let mut bytes = encode(ty).to_vec();
         bytes.push(0xFF); // Extra byte
 
-        let result = decode(&bytes, &mgr);
+        let result = decode(&bytes, mgr);
         assert!(matches!(result, Err(DecodeError::TrailingBytes { .. })));
     }
 
     #[test]
-    fn test_decode_unknown_discriminant() {
+    fn decode_unknown_discriminant() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         let bytes = vec![37]; // Reserved slot
-        let result = decode(&bytes, &mgr);
+        let result = decode(&bytes, mgr);
         assert!(matches!(result, Err(DecodeError::InvalidWireTag { .. })));
     }
 
     #[test]
-    fn test_decode_truncated_composite() {
+    fn decode_truncated_composite() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         let array_byte = TypeTag::Array as u8;
         let bytes = vec![array_byte, 5, 0]; // Claims 5 bytes but no payload
-        let result = decode(&bytes, &mgr);
+        let result = decode(&bytes, mgr);
         assert!(matches!(result, Err(DecodeError::Truncated { .. })));
     }
 
@@ -1419,29 +1421,29 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_empty_record() {
+    fn empty_record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![]);
+        let ty = mgr.record(&[]);
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_function_no_params() {
+    fn function_no_params() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         let ty = mgr.function(&[], mgr.int());
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_deeply_nested() {
+    fn deeply_nested() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1451,28 +1453,24 @@ mod tests {
         }
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_unicode_field_names() {
+    fn unicode_field_names() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![
-            ("name", mgr.str()),
-            ("名前", mgr.str()),
-            ("🎉", mgr.bool()),
-        ]);
+        let ty = mgr.record(&[("name", mgr.str()), ("名前", mgr.str()), ("🎉", mgr.bool())]);
 
         let bytes = encode(ty);
-        let decoded = decode(&bytes, &mgr).unwrap();
+        let decoded = decode(&bytes, mgr).unwrap();
         assert!(core::ptr::eq(ty, decoded));
     }
 
     #[test]
-    fn test_encode_deterministic() {
+    fn encode_deterministic() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1491,7 +1489,7 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_owned_type_primitives() {
+    fn owned_type_primitives() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1527,7 +1525,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_array() {
+    fn owned_type_array() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1544,7 +1542,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_map() {
+    fn owned_type_map() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1562,11 +1560,11 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_record() {
+    fn owned_type_record() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.record(vec![("x", mgr.int()), ("y", mgr.float())]);
+        let ty = mgr.record(&[("x", mgr.int()), ("y", mgr.float())]);
         let bytes = encode(ty);
         let owned = OwnedType::new(bytes.as_slice().into());
 
@@ -1584,7 +1582,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_function() {
+    fn owned_type_function() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1605,11 +1603,11 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_symbol() {
+    fn owned_type_symbol() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
-        let ty = mgr.symbol(vec!["Option", "Some", "None"]);
+        let ty = mgr.symbol(&["Option", "Some", "None"]);
         let bytes = encode(ty);
         let owned = OwnedType::new(bytes.as_slice().into());
 
@@ -1624,7 +1622,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_clone() {
+    fn owned_type_clone() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1642,7 +1640,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_equality() {
+    fn owned_type_equality() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1657,12 +1655,12 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_nested_composite() {
+    fn owned_type_nested_composite() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
         // Array[Map[Str, Record{x: Int, y: Float}]]
-        let inner_record = mgr.record(vec![("x", mgr.int()), ("y", mgr.float())]);
+        let inner_record = mgr.record(&[("x", mgr.int()), ("y", mgr.float())]);
         let map_ty = mgr.map(mgr.str(), inner_record);
         let ty = mgr.array(map_ty);
 
@@ -1688,7 +1686,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_multiple_views() {
+    fn owned_type_multiple_views() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1705,7 +1703,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_option() {
+    fn owned_type_option() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1722,7 +1720,7 @@ mod tests {
     }
 
     #[test]
-    fn test_owned_type_nested_option() {
+    fn owned_type_nested_option() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 
@@ -1750,7 +1748,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_decode_option_roundtrip() {
+    fn encode_decode_option_roundtrip() {
         let arena = Bump::new();
         let mgr = TypeManager::new(&arena);
 

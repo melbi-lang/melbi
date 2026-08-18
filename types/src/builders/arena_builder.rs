@@ -1,10 +1,12 @@
-use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
-use bumpalo::Bump;
 use core::cell::RefCell;
 use core::hash::Hash;
 use core::{fmt, hash};
+
+use bumpalo::Bump;
 use hashbrown::{Equivalent, HashSet};
 use melbi_small_str::SimpleSmallStr as SmallStr;
+
+use crate::core::{Ident, Ty, TyBuilder, TyKind, TyNode};
 
 type StringSet<'arena> = HashSet<&'arena str, hashbrown::DefaultHashBuilder, &'arena Bump>;
 type TypeSet<'arena> =
@@ -50,27 +52,27 @@ pub struct ArenaBuilder<'arena> {
     interned_types: &'arena RefCell<TypeSet<'arena>>,
 }
 
-impl<'arena> fmt::Debug for ArenaBuilder<'arena> {
+impl fmt::Debug for ArenaBuilder<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ArenaBuilder")
-            .field("arena", &(self.arena as *const Bump))
+            .field("arena", &core::ptr::from_ref::<Bump>(self.arena))
             .finish_non_exhaustive()
     }
 }
 
 // Manual implementations since Bump doesn't implement PartialEq/Eq/Hash
 // We use pointer equality - two builders are equal if they point to the same arena
-impl<'arena> PartialEq for ArenaBuilder<'arena> {
+impl PartialEq for ArenaBuilder<'_> {
     fn eq(&self, other: &Self) -> bool {
         core::ptr::eq(self.arena, other.arena)
     }
 }
 
-impl<'arena> Eq for ArenaBuilder<'arena> {}
+impl Eq for ArenaBuilder<'_> {}
 
-impl<'arena> hash::Hash for ArenaBuilder<'arena> {
+impl hash::Hash for ArenaBuilder<'_> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        core::ptr::hash(self.arena, state)
+        core::ptr::hash(self.arena, state);
     }
 }
 
@@ -156,7 +158,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn ty_hash<H: hash::Hasher>(ty: &Ty<Self>, state: &mut H) {
-        (ty.handle() as *const TyNode<Self>).hash(state)
+        core::ptr::from_ref::<TyNode<Self>>(ty.handle()).hash(state);
     }
 
     fn ident_eq(a: &Ident<Self>, b: &Ident<Self>) -> bool {
@@ -164,7 +166,7 @@ impl<'arena> TyBuilder for ArenaBuilder<'arena> {
     }
 
     fn ident_hash<H: hash::Hasher>(ident: &Ident<Self>, state: &mut H) {
-        ident.handle().interned_hash(state)
+        ident.handle().interned_hash(state);
     }
 }
 
@@ -174,7 +176,7 @@ mod tests {
     use crate::core::Scalar;
 
     #[test]
-    fn test_interned_str_equality() {
+    fn interned_str_equality() {
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
 
@@ -190,8 +192,8 @@ mod tests {
     }
 
     #[test]
-    fn test_interned_str_hash() {
-        use core::hash::{BuildHasher, Hash, Hasher};
+    fn interned_str_hash() {
+        use core::hash::BuildHasher;
 
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
@@ -202,24 +204,16 @@ mod tests {
         // Use the same hasher builder for both to ensure consistent hashing
         let hash_builder = hashbrown::DefaultHashBuilder::default();
 
-        let hash1 = {
-            let mut hasher = hash_builder.build_hasher();
-            id1.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash1 = { hash_builder.hash_one(id1) };
 
-        let hash2 = {
-            let mut hasher = hash_builder.build_hasher();
-            id2.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash2 = { hash_builder.hash_one(id2) };
 
         // Same interned string -> same hash
         assert_eq!(hash1, hash2);
     }
 
     #[test]
-    fn test_type_interning_equality() {
+    fn type_interning_equality() {
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
 
@@ -234,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_type_interning() {
+    fn nested_type_interning() {
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
 
@@ -258,8 +252,8 @@ mod tests {
     }
 
     #[test]
-    fn test_type_interning_hash() {
-        use core::hash::{BuildHasher, Hash, Hasher};
+    fn type_interning_hash() {
+        use core::hash::BuildHasher;
 
         let arena = Bump::new();
         let builder = ArenaBuilder::new(&arena);
@@ -269,17 +263,9 @@ mod tests {
 
         let hash_builder = hashbrown::DefaultHashBuilder::default();
 
-        let hash1 = {
-            let mut hasher = hash_builder.build_hasher();
-            int1.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash1 = { hash_builder.hash_one(int1) };
 
-        let hash2 = {
-            let mut hasher = hash_builder.build_hasher();
-            int2.hash(&mut hasher);
-            hasher.finish()
-        };
+        let hash2 = { hash_builder.hash_one(int2) };
 
         // Same interned type -> same hash
         assert_eq!(hash1, hash2);

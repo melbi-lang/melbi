@@ -23,7 +23,7 @@ use proc_macro::TokenStream;
 /// fn physics_speed_of_light<'a>(type_mgr: &'a TypeManager<'a>) -> Value<'a, 'a> {
 ///     Value::float(type_mgr, ...)
 /// }
-
+///
 /// ```
 pub fn melbi_const_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Just return the item unchanged - this is only a marker attribute

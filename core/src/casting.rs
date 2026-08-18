@@ -47,6 +47,7 @@ use crate::values::dynamic::Value;
 /// # TODO(effects)
 ///
 /// When effect system is implemented, mark Bytes→Str as fallible (`!` effect).
+#[must_use]
 pub fn is_cast_valid<'types>(
     source_type: &'types Type<'types>,
     target_type: &'types Type<'types>,
@@ -59,13 +60,11 @@ pub fn is_cast_valid<'types>(
     }
 
     match (source_type.view(), target_type.view()) {
-        // Numeric conversions
-        (TypeKind::Int, TypeKind::Float) => true,
-        (TypeKind::Float, TypeKind::Int) => true,
-
-        // Bytes ↔ String (UTF-8)
-        (TypeKind::Str, TypeKind::Bytes) => true,
-        (TypeKind::Bytes, TypeKind::Str) => true,
+        // Numeric & Bytes ↔ String conversions
+        (TypeKind::Int, TypeKind::Float)
+        | (TypeKind::Float, TypeKind::Int)
+        | (TypeKind::Str, TypeKind::Bytes)
+        | (TypeKind::Bytes, TypeKind::Str) => true,
 
         // All other casts are invalid
         _ => false,
@@ -85,8 +84,8 @@ pub fn validate_cast<'types>(
         Ok(())
     } else {
         Err(CastError::InvalidCast {
-            from: crate::format!("{}", source_type),
-            to: crate::format!("{}", target_type),
+            from: crate::format!("{source_type}"),
+            to: crate::format!("{target_type}"),
         })
     }
 }
@@ -100,7 +99,7 @@ pub fn validate_cast<'types>(
 ///
 /// - **Identity casts**: No-op, returns the value unchanged
 /// - **Int → Float**: Converts integer to floating point (may lose precision for very large integers)
-/// - **Float → Int**: Truncates toward zero, wraps on overflow, NaN→0, Inf→i64::MAX/MIN
+/// - **Float → Int**: Truncates toward zero, wraps on overflow, NaN→0, `Inf→i64::MAX/MIN`
 /// - **Str → Bytes**: UTF-8 encoding (always succeeds)
 /// - **Bytes → Str**: UTF-8 decoding (fails on invalid UTF-8)
 ///
@@ -117,6 +116,7 @@ pub fn validate_cast<'types>(
 /// In strict mode, Float→Int should fail on:
 /// - Non-exact conversions (e.g., 3.7 → error)
 /// - NaN, Infinity (currently wraps to 0 or MAX/MIN)
+///
 /// See docs/TODO.md for details.
 pub fn perform_cast<'types, 'arena>(
     arena: &'arena bumpalo::Bump,
@@ -124,7 +124,7 @@ pub fn perform_cast<'types, 'arena>(
     target_type: &'types Type<'types>,
     type_manager: &'types TypeManager<'types>,
 ) -> Result<Value<'types, 'arena>, CastError> {
-    use Type::*;
+    use Type::{Bytes, Float, Int, Str};
 
     // Identity cast - just return the value unchanged
     if core::ptr::eq(value.ty, target_type) {
@@ -176,7 +176,7 @@ pub fn perform_cast<'types, 'arena>(
             match core::str::from_utf8(bytes_val) {
                 Ok(str_val) => Ok(Value::str(arena, target_type, str_val)),
                 Err(e) => Err(CastError::InvalidUtf8 {
-                    error: crate::format!("{}", e),
+                    error: crate::format!("{e}"),
                 }),
             }
         }
@@ -190,7 +190,7 @@ pub fn perform_cast<'types, 'arena>(
             );
             Err(CastError::InvalidCast {
                 from: crate::format!("{}", value.ty),
-                to: crate::format!("{}", target_type),
+                to: crate::format!("{target_type}"),
             })
         }
     }
@@ -209,11 +209,11 @@ pub enum CastError {
 impl core::fmt::Display for CastError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            CastError::InvalidCast { from, to } => {
-                write!(f, "Cannot cast from {} to {}", from, to)
+            Self::InvalidCast { from, to } => {
+                write!(f, "Cannot cast from {from} to {to}")
             }
-            CastError::InvalidUtf8 { error } => {
-                write!(f, "Invalid UTF-8 sequence: {}", error)
+            Self::InvalidUtf8 { error } => {
+                write!(f, "Invalid UTF-8 sequence: {error}")
             }
         }
     }
@@ -221,15 +221,16 @@ impl core::fmt::Display for CastError {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bumpalo::Bump;
+
+    use super::*;
 
     // ========================================================================
     // Validation Tests (Analyzer)
     // ========================================================================
 
     #[test]
-    fn test_numeric_casts_are_valid() {
+    fn numeric_casts_are_valid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -240,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_str_casts_are_valid() {
+    fn bytes_str_casts_are_valid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -251,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn test_identity_casts_are_valid() {
+    fn identity_casts_are_valid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -264,7 +265,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unsupported_casts_are_invalid() {
+    fn unsupported_casts_are_invalid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -281,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_cast_returns_error_for_invalid() {
+    fn validate_cast_returns_error_for_invalid() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -302,7 +303,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_int_to_float_cast() {
+    fn int_to_float_cast() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -313,7 +314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_float_to_int_cast_truncates() {
+    fn float_to_int_cast_truncates() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -329,7 +330,7 @@ mod tests {
     }
 
     #[test]
-    fn test_float_to_int_cast_special_values() {
+    fn float_to_int_cast_special_values() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -350,7 +351,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_to_bytes_cast() {
+    fn str_to_bytes_cast() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -361,7 +362,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_to_str_cast_valid_utf8() {
+    fn bytes_to_str_cast_valid_utf8() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -372,7 +373,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_to_str_cast_invalid_utf8() {
+    fn bytes_to_str_cast_invalid_utf8() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -391,7 +392,7 @@ mod tests {
     }
 
     #[test]
-    fn test_utf8_roundtrip() {
+    fn utf8_roundtrip() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 
@@ -408,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn test_identity_cast_runtime() {
+    fn identity_cast_runtime() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
 

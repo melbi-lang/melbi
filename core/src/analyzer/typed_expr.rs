@@ -1,19 +1,16 @@
-use crate::{
-    parser::{AnnotatedSource, BinaryOp, BoolOp, ComparisonOp, UnaryOp},
-    types::{
-        Type,
-        traits::{TypeKind, TypeView},
-        type_class::TypeClassId,
-    },
-    values::dynamic::Value,
-};
+use crate::parser::{AnnotatedSource, BinaryOp, BoolOp, ComparisonOp, UnaryOp};
+use crate::types::Type;
+use crate::types::traits::{TypeKind, TypeView};
+use crate::types::type_class::TypeClassId;
+use crate::values::dynamic::Value;
 
 extern crate hashbrown;
-use hashbrown::{HashMap, HashSet, DefaultHashBuilder};
+use hashbrown::{DefaultHashBuilder, HashMap, HashSet};
 
 /// Substitution from generalized type variable ID to concrete type
 /// Uses arena allocation to avoid leaks when stored in arena-allocated structs
-pub type Substitution<'types, 'arena> = HashMap<u16, &'types Type<'types>, DefaultHashBuilder, &'arena bumpalo::Bump>;
+pub type Substitution<'types, 'arena> =
+    HashMap<u16, &'types Type<'types>, DefaultHashBuilder, &'arena bumpalo::Bump>;
 
 /// Track all instantiations of a specific polymorphic lambda
 #[derive(Debug)]
@@ -31,34 +28,41 @@ pub struct TypedExpr<'types, 'arena> {
     pub ann: &'arena AnnotatedSource<'arena, Expr<'types, 'arena>>,
     /// Map from lambda expression pointer to its instantiation info
     /// This tracks how polymorphic lambdas are instantiated at different call sites
-    /// Uses arena allocation to avoid leaks since TypedExpr is arena-allocated
-    pub lambda_instantiations: HashMap<*const Expr<'types, 'arena>, LambdaInstantiations<'types, 'arena>, DefaultHashBuilder, &'arena bumpalo::Bump>,
+    /// Uses arena allocation to avoid leaks since `TypedExpr` is arena-allocated
+    pub lambda_instantiations: HashMap<
+        *const Expr<'types, 'arena>,
+        LambdaInstantiations<'types, 'arena>,
+        DefaultHashBuilder,
+        &'arena bumpalo::Bump,
+    >,
 }
 
 #[derive(Debug, Clone)]
 pub struct Expr<'types, 'arena>(pub &'types Type<'types>, pub ExprInner<'types, 'arena>);
 
-impl<'types, 'arena> PartialEq for Expr<'types, 'arena> {
+impl PartialEq for Expr<'_, '_> {
     fn eq(&self, other: &Self) -> bool {
         core::ptr::eq(self.0, other.0) && self.1 == other.1
     }
 }
 
-impl<'types, 'arena> Eq for Expr<'types, 'arena> {}
+impl Eq for Expr<'_, '_> {}
 
-impl<'types, 'arena> core::hash::Hash for Expr<'types, 'arena> {
+impl core::hash::Hash for Expr<'_, '_> {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         core::ptr::hash(self.0, state);
         self.1.hash(state);
     }
 }
 
-impl<'types, 'arena> Expr<'types, 'arena> {
+impl<'types> Expr<'types, '_> {
+    #[must_use]
     pub fn as_ptr(&self) -> *const Self {
-        self as *const _
+        core::ptr::from_ref(self)
     }
 
-    /// Get a TypeView for pattern matching on this expression's type.
+    /// Get a `TypeView` for pattern matching on this expression's type.
+    #[must_use]
     pub fn type_view(&self) -> TypeKind<'types, &'types Type<'types>> {
         self.0.view()
     }
@@ -154,9 +158,9 @@ pub enum TypedPattern<'types, 'arena> {
     Var(&'arena str),
     /// Literal pattern - matches specific values
     Literal(Value<'types, 'arena>),
-    /// Some pattern `some p` - matches Option::Some and destructures inner value
-    Some(&'arena TypedPattern<'types, 'arena>),
-    /// None pattern `none` - matches Option::None
+    /// Some pattern `some p` - matches `Option::Some` and destructures inner value
+    Some(&'arena Self),
+    /// None pattern `none` - matches `Option::None`
     None,
 }
 
@@ -195,21 +199,26 @@ impl<'types, 'arena> ExprBuilder<'types, 'arena> {
     }
 
     /// Allocate an expression in the arena.
-    pub fn build(&self, ty: &'types Type<'types>, inner: ExprInner<'types, 'arena>) -> &'arena Expr<'types, 'arena> {
+    #[must_use]
+    pub fn build(
+        &self,
+        ty: &'types Type<'types>,
+        inner: ExprInner<'types, 'arena>,
+    ) -> &'arena Expr<'types, 'arena> {
         self.arena.alloc(Expr(ty, inner))
     }
 }
 
 // Manual trait implementations since we have PhantomData
-impl<'types, 'arena> PartialEq for ExprBuilder<'types, 'arena> {
+impl PartialEq for ExprBuilder<'_, '_> {
     fn eq(&self, other: &Self) -> bool {
         core::ptr::eq(self.arena, other.arena)
     }
 }
 
-impl<'types, 'arena> Eq for ExprBuilder<'types, 'arena> {}
+impl Eq for ExprBuilder<'_, '_> {}
 
-impl<'types, 'arena> core::hash::Hash for ExprBuilder<'types, 'arena> {
+impl core::hash::Hash for ExprBuilder<'_, '_> {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         core::ptr::hash(self.arena, state);
     }

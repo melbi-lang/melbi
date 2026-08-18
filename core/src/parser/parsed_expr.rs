@@ -1,5 +1,7 @@
-use crate::parser::{BinaryOp, BoolOp, ComparisonOp, UnaryOp, syntax::AnnotatedSource};
 use serde::Serialize;
+
+use crate::parser::syntax::AnnotatedSource;
+use crate::parser::{BinaryOp, BoolOp, ComparisonOp, UnaryOp};
 
 #[derive(Debug)]
 pub struct ParsedExpr<'a> {
@@ -11,81 +13,82 @@ pub struct ParsedExpr<'a> {
 pub enum Expr<'a> {
     Binary {
         op: BinaryOp,
-        left: &'a Expr<'a>,
-        right: &'a Expr<'a>,
+        left: &'a Self,
+        right: &'a Self,
     },
     Boolean {
         op: BoolOp,
-        left: &'a Expr<'a>,
-        right: &'a Expr<'a>,
+        left: &'a Self,
+        right: &'a Self,
     },
     Comparison {
         op: ComparisonOp,
-        left: &'a Expr<'a>,
-        right: &'a Expr<'a>,
+        left: &'a Self,
+        right: &'a Self,
     },
     Unary {
         op: UnaryOp,
-        expr: &'a Expr<'a>,
+        expr: &'a Self,
     },
     Call {
-        callable: &'a Expr<'a>,
-        args: &'a [&'a Expr<'a>],
+        callable: &'a Self,
+        args: &'a [&'a Self],
     },
     Index {
-        value: &'a Expr<'a>,
-        index: &'a Expr<'a>,
+        value: &'a Self,
+        index: &'a Self,
     },
     Field {
-        value: &'a Expr<'a>,
+        value: &'a Self,
         field: &'a str,
     },
     Cast {
         ty: TypeExpr<'a>,
-        expr: &'a Expr<'a>,
+        expr: &'a Self,
     },
     Lambda {
         params: &'a [&'a str],
-        body: &'a Expr<'a>,
+        body: &'a Self,
     },
     If {
-        cond: &'a Expr<'a>,
-        then_branch: &'a Expr<'a>,
-        else_branch: &'a Expr<'a>,
+        cond: &'a Self,
+        then_branch: &'a Self,
+        else_branch: &'a Self,
     },
     Where {
-        expr: &'a Expr<'a>,
-        bindings: &'a [(&'a str, &'a Expr<'a>)],
+        expr: &'a Self,
+        bindings: &'a [(&'a str, &'a Self)],
     },
     Otherwise {
-        primary: &'a Expr<'a>,
-        fallback: &'a Expr<'a>,
+        primary: &'a Self,
+        fallback: &'a Self,
     },
     /// Option constructor: `some expr` or `none`
     /// Inner is Some(expr) for `some expr`, None for `none`
     Option {
-        inner: Option<&'a Expr<'a>>,
+        inner: Option<&'a Self>,
     },
     /// Pattern matching: `expr match { pattern -> body, ... }`
     Match {
-        expr: &'a Expr<'a>,
+        expr: &'a Self,
         arms: &'a [MatchArm<'a>],
     },
-    Record(&'a [(&'a str, &'a Expr<'a>)]),
-    Map(&'a [(&'a Expr<'a>, &'a Expr<'a>)]),
-    Array(&'a [&'a Expr<'a>]),
+    Record(&'a [(&'a str, &'a Self)]),
+    Map(&'a [(&'a Self, &'a Self)]),
+    Array(&'a [&'a Self]),
     FormatStr {
         // REQUIRES: strs.len() == exprs.len() + 1
         strs: &'a [&'a str],
-        exprs: &'a [&'a Expr<'a>],
+        exprs: &'a [&'a Self],
     },
     Literal(Literal<'a>),
     Ident(&'a str),
 }
 
-impl<'a> Expr<'a> {
+impl Expr<'_> {
+    #[must_use]
     pub fn as_ptr(&self) -> *const Self {
-        self as *const _
+        core::ptr::from_ref(self)
     }
 }
 
@@ -104,7 +107,7 @@ pub enum Literal<'a> {
     Bytes(&'a [u8]),
 }
 
-impl<'a> core::fmt::Debug for Literal<'a> {
+impl core::fmt::Debug for Literal<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Literal::Int {
@@ -133,11 +136,8 @@ impl<'a> core::fmt::Debug for Literal<'a> {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum TypeExpr<'a> {
     Path(&'a str),
-    Parametrized {
-        path: &'a str,
-        params: &'a [TypeExpr<'a>],
-    },
-    Record(&'a [(&'a str, TypeExpr<'a>)]),
+    Parametrized { path: &'a str, params: &'a [Self] },
+    Record(&'a [(&'a str, Self)]),
 }
 
 /// A single arm in a match expression.
@@ -156,8 +156,8 @@ pub enum Pattern<'a> {
     Var(&'a str),
     /// Literal pattern - matches specific literal values
     Literal(Literal<'a>),
-    /// Some pattern `some p` - matches Option::Some and destructures inner value
-    Some(&'a Pattern<'a>),
-    /// None pattern `none` - matches Option::None
+    /// Some pattern `some p` - matches `Option::Some` and destructures inner value
+    Some(&'a Self),
+    /// None pattern `none` - matches `Option::None`
     None,
 }

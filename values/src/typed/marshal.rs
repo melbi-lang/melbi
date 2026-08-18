@@ -55,7 +55,7 @@ pub trait Marshal<B: ValueBuilder>: Sized {
     /// Returns `None` if the value's type does not match.
     /// Type checking is structural and allocation-free.
     fn from_value(value: &Value<B>) -> Option<Self> {
-        if !Self::matches_ty_kind(&value.ty().kind()) {
+        if !Self::matches_ty_kind(value.ty().kind()) {
             return None;
         }
         Some(Self::from_val_unchecked(value.val()))

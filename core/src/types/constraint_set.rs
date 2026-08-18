@@ -1,3 +1,6 @@
+use alloc::vec::Vec;
+
+use crate::parser::Span;
 /// Constraint set for tracking type class requirements with associated types.
 ///
 /// Type classes represent relationships between types:
@@ -9,8 +12,6 @@
 /// the constraint solver verifies these relationships and may perform additional
 /// unification to resolve associated types.
 use crate::types::Type;
-use crate::parser::Span;
-use alloc::vec::Vec;
 
 /// A type class constraint with associated types.
 ///
@@ -62,32 +63,37 @@ pub enum TypeClassConstraint<'types> {
     },
 }
 
-impl<'types> TypeClassConstraint<'types> {
+impl TypeClassConstraint<'_> {
     /// Returns the primary span (original constraint location).
+    #[must_use]
     pub fn primary_span(&self) -> &Span {
         // spans[0] is always the original constraint location
         static DEFAULT_SPAN: Span = Span(0..0);
         match self {
-            TypeClassConstraint::Numeric { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Indexable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Hashable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Ord { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
-            TypeClassConstraint::Containable { spans, .. } => spans.first().unwrap_or(&DEFAULT_SPAN),
+            TypeClassConstraint::Numeric { spans, .. }
+            | TypeClassConstraint::Indexable { spans, .. }
+            | TypeClassConstraint::Hashable { spans, .. }
+            | TypeClassConstraint::Ord { spans, .. }
+            | TypeClassConstraint::Containable { spans, .. } => {
+                spans.first().unwrap_or(&DEFAULT_SPAN)
+            }
         }
     }
 
     /// Returns all spans (original + instantiation sites).
+    #[must_use]
     pub fn spans(&self) -> &[Span] {
         match self {
-            TypeClassConstraint::Numeric { spans, .. } => spans,
-            TypeClassConstraint::Indexable { spans, .. } => spans,
-            TypeClassConstraint::Hashable { spans, .. } => spans,
-            TypeClassConstraint::Ord { spans, .. } => spans,
-            TypeClassConstraint::Containable { spans, .. } => spans,
+            TypeClassConstraint::Numeric { spans, .. }
+            | TypeClassConstraint::Indexable { spans, .. }
+            | TypeClassConstraint::Hashable { spans, .. }
+            | TypeClassConstraint::Ord { spans, .. }
+            | TypeClassConstraint::Containable { spans, .. } => spans,
         }
     }
 
     /// Returns the type class ID for this constraint.
+    #[must_use]
     pub fn type_class_id(&self) -> crate::types::type_class::TypeClassId {
         use crate::types::type_class::TypeClassId;
         match self {
@@ -112,6 +118,7 @@ pub struct ConstraintSet<'types> {
 
 impl<'types> ConstraintSet<'types> {
     /// Creates a new empty constraint set.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             constraints: Vec::new(),
@@ -186,11 +193,13 @@ impl<'types> ConstraintSet<'types> {
     }
 
     /// Returns true if there are no constraints.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.constraints.is_empty()
     }
 
     /// Returns the number of constraints.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.constraints.len()
     }
@@ -206,7 +215,7 @@ impl<'types> ConstraintSet<'types> {
     }
 }
 
-impl<'types> Default for ConstraintSet<'types> {
+impl Default for ConstraintSet<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -214,12 +223,13 @@ impl<'types> Default for ConstraintSet<'types> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::types::manager::TypeManager;
     use bumpalo::Bump;
 
+    use super::*;
+    use crate::types::manager::TypeManager;
+
     #[test]
-    fn test_add_numeric() {
+    fn add_numeric() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut cs = ConstraintSet::new();
@@ -231,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_indexable() {
+    fn add_indexable() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut cs = ConstraintSet::new();
@@ -243,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clear() {
+    fn clear() {
         let bump = Bump::new();
         let tm = TypeManager::new(&bump);
         let mut cs = ConstraintSet::new();

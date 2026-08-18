@@ -97,10 +97,10 @@ test_case! {
 
 test_case! {
     name: multiline_expression,
-    input: {r#"
+    input: {r"
 1 +
 2 *
-3"#.trim_start()},
+3".trim_start()},
     // Write simple expressions on a single line
     formatted: { "1 + 2 * 3" },
 }

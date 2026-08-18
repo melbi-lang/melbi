@@ -41,20 +41,23 @@ pub enum UnescapeError {
 impl core::fmt::Display for UnescapeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            UnescapeError::InvalidEscape { pos, seq } => {
+            Self::InvalidEscape { pos, seq } => {
                 write!(f, "invalid escape sequence '{seq}' at position {pos}")
             }
-            UnescapeError::InvalidHexDigit { pos, seq } => {
+            Self::InvalidHexDigit { pos, seq } => {
                 write!(f, "invalid hex digit in '{seq}' at position {pos}")
             }
-            UnescapeError::IncompleteUnicodeEscape { pos, expected, got } => write!(
+            Self::IncompleteUnicodeEscape { pos, expected, got } => write!(
                 f,
                 "incomplete Unicode escape at position {pos}: expected {expected} digits, got {got}"
             ),
-            UnescapeError::InvalidUnicodeScalar { pos, value } => {
-                write!(f, "invalid Unicode scalar value U+{value:X} at position {pos}")
+            Self::InvalidUnicodeScalar { pos, value } => {
+                write!(
+                    f,
+                    "invalid Unicode scalar value U+{value:X} at position {pos}"
+                )
             }
-            UnescapeError::UnpairedBrace { pos, brace } => write!(
+            Self::UnpairedBrace { pos, brace } => write!(
                 f,
                 "unpaired '{brace}' in format string at position {pos} (must be '{{{{' or '}}}}')"
             ),
@@ -151,11 +154,7 @@ fn read_hex_digits(
 
     for got in 0..expected {
         let Some((_, ch)) = chars.next() else {
-            return Err(UnescapeError::IncompleteUnicodeEscape {
-                pos,
-                expected,
-                got,
-            });
+            return Err(UnescapeError::IncompleteUnicodeEscape { pos, expected, got });
         };
         let Some(digit) = ch.to_digit(16) else {
             return Err(UnescapeError::InvalidHexDigit {

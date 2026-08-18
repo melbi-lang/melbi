@@ -2,13 +2,16 @@
 //!
 //! This module defines `EvalLambda` which represents Melbi lambdas as callable values.
 
+use alloc::vec::Vec;
+
 use super::dynamic::Value;
 use super::function::{FfiContext, Function};
 use crate::analyzer::typed_expr::TypedExpr;
 use crate::evaluator::{Evaluator, EvaluatorOptions, ExecutionError};
 use crate::scope_stack::CompleteScope;
-use crate::types::{Type, traits::TypeView, unification::Unification};
-use alloc::vec::Vec;
+use crate::types::Type;
+use crate::types::traits::TypeView;
+use crate::types::unification::Unification;
 
 /// A lambda function value.
 ///
@@ -50,6 +53,7 @@ impl<'types, 'arena> EvalLambda<'types, 'arena> {
     /// - `params`: Parameter names
     /// - `body`: The typed body expression with source annotations
     /// - `captures`: Captured variables from the enclosing scope
+    #[must_use]
     pub fn new(
         ty: &'types Type<'types>,
         params: &'arena [&'arena str],
@@ -75,7 +79,10 @@ impl<'types, 'arena> Function<'types, 'arena> for EvalLambda<'types, 'arena> {
         self.ty
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for lambda evaluation"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,

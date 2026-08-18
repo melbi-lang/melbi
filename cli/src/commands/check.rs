@@ -4,13 +4,16 @@ use std::process::ExitCode;
 
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
-use melbi_core::{analyzer::analyze, parser, types::manager::TypeManager};
+use melbi_core::analyzer::analyze;
+use melbi_core::parser;
+use melbi_core::types::manager::TypeManager;
 
 use crate::cli::CheckArgs;
 use crate::common::engine::build_stdlib;
 use crate::common::input::read_input;
 
 /// Run the check command.
+#[must_use]
 pub fn run(args: CheckArgs, no_color: bool) -> ExitCode {
     let mut has_errors = false;
 
@@ -33,7 +36,7 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
         Ok(c) => c,
         Err(e) => {
             if !quiet {
-                eprintln!("error: {}", e);
+                eprintln!("error: {e}");
             }
             return false;
         }
@@ -52,7 +55,7 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
 
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, _globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     // Parse
     let ast = match parser::parse(&arena, &content) {
@@ -64,13 +67,13 @@ fn check_file(path: &str, quiet: bool, no_color: bool) -> bool {
     };
 
     // Type check
-    if let Err(e) = analyze(type_manager, &arena, &ast, globals_types, &[]) {
+    if let Err(e) = analyze(type_manager, &arena, ast, env.types, &[]) {
         render_err(e.into());
         return false;
     }
 
     if !quiet {
-        println!("{}: OK", display_name);
+        println!("{display_name}: OK");
     }
     true
 }

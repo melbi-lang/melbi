@@ -9,11 +9,11 @@ pub trait IntoRange {
 impl IntoRange for LineColLocation {
     fn into_range(self) -> Range {
         match self {
-            LineColLocation::Pos((line, col)) => {
+            Self::Pos((line, col)) => {
                 let pos = Position::new(line as u32 - 1, col as u32 - 1);
                 Range::new(pos, pos)
             }
-            LineColLocation::Span((start_line, start_col), (end_line, end_col)) => Range::new(
+            Self::Span((start_line, start_col), (end_line, end_col)) => Range::new(
                 Position::new(start_line as u32 - 1, start_col as u32 - 1),
                 Position::new(end_line as u32 - 1, end_col as u32 - 1),
             ),
@@ -45,7 +45,7 @@ impl IntoDiagnostics for Vec<pest::error::Error<Rule>> {
                                 message.push_str(
                                     positives
                                         .iter()
-                                        .map(|s| format!("\"{:#?}\"", s))
+                                        .map(|s| format!("\"{s:#?}\""))
                                         .collect::<Vec<String>>()
                                         .join(", ")
                                         .as_str(),
@@ -58,7 +58,7 @@ impl IntoDiagnostics for Vec<pest::error::Error<Rule>> {
                                 message.push_str(
                                     negatives
                                         .iter()
-                                        .map(|s| format!("\"{:#?}\"", s))
+                                        .map(|s| format!("\"{s:#?}\""))
                                         .collect::<Vec<String>>()
                                         .join(", ")
                                         .as_str(),

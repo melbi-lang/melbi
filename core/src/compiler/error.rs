@@ -21,13 +21,13 @@ pub enum CompileError {
 impl core::fmt::Display for CompileError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            CompileError::TooManyLocals => {
+            Self::TooManyLocals => {
                 write!(f, "Too many local variables (limit: ~4 billion)")
             }
-            CompileError::TooManyConstants => {
+            Self::TooManyConstants => {
                 write!(f, "Too many constants (limit: ~4 billion)")
             }
-            CompileError::JumpTooFar => {
+            Self::JumpTooFar => {
                 write!(f, "Jump distance too large (limit: 65535 instructions)")
             }
         }
@@ -36,19 +36,14 @@ impl core::fmt::Display for CompileError {
 
 impl CompileError {
     /// Convert to a Diagnostic for API boundary.
+    #[must_use]
     pub fn to_diagnostic(&self) -> Diagnostic {
         Diagnostic {
             severity: Severity::Error,
             message: String::from(match self {
-                CompileError::TooManyLocals => {
-                    "Too many local variables (limit: ~4 billion)"
-                }
-                CompileError::TooManyConstants => {
-                    "Too many constants (limit: ~4 billion)"
-                }
-                CompileError::JumpTooFar => {
-                    "Jump distance too large (limit: 65535 instructions)"
-                }
+                Self::TooManyLocals => "Too many local variables (limit: ~4 billion)",
+                Self::TooManyConstants => "Too many constants (limit: ~4 billion)",
+                Self::JumpTooFar => "Jump distance too large (limit: 65535 instructions)",
             }),
             span: Span::new(0, 0),
             related: Vec::new(),

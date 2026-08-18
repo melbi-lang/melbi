@@ -1,24 +1,28 @@
-#![allow(unsafe_code, private_bounds)]
 //! Tier 1: Statically-typed, compile-time safe value API
+#![allow(
+    unsafe_code,
+    reason = "implements low-level RawConvertible trait and pointer arithmetic for typed value representations"
+)]
 //!
 //! This module provides zero-overhead, compile-time type-safe wrappers around
-//! the untyped RawValue representation. Types are guaranteed at compile time,
-//! eliminating the need for runtime type checking or TypeManager.
+//! the untyped `RawValue` representation. Types are guaranteed at compile time,
+//! eliminating the need for runtime type checking or `TypeManager`.
 
-use crate::Vec;
 use core::marker::PhantomData;
 use core::ops::Deref;
 
 use bumpalo::Bump;
 
-use crate::{
-    types::Type,
-    types::manager::TypeManager,
-    values::raw::{ArrayData, MapData, MapEntry, RawValue, Slice},
-};
+use crate::Vec;
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::values::raw::{ArrayData, MapData, MapEntry, RawValue, Slice};
 
 pub trait RawConvertible: Sized {
     fn to_raw_value(arena: &Bump, value: Self) -> RawValue;
+    /// # Safety
+    ///
+    /// The caller must ensure that `raw` contains a valid bit representation of `Self`.
     unsafe fn from_raw_value(raw: RawValue) -> Self;
 }
 
@@ -39,17 +43,10 @@ pub trait Bridge: RawConvertible {
 ///
 /// Implements `Deref<Target = str>` for seamless usage as a string slice.
 #[repr(transparent)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Str<'a> {
     slice: *const Slice,
     _phantom: PhantomData<&'a ()>,
-}
-
-impl<'a> Copy for Str<'a> {}
-impl<'a> Clone for Str<'a> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<'a> Str<'a> {
@@ -59,7 +56,7 @@ impl<'a> Str<'a> {
         let bytes: &'a [u8] = arena.alloc_slice_copy(s.as_bytes());
         let slice = Slice::new(arena, bytes);
         Str {
-            slice: slice as *const Slice,
+            slice: core::ptr::from_ref::<Slice>(slice),
             _phantom: PhantomData,
         }
     }
@@ -90,12 +87,13 @@ impl<'a> Str<'a> {
         let bytes: &'a [u8] = s.as_bytes();
         let slice = Slice::new(arena, bytes);
         Str {
-            slice: slice as *const Slice,
+            slice: core::ptr::from_ref::<Slice>(slice),
             _phantom: PhantomData,
         }
     }
 
     /// Get the underlying &str
+    #[must_use]
     pub fn as_str(&self) -> &'a str {
         unsafe {
             let slice = &*self.slice;
@@ -105,17 +103,19 @@ impl<'a> Str<'a> {
     }
 
     /// Get the length in bytes
+    #[must_use]
     pub fn len(&self) -> usize {
         unsafe { (*self.slice).length() }
     }
 
     /// Check if the string is empty
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 }
 
-impl<'a> Deref for Str<'a> {
+impl Deref for Str<'_> {
     type Target = str;
     fn deref(&self) -> &str {
         self.as_str()
@@ -128,31 +128,31 @@ impl<'a> From<Str<'a>> for &'a str {
     }
 }
 
-impl<'a> AsRef<str> for Str<'a> {
+impl AsRef<str> for Str<'_> {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
 }
 
-impl<'a> PartialEq for Str<'a> {
+impl PartialEq for Str<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
 
-impl<'a> PartialEq<str> for Str<'a> {
+impl PartialEq<str> for Str<'_> {
     fn eq(&self, other: &str) -> bool {
         self.as_str() == other
     }
 }
 
-impl<'a> PartialEq<&str> for Str<'a> {
+impl PartialEq<&str> for Str<'_> {
     fn eq(&self, other: &&str) -> bool {
         self.as_str() == *other
     }
 }
 
-impl<'a> Eq for Str<'a> {}
+impl Eq for Str<'_> {}
 
 impl RawConvertible for i64 {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
@@ -165,7 +165,7 @@ impl RawConvertible for i64 {
 }
 
 impl Bridge for i64 {
-    type Raw = i64;
+    type Raw = Self;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.int()
     }
@@ -182,7 +182,7 @@ impl RawConvertible for f64 {
 }
 
 impl Bridge for f64 {
-    type Raw = f64;
+    type Raw = Self;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.float()
     }
@@ -199,13 +199,13 @@ impl RawConvertible for bool {
 }
 
 impl Bridge for bool {
-    type Raw = bool;
+    type Raw = Self;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.bool()
     }
 }
 
-impl<'a> RawConvertible for Str<'a> {
+impl RawConvertible for Str<'_> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue { slice: value.slice }
     }
@@ -218,14 +218,14 @@ impl<'a> RawConvertible for Str<'a> {
     }
 }
 
-impl<'a> Bridge for Str<'a> {
+impl Bridge for Str<'_> {
     type Raw = *const Slice;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         type_mgr.str()
     }
 }
 
-impl<'a> RawConvertible for &'a [u8] {
+impl RawConvertible for &[u8] {
     fn to_raw_value(arena: &Bump, value: Self) -> RawValue {
         let slice = Slice::new(arena, value);
         slice.as_raw_value()
@@ -272,8 +272,8 @@ pub struct Optional<'a, T: Bridge> {
     _phantom: PhantomData<(&'a (), T)>,
 }
 
-impl<'a, T: Bridge> Copy for Optional<'a, T> {}
-impl<'a, T: Bridge> Clone for Optional<'a, T> {
+impl<T: Bridge> Copy for Optional<'_, T> {}
+impl<T: Bridge> Clone for Optional<'_, T> {
     fn clone(&self) -> Self {
         *self
     }
@@ -281,6 +281,7 @@ impl<'a, T: Bridge> Clone for Optional<'a, T> {
 
 impl<'a, T: Bridge> Optional<'a, T> {
     /// Create None value (null pointer optimization)
+    #[must_use]
     pub const fn none() -> Self {
         Self {
             ptr: core::ptr::null(),
@@ -288,18 +289,20 @@ impl<'a, T: Bridge> Optional<'a, T> {
         }
     }
 
-    /// Create Some(value) by boxing the RawValue in the arena
+    /// Create Some(value) by boxing the `RawValue` in the arena
     pub fn some(arena: &'a Bump, value: T) -> Self {
         let raw = T::to_raw_value(arena, value);
         unsafe { Self::from_raw_value(RawValue::make_optional(arena, Some(raw))) }
     }
 
     /// Check if this is None
+    #[must_use]
     pub fn is_none(&self) -> bool {
         self.ptr.is_null()
     }
 
     /// Check if this is Some
+    #[must_use]
     pub fn is_some(&self) -> bool {
         !self.ptr.is_null()
     }
@@ -308,15 +311,15 @@ impl<'a, T: Bridge> Optional<'a, T> {
     ///
     /// # Panics
     /// Panics if the value is None.
+    #[must_use]
     pub fn unwrap(&self) -> T {
-        if self.is_none() {
-            panic!("Called unwrap on None");
-        }
+        assert!(!self.is_none(), "Called unwrap on None");
         let raw = unsafe { *self.ptr };
         unsafe { T::from_raw_value(raw) }
     }
 
     /// Get the value as an Option
+    #[must_use]
     pub fn as_option(&self) -> Option<T> {
         if self.is_none() {
             None
@@ -337,7 +340,7 @@ impl<'a, T: Bridge> Optional<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> RawConvertible for Optional<'a, T> {
+impl<T: Bridge> RawConvertible for Optional<'_, T> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         RawValue { boxed: value.ptr }
     }
@@ -350,7 +353,7 @@ impl<'a, T: Bridge> RawConvertible for Optional<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> Bridge for Optional<'a, T> {
+impl<T: Bridge> Bridge for Optional<'_, T> {
     type Raw = *const RawValue;
     fn type_from<'b>(type_mgr: &'b TypeManager<'b>) -> &'b Type<'b> {
         let inner_ty = T::type_from(type_mgr);
@@ -389,7 +392,7 @@ pub struct Array<'a, T: Bridge> {
 }
 
 // Array<T> - Same size as pointer
-impl<'a, T: Bridge> RawConvertible for Array<'a, T> {
+impl<T: Bridge> RawConvertible for Array<'_, T> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         value.as_raw_value()
     }
@@ -406,7 +409,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// Create a new array from a slice of values.
     ///
     /// This is the primary user-facing constructor for creating typed arrays.
-    /// Values are converted to RawValue representation and stored in the arena.
+    /// Values are converted to `RawValue` representation and stored in the arena.
     ///
     /// # Example
     ///
@@ -490,6 +493,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// assert_eq!(arr.get(1), Some(20));
     /// assert_eq!(arr.get(5), None);
     /// ```
+    #[must_use]
     pub fn get(&self, index: usize) -> Option<T> {
         unsafe {
             if index >= self.array_data.length() {
@@ -514,6 +518,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     ///     assert_eq!(arr.get_unchecked(1), 20);
     /// }
     /// ```
+    #[must_use]
     pub unsafe fn get_unchecked(&self, index: usize) -> T {
         unsafe {
             debug_assert!(index < self.array_data.length(), "Index out of bounds");
@@ -523,18 +528,21 @@ impl<'a, T: Bridge> Array<'a, T> {
     }
 
     /// Returns the number of elements in the array.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.array_data.length()
     }
 
     /// Returns `true` if the array is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Get a pointer to the underlying ArrayData for FFI/VM use.
+    /// Get a pointer to the underlying `ArrayData` for FFI/VM use.
     ///
-    /// This is useful for bridging to Tier 2 (DynamicValue) or Tier 3 (RawValue).
+    /// This is useful for bridging to Tier 2 (`DynamicValue`) or Tier 3 (`RawValue`).
+    #[must_use]
     pub fn as_raw_value(&self) -> RawValue {
         self.array_data.as_raw_value()
     }
@@ -544,10 +552,11 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// # Safety
     ///
     /// Caller must ensure:
-    /// - RawValue holds a variant pointing to ArrayData
-    /// - The ArrayData pointed to by the RawValue is valid
-    /// - The ArrayData contains values of type T
-    /// - The ArrayData lives for at least 'a
+    /// - `RawValue` holds a variant pointing to `ArrayData`
+    /// - The `ArrayData` pointed to by the `RawValue` is valid
+    /// - The `ArrayData` contains values of type T
+    /// - The `ArrayData` lives for at least 'a
+    #[must_use]
     pub unsafe fn from_raw_value(raw: RawValue) -> Self {
         Self {
             array_data: ArrayData::from_raw_value(raw),
@@ -564,6 +573,7 @@ impl<'a, T: Bridge> Array<'a, T> {
     /// let sum: i64 = arr.iter().sum();
     /// assert_eq!(sum, 15);
     /// ```
+    #[must_use]
     pub fn iter(&self) -> ArrayIter<'a, T> {
         unsafe {
             let start = self.array_data.as_data_ptr();
@@ -577,13 +587,13 @@ impl<'a, T: Bridge> Array<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> Clone for Array<'a, T> {
+impl<T: Bridge> Clone for Array<'_, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, T: Bridge> Copy for Array<'a, T> {}
+impl<T: Bridge> Copy for Array<'_, T> {}
 
 /// Iterator over typed Array elements.
 ///
@@ -594,7 +604,7 @@ pub struct ArrayIter<'a, T: Bridge> {
     _phantom: PhantomData<(&'a (), T)>,
 }
 
-impl<'a, T: Bridge> Iterator for ArrayIter<'a, T> {
+impl<T: Bridge> Iterator for ArrayIter<'_, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -614,7 +624,7 @@ impl<'a, T: Bridge> Iterator for ArrayIter<'a, T> {
     }
 }
 
-impl<'a, T: Bridge> ExactSizeIterator for ArrayIter<'a, T> {
+impl<T: Bridge> ExactSizeIterator for ArrayIter<'_, T> {
     fn len(&self) -> usize {
         unsafe { self.end.offset_from(self.current) as usize }
     }
@@ -661,7 +671,7 @@ pub struct Map<'a, K: Bridge, V: Bridge> {
     _phantom: PhantomData<(&'a (), K, V)>,
 }
 
-impl<'a, K: Bridge, V: Bridge> RawConvertible for Map<'a, K, V> {
+impl<K: Bridge, V: Bridge> RawConvertible for Map<'_, K, V> {
     fn to_raw_value(_arena: &Bump, value: Self) -> RawValue {
         const {
             assert!(core::mem::size_of::<Self>() == core::mem::size_of::<RawValue>());
@@ -682,16 +692,19 @@ impl<'a, K: Bridge, V: Bridge> RawConvertible for Map<'a, K, V> {
 
 impl<'a, K: Bridge, V: Bridge> Map<'a, K, V> {
     /// Returns the number of key-value pairs in the map.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.map_data.length()
     }
 
     /// Returns `true` if the map is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Get a pointer to the underlying MapData for FFI/VM use.
+    /// Get a pointer to the underlying `MapData` for FFI/VM use.
+    #[must_use]
     pub fn as_raw_value(&self) -> RawValue {
         self.map_data.as_raw_value()
     }
@@ -701,10 +714,11 @@ impl<'a, K: Bridge, V: Bridge> Map<'a, K, V> {
     /// # Safety
     ///
     /// Caller must ensure:
-    /// - RawValue holds a variant pointing to MapData
-    /// - The MapData pointed to by the RawValue is valid
-    /// - The MapData contains keys of type K and values of type V
-    /// - The MapData lives for at least 'a
+    /// - `RawValue` holds a variant pointing to `MapData`
+    /// - The `MapData` pointed to by the `RawValue` is valid
+    /// - The `MapData` contains keys of type K and values of type V
+    /// - The `MapData` lives for at least 'a
+    #[must_use]
     pub unsafe fn from_raw_value(raw: RawValue) -> Self {
         Self {
             map_data: MapData::from_raw_value(raw),
@@ -722,6 +736,7 @@ impl<'a, K: Bridge, V: Bridge> Map<'a, K, V> {
     ///     println!("{} -> {}", key, value);
     /// }
     /// ```
+    #[must_use]
     pub fn iter(&self) -> MapIter<'a, K, V> {
         MapIter {
             map_data: self.map_data,
@@ -753,16 +768,16 @@ where
     pub fn new(arena: &'a Bump, pairs: &[(K, V)]) -> Self {
         // Sort pairs by key
         let mut sorted_pairs: Vec<(K, V)> = pairs.to_vec();
-        sorted_pairs.sort_by(|a, b| a.0.cmp(&b.0));
+        sorted_pairs.sort_by_key(|a| a.0);
 
         // Deduplicate keys, keeping the last value for each key
         let mut deduplicated: Vec<(K, V)> = Vec::new();
         for (key, value) in sorted_pairs {
-            if let Some(last) = deduplicated.last() {
-                if last.0 == key {
-                    // Same key as previous - replace the value
-                    deduplicated.pop();
-                }
+            if let Some(last) = deduplicated.last()
+                && last.0 == key
+            {
+                // Same key as previous - replace the value
+                deduplicated.pop();
             }
             deduplicated.push((key, value));
         }
@@ -827,13 +842,13 @@ where
     }
 }
 
-impl<'a, K: Bridge, V: Bridge> Clone for Map<'a, K, V> {
+impl<K: Bridge, V: Bridge> Clone for Map<'_, K, V> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, K: Bridge, V: Bridge> Copy for Map<'a, K, V> {}
+impl<K: Bridge, V: Bridge> Copy for Map<'_, K, V> {}
 
 /// Iterator over typed Map key-value pairs.
 pub struct MapIter<'a, K: Bridge, V: Bridge> {
@@ -842,7 +857,7 @@ pub struct MapIter<'a, K: Bridge, V: Bridge> {
     _phantom: PhantomData<(&'a (), K, V)>,
 }
 
-impl<'a, K: Bridge, V: Bridge> Iterator for MapIter<'a, K, V> {
+impl<K: Bridge, V: Bridge> Iterator for MapIter<'_, K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -865,7 +880,7 @@ impl<'a, K: Bridge, V: Bridge> Iterator for MapIter<'a, K, V> {
     }
 }
 
-impl<'a, K: Bridge, V: Bridge> ExactSizeIterator for MapIter<'a, K, V> {
+impl<K: Bridge, V: Bridge> ExactSizeIterator for MapIter<'_, K, V> {
     fn len(&self) -> usize {
         self.map_data.length() - self.index
     }
@@ -894,7 +909,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_bridge_type_from() {
+    fn bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -929,7 +944,7 @@ mod tests {
     }
 
     #[test]
-    fn test_i64_roundtrip() {
+    fn i64_roundtrip() {
         let arena = Bump::new();
         let value: i64 = 42;
         let raw = i64::to_raw_value(&arena, value);
@@ -938,7 +953,7 @@ mod tests {
     }
 
     #[test]
-    fn test_f64_roundtrip() {
+    fn f64_roundtrip() {
         let arena = Bump::new();
         let value: f64 = 3.14159;
         let raw = f64::to_raw_value(&arena, value);
@@ -947,18 +962,18 @@ mod tests {
     }
 
     #[test]
-    fn test_bool_roundtrip() {
+    fn bool_roundtrip() {
         let arena = Bump::new();
         let raw_true = bool::to_raw_value(&arena, true);
         let raw_false = bool::to_raw_value(&arena, false);
         unsafe {
-            assert_eq!(bool::from_raw_value(raw_true), true);
-            assert_eq!(bool::from_raw_value(raw_false), false);
+            assert!(bool::from_raw_value(raw_true));
+            assert!(!bool::from_raw_value(raw_false));
         }
     }
 
     #[test]
-    fn test_array_i64_basic() {
+    fn array_i64_basic() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[1, 2, 3, 4, 5]);
         assert_eq!(arr.len(), 5);
@@ -969,7 +984,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_f64_basic() {
+    fn array_f64_basic() {
         let arena = Bump::new();
         let arr = Array::<f64>::new(&arena, &[1.1, 2.2, 3.3]);
         assert_eq!(arr.len(), 3);
@@ -979,7 +994,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_bool_basic() {
+    fn array_bool_basic() {
         let arena = Bump::new();
         let arr = Array::<bool>::new(&arena, &[true, false, true]);
         assert_eq!(arr.len(), 3);
@@ -989,7 +1004,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_empty() {
+    fn array_empty() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[]);
         assert_eq!(arr.len(), 0);
@@ -998,7 +1013,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_nested() {
+    fn array_nested() {
         let arena = Bump::new();
         let arr = Array::<Array<i64>>::new(
             &arena,
@@ -1017,7 +1032,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_get_unchecked() {
+    fn array_get_unchecked() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[10, 20, 30]);
         unsafe {
@@ -1028,11 +1043,11 @@ mod tests {
     }
 
     #[test]
-    fn test_array_clone_copy() {
+    fn array_clone_copy() {
         let arena = Bump::new();
         let arr1 = Array::<i64>::new(&arena, &[1, 2, 3]);
         let arr2 = arr1;
-        let arr3 = arr1.clone();
+        let arr3 = arr1;
         assert_eq!(arr1.len(), 3);
         assert_eq!(arr2.len(), 3);
         assert_eq!(arr3.len(), 3);
@@ -1042,7 +1057,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_large() {
+    fn array_large() {
         let arena = Bump::new();
         let values: Vec<i64> = (0..1000).collect();
         let arr = Array::<i64>::new(&arena, &values);
@@ -1054,7 +1069,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_negative_numbers() {
+    fn array_negative_numbers() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[-100, -50, 0, 50, 100]);
         assert_eq!(arr.get(0), Some(-100));
@@ -1065,7 +1080,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_special_floats() {
+    fn array_special_floats() {
         let arena = Bump::new();
         let arr = Array::<f64>::new(&arena, &[0.0, -0.0, f64::INFINITY, f64::NEG_INFINITY]);
         assert_eq!(arr.len(), 4);
@@ -1076,7 +1091,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_raw_value_roundtrip() {
+    fn array_raw_value_roundtrip() {
         let arena = Bump::new();
         let arr1 = Array::<i64>::new(&arena, &[1, 2, 3]);
         let raw = arr1.as_raw_value();
@@ -1088,7 +1103,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_bridge_type_from() {
+    fn str_bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1097,7 +1112,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_bridge_type_from() {
+    fn bytes_bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1109,7 +1124,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_from_raw_value() {
+    fn str_from_raw_value() {
         use crate::values::raw::Slice;
 
         let arena = Bump::new();
@@ -1126,7 +1141,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytes_from_raw_value() {
+    fn bytes_from_raw_value() {
         use crate::values::raw::Slice;
 
         let arena = Bump::new();
@@ -1142,7 +1157,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_of_str_type() {
+    fn array_of_str_type() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1154,7 +1169,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_of_bytes_type() {
+    fn array_of_bytes_type() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1166,7 +1181,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_array_with_str_type() {
+    fn nested_array_with_str_type() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1178,7 +1193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_str_with_from_strs() {
+    fn array_str_with_from_strs() {
         let arena = Bump::new();
 
         // Create strings using various methods
@@ -1205,7 +1220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_from_owned_strings() {
+    fn array_from_owned_strings() {
         let arena = Bump::new();
 
         // Create owned strings
@@ -1226,7 +1241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str_deref_and_equality() {
+    fn str_deref_and_equality() {
         let arena = Bump::new();
 
         let s1 = Str::from_str(&arena, "hello world");
@@ -1246,7 +1261,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_basic() {
+    fn array_iter_basic() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5]);
 
@@ -1255,7 +1270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_sum() {
+    fn array_iter_sum() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5]);
 
@@ -1264,7 +1279,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_for_loop() {
+    fn array_iter_for_loop() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[10, 20, 30]);
 
@@ -1277,7 +1292,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_empty() {
+    fn array_iter_empty() {
         let arena = Bump::new();
         let arr = Array::<i64>::new(&arena, &[]);
 
@@ -1285,7 +1300,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_with_str() {
+    fn array_iter_with_str() {
         let arena = Bump::new();
         let arr = Array::from_strs(&arena, vec!["hello", "world", "rust"]);
 
@@ -1294,7 +1309,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_exact_size() {
+    fn array_iter_exact_size() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5]);
 
@@ -1309,7 +1324,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_map_filter() {
+    fn array_iter_map_filter() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3, 4, 5, 6]);
 
@@ -1320,7 +1335,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_size_hint() {
+    fn array_iter_size_hint() {
         let arena = Bump::new();
         let arr = Array::new(&arena, &[1, 2, 3]);
 
@@ -1332,7 +1347,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_iter_nested() {
+    fn array_iter_nested() {
         let arena = Bump::new();
 
         // Create inner arrays
@@ -1360,7 +1375,7 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_map_bridge_type_from() {
+    fn map_bridge_type_from() {
         let arena = Bump::new();
         let type_mgr = TypeManager::new(&arena);
 
@@ -1380,7 +1395,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_i64_i64_basic() {
+    fn map_i64_i64_basic() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1393,7 +1408,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_unsorted_input() {
+    fn map_unsorted_input() {
         let arena = Bump::new();
         // Input pairs are not sorted
         let map = Map::<i64, i64>::new(&arena, &[(3, 30), (1, 10), (2, 20)]);
@@ -1405,7 +1420,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_empty() {
+    fn map_empty() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[]);
 
@@ -1415,7 +1430,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_single_element() {
+    fn map_single_element() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(42, 100)]);
 
@@ -1426,7 +1441,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_different_types() {
+    fn map_different_types() {
         let arena = Bump::new();
 
         // i64 -> f64
@@ -1440,7 +1455,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_basic() {
+    fn map_iter_basic() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1449,7 +1464,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_sorted_order() {
+    fn map_iter_sorted_order() {
         let arena = Bump::new();
         // Create map with unsorted input
         let map = Map::<i64, i64>::new(&arena, &[(3, 30), (1, 10), (2, 20)]);
@@ -1460,7 +1475,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_empty() {
+    fn map_iter_empty() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[]);
 
@@ -1468,7 +1483,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_for_loop() {
+    fn map_iter_for_loop() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1484,7 +1499,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_iter_exact_size() {
+    fn map_iter_exact_size() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
 
@@ -1499,7 +1514,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_from_iter() {
+    fn map_from_iter() {
         let arena = Bump::new();
         let pairs = vec![(1, 10), (2, 20), (3, 30)];
         let map = Map::<i64, i64>::from_iter(&arena, pairs);
@@ -1511,11 +1526,11 @@ mod tests {
     }
 
     #[test]
-    fn test_map_clone_copy() {
+    fn map_clone_copy() {
         let arena = Bump::new();
         let map1 = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20)]);
         let map2 = map1;
-        let map3 = map1.clone();
+        let map3 = map1;
 
         assert_eq!(map1.get(&1), Some(10));
         assert_eq!(map2.get(&1), Some(10));
@@ -1523,7 +1538,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_raw_value_roundtrip() {
+    fn map_raw_value_roundtrip() {
         let arena = Bump::new();
         let map1 = Map::<i64, i64>::new(&arena, &[(1, 10), (2, 20), (3, 30)]);
         let raw = map1.as_raw_value();
@@ -1536,7 +1551,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_large() {
+    fn map_large() {
         let arena = Bump::new();
         let pairs: Vec<(i64, i64)> = (0..100).map(|i| (i, i * 10)).collect();
         let map = Map::<i64, i64>::new(&arena, &pairs);
@@ -1549,7 +1564,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_negative_keys() {
+    fn map_negative_keys() {
         let arena = Bump::new();
         let map = Map::<i64, i64>::new(&arena, &[(-100, 1), (-50, 2), (0, 3), (50, 4), (100, 5)]);
 
@@ -1561,7 +1576,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_duplicate_keys_last_wins() {
+    fn map_duplicate_keys_last_wins() {
         let arena = Bump::new();
         // Create map with duplicate keys - last value should win
         let map = Map::<i64, i64>::new(

@@ -90,12 +90,19 @@ pub struct Highlighter {
     config: HighlightConfiguration,
 }
 
+impl Default for Highlighter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Highlighter {
     /// Creates a new syntax highlighter.
     ///
     /// # Panics
     ///
     /// Panics if the tree-sitter highlight configuration fails to initialize.
+    #[must_use]
     pub fn new() -> Self {
         let highlight_names = PALETTE.iter().map(|item| item.name).collect::<Vec<_>>();
 

@@ -196,11 +196,12 @@ macro_rules! ty {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ArenaBuilder, Scalar, TyKind};
     use bumpalo::Bump;
 
+    use crate::{ArenaBuilder, Scalar, TyKind};
+
     #[test]
-    fn test_scalar_int() {
+    fn scalar_int() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Int);
@@ -208,7 +209,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_str() {
+    fn scalar_str() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Str);
@@ -216,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_bool() {
+    fn scalar_bool() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Bool);
@@ -224,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_float() {
+    fn scalar_float() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Float);
@@ -232,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_bytes() {
+    fn scalar_bytes() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Bytes);
@@ -240,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_simple() {
+    fn array_simple() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Array[Int]);
@@ -253,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn test_array_nested() {
+    fn array_nested() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Array[Array[Int]]);
@@ -269,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_simple() {
+    fn map_simple() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Map[Str, Int]);
@@ -283,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_nested_value() {
+    fn map_nested_value() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Map[Str, Array[Int]]);
@@ -302,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_simple() {
+    fn function_simple() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, (Int) => Bool);
@@ -317,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_multiple_params() {
+    fn function_multiple_params() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, (Int, Str, Float) => Bool);
@@ -334,7 +335,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_no_params() {
+    fn function_no_params() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, () => Int);
@@ -348,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_var_simple() {
+    fn type_var_simple() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, [a] => Array[a]);
@@ -361,7 +362,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_var_multiple() {
+    fn type_var_multiple() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, [k, v] => Map[k, v]);
@@ -375,7 +376,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_var_function() {
+    fn type_var_function() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         // [k, v] => (Map[k, v], k) => v
@@ -401,7 +402,7 @@ mod tests {
     }
 
     #[test]
-    fn test_record_simple() {
+    fn record_simple() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Record[name: Str, age: Int]);
@@ -419,7 +420,7 @@ mod tests {
     }
 
     #[test]
-    fn test_record_nested() {
+    fn record_nested() {
         let arena = Bump::new();
         let b = ArenaBuilder::new(&arena);
         let t = ty!(b, Record[data: Array[Int], lookup: Map[Str, Float]]);

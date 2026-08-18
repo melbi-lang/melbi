@@ -4,21 +4,19 @@
 //! Run with: `cargo bench` in the core/ directory.
 //!
 //! Benchmark groups:
-//! 1. eval_only: Measures pure evaluation performance (expressions are pre-parsed/analyzed)
-//! 2. full_pipeline: Measures parse + analyze + eval together (for comparison)
-//! 3. cel_comparison: Comparison with CEL (Common Expression Language) interpreter
+//! 1. `eval_only`: Measures pure evaluation performance (expressions are pre-parsed/analyzed)
+//! 2. `full_pipeline`: Measures parse + analyze + eval together (for comparison)
+//! 3. `cel_comparison`: Comparison with CEL (Common Expression Language) interpreter
+
+use std::hint::black_box;
 
 use bumpalo::Bump;
 use cel_interpreter::{Context, Program};
-use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
-use melbi_core::{
-    analyzer,
-    evaluator::{Evaluator, EvaluatorOptions},
-    parser,
-    types::manager::TypeManager,
-    vm::{Code, Instruction, VM},
-};
-use pprof::criterion::{Output, PProfProfiler};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use melbi_core::evaluator::{Evaluator, EvaluatorOptions};
+use melbi_core::types::manager::TypeManager;
+use melbi_core::vm::{Code, Instruction, VM};
+use melbi_core::{analyzer, parser};
 
 /// Generate an arithmetic expression like "1 + 1 + 1 + ... + 1" with `n` additions.
 fn generate_arithmetic_chain(n: usize) -> String {
@@ -50,8 +48,8 @@ fn bench_eval_only(c: &mut Criterion) {
             let type_manager = TypeManager::new(&arena);
             let source = generate_arithmetic_chain(size);
             let parsed = parser::parse(&arena, &source).expect("Parse failed");
-            let typed = analyzer::analyze(type_manager, &arena, &parsed, &[], &[])
-                .expect("Analysis failed");
+            let typed =
+                analyzer::analyze(type_manager, &arena, parsed, &[], &[]).expect("Analysis failed");
 
             // Benchmark: Only the evaluation step
             b.iter(|| {
@@ -59,7 +57,7 @@ fn bench_eval_only(c: &mut Criterion) {
                     black_box(EvaluatorOptions::default()),
                     black_box(&arena),
                     black_box(type_manager),
-                    black_box(&typed),
+                    black_box(typed),
                     black_box(&[]),
                     black_box(&[]),
                 );
@@ -77,7 +75,7 @@ fn bench_eval_only(c: &mut Criterion) {
 /// Benchmark: Full pipeline (parse + analyze + eval).
 ///
 /// This measures the complete pipeline to understand where time is spent.
-/// Compare with eval_only to see what percentage of time is spent in the evaluator.
+/// Compare with `eval_only` to see what percentage of time is spent in the evaluator.
 fn bench_full_pipeline(c: &mut Criterion) {
     let mut group = c.benchmark_group("full_pipeline");
 
@@ -99,7 +97,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
                 let typed = analyzer::analyze(
                     black_box(type_manager),
                     black_box(&arena),
-                    black_box(&parsed),
+                    black_box(parsed),
                     black_box(&[]),
                     black_box(&[]),
                 )
@@ -109,7 +107,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
                     black_box(EvaluatorOptions::default()),
                     black_box(&arena),
                     black_box(type_manager),
-                    black_box(&typed),
+                    black_box(typed),
                     black_box(&[]),
                     black_box(&[]),
                 );
@@ -156,7 +154,7 @@ fn bench_cel_comparison(c: &mut Criterion) {
 
 /// Benchmark: CEL full pipeline (compile + execute).
 ///
-/// Measures CEL's compile + execute to compare with Melbi's full_pipeline.
+/// Measures CEL's compile + execute to compare with Melbi's `full_pipeline`.
 fn bench_cel_full_pipeline(c: &mut Criterion) {
     let mut group = c.benchmark_group("cel_full_pipeline");
 
@@ -192,7 +190,7 @@ fn bench_vm_only(c: &mut Criterion) {
         group.throughput(Throughput::Elements(size as u64));
 
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
-            use Instruction::*;
+            use Instruction::{ConstInt, IntBinOp, Return};
 
             // Generate bytecode for: ((((1 + 1) + 1) + 1) + ... + 1)
             // This is left-associative, so stack never grows beyond 2
@@ -252,10 +250,13 @@ fn bench_rust_baseline(c: &mut Criterion) {
     group.finish();
 }
 
-// Configure Criterion with profiling support
-criterion_group! {
-    name = benches;
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
-    targets = bench_eval_only, bench_full_pipeline, bench_cel_comparison, bench_cel_full_pipeline, bench_vm_only, bench_rust_baseline
-}
+criterion_group!(
+    benches,
+    bench_eval_only,
+    bench_full_pipeline,
+    bench_cel_comparison,
+    bench_cel_full_pipeline,
+    bench_vm_only,
+    bench_rust_baseline
+);
 criterion_main!(benches);

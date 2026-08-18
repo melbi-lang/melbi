@@ -20,9 +20,9 @@ fn eval_arithmetic() {
     check_stdout(
         &["eval", "10 * 5 - 3"],
         None,
-        expect![[r#"
+        expect![[r"
         47
-    "#]],
+    "]],
     );
 }
 
@@ -36,9 +36,9 @@ fn eval_boolean() {
     check_stdout(
         &["eval", "true and false"],
         None,
-        expect![[r#"
+        expect![[r"
         false
-    "#]],
+    "]],
     );
 }
 
@@ -47,9 +47,9 @@ fn eval_array() {
     check_stdout(
         &["eval", "[1, 2, 3]"],
         None,
-        expect![[r#"
+        expect![[r"
         [1, 2, 3]
-    "#]],
+    "]],
     );
 }
 
@@ -81,9 +81,9 @@ fn eval_lambda() {
     check_stdout(
         &["eval", "((x) => x * 2)(21)"],
         None,
-        expect![[r#"
+        expect![[r"
         42
-    "#]],
+    "]],
     );
 }
 
@@ -110,7 +110,7 @@ fn eval_type_error_shows_error() {
     check_stderr(
         &["--no-color", "eval", "1 + true"],
         None,
-        expect![[r#"
+        expect![[r"
             [E001] Error: Type mismatch: expected Int, found Bool
                ╭─[ <unknown>:1:5 ]
                │
@@ -120,7 +120,7 @@ fn eval_type_error_shows_error() {
                │
                │ Help: Types must match in this context
             ───╯
-        "#]],
+        "]],
     );
 }
 
@@ -129,7 +129,7 @@ fn eval_parse_error_shows_error() {
     check_stderr(
         &["--no-color", "eval", "1 + +"],
         None,
-        expect![[r#"
+        expect![[r"
             [P001] Error: Expected expression, literal or identifier, found unexpected token
                ╭─[ <unknown>:1:5 ]
                │
@@ -137,7 +137,7 @@ fn eval_parse_error_shows_error() {
                │     │
                │     ╰─ Expected expression, literal or identifier, found unexpected token
             ───╯
-        "#]],
+        "]],
     );
 }
 

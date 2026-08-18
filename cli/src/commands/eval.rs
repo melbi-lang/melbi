@@ -5,30 +5,28 @@ use std::time::{Duration, Instant};
 
 use bumpalo::Bump;
 use melbi::{RenderConfig, render_error_to};
-use melbi_core::{
-    analyzer::analyze,
-    compiler::BytecodeCompiler,
-    evaluator::{Evaluator, EvaluatorOptions, ExecutionError},
-    parser,
-    types::{Type, manager::TypeManager},
-    values::dynamic::Value,
-    vm::VM,
-};
+use melbi_core::analyzer::analyze;
+use melbi_core::compiler::BytecodeCompiler;
+use melbi_core::evaluator::{Evaluator, EvaluatorOptions, ExecutionError};
+use melbi_core::parser;
+use melbi_core::types::manager::TypeManager;
+use melbi_core::values::dynamic::Value;
+use melbi_core::vm::VM;
 use nu_ansi_term::Style;
 
 use crate::cli::{EvalArgs, Runtime};
-use crate::common::engine::build_stdlib;
+use crate::common::engine::{StdlibEnv, build_stdlib};
 
 /// Run the eval command.
+#[must_use]
 pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     interpret_input(
         type_manager,
-        globals_types,
-        globals_values,
+        &env,
         &args.expression,
         None, // eval command has no filename
         args.runtime,
@@ -40,8 +38,7 @@ pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
 /// Interpret a single expression and print the result.
 pub fn interpret_input<'types>(
     type_manager: &'types TypeManager<'types>,
-    globals_types: &[(&'types str, &'types Type<'types>)],
-    globals_values: &'types [(&'types str, Value<'types, 'types>)],
+    env: &StdlibEnv<'types>,
     input: &str,
     filename: Option<&str>,
     runtime: Runtime,
@@ -69,7 +66,7 @@ pub fn interpret_input<'types>(
     };
 
     // Type check
-    let typed = match analyze(type_manager, &arena, &ast, globals_types, &[]) {
+    let typed = match analyze(type_manager, &arena, ast, env.types, &[]) {
         Ok(typed) => typed,
         Err(e) => {
             render_err(e.into());
@@ -92,8 +89,8 @@ pub fn interpret_input<'types>(
             EvaluatorOptions::default(),
             &arena,
             type_manager,
-            &typed,
-            globals_values,
+            typed,
+            env.values,
             &[],
         );
         let start = Instant::now();
@@ -103,8 +100,7 @@ pub fn interpret_input<'types>(
 
     // VM
     if run_vm {
-        let bytecode = match BytecodeCompiler::compile(type_manager, &arena, globals_values, &typed)
-        {
+        let bytecode = match BytecodeCompiler::compile(type_manager, &arena, env.values, typed) {
             Ok(code) => code,
             Err(e) => {
                 render_err(e.into());
@@ -121,9 +117,10 @@ pub fn interpret_input<'types>(
     }
 
     let exit_code = match runtime {
-        Runtime::Evaluator => {
-            output_single_result(eval_result.expect("Evaluator result should exist"), &render_err)
-        }
+        Runtime::Evaluator => output_single_result(
+            eval_result.expect("Evaluator result should exist"),
+            &render_err,
+        ),
         Runtime::Vm => {
             output_single_result(vm_result.expect("VM result should exist"), &render_err)
         }
@@ -149,7 +146,7 @@ fn output_single_result(
 ) -> ExitCode {
     match result {
         Ok(value) => {
-            println!("{:?}", value);
+            println!("{value:?}");
             ExitCode::SUCCESS
         }
         Err(e) => {
@@ -168,12 +165,12 @@ fn output_both_results(
     match (eval_res, vm_res) {
         (Ok(eval_val), Ok(vm_val)) => {
             if eval_val == vm_val {
-                println!("{:?}", eval_val);
+                println!("{eval_val:?}");
                 ExitCode::SUCCESS
             } else {
                 eprintln!("MISMATCH!");
-                eprintln!("  Evaluator: {:?}", eval_val);
-                eprintln!("  VM:        {:?}", vm_val);
+                eprintln!("  Evaluator: {eval_val:?}");
+                eprintln!("  VM:        {vm_val:?}");
                 ExitCode::FAILURE
             }
         }
@@ -181,12 +178,12 @@ fn output_both_results(
             eprintln!("MISMATCH!");
             eprintln!("  Evaluator: error");
             render_err(e.into());
-            eprintln!("  VM:        {:?}", vm_val);
+            eprintln!("  VM:        {vm_val:?}");
             ExitCode::FAILURE
         }
         (Ok(eval_val), Err(e)) => {
             eprintln!("MISMATCH!");
-            eprintln!("  Evaluator: {:?}", eval_val);
+            eprintln!("  Evaluator: {eval_val:?}");
             eprintln!("  VM:        error");
             render_err(e.into());
             ExitCode::FAILURE
@@ -210,7 +207,7 @@ fn output_both_results(
 fn format_duration(duration: Duration) -> String {
     let nanos = duration.as_nanos();
     if nanos < 1_000 {
-        format!("{}ns", nanos)
+        format!("{nanos}ns")
     } else if nanos < 1_000_000 {
         format!("{:.2}µs", nanos as f64 / 1_000.0)
     } else if nanos < 1_000_000_000 {
@@ -269,12 +266,12 @@ fn print_timing(
                     } else if ratio >= 2.0 {
                         // Use multiplier for large differences
                         let speed_word = if is_faster { "faster" } else { "slower" };
-                        format!("{:.1}x {}", ratio, speed_word)
+                        format!("{ratio:.1}x {speed_word}")
                     } else {
                         // Use percentage for small differences
                         let speed_word = if is_faster { "faster" } else { "slower" };
                         let percent = (ratio - 1.0) * 100.0;
-                        format!("{:.0}% {}", percent, speed_word)
+                        format!("{percent:.0}% {speed_word}")
                     }
                 } else {
                     String::new()
@@ -283,7 +280,7 @@ fn print_timing(
                 let comparison = if diff_str.is_empty() {
                     String::new()
                 } else {
-                    format!(" ({})", diff_str)
+                    format!(" ({diff_str})")
                 };
 
                 eprintln!(

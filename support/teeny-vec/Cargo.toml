@@ -9,9 +9,13 @@ license.workspace = true
 static_assertions.workspace = true
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion.workspace = true
 smallvec.workspace = true
 
 [[bench]]
 name = "teeny_vec"
 harness = false
+
+[lints]
+workspace = true
+

@@ -6,10 +6,10 @@ pub mod lexer;
 use std::process::ExitCode;
 
 use bumpalo::Bump;
-use melbi_core::{
-    parser::{ExpressionParser, Rule},
-    types::manager::TypeManager,
-};
+use highlighter::Highlighter;
+use lexer::calculate_depth;
+use melbi_core::parser::{ExpressionParser, Rule};
+use melbi_core::types::manager::TypeManager;
 use nu_ansi_term::Style;
 use pest::Parser as PestParser;
 use reedline::{
@@ -18,12 +18,10 @@ use reedline::{
     ReedlineEvent, ReedlineMenu, Signal, ValidationResult, default_emacs_keybindings,
 };
 
-use crate::cli::ReplArgs;
-use crate::common::{engine::build_stdlib, panic as panic_handler};
-use highlighter::Highlighter;
-use lexer::calculate_depth;
-
 use super::eval::interpret_input;
+use crate::cli::ReplArgs;
+use crate::common::engine::build_stdlib;
+use crate::common::panic as panic_handler;
 
 /// A `reedline` validator that uses the full Melbi parser to determine input completeness.
 ///
@@ -56,7 +54,7 @@ impl reedline::Validator for MelbiValidator {
                 };
                 if pos >= input.len() {
                     ValidationResult::Incomplete
-                } else if input[pos..].starts_with(&['"', '\'']) {
+                } else if input[pos..].starts_with(['"', '\'']) {
                     // Assume its an unterminated string literal.
                     ValidationResult::Incomplete
                 } else {
@@ -90,7 +88,7 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let completer = Box::new({
         let mut completions = DefaultCompleter::with_inclusions(&['-', '_']);
-        completions.insert(commands.clone());
+        completions.insert(commands);
         completions
     });
 
@@ -128,15 +126,14 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let edit_mode = Box::new(Emacs::new(keybindings));
 
-    let history: Box<dyn reedline::History> = match dirs::config_dir()
+    let history: Box<dyn reedline::History> = if let Some(h) = dirs::config_dir()
         .map(|p| p.join("melbi/history"))
         .and_then(|p| FileBackedHistory::with_file(10000, p).ok())
     {
-        Some(h) => Box::new(h),
-        None => {
-            eprintln!("Warning: Could not initialize history file, using in-memory history");
-            Box::new(FileBackedHistory::new(1000).unwrap())
-        }
+        Box::new(h)
+    } else {
+        eprintln!("Warning: Could not initialize history file, using in-memory history");
+        Box::new(FileBackedHistory::new(1000).unwrap())
     };
 
     let validator = Box::new(MelbiValidator);
@@ -158,10 +155,11 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 }
 
 /// Run the REPL command.
+#[must_use]
 pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
-    let (globals_types, globals_values) = build_stdlib(&arena, type_manager);
+    let env = build_stdlib(&arena, type_manager);
 
     let (mut line_editor, prompt) = setup_reedline();
 
@@ -183,11 +181,11 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
         match sig {
             Signal::Success(cmd) if cmd == "!indent" => {
                 let buffer = line_editor.current_buffer_contents();
-                if let Some(depth) = calculate_depth(buffer) {
-                    if depth > 0 {
-                        line_editor
-                            .run_edit_commands(&[EditCommand::InsertString("    ".repeat(depth))]);
-                    }
+                if let Some(depth) = calculate_depth(buffer)
+                    && depth > 0
+                {
+                    line_editor
+                        .run_edit_commands(&[EditCommand::InsertString("    ".repeat(depth))]);
                 }
                 continue;
             }
@@ -195,10 +193,10 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
                 let buffer = line_editor.current_buffer_contents();
 
                 // Check if line is effectively empty (only whitespace)
-                let is_blank_line = buffer.lines().last().map_or(false, |l| l.trim().is_empty());
+                let is_blank_line = buffer.lines().last().is_some_and(|l| l.trim().is_empty());
 
                 if is_blank_line {
-                    let Some(current_depth) = calculate_depth(&buffer) else {
+                    let Some(current_depth) = calculate_depth(buffer) else {
                         continue;
                     };
                     let target_depth = current_depth.saturating_sub(1); // Dedent level
@@ -223,8 +221,7 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
                 // In REPL mode, we continue even on errors
                 let _result = interpret_input(
                     type_manager,
-                    globals_types,
-                    globals_values,
+                    &env,
                     buffer.as_ref(),
                     None, // REPL has no filename
                     args.runtime,
@@ -238,9 +235,6 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
             Signal::CtrlD => {
                 println!("\nGoodbye!");
                 return ExitCode::SUCCESS;
-            }
-            Signal::CtrlC => {
-                continue;
             }
             _ => {
                 continue;

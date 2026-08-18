@@ -154,7 +154,7 @@ mod tests {
     use crate::test_utils::init_test_logging;
 
     #[test]
-    fn test_type_inference() {
+    fn type_inference() {
         init_test_logging();  // Call this to enable logging
         
         // Your test code here
@@ -397,7 +397,7 @@ RUST_LOG=melbi_core::types::unification=trace cargo run -p melbi-cli -- "[1, 2, 
 
 ```rust
 #[test]
-fn test_array_type_inference() {
+fn array_type_inference() {
     test_utils::init_test_logging();
     
     let arena = Bump::new();

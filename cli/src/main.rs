@@ -14,10 +14,8 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use melbi_cli::{
-    cli::{Cli, Command},
-    commands, common,
-};
+use melbi_cli::cli::{Cli, Command};
+use melbi_cli::{commands, common};
 
 fn main() -> ExitCode {
     // Install panic handler for user-friendly crash reporting

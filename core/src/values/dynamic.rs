@@ -1,22 +1,22 @@
-#![allow(unsafe_code)] // TODO: Disallow unsafe code.
-
-use crate::{
-    String, ToString, Vec,
-    syntax::{
-        bytes_literal::{QuoteStyle as BytesQuoteStyle, escape_bytes},
-        string_literal::{QuoteStyle, escape_string},
-    },
-    types::{Type, manager::TypeManager, traits::TypeView},
-    values::{
-        binder::{self, Binder},
-        from_raw::TypeError,
-        function::Function,
-        raw::{ArrayData, MapData, MapEntry, RawValue, RecordData, Slice},
-    },
-};
+#![allow(
+    unsafe_code,
+    reason = "implements dynamic Value extractors over untyped RawValue data structures"
+)]
 
 use alloc::collections::BTreeMap;
+
 use bumpalo::Bump;
+
+use crate::syntax::bytes_literal::{QuoteStyle as BytesQuoteStyle, escape_bytes};
+use crate::syntax::string_literal::{QuoteStyle, escape_string};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::traits::TypeView;
+use crate::values::binder::{self, Binder};
+use crate::values::from_raw::TypeError;
+use crate::values::function::Function;
+use crate::values::raw::{ArrayData, MapData, MapEntry, RawValue, RecordData, Slice};
+use crate::{String, ToString, Vec};
 
 #[derive(Clone, Copy)]
 pub struct Value<'ty_arena: 'value_arena, 'value_arena> {
@@ -142,8 +142,9 @@ impl<'ty_arena: 'value_arena, 'value_arena> PartialOrd for Value<'ty_arena, 'val
 
 impl<'ty_arena: 'value_arena, 'value_arena> Ord for Value<'ty_arena, 'value_arena> {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        use crate::types::traits::{TypeKind, TypeView};
         use core::cmp::Ordering;
+
+        use crate::types::traits::{TypeKind, TypeView};
 
         // Compare types first using TypeView
         let self_view = self.ty.view();
@@ -348,7 +349,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> core::fmt::Debug for Value<'ty_arena
         match self.ty {
             Type::Int => {
                 let value = self.raw.as_int_unchecked();
-                write!(f, "{}", value)
+                write!(f, "{value}")
             }
             Type::Float => {
                 let value = self.raw.as_float_unchecked();
@@ -356,7 +357,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> core::fmt::Debug for Value<'ty_arena
             }
             Type::Bool => {
                 let value = self.raw.as_bool_unchecked();
-                write!(f, "{}", value)
+                write!(f, "{value}")
             }
             Type::Str => {
                 let s = self.as_str().unwrap();
@@ -373,7 +374,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> core::fmt::Debug for Value<'ty_arena
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{:?}", elem)?;
+                    write!(f, "{elem:?}")?;
                 }
                 write!(f, "]")
             }
@@ -384,7 +385,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> core::fmt::Debug for Value<'ty_arena
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{:?}: {:?}", key, value)?;
+                    write!(f, "{key:?}: {value:?}")?;
                 }
                 write!(f, "}}")
             }
@@ -395,13 +396,13 @@ impl<'ty_arena: 'value_arena, 'value_arena> core::fmt::Debug for Value<'ty_arena
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{} = {:?}", field_name, field_value)?;
+                    write!(f, "{field_name} = {field_value:?}")?;
                 }
                 write!(f, "}}")
             }
             Type::Function { .. } => {
-                let ptr = self.raw.as_function_unchecked() as *const _;
-                write!(f, "<Function @ {:p}: {}>", ptr as *const (), self.ty)
+                let ptr = core::ptr::from_ref(self.raw.as_function_unchecked());
+                write!(f, "<Function @ {:p}: {}>", ptr.cast::<()>(), self.ty)
             }
             Type::Symbol(_) => {
                 // TODO: Implement proper Symbol display (e.g., show symbol name or value)
@@ -419,7 +420,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> core::fmt::Debug for Value<'ty_arena
                 let opt = self.as_option().unwrap();
                 match opt {
                     None => write!(f, "None"),
-                    Some(value) => write!(f, "Some({:?})", value),
+                    Some(value) => write!(f, "Some({value:?})"),
                 }
             }
         }
@@ -432,23 +433,23 @@ impl<'ty_arena: 'value_arena, 'value_arena> core::fmt::Display for Value<'ty_are
             // Primitives: use native Display (no quotes, respects format flags)
             Type::Int => {
                 let value = self.raw.as_int_unchecked();
-                write!(f, "{}", value)
+                write!(f, "{value}")
             }
             Type::Float => {
                 let value = self.raw.as_float_unchecked();
-                write!(f, "{}", value)
+                write!(f, "{value}")
             }
             Type::Bool => {
                 let value = self.raw.as_bool_unchecked();
-                write!(f, "{}", value)
+                write!(f, "{value}")
             }
             Type::Str => {
                 let s = self.as_str().unwrap();
-                write!(f, "{}", s)
+                write!(f, "{s}")
             }
 
             // Complex types and Bytes: delegate to Debug
-            _ => write!(f, "{:?}", self),
+            _ => write!(f, "{self:?}"),
         }
     }
 }
@@ -466,9 +467,9 @@ fn format_float(f: &mut core::fmt::Formatter<'_>, value: f64) -> core::fmt::Resu
     } else {
         let s = value.to_string();
         if s.contains('.') || s.contains('e') || s.contains('E') {
-            write!(f, "{}", s)
+            write!(f, "{s}")
         } else {
-            write!(f, "{}.", s)
+            write!(f, "{s}.")
         }
     }
 }
@@ -478,15 +479,16 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     // Raw Value Access
     // ============================================================================
 
-    /// Get the underlying RawValue.
+    /// Get the underlying `RawValue`.
     ///
     /// This is useful for the bytecode compiler which needs to convert Values
-    /// (with type information) to RawValues (for VM execution).
+    /// (with type information) to `RawValues` (for VM execution).
     ///
     /// # Safety
-    /// The returned RawValue is a union - accessing its fields requires knowing
+    /// The returned `RawValue` is a union - accessing its fields requires knowing
     /// the correct type. Use the type information in `self.ty` or the type-safe
     /// extractors (`as_int()`, `as_float()`, etc.) instead when possible.
+    #[must_use]
     pub fn as_raw(&self) -> RawValue {
         self.raw
     }
@@ -494,9 +496,10 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     /// Construct a Value from a type and raw value (for testing and VM results).
     ///
     /// # Safety
-    /// The caller must ensure that the RawValue matches the given Type.
+    /// The caller must ensure that the `RawValue` matches the given Type.
     /// This is primarily intended for converting VM execution results back to Values
     /// or macro-generated code where type safety is guaranteed by the type system.
+    #[must_use]
     pub fn from_raw_unchecked(ty: &'ty_arena Type<'ty_arena>, raw: RawValue) -> Self {
         Self {
             ty,
@@ -514,7 +517,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
 
     /// Create an integer value.
     ///
-    /// Type is inferred from TypeManager. No allocation needed.
+    /// Type is inferred from `TypeManager`. No allocation needed.
     pub fn int(type_mgr: &'ty_arena TypeManager<'ty_arena>, value: i64) -> Self {
         Self {
             ty: type_mgr.int(),
@@ -525,7 +528,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
 
     /// Create a float value.
     ///
-    /// Type is inferred from TypeManager. No allocation needed.
+    /// Type is inferred from `TypeManager`. No allocation needed.
     pub fn float(type_mgr: &'ty_arena TypeManager<'ty_arena>, value: f64) -> Self {
         Self {
             ty: type_mgr.float(),
@@ -536,7 +539,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
 
     /// Create a boolean value.
     ///
-    /// Type is inferred from TypeManager. No allocation needed.
+    /// Type is inferred from `TypeManager`. No allocation needed.
     pub fn bool(type_mgr: &'ty_arena TypeManager<'ty_arena>, value: bool) -> Self {
         Self {
             ty: type_mgr.bool(),
@@ -585,7 +588,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
 
     /// Create an array value with runtime type validation.
     ///
-    /// Type must be Array(elem_ty). All elements must match elem_ty.
+    /// Type must be `Array(elem_ty)`. All elements must match `elem_ty`.
     /// Returns error if type is not Array or if any element has wrong type.
     ///
     /// # Example
@@ -603,7 +606,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     pub fn array(
         arena: &'value_arena bumpalo::Bump,
         ty: &'ty_arena Type<'ty_arena>,
-        elements: &[Value<'ty_arena, 'value_arena>],
+        elements: &[Self],
     ) -> Result<Self, TypeError> {
         // Validate: ty must be Array(elem_ty)
         let Type::Array(elem_ty) = ty else {
@@ -611,7 +614,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
         };
 
         // Validate: all elements match elem_ty
-        for elem in elements.iter() {
+        for elem in elements {
             if !core::ptr::eq(elem.ty, *elem_ty) {
                 return Err(TypeError::Mismatch);
             }
@@ -632,9 +635,9 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
 
     /// Create an Option value.
     ///
-    /// Type must be Option(inner_ty).
+    /// Type must be `Option(inner_ty)`.
     /// For None: inner should be None
-    /// For Some(v): inner should be Some(v) where v.ty == inner_ty
+    /// For Some(v): inner should be Some(v) where v.ty == `inner_ty`
     ///
     /// # Example
     ///
@@ -656,7 +659,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     pub fn optional(
         arena: &'value_arena bumpalo::Bump,
         ty: &'ty_arena Type<'ty_arena>,
-        inner: Option<Value<'ty_arena, 'value_arena>>,
+        inner: Option<Self>,
     ) -> Result<Self, TypeError> {
         // Validate: ty must be Option(inner_ty)
         let Type::Option(inner_ty) = ty else {
@@ -664,10 +667,10 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
         };
 
         // Validate inner value type if Some
-        if let Some(ref value) = inner {
-            if !core::ptr::eq(value.ty, *inner_ty) {
-                return Err(TypeError::Mismatch);
-            }
+        if let Some(ref value) = inner
+            && !core::ptr::eq(value.ty, *inner_ty)
+        {
+            return Err(TypeError::Mismatch);
         }
 
         // Use RawValue::make_optional to encapsulate memory layout
@@ -701,7 +704,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     pub fn record(
         arena: &'value_arena bumpalo::Bump,
         ty: &'ty_arena Type<'ty_arena>,
-        fields: &[(&'ty_arena str, Value<'ty_arena, 'value_arena>)],
+        fields: &[(&'ty_arena str, Self)],
     ) -> Result<Self, TypeError> {
         // Validate: ty must be Record(field_types)
         let Type::Record(field_types) = ty else {
@@ -740,7 +743,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     /// Create a map value with runtime type validation.
     ///
     /// The map will store key-value pairs in sorted order by key for efficient
-    /// binary search lookups. Keys will be sorted using Value::cmp.
+    /// binary search lookups. Keys will be sorted using `Value::cmp`.
     ///
     /// # Arguments
     ///
@@ -750,7 +753,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     ///
     /// # Errors
     ///
-    /// Returns TypeError::Mismatch if:
+    /// Returns `TypeError::Mismatch` if:
     /// - `ty` is not a Map type
     /// - Any key doesn't match the map's key type
     /// - Any value doesn't match the map's value type
@@ -769,10 +772,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     pub fn map(
         arena: &'value_arena bumpalo::Bump,
         ty: &'ty_arena Type<'ty_arena>,
-        pairs: &[(
-            Value<'ty_arena, 'value_arena>,
-            Value<'ty_arena, 'value_arena>,
-        )],
+        pairs: &[(Self, Self)],
     ) -> Result<Self, TypeError> {
         // Validate: ty must be Map(key_ty, value_ty)
         let Type::Map(key_ty, value_ty) = ty else {
@@ -780,7 +780,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
         };
 
         // Validate: all keys match key_ty and all values match value_ty
-        for (key, value) in pairs.iter() {
+        for (key, value) in pairs {
             if !core::ptr::eq(key.ty, *key_ty) {
                 return Err(TypeError::Mismatch);
             }
@@ -802,11 +802,11 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
             Value<'ty_arena, 'value_arena>,
         )> = Vec::new();
         for (key, value) in sorted_pairs {
-            if let Some(last) = deduplicated.last() {
-                if last.0 == key {
-                    // Same key as previous - replace the value
-                    deduplicated.pop();
-                }
+            if let Some(last) = deduplicated.last()
+                && last.0 == key
+            {
+                // Same key as previous - replace the value
+                deduplicated.pop();
             }
             deduplicated.push((key, value));
         }
@@ -874,6 +874,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
     /// This is useful for zero-cost conversions in macro-generated code.
     /// Users of this method must ensure type safety manually.
     #[inline]
+    #[must_use]
     pub fn raw(&self) -> RawValue {
         self.raw
     }
@@ -958,7 +959,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
         }
     }
 
-    /// Extract a Map from this value, or return a TypeError if not a map.
+    /// Extract a Map from this value, or return a `TypeError` if not a map.
     pub fn as_map(&self) -> Result<Map<'ty_arena, 'value_arena>, TypeError> {
         match self.ty {
             Type::Map(key_ty, value_ty) => Ok(Map {
@@ -973,13 +974,13 @@ impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
 
     /// Extract an Option value dynamically.
     ///
-    /// Returns None for none, or Some(inner_value) for some.
+    /// Returns None for none, or `Some(inner_value)` for some.
     /// Returns error if value is not an Option.
-    pub fn as_option(&self) -> Result<Option<Value<'ty_arena, 'value_arena>>, TypeError> {
+    pub fn as_option(&self) -> Result<Option<Self>, TypeError> {
         match self.ty {
             Type::Option(inner_ty) => Ok(self.raw.as_optional_unchecked().map(|raw| Value {
                 ty: inner_ty,
-                raw: raw,
+                raw,
                 _phantom: core::marker::PhantomData,
             })),
             _ => Err(TypeError::Mismatch),
@@ -1017,11 +1018,13 @@ pub struct Array<'ty_arena, 'value_arena> {
 
 impl<'ty_arena, 'value_arena> Array<'ty_arena, 'value_arena> {
     /// Get the number of elements in the array.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.data.length()
     }
 
     /// Check if the array is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -1029,6 +1032,7 @@ impl<'ty_arena, 'value_arena> Array<'ty_arena, 'value_arena> {
     /// Get element at index, returning it as a Value.
     ///
     /// Returns None if index is out of bounds.
+    #[must_use]
     pub fn get(&self, index: usize) -> Option<Value<'ty_arena, 'value_arena>> {
         if index >= self.len() {
             return None;
@@ -1043,6 +1047,7 @@ impl<'ty_arena, 'value_arena> Array<'ty_arena, 'value_arena> {
     }
 
     /// Iterate over elements as Values.
+    #[must_use]
     pub fn iter(&self) -> ArrayIter<'_, 'ty_arena, 'value_arena> {
         let start = self.data.as_data_ptr();
         let end = unsafe { start.add(self.len()) };
@@ -1052,6 +1057,17 @@ impl<'ty_arena, 'value_arena> Array<'ty_arena, 'value_arena> {
             end,
             _phantom: core::marker::PhantomData,
         }
+    }
+}
+
+impl<'a, 'ty_arena: 'value_arena, 'value_arena> IntoIterator
+    for &'a Array<'ty_arena, 'value_arena>
+{
+    type Item = Value<'ty_arena, 'value_arena>;
+    type IntoIter = ArrayIter<'a, 'ty_arena, 'value_arena>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -1066,9 +1082,7 @@ pub struct ArrayIter<'a, 'ty_arena, 'value_arena> {
     _phantom: core::marker::PhantomData<&'a Array<'ty_arena, 'value_arena>>,
 }
 
-impl<'a, 'ty_arena: 'value_arena, 'value_arena> Iterator
-    for ArrayIter<'a, 'ty_arena, 'value_arena>
-{
+impl<'ty_arena: 'value_arena, 'value_arena> Iterator for ArrayIter<'_, 'ty_arena, 'value_arena> {
     type Item = Value<'ty_arena, 'value_arena>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1092,8 +1106,8 @@ impl<'a, 'ty_arena: 'value_arena, 'value_arena> Iterator
     }
 }
 
-impl<'a, 'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
-    for ArrayIter<'a, 'ty_arena, 'value_arena>
+impl<'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
+    for ArrayIter<'_, 'ty_arena, 'value_arena>
 {
     fn len(&self) -> usize {
         unsafe { self.end.offset_from(self.current) as usize }
@@ -1115,11 +1129,13 @@ pub struct Record<'ty_arena, 'value_arena> {
 
 impl<'ty_arena, 'value_arena> Record<'ty_arena, 'value_arena> {
     /// Get the number of fields in the record.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.field_types.len()
     }
 
     /// Check if the record is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -1128,6 +1144,7 @@ impl<'ty_arena, 'value_arena> Record<'ty_arena, 'value_arena> {
     ///
     /// Returns None if field name is not found.
     /// Uses binary search since fields are sorted by name.
+    #[must_use]
     pub fn get(&self, field_name: &str) -> Option<Value<'ty_arena, 'value_arena>> {
         // Binary search for field name
         let index = self
@@ -1146,6 +1163,7 @@ impl<'ty_arena, 'value_arena> Record<'ty_arena, 'value_arena> {
     }
 
     /// Iterate over fields as (name, Value) pairs.
+    #[must_use]
     pub fn iter(&self) -> RecordIter<'_, 'ty_arena, 'value_arena> {
         RecordIter {
             field_types: self.field_types,
@@ -1156,9 +1174,20 @@ impl<'ty_arena, 'value_arena> Record<'ty_arena, 'value_arena> {
     }
 }
 
+impl<'a, 'ty_arena: 'value_arena, 'value_arena> IntoIterator
+    for &'a Record<'ty_arena, 'value_arena>
+{
+    type Item = (&'ty_arena str, Value<'ty_arena, 'value_arena>);
+    type IntoIter = RecordIter<'a, 'ty_arena, 'value_arena>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// Iterator over Record fields.
 ///
-/// Yields (field_name, field_value) pairs in sorted order by field name.
+/// Yields (`field_name`, `field_value`) pairs in sorted order by field name.
 pub struct RecordIter<'a, 'ty_arena, 'value_arena> {
     field_types: &'ty_arena [(&'ty_arena str, &'ty_arena Type<'ty_arena>)],
     data: RecordData<'value_arena>,
@@ -1166,9 +1195,7 @@ pub struct RecordIter<'a, 'ty_arena, 'value_arena> {
     _phantom: core::marker::PhantomData<&'a Record<'ty_arena, 'value_arena>>,
 }
 
-impl<'a, 'ty_arena: 'value_arena, 'value_arena> Iterator
-    for RecordIter<'a, 'ty_arena, 'value_arena>
-{
+impl<'ty_arena: 'value_arena, 'value_arena> Iterator for RecordIter<'_, 'ty_arena, 'value_arena> {
     type Item = (&'ty_arena str, Value<'ty_arena, 'value_arena>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1196,8 +1223,8 @@ impl<'a, 'ty_arena: 'value_arena, 'value_arena> Iterator
     }
 }
 
-impl<'a, 'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
-    for RecordIter<'a, 'ty_arena, 'value_arena>
+impl<'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
+    for RecordIter<'_, 'ty_arena, 'value_arena>
 {
     fn len(&self) -> usize {
         self.field_types.len() - self.index
@@ -1222,11 +1249,13 @@ pub struct Map<'ty_arena, 'value_arena> {
 
 impl<'ty_arena, 'value_arena> Map<'ty_arena, 'value_arena> {
     /// Get the number of key-value pairs in the map.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.data.length()
     }
 
     /// Check if the map is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -1234,6 +1263,7 @@ impl<'ty_arena, 'value_arena> Map<'ty_arena, 'value_arena> {
     /// Look up a value by key using binary search.
     ///
     /// Returns None if the key is not found or if the key has the wrong type.
+    #[must_use]
     pub fn get(
         &self,
         key: &Value<'ty_arena, 'value_arena>,
@@ -1275,11 +1305,13 @@ impl<'ty_arena, 'value_arena> Map<'ty_arena, 'value_arena> {
     }
 
     /// Get the key type of this map.
+    #[must_use]
     pub fn key_type(&self) -> &'ty_arena Type<'ty_arena> {
         self.key_ty
     }
 
     /// Get the value type of this map.
+    #[must_use]
     pub fn value_type(&self) -> &'ty_arena Type<'ty_arena> {
         self.value_ty
     }
@@ -1287,6 +1319,7 @@ impl<'ty_arena, 'value_arena> Map<'ty_arena, 'value_arena> {
     /// Iterate over all key-value pairs in the map.
     ///
     /// Pairs are returned in sorted order by key.
+    #[must_use]
     pub fn iter(&self) -> MapIter<'_, 'ty_arena, 'value_arena> {
         MapIter {
             key_ty: self.key_ty,
@@ -1295,6 +1328,18 @@ impl<'ty_arena, 'value_arena> Map<'ty_arena, 'value_arena> {
             index: 0,
             _phantom: core::marker::PhantomData,
         }
+    }
+}
+
+impl<'a, 'ty_arena: 'value_arena, 'value_arena> IntoIterator for &'a Map<'ty_arena, 'value_arena> {
+    type Item = (
+        Value<'ty_arena, 'value_arena>,
+        Value<'ty_arena, 'value_arena>,
+    );
+    type IntoIter = MapIter<'a, 'ty_arena, 'value_arena>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -1307,7 +1352,7 @@ pub struct MapIter<'a, 'ty_arena, 'value_arena> {
     _phantom: core::marker::PhantomData<&'a Map<'ty_arena, 'value_arena>>,
 }
 
-impl<'a, 'ty_arena: 'value_arena, 'value_arena> Iterator for MapIter<'a, 'ty_arena, 'value_arena> {
+impl<'ty_arena: 'value_arena, 'value_arena> Iterator for MapIter<'_, 'ty_arena, 'value_arena> {
     type Item = (
         Value<'ty_arena, 'value_arena>,
         Value<'ty_arena, 'value_arena>,
@@ -1342,8 +1387,8 @@ impl<'a, 'ty_arena: 'value_arena, 'value_arena> Iterator for MapIter<'a, 'ty_are
     }
 }
 
-impl<'a, 'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
-    for MapIter<'a, 'ty_arena, 'value_arena>
+impl<'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
+    for MapIter<'_, 'ty_arena, 'value_arena>
 {
     fn len(&self) -> usize {
         self.data.length() - self.index
@@ -1357,7 +1402,7 @@ impl<'a, 'ty_arena: 'value_arena, 'value_arena> ExactSizeIterator
 /// Builder for constructing records with automatic field sorting.
 ///
 /// Records require fields to be sorted alphabetically, which can be tedious
-/// to manage manually. RecordBuilder handles sorting automatically and
+/// to manage manually. `RecordBuilder` handles sorting automatically and
 /// infers the record type from the accumulated fields.
 ///
 /// # Example
@@ -1378,7 +1423,7 @@ pub struct RecordBuilder<'ty_arena: 'value_arena, 'value_arena> {
 }
 
 impl<'ty_arena: 'value_arena, 'value_arena> RecordBuilder<'ty_arena, 'value_arena> {
-    /// Create a new RecordBuilder.
+    /// Create a new `RecordBuilder`.
     pub fn new(arena: &'value_arena Bump, type_mgr: &'ty_arena TypeManager<'ty_arena>) -> Self {
         Self {
             arena,
@@ -1419,11 +1464,11 @@ impl<'ty_arena: 'value_arena, 'value_arena> Binder<'ty_arena, 'value_arena>
             .map(|(name, value)| (name.as_str(), value.ty))
             .collect();
 
-        let record_ty = self.type_mgr.record(field_types);
+        let record_ty = self.type_mgr.record(&field_types);
 
         // Extract the interned field names from the type to use in Value::record
         let Type::Record(interned_fields) = record_ty else {
-            panic!("Created a Record that is not a Record: {:?}", record_ty)
+            panic!("Created a Record that is not a Record: {record_ty:?}")
         };
 
         // Build field values array using interned names from the type
@@ -1439,7 +1484,7 @@ impl<'ty_arena: 'value_arena, 'value_arena> Binder<'ty_arena, 'value_arena>
 }
 
 impl<'ty_arena: 'value_arena, 'value_arena> Value<'ty_arena, 'value_arena> {
-    /// Create a RecordBuilder for constructing records ergonomically.
+    /// Create a `RecordBuilder` for constructing records ergonomically.
     ///
     /// # Example
     ///

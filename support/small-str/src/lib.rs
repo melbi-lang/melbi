@@ -1,5 +1,7 @@
+use core::hash::Hash;
+use core::marker::PhantomData;
 use core::num::NonZeroU8;
-use core::{hash::Hash, marker::PhantomData, mem, ptr, slice};
+use core::{mem, ptr, slice};
 
 // === internal::SmallStrSize ===
 
@@ -41,19 +43,19 @@ mod internal {
         type Error = core::num::TryFromIntError;
 
         fn try_from(value: usize) -> Result<Self, Self::Error> {
-            Ok(SmallStrSize(u32::try_from(value)?))
+            Ok(Self(u32::try_from(value)?))
         }
     }
 
     impl From<SmallStrSize> for usize {
         fn from(size: SmallStrSize) -> Self {
-            size.0 as usize
+            size.0 as Self
         }
     }
 
     impl From<&SmallStrSize> for usize {
         fn from(size: &SmallStrSize) -> Self {
-            size.0 as usize
+            size.0 as Self
         }
     }
 }
@@ -96,8 +98,8 @@ struct StrSliceRepr {
 impl StrSliceRepr {
     fn from(s: &str) -> Self {
         let len = s.len();
-        let ptr = ptr::NonNull::new(s.as_ptr() as *mut u8).unwrap();
-        Self { len, ptr }
+        let ptr = ptr::NonNull::new(s.as_ptr().cast_mut()).unwrap();
+        Self { ptr, len }
     }
 
     fn as_str(&self) -> &str {
@@ -143,9 +145,13 @@ impl StrInlineRepr {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "need to use `str::from_utf8_unchecked` for performance"
+    )]
     fn as_str(&self) -> &str {
         let len: usize = (self.tag_len.get() & !Self::TAG_MASK) as usize;
+        // SAFETY: the tag ensures the length is valid and the data is UTF-8 by construction.
         unsafe { str::from_utf8_unchecked(&self.data[..len]) }
     }
 }
@@ -174,11 +180,12 @@ static_assertions::assert_eq_size!(SmallStr, &str);
 impl<'a> SmallStr<'a> {
     pub const INLINE_CAPACITY: usize = mem::size_of::<StrSliceRepr>() - 1;
 
+    #[must_use]
     pub fn can_be_inlined(s: &str) -> bool {
         s.len() <= Self::INLINE_CAPACITY
     }
 
-    /// Create a new SmallStr, either by inlining the string data (if it fits)
+    /// Create a new `SmallStr`, either by inlining the string data (if it fits)
     /// or by calling the provided closure to allocate it.
     ///
     /// If the string is short enough to be inlined, the data is copied and
@@ -203,6 +210,7 @@ impl<'a> SmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         unsafe {
             if self.repr.inline.is_inline() {
@@ -213,6 +221,7 @@ impl<'a> SmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn is_inline(&self) -> bool {
         unsafe { self.repr.inline.is_inline() }
     }
@@ -228,6 +237,7 @@ impl<'a> SmallStr<'a> {
     /// Panics in debug builds if two strings of the same length have different storage
     /// strategies (one inline, one arena-allocated), which indicates a bug in the
     /// interning logic.
+    #[must_use]
     pub fn interned_eq(&self, other: &Self) -> bool {
         let self_str = self.as_str();
         let other_str = other.as_str();
@@ -317,7 +327,7 @@ impl PartialEq<&str> for SmallStr<'_> {
 
 impl PartialOrd for SmallStr<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.as_str().cmp(other.as_str()))
+        Some(self.cmp(other))
     }
 }
 
@@ -329,7 +339,7 @@ impl Ord for SmallStr<'_> {
 
 impl core::hash::Hash for SmallStr<'_> {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        self.as_str().hash(state)
+        self.as_str().hash(state);
     }
 }
 
@@ -350,11 +360,12 @@ impl core::fmt::Display for SmallStr<'_> {
 impl<'a> SimpleSmallStr<'a> {
     pub const INLINE_CAPACITY: usize = mem::size_of::<&str>() - 2;
 
+    #[must_use]
     pub fn can_be_inlined(s: &str) -> bool {
         s.len() <= Self::INLINE_CAPACITY
     }
 
-    /// Create a new SimpleSmallStr, either by inlining the string data (if it fits)
+    /// Create a new `SimpleSmallStr`, either by inlining the string data (if it fits)
     /// or by calling the provided closure to allocate it.
     ///
     /// If the string is short enough to be inlined, the data is copied and
@@ -383,6 +394,7 @@ impl<'a> SimpleSmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             SimpleSmallStr::Slice(small_len, ptr, _) => {
@@ -395,6 +407,7 @@ impl<'a> SimpleSmallStr<'a> {
         }
     }
 
+    #[must_use]
     pub fn is_inline(&self) -> bool {
         matches!(self, SimpleSmallStr::Inline(_, _))
     }
@@ -410,6 +423,7 @@ impl<'a> SimpleSmallStr<'a> {
     /// Panics in debug builds if two strings of the same length have different storage
     /// strategies (one inline, one arena-allocated), which indicates a bug in the
     /// interning logic.
+    #[must_use]
     pub fn interned_eq(&self, other: &Self) -> bool {
         let self_str = self.as_str();
         let other_str = other.as_str();
@@ -499,7 +513,7 @@ impl PartialEq<&str> for SimpleSmallStr<'_> {
 
 impl PartialOrd for SimpleSmallStr<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.as_str().cmp(other.as_str()))
+        Some(self.cmp(other))
     }
 }
 
@@ -532,7 +546,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_small_str_inline() {
+    fn small_str_inline() {
         let s = "hello";
         let small = SmallStr::new_or_alloc(s, |_| panic!("should not allocate"));
         assert_eq!(small.as_str(), "hello");
@@ -542,7 +556,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_slice() {
+    fn small_str_slice() {
         let arena_str = String::from("this is a very long string that exceeds inline capacity");
         let small = SmallStr::new_or_alloc(&arena_str, |s| {
             // Simulate arena allocation by leaking (just for test)
@@ -553,7 +567,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_equality() {
+    fn small_str_equality() {
         let s1 = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s2 = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s3 = SmallStr::new_or_alloc("world", |_| panic!("should not allocate"));
@@ -565,7 +579,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_ordering() {
+    fn small_str_ordering() {
         let s1 = SmallStr::new_or_alloc("apple", |_| panic!("should not allocate"));
         let s2 = SmallStr::new_or_alloc("banana", |_| panic!("should not allocate"));
         let s3 = SmallStr::new_or_alloc("apple", |_| panic!("should not allocate"));
@@ -576,7 +590,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_hash() {
+    fn small_str_hash() {
         use core::hash::{Hash, Hasher};
 
         // Simple hasher for testing
@@ -587,7 +601,7 @@ mod tests {
             }
             fn write(&mut self, bytes: &[u8]) {
                 for &b in bytes {
-                    self.0 = self.0.wrapping_mul(31).wrapping_add(b as u64);
+                    self.0 = self.0.wrapping_mul(31).wrapping_add(u64::from(b));
                 }
             }
         }
@@ -605,14 +619,14 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_debug_display() {
+    fn small_str_debug_display() {
         let small = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
-        assert_eq!(format!("{}", small), "hello");
-        assert_eq!(format!("{:?}", small), "\"hello\"");
+        assert_eq!(format!("{small}"), "hello");
+        assert_eq!(format!("{small:?}"), "\"hello\"");
     }
 
     #[test]
-    fn test_small_str_default() {
+    fn small_str_default() {
         let small = SmallStr::default();
         assert_eq!(small.as_str(), "");
         assert!(small.is_empty());
@@ -620,7 +634,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_deref() {
+    fn small_str_deref() {
         let small = SmallStr::new_or_alloc("hello world", |_| panic!("should not allocate"));
         assert_eq!(small.chars().count(), 11);
         assert!(small.starts_with("hello"));
@@ -628,7 +642,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_inline() {
+    fn simple_small_str_inline() {
         let s = "hello";
         let simple = SimpleSmallStr::new_or_alloc(s, |_| panic!("should not allocate"));
         assert_eq!(simple.as_str(), "hello");
@@ -638,7 +652,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_slice() {
+    fn simple_small_str_slice() {
         let arena_str = String::from("this is a very long string that exceeds inline capacity");
         let simple = SimpleSmallStr::new_or_alloc(&arena_str, |s| {
             // Simulate arena allocation by leaking (just for test)
@@ -649,7 +663,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_equality() {
+    fn simple_small_str_equality() {
         let s1 = SimpleSmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s2 = SimpleSmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s3 = SimpleSmallStr::new_or_alloc("world", |_| panic!("should not allocate"));
@@ -661,7 +675,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_ordering() {
+    fn simple_small_str_ordering() {
         let s1 = SimpleSmallStr::new_or_alloc("apple", |_| panic!("should not allocate"));
         let s2 = SimpleSmallStr::new_or_alloc("banana", |_| panic!("should not allocate"));
         let s3 = SimpleSmallStr::new_or_alloc("apple", |_| panic!("should not allocate"));
@@ -672,7 +686,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_default() {
+    fn simple_small_str_default() {
         let simple = SimpleSmallStr::default();
         assert_eq!(simple.as_str(), "");
         assert!(simple.is_empty());
@@ -680,7 +694,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_copy() {
+    fn simple_small_str_copy() {
         let s1 = SimpleSmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s2 = s1;
         assert_eq!(s1, s2);
@@ -688,7 +702,7 @@ mod tests {
     }
 
     #[test]
-    fn test_can_be_inlined() {
+    fn can_be_inlined() {
         assert!(SmallStr::can_be_inlined("short"));
         assert!(!SmallStr::can_be_inlined(
             "this is a very long string that exceeds capacity"
@@ -701,7 +715,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_new_or_alloc_with_closure() {
+    fn small_str_new_or_alloc_with_closure() {
         let long_str = String::from("this is a very long string that exceeds inline capacity");
         let mut called = false;
         let small = SmallStr::new_or_alloc(&long_str, |s| {
@@ -715,7 +729,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_new_or_alloc_with_closure() {
+    fn simple_small_str_new_or_alloc_with_closure() {
         let long_str = String::from("this is a very long string that exceeds inline capacity");
         let mut called = false;
         let simple = SimpleSmallStr::new_or_alloc(&long_str, |s| {
@@ -729,7 +743,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_interned_eq_both_inline() {
+    fn small_str_interned_eq_both_inline() {
         let s1 = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s2 = SmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s3 = SmallStr::new_or_alloc("world", |_| panic!("should not allocate"));
@@ -748,7 +762,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_interned_eq_both_arena() {
+    fn small_str_interned_eq_both_arena() {
         // Create a shared arena-allocated string
         let arena_str: &'static str = Box::leak(
             String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
@@ -775,7 +789,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_interned_hash_consistency() {
+    fn small_str_interned_hash_consistency() {
         use core::hash::Hasher;
 
         struct SimpleHasher(u64);
@@ -785,7 +799,7 @@ mod tests {
             }
             fn write(&mut self, bytes: &[u8]) {
                 for &b in bytes {
-                    self.0 = self.0.wrapping_mul(31).wrapping_add(b as u64);
+                    self.0 = self.0.wrapping_mul(31).wrapping_add(u64::from(b));
                 }
             }
         }
@@ -817,7 +831,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_interned_eq_both_inline() {
+    fn simple_small_str_interned_eq_both_inline() {
         let s1 = SimpleSmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s2 = SimpleSmallStr::new_or_alloc("hello", |_| panic!("should not allocate"));
         let s3 = SimpleSmallStr::new_or_alloc("world", |_| panic!("should not allocate"));
@@ -836,7 +850,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_interned_eq_both_arena() {
+    fn simple_small_str_interned_eq_both_arena() {
         // Create a shared arena-allocated string
         let arena_str: &'static str = Box::leak(
             String::from("this is a long string that exceeds inline capacity").into_boxed_str(),
@@ -863,7 +877,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_str_interned_eq_different_lengths() {
+    fn small_str_interned_eq_different_lengths() {
         // Comparing strings of different lengths should return false (expected case)
         let inline_str = SmallStr::new_or_alloc("short", |_| panic!("should not allocate"));
         let arena_str: &'static str = Box::leak(
@@ -880,7 +894,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_small_str_interned_eq_different_lengths() {
+    fn simple_small_str_interned_eq_different_lengths() {
         // Comparing strings of different lengths should return false (expected case)
         let inline_str = SimpleSmallStr::new_or_alloc("short", |_| panic!("should not allocate"));
         let arena_str: &'static str = Box::leak(

@@ -25,10 +25,10 @@ static_assertions::assert_eq_size!(BoxRaw, [usize; 3]);
 impl fmt::Debug for BoxRaw {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BoxRaw::Int(v) => write!(f, "Int({v})"),
-            BoxRaw::Bool(v) => write!(f, "Bool({v})"),
-            BoxRaw::Float(v) => write!(f, "Float({v})"),
-            BoxRaw::Array(arr) => write!(f, "Array(len={})", arr.len()),
+            Self::Int(v) => write!(f, "Int({v})"),
+            Self::Bool(v) => write!(f, "Bool({v})"),
+            Self::Float(v) => write!(f, "Float({v})"),
+            Self::Array(arr) => write!(f, "Array(len={})", arr.len()),
         }
     }
 }
@@ -37,45 +37,45 @@ impl RawValue for BoxRaw {
     type ArrayHandle = Rc<[Rc<Val<BoxValueBuilder>>]>;
 
     fn from_int(value: i64) -> Self {
-        BoxRaw::Int(value)
+        Self::Int(value)
     }
 
     fn from_bool(value: bool) -> Self {
-        BoxRaw::Bool(value)
+        Self::Bool(value)
     }
 
     fn from_float(value: f64) -> Self {
-        BoxRaw::Float(value)
+        Self::Float(value)
     }
 
     fn from_array(handle: Self::ArrayHandle) -> Self {
-        BoxRaw::Array(handle)
+        Self::Array(handle)
     }
 
     fn as_int_unchecked(&self) -> i64 {
         match self {
-            BoxRaw::Int(v) => *v,
+            Self::Int(v) => *v,
             _ => unreachable!("as_int_unchecked called on non-int value"),
         }
     }
 
     fn as_bool_unchecked(&self) -> bool {
         match self {
-            BoxRaw::Bool(v) => *v,
+            Self::Bool(v) => *v,
             _ => unreachable!("as_bool_unchecked called on non-bool value"),
         }
     }
 
     fn as_float_unchecked(&self) -> f64 {
         match self {
-            BoxRaw::Float(v) => *v,
+            Self::Float(v) => *v,
             _ => unreachable!("as_float_unchecked called on non-float value"),
         }
     }
 
     fn as_array_unchecked(&self) -> &Self::ArrayHandle {
         match self {
-            BoxRaw::Array(v) => v,
+            Self::Array(v) => v,
             _ => unreachable!("as_array_unchecked called on non-array value"),
         }
     }
@@ -110,6 +110,7 @@ pub struct BoxValueBuilder {
 
 impl BoxValueBuilder {
     /// Create a new box value builder.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             type_builder: BoxBuilder::new(),

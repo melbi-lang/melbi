@@ -3,9 +3,10 @@
 //! This demonstrates the design we'll use for the analyzer expression tree visitors.
 //! The pattern is based on the existing TypeView/TypeBuilder/TypeVisitor traits.
 
-use bumpalo::Bump;
 use core::fmt::Debug;
 use core::hash::Hash;
+
+use bumpalo::Bump;
 
 // === Traits ===
 
@@ -38,41 +39,40 @@ pub struct TreeData<B: TreeBuilder> {
 impl<B: TreeBuilder> TreeKind<B> {
     /// Deep structural equality check.
     ///
-    /// Since TreeKind contains TreeViewRepr (references), we can't easily
+    /// Since `TreeKind` contains `TreeViewRepr` (references), we can't easily
     /// construct tree literals for comparison. This recursively compares structure.
     pub fn structural_eq(&self, other: &Self) -> bool
     where
         B::TreeViewRepr: Copy,
     {
         match (self, other) {
-            (TreeKind::Num(a), TreeKind::Num(b)) => a == b,
-            (TreeKind::Add(l1, r1), TreeKind::Add(l2, r2))
-            | (TreeKind::Mul(l1, r1), TreeKind::Mul(l2, r2)) => {
+            (Self::Num(a), Self::Num(b)) => a == b,
+            (Self::Add(l1, r1), Self::Add(l2, r2)) | (Self::Mul(l1, r1), Self::Mul(l2, r2)) => {
                 l1.view().structural_eq(&l2.view()) && r1.view().structural_eq(&r2.view())
             }
-            (TreeKind::Neg(a), TreeKind::Neg(b)) => a.view().structural_eq(&b.view()),
+            (Self::Neg(a), Self::Neg(b)) => a.view().structural_eq(&b.view()),
             _ => false,
         }
     }
 
     /// Pattern matching helper: check if this is a Num with expected value.
     pub fn is_num(&self, expected: i32) -> bool {
-        matches!(self, TreeKind::Num(n) if *n == expected)
+        matches!(self, Self::Num(n) if *n == expected)
     }
 
     /// Check if this is an Add node.
     pub fn is_add(&self) -> bool {
-        matches!(self, TreeKind::Add(_, _))
+        matches!(self, Self::Add(_, _))
     }
 
     /// Check if this is a Mul node.
     pub fn is_mul(&self) -> bool {
-        matches!(self, TreeKind::Mul(_, _))
+        matches!(self, Self::Mul(_, _))
     }
 
     /// Check if this is a Neg node.
     pub fn is_neg(&self) -> bool {
-        matches!(self, TreeKind::Neg(_))
+        matches!(self, Self::Neg(_))
     }
 }
 
@@ -118,15 +118,15 @@ impl<'arena> ArenaTreeBuilder<'arena> {
 }
 
 // Manual trait implementations since Bump doesn't implement these traits
-impl<'arena> PartialEq for ArenaTreeBuilder<'arena> {
+impl PartialEq for ArenaTreeBuilder<'_> {
     fn eq(&self, other: &Self) -> bool {
         core::ptr::eq(self.arena, other.arena)
     }
 }
 
-impl<'arena> Eq for ArenaTreeBuilder<'arena> {}
+impl Eq for ArenaTreeBuilder<'_> {}
 
-impl<'arena> core::hash::Hash for ArenaTreeBuilder<'arena> {
+impl core::hash::Hash for ArenaTreeBuilder<'_> {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         core::ptr::hash(self.arena, state);
     }
@@ -144,7 +144,7 @@ impl<'arena> TreeBuilder for ArenaTreeBuilder<'arena> {
     }
 }
 
-impl<'arena, B: TreeBuilder> TreeView<B> for &'arena TreeData<B> {
+impl<B: TreeBuilder> TreeView<B> for &TreeData<B> {
     fn view(self) -> TreeKind<B> {
         self.kind.clone()
     }
@@ -211,42 +211,7 @@ impl TreeVisitor<BoxedTreeBuilder> for NodeCounter {
     }
 }
 
-/// Example: Simple visitor that just calls a method on each node's data.
-///
-/// This is like the type resolution pass you mentioned - just traverse
-/// and call resolve() on each type. With this pattern, it's ~3 lines!
-#[allow(dead_code)]
-struct TypeResolver;
-
-impl TreeTransformer<BoxedTreeBuilder> for TypeResolver {
-    type ReturnType = (); // Visitor pattern
-
-    fn builder(&self) -> BoxedTreeBuilder {
-        BoxedTreeBuilder
-    }
-
-    fn transform(&self, tree: Box<TreeData<BoxedTreeBuilder>>) -> Self::ReturnType {
-        // In real code, this would be: tree.data().resolve();
-        // For demo, we'll just print it
-        if let Some(data) = tree.clone().data() {
-            println!("Resolving: {}", data);
-        }
-
-        // Recursively visit children
-        match tree.view() {
-            TreeKind::Num(_) => {}
-            TreeKind::Add(left, right) | TreeKind::Mul(left, right) => {
-                self.transform(left);
-                self.transform(right);
-            }
-            TreeKind::Neg(inner) => {
-                self.transform(inner);
-            }
-        }
-    }
-}
-
-/// Example of TreeTransformer with ReturnType = () (acts as a visitor).
+/// Example of `TreeTransformer` with `ReturnType` = () (acts as a visitor).
 ///
 /// This demonstrates that transformers can also do side-effect-only traversals.
 struct MaxDepthFinder {
@@ -312,7 +277,7 @@ impl TreeTransformer<BoxedTreeBuilder> for NegateNumbers {
     }
 
     fn transform(&self, tree: Box<TreeData<BoxedTreeBuilder>>) -> Self::ReturnType {
-        match tree.clone().view() {
+        match tree.view() {
             TreeKind::Num(n) => self.builder().build(TreeKind::Num(-n)),
             TreeKind::Add(left, right) => {
                 let left_t = self.transform(left);
@@ -334,7 +299,7 @@ impl TreeTransformer<BoxedTreeBuilder> for NegateNumbers {
 
 /// Example evaluator: Transform tree to its computed value.
 ///
-/// This demonstrates ReturnType being different from B::TreeViewRepr.
+/// This demonstrates `ReturnType` being different from `B::TreeViewRepr`.
 struct Evaluator;
 
 impl Evaluator {
@@ -377,7 +342,7 @@ impl TreeTransformer<BoxedTreeBuilder> for ConstantFolder {
     }
 
     fn transform(&self, tree: Box<TreeData<BoxedTreeBuilder>>) -> Self::ReturnType {
-        match tree.clone().view() {
+        match tree.view() {
             TreeKind::Num(n) => self.builder().build(TreeKind::Num(n)),
             TreeKind::Add(left, right) => {
                 let left_t = self.transform(left);
@@ -440,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn test_node_counter() {
+    fn node_counter() {
         let tree = make_example_tree();
         let mut counter = NodeCounter::new();
         counter.visit(tree);
@@ -448,7 +413,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluator() {
+    fn evaluator() {
         let tree = make_example_tree();
         // (2 + 3) * -(4 + 5) = 5 * -9 = -45
         let evaluator = Evaluator::new();
@@ -457,7 +422,7 @@ mod tests {
     }
 
     #[test]
-    fn test_max_depth_finder() {
+    fn max_depth_finder() {
         let tree = make_example_tree();
         // Tree structure: Mul -> Add/Neg -> Num/Add -> Num
         // Max depth is 3 (Mul -> Neg -> Add -> Num)
@@ -467,7 +432,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compare_trees() {
+    fn compare_trees() {
         let arena = Bump::new();
         let b = ArenaTreeBuilder::new(&arena);
 
@@ -500,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    fn test_arena_tree_builder() {
+    fn arena_tree_builder() {
         let arena = Bump::new();
         let b = ArenaTreeBuilder::new(&arena);
 
@@ -542,7 +507,7 @@ mod tests {
     }
 
     #[test]
-    fn test_negate_numbers() {
+    fn negate_numbers() {
         let b = BoxedTreeBuilder;
         let tree = b.build(TreeKind::Add(
             b.build(TreeKind::Num(5)),
@@ -557,7 +522,7 @@ mod tests {
     }
 
     #[test]
-    fn test_constant_folder() {
+    fn constant_folder() {
         let tree = make_example_tree();
         // (2 + 3) * -(4 + 5) should fold to 5 * -9 = -45
         let folder = ConstantFolder::new();
@@ -566,7 +531,7 @@ mod tests {
     }
 
     #[test]
-    fn test_partial_constant_fold() {
+    fn partial_constant_fold() {
         let b = BoxedTreeBuilder;
         // Add(2, Neg(x)) where x is unknown - should only fold the 2
         // For this test, we'll use a tree with mixed constants and non-constants

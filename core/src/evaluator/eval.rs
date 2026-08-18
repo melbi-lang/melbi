@@ -1,20 +1,23 @@
 //! Core evaluation logic.
 
 use alloc::string::ToString;
+
 use bumpalo::Bump;
 
-use crate::{
-    Vec,
-    analyzer::typed_expr::{Expr, ExprInner, TypedExpr, TypedPattern},
-    evaluator::{
-        EvaluatorOptions, ExecutionError, ExecutionErrorKind, InternalError::*,
-        ResourceExceededError::*, RuntimeError::*,
-    },
-    parser::{BoolOp, ComparisonOp},
-    scope_stack::{self, ScopeStack},
-    types::{Type, manager::TypeManager, unification::Unification},
-    values::{EvalLambda, dynamic::Value, function::FfiContext},
-};
+use crate::Vec;
+use crate::analyzer::typed_expr::{Expr, ExprInner, TypedExpr, TypedPattern};
+use crate::evaluator::InternalError::InvariantViolation;
+use crate::evaluator::ResourceExceededError::StackOverflow;
+use crate::evaluator::RuntimeError::{IndexOutOfBounds, KeyNotFound};
+use crate::evaluator::{EvaluatorOptions, ExecutionError, ExecutionErrorKind};
+use crate::parser::{BoolOp, ComparisonOp};
+use crate::scope_stack::{self, ScopeStack};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
+use crate::types::unification::Unification;
+use crate::values::EvalLambda;
+use crate::values::dynamic::Value;
+use crate::values::function::FfiContext;
 
 /// Evaluator for type-checked expressions.
 pub struct Evaluator<'types, 'arena> {
@@ -91,8 +94,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
     fn resolve_type(&self, ty: &'types Type<'types>) -> &'types Type<'types> {
         self.monomorphism
             .as_ref()
-            .map(|m| m.fully_resolve(ty))
-            .unwrap_or(ty)
+            .map_or(ty, |m| m.fully_resolve(ty))
     }
 
     fn error(
@@ -112,7 +114,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
         let span = self.expr.ann.span_of(expr).expect("span not found");
         // Set source from the annotated source
         let source = self.expr.ann.source.to_string();
-        ExecutionError { kind, span, source }
+        ExecutionError { kind, source, span }
     }
 
     /// Evaluate a type-checked expression.
@@ -157,19 +159,17 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
 
             ExprInner::Ident(name) => {
                 // Look up variable in scope stack
-                match self.scope_stack.lookup(name) {
-                    Some(value) => Ok(*value),
-                    None => {
-                        // This should never happen if the expression was type-checked
-                        debug_assert!(
-                            false,
-                            "Undefined variable '{}' - analyzer should have caught this",
-                            name
-                        );
-                        // In release mode, we can't panic, so return a dummy value
-                        // This is safe because the expression is guaranteed to be well-typed
-                        unreachable!("Undefined variable '{}' in type-checked expression", name)
-                    }
+                if let Some(value) = self.scope_stack.lookup(name) {
+                    Ok(*value)
+                } else {
+                    // This should never happen if the expression was type-checked
+                    debug_assert!(
+                        false,
+                        "Undefined variable '{name}' - analyzer should have caught this"
+                    );
+                    // In release mode, we can't panic, so return a dummy value
+                    // This is safe because the expression is guaranteed to be well-typed
+                    unreachable!("Undefined variable '{}' in type-checked expression", name)
                 }
             }
 
@@ -346,7 +346,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 );
 
                 // Evaluate and bind each expression sequentially
-                for (name, value_expr) in bindings.iter() {
+                for (name, value_expr) in *bindings {
                     let value = self.eval_expr(value_expr)?;
                     self.scope_stack
                         .bind_in_current(name, value)
@@ -376,7 +376,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 // Evaluate fields in type order (sorted), not AST order
                 // Build a map from field name to field expression for quick lookup
                 let mut field_map = hashbrown::HashMap::new();
-                for (name, expr) in fields.iter() {
+                for (name, expr) in *fields {
                     field_map.insert(*name, expr);
                 }
 
@@ -384,7 +384,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 let mut field_values_temp: crate::Vec<(&'types str, Value<'types, 'arena>)> =
                     crate::Vec::new();
 
-                for (field_name, _field_ty) in field_types.iter() {
+                for (field_name, _field_ty) in *field_types {
                     // Look up the expression for this field
                     let field_expr = field_map
                         .get(field_name)
@@ -471,7 +471,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
             ExprInner::Array { elements } => {
                 // Evaluate all element expressions
                 let mut element_values: Vec<Value<'types, 'arena>> = Vec::new();
-                for elem_expr in elements.iter() {
+                for elem_expr in *elements {
                     let elem_value = self.eval_expr(elem_expr)?;
                     element_values.push(elem_value);
                 }
@@ -529,7 +529,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                             self.error(
                                 expr,
                                 KeyNotFound {
-                                    key_display: alloc::format!("{}", index_value),
+                                    key_display: alloc::format!("{index_value}"),
                                 }
                                 .into(),
                             )
@@ -556,7 +556,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 for (i, expr_item) in exprs.iter().enumerate() {
                     let value = self.eval_expr(expr_item)?;
                     // Use Display which outputs strings without quotes
-                    write!(result, "{}", value).expect("Writing to String should not fail");
+                    write!(result, "{value}").expect("Writing to String should not fail");
                     result.push_str(strs[i + 1]);
                 }
 
@@ -576,8 +576,8 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                             tracing::debug!(error = %runtime_error, "Handled by `otherwise` block");
                             self.eval_expr(fallback)
                         }
-                        crate::evaluator::ExecutionErrorKind::ResourceExceeded(_) => Err(e),
-                        crate::evaluator::ExecutionErrorKind::Internal(_) => Err(e),
+                        crate::evaluator::ExecutionErrorKind::ResourceExceeded(_)
+                        | crate::evaluator::ExecutionErrorKind::Internal(_) => Err(e),
                     },
                 }
             }
@@ -649,7 +649,13 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 // SAFETY: The type checker guarantees the function type matches,
                 // arguments have correct types, and arity is correct.
                 let ctx = FfiContext::new(self.arena, self.type_manager);
-                unsafe { func.call_unchecked(&ctx, &arg_values) }
+                #[expect(
+                    unsafe_code,
+                    reason = "AST evaluator executes type-checked function value"
+                )]
+                unsafe {
+                    func.call_unchecked(&ctx, &arg_values)
+                }
             }
             ExprInner::Lambda {
                 params,
@@ -658,7 +664,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
             } => {
                 // Capture the values of free variables from the current scope
                 let mut capture_values = Vec::new();
-                for &name in captures.iter() {
+                for &name in *captures {
                     if let Some(value) = self.scope_stack.lookup(name) {
                         // TODO: Filter out globals (they should be accessed during call, not captured)
                         capture_values.push((name, *value));
@@ -676,7 +682,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                     lambda_instantiations: hashbrown::HashMap::new_in(self.arena),
                 });
 
-                let lambda = EvalLambda::new(expr.0, *params, body_typed, captures_slice);
+                let lambda = EvalLambda::new(expr.0, params, body_typed, captures_slice);
 
                 // Value::function returns Result, but should never fail because
                 // the type checker guarantees expr.0 is a Function type
@@ -688,7 +694,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 // Evaluate all key-value pairs
                 let mut pair_values: Vec<(Value<'types, 'arena>, Value<'types, 'arena>)> =
                     Vec::new();
-                for (key_expr, value_expr) in elements.iter() {
+                for (key_expr, value_expr) in *elements {
                     let key_value = self.eval_expr(key_expr)?;
                     let value_value = self.eval_expr(value_expr)?;
                     pair_values.push((key_value, value_value));
@@ -711,7 +717,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
                 let matched_value = self.eval_expr(match_expr)?;
 
                 // Try each pattern arm in order
-                for arm in arms.iter() {
+                for arm in *arms {
                     // Check if pattern matches, and if so, bind variables and evaluate body
                     if let Some(mut bindings) = self.match_pattern(arm.pattern, matched_value)? {
                         // Sort bindings by variable name (required by CompleteScope::from_sorted)
@@ -757,9 +763,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
             }
             TypedPattern::Var(name) => {
                 // Variable always matches and binds the value
-                let mut bindings = Vec::new();
-                bindings.push((*name, value));
-                Ok(Some(bindings))
+                Ok(Some(crate::vec![(*name, value)]))
             }
             TypedPattern::Literal(pattern_value) => {
                 // Literal matches if values are equal

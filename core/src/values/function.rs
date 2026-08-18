@@ -3,11 +3,13 @@
 //! This module defines the `Function` trait which represents callable values in Melbi.
 //! Supports native Rust functions, and will support closures, foreign language functions, etc.
 
+use bumpalo::Bump;
+
 use super::dynamic::Value;
 use crate::evaluator::ExecutionError;
-use crate::types::{Type, manager::TypeManager};
+use crate::types::Type;
+use crate::types::manager::TypeManager;
 use crate::values::binder::Binder;
-use bumpalo::Bump;
 
 // ============================================================================
 // FFI Context
@@ -50,12 +52,14 @@ impl<'types, 'arena> FfiContext<'types, 'arena> {
 
     /// Get the arena for allocating values.
     #[inline]
+    #[must_use]
     pub fn arena(&self) -> &'arena Bump {
         self.arena
     }
 
     /// Get the type manager for constructing typed values.
     #[inline]
+    #[must_use]
     pub fn type_mgr(&self) -> &'types TypeManager<'types> {
         self.type_mgr
     }
@@ -104,7 +108,10 @@ pub trait Function<'types, 'arena> {
     ///
     /// # Returns
     /// Result containing the return value, or an error that can be caught with `otherwise`.
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for host function execution"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,
@@ -164,7 +171,10 @@ impl<'types, 'arena> Function<'types, 'arena> for NativeFunction<'types> {
         self.ty
     }
 
-    #[allow(unsafe_code)]
+    #[expect(
+        unsafe_code,
+        reason = "implements low-level unsafe call_unchecked trait method for host function execution"
+    )]
     unsafe fn call_unchecked(
         &self,
         ctx: &FfiContext<'types, 'arena>,

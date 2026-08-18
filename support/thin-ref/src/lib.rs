@@ -60,7 +60,12 @@
 
 #![no_std]
 
-use core::{alloc::Layout, error::Error, fmt, marker::PhantomData, ops::Deref, ptr::NonNull};
+use core::alloc::Layout;
+use core::error::Error;
+use core::fmt;
+use core::marker::PhantomData;
+use core::ops::Deref;
+use core::ptr::NonNull;
 
 use bumpalo::Bump;
 
@@ -87,7 +92,7 @@ mod private {
     pub trait Sealed {}
 }
 
-/// Trait that enables ThinRef to work with different types.
+/// Trait that enables `ThinRef` to work with different types.
 /// This is a sealed trait - it cannot be implemented outside this crate.
 pub trait ThinRefTarget: private::Sealed {
     #[doc(hidden)]
@@ -221,7 +226,7 @@ impl ThinRefTarget for str {
         // The lifetime 'a ensures the arena (and thus the allocation) outlives this reference.
         unsafe {
             let len = *thin.ptr.cast::<usize>().as_ref();
-            let (_, bytes_offset) = ThinRef::<str>::layout(len);
+            let (_, bytes_offset) = ThinRef::<Self>::layout(len);
             let data_ptr = thin.ptr.add(bytes_offset);
             let bytes = core::slice::from_raw_parts(data_ptr.as_ptr(), len);
             core::str::from_utf8_unchecked(bytes)
@@ -280,22 +285,22 @@ impl<T: ?Sized> Clone for ThinRef<'_, T> {
     }
 }
 impl<T: ?Sized> Copy for ThinRef<'_, T> {}
-impl<'a, T: ?Sized + ThinRefTarget + fmt::Debug> fmt::Debug for ThinRef<'a, T> {
+impl<T: ?Sized + ThinRefTarget + fmt::Debug> fmt::Debug for ThinRef<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         (**self).fmt(f)
     }
 }
-impl<'a, T: ?Sized + ThinRefTarget + fmt::Display> fmt::Display for ThinRef<'a, T> {
+impl<T: ?Sized + ThinRefTarget + fmt::Display> fmt::Display for ThinRef<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         (**self).fmt(f)
     }
 }
-impl<'a, T: ?Sized + ThinRefTarget + Error> Error for ThinRef<'a, T> {
+impl<T: ?Sized + ThinRefTarget + Error> Error for ThinRef<'_, T> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         (**self).source()
     }
 }
-impl<'a, T: ?Sized + ThinRefTarget> Deref for ThinRef<'a, T> {
+impl<T: ?Sized + ThinRefTarget> Deref for ThinRef<'_, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         T::deref_inner(self)
@@ -318,11 +323,11 @@ mod tests {
     extern crate std;
 
     use alloc::boxed::Box;
-    use alloc::format;
     use alloc::string::ToString;
-    use alloc::vec;
-    use bumpalo::Bump;
+    use alloc::{format, vec};
     use std::fmt;
+
+    use bumpalo::Bump;
 
     use super::ThinRef;
 
@@ -446,14 +451,14 @@ mod tests {
     fn debug_sized_type() {
         let arena = Bump::new();
         let thin = ThinRef::new(&arena, 42i32);
-        assert_eq!(format!("{:?}", thin), "42");
+        assert_eq!(format!("{thin:?}"), "42");
     }
 
     #[test]
     fn debug_slice() {
         let arena = Bump::new();
         let thin: ThinRef<[i32]> = ThinRef::from_slice(&arena, [1, 2, 3]);
-        assert_eq!(format!("{:?}", thin), "[1, 2, 3]");
+        assert_eq!(format!("{thin:?}"), "[1, 2, 3]");
     }
 
     #[test]
@@ -591,7 +596,7 @@ mod tests {
         let arena = Bump::new();
         let thin: ThinRef<str> = ThinRef::from_str(&arena, "test");
         // Debug for str includes quotes
-        assert_eq!(format!("{:?}", thin), "\"test\"");
+        assert_eq!(format!("{thin:?}"), "\"test\"");
     }
 
     #[test]

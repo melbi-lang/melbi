@@ -1,8 +1,10 @@
-//! Benchmarks for TeenyVec vs SmallVec vs Vec
+//! Benchmarks for `TeenyVec` vs `SmallVec` vs Vec
 //!
 //! Run with: `cargo bench --bench teeny_vec`
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use std::hint::black_box;
+
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use melbi_teeny_vec::TeenyVec;
 use smallvec::SmallVec;
 
@@ -10,12 +12,12 @@ fn bench_push_small(c: &mut Criterion) {
     let mut group = c.benchmark_group("push_small_inline");
 
     // Small sizes that fit inline (14 bytes for TeenyVec)
-    for size in [1, 4, 8, 12, 14] {
+    for size in [1_u8, 4, 8, 12, 14] {
         group.bench_with_input(BenchmarkId::new("TeenyVec", size), &size, |b, &size| {
             b.iter(|| {
                 let mut vec = TeenyVec::new();
                 for i in 0..size {
-                    vec.push(black_box(i as u8));
+                    vec.push(black_box(i));
                 }
                 black_box(vec);
             });
@@ -25,7 +27,7 @@ fn bench_push_small(c: &mut Criterion) {
             b.iter(|| {
                 let mut vec = SmallVec::<[u8; 16]>::new();
                 for i in 0..size {
-                    vec.push(black_box(i as u8));
+                    vec.push(black_box(i));
                 }
                 black_box(vec);
             });
@@ -35,7 +37,7 @@ fn bench_push_small(c: &mut Criterion) {
             b.iter(|| {
                 let mut vec = Vec::<u8>::new();
                 for i in 0..size {
-                    vec.push(black_box(i as u8));
+                    vec.push(black_box(i));
                 }
                 black_box(vec);
             });
@@ -49,12 +51,12 @@ fn bench_push_medium(c: &mut Criterion) {
     let mut group = c.benchmark_group("push_medium_heap");
 
     // Medium sizes that require heap allocation
-    for size in [20, 32, 64, 128] {
+    for size in [20_u8, 32, 64, 128] {
         group.bench_with_input(BenchmarkId::new("TeenyVec", size), &size, |b, &size| {
             b.iter(|| {
                 let mut vec = TeenyVec::new();
                 for i in 0..size {
-                    vec.push(black_box(i as u8));
+                    vec.push(black_box(i));
                 }
                 black_box(vec);
             });
@@ -64,7 +66,7 @@ fn bench_push_medium(c: &mut Criterion) {
             b.iter(|| {
                 let mut vec = SmallVec::<[u8; 16]>::new();
                 for i in 0..size {
-                    vec.push(black_box(i as u8));
+                    vec.push(black_box(i));
                 }
                 black_box(vec);
             });
@@ -74,7 +76,7 @@ fn bench_push_medium(c: &mut Criterion) {
             b.iter(|| {
                 let mut vec = Vec::<u8>::new();
                 for i in 0..size {
-                    vec.push(black_box(i as u8));
+                    vec.push(black_box(i));
                 }
                 black_box(vec);
             });

@@ -1,11 +1,10 @@
 use smallvec::SmallVec;
 
-use crate::core::IdentList;
-use crate::{FieldList, Ident, TyList};
-
 use super::builder::TyBuilder;
 use super::flags::TyFlags;
 use super::ty::Ty;
+use crate::core::IdentList;
+use crate::{FieldList, Ident, TyList};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TyKind<B: TyBuilder> {
@@ -38,7 +37,7 @@ pub enum TyKind<B: TyBuilder> {
     /// Symbol (tagged union) with sorted parts.
     ///
     /// Parts are interned strings stored in sorted order.
-    /// Example: Symbol["error", "pending", "success"]
+    /// Example: `Symbol["error", "pending", "success"]`
     Symbol(IdentList<B>),
 }
 
@@ -47,20 +46,19 @@ impl<B: TyBuilder> TyKind<B> {
     /// To access flags use the precomputed value [`Ty::flags`] instead.
     pub(super) fn compute_flags(&self) -> TyFlags {
         match self {
-            TyKind::TypeVar(_) => TyFlags::HAS_TYPE_VARS,
-            TyKind::Scalar(_) => TyFlags::empty(),
-            TyKind::Array(elem) => B::resolve_ty_node(elem).flags(),
-            TyKind::Map(k, v) => B::resolve_ty_node(k).flags() | B::resolve_ty_node(v).flags(),
-            TyKind::Record(fields) => fields.iter().fold(TyFlags::empty(), |acc, (_, ty)| {
+            Self::TypeVar(_) => TyFlags::HAS_TYPE_VARS,
+            Self::Scalar(_) | Self::Symbol(_) => TyFlags::empty(),
+            Self::Array(elem) => B::resolve_ty_node(elem).flags(),
+            Self::Map(k, v) => B::resolve_ty_node(k).flags() | B::resolve_ty_node(v).flags(),
+            Self::Record(fields) => fields.iter().fold(TyFlags::empty(), |acc, (_, ty)| {
                 acc | B::resolve_ty_node(ty).flags()
             }),
-            TyKind::Function { params, ret } => {
+            Self::Function { params, ret } => {
                 let param_flags = params.iter().fold(TyFlags::empty(), |acc, ty| {
                     acc | B::resolve_ty_node(ty).flags()
                 });
                 param_flags | B::resolve_ty_node(ret).flags()
             }
-            TyKind::Symbol(_) => TyFlags::empty(),
         }
     }
 
@@ -74,17 +72,15 @@ impl<B: TyBuilder> TyKind<B> {
         // TODO: Consider using a custom iterator to avoid copying a few references?
         type VecType<'a, T> = SmallVec<[&'a Ty<T>; 6]>;
         match self {
-            TyKind::TypeVar(_) | TyKind::Scalar(_) | TyKind::Symbol(_) => {
-                VecType::new().into_iter()
-            }
-            TyKind::Array(e) => VecType::from_slice(&[e]).into_iter(),
-            TyKind::Map(k, v) => VecType::from_slice(&[k, v]).into_iter(),
-            TyKind::Record(fields) => fields
+            Self::TypeVar(_) | Self::Scalar(_) | Self::Symbol(_) => VecType::new().into_iter(),
+            Self::Array(e) => VecType::from_slice(&[e]).into_iter(),
+            Self::Map(k, v) => VecType::from_slice(&[k, v]).into_iter(),
+            Self::Record(fields) => fields
                 .iter()
                 .map(|(_, ty)| ty)
                 .collect::<VecType<_>>()
                 .into_iter(),
-            TyKind::Function { params, ret } => {
+            Self::Function { params, ret } => {
                 let mut v = params.iter().collect::<VecType<_>>();
                 v.push(ret);
                 v.into_iter()
@@ -99,9 +95,9 @@ impl<B: TyBuilder> TyKind<B> {
     ) -> TyKind<Other> {
         match self {
             // Leafs: just copy the data
-            TyKind::TypeVar(id) => TyKind::TypeVar(*id),
-            TyKind::Scalar(scalar) => TyKind::Scalar(*scalar),
-            TyKind::Symbol(parts) => {
+            Self::TypeVar(id) => TyKind::TypeVar(*id),
+            Self::Scalar(scalar) => TyKind::Scalar(*scalar),
+            Self::Symbol(parts) => {
                 let s = parts
                     .iter()
                     .map(|symbol| Ident::new(builder, symbol.as_str()));
@@ -109,15 +105,15 @@ impl<B: TyBuilder> TyKind<B> {
             }
 
             // Recursive: consume from iterator
-            TyKind::Array(_) => TyKind::Array(children.next().unwrap()),
+            Self::Array(_) => TyKind::Array(children.next().unwrap()),
 
-            TyKind::Map(_, _) => {
+            Self::Map(_, _) => {
                 let k = children.next().unwrap();
                 let v = children.next().unwrap();
                 TyKind::Map(k, v)
             }
 
-            TyKind::Record(fields) => {
+            Self::Record(fields) => {
                 // Reconstruct record: Keep original names, take new types
                 // We assume `Other::Ty` is compatible with the storage in `TyKind::Record`
                 // (e.g., standard Vec or generic list handle)
@@ -127,7 +123,7 @@ impl<B: TyBuilder> TyKind<B> {
                 TyKind::Record(FieldList::from_iter(builder, new_fields))
             }
 
-            TyKind::Function { params, .. } => {
+            Self::Function { params, .. } => {
                 // Invariant: `iter_children` yields params first, then ret last.
                 // We use `next_back()` to pop the return type before consuming params.
                 debug_assert!(
@@ -171,7 +167,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_scalar_ord() {
+    fn scalar_ord() {
         assert!(Scalar::Bool < Scalar::Int);
         assert!(Scalar::Int < Scalar::Float);
         assert!(Scalar::Float < Scalar::Str);

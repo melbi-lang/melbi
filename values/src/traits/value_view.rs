@@ -1,9 +1,7 @@
 use melbi_types::Ty;
 
-use crate::{
-    dynamic::Value,
-    traits::{ArrayView, ValueBuilder},
-};
+use crate::dynamic::Value;
+use crate::traits::{ArrayView, ValueBuilder};
 
 /// A read-only view over a dynamically typed value.
 ///

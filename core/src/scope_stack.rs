@@ -16,14 +16,15 @@ use alloc::collections::BTreeSet;
 use alloc::rc::Rc;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use bumpalo::Bump;
 use core::cell::RefCell;
 use core::fmt;
 
-/// Trait for scopes that can be pushed onto the ScopeStack.
+use bumpalo::Bump;
+
+/// Trait for scopes that can be pushed onto the `ScopeStack`.
 ///
 /// All scopes must implement lookup and bind operations.
-/// Complete scopes return an error when bind() is called.
+/// Complete scopes return an error when `bind()` is called.
 ///
 /// The lifetime parameter `'a` is for the arena where scope data is allocated.
 /// The type parameter `T` can itself contain additional lifetimes (e.g., `Value<'types, 'arena>`).
@@ -52,7 +53,7 @@ impl<'a, T> CompleteScope<'a, T> {
     /// Create a new complete scope from sorted bindings.
     ///
     /// The bindings slice must be sorted by name for binary search to work.
-    pub fn from_sorted(bindings: &'a [(&'a str, T)]) -> CompleteScope<'a, T> {
+    pub fn from_sorted(bindings: &'a [(&'a str, T)]) -> Self {
         debug_assert!(is_sorted(bindings), "Bindings must be sorted by name");
         CompleteScope(bindings)
     }
@@ -168,8 +169,15 @@ pub struct ScopeStack<'a, T> {
     scopes: Vec<Box<dyn Scope<'a, T> + 'a>>,
 }
 
+impl<T: Copy> Default for ScopeStack<'_, T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, T: Copy> ScopeStack<'a, T> {
     /// Create a new empty scope stack.
+    #[must_use]
     pub fn new() -> Self {
         Self { scopes: Vec::new() }
     }
@@ -191,6 +199,7 @@ impl<'a, T: Copy> ScopeStack<'a, T> {
     ///
     /// Returns the first matching value found, or None if not found in any scope.
     /// The name must have the same lifetime as the scope data.
+    #[must_use]
     pub fn lookup(&self, name: &'a str) -> Option<&T> {
         for scope in self.scopes.iter().rev() {
             if let Some(val) = scope.lookup(name) {
@@ -207,6 +216,7 @@ impl<'a, T: Copy> ScopeStack<'a, T> {
     /// - The topmost scope is immutable (complete scope)
     /// - The name was not pre-declared (incomplete scope)
     /// - The name is already bound (incomplete scope)
+    ///
     /// The name must have the same lifetime as the scope data.
     pub fn bind_in_current(&mut self, name: &'a str, value: T) -> Result<(), BindError> {
         self.scopes
@@ -237,13 +247,13 @@ pub enum BindError {
 impl fmt::Display for BindError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BindError::NoScope => write!(f, "No scope to bind in"),
-            BindError::ScopeIsImmutable => write!(f, "Cannot bind in immutable scope"),
-            BindError::AlreadyBound(name) => {
-                write!(f, "Name '{}' already bound in current scope", name)
+            Self::NoScope => write!(f, "No scope to bind in"),
+            Self::ScopeIsImmutable => write!(f, "Cannot bind in immutable scope"),
+            Self::AlreadyBound(name) => {
+                write!(f, "Name '{name}' already bound in current scope")
             }
-            BindError::NameNotDeclared(name) => {
-                write!(f, "Name '{}' not declared in current scope", name)
+            Self::NameNotDeclared(name) => {
+                write!(f, "Name '{name}' not declared in current scope")
             }
         }
     }
@@ -259,7 +269,7 @@ pub enum PopError {
 impl fmt::Display for PopError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PopError::EmptyStack => write!(f, "Cannot pop from empty scope stack"),
+            Self::EmptyStack => write!(f, "Cannot pop from empty scope stack"),
         }
     }
 }
@@ -279,7 +289,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_complete_scope_lookup() {
+    fn complete_scope_lookup() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -293,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn test_incomplete_scope_sequential_binding() {
+    fn incomplete_scope_sequential_binding() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -316,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_shadowing() {
+    fn shadowing() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -340,7 +350,7 @@ mod tests {
     }
 
     #[test]
-    fn test_duplicate_names_error() {
+    fn duplicate_names_error() {
         let bump = Bump::new();
 
         let result = IncompleteScope::<i32>::new(&bump, &["a", "b", "a"]);
@@ -349,7 +359,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bind_already_bound_error() {
+    fn bind_already_bound_error() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -362,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bind_undeclared_name_error() {
+    fn bind_undeclared_name_error() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 
@@ -375,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bind_immutable_scope_error() {
+    fn bind_immutable_scope_error() {
         let bump = Bump::new();
         let mut stack = ScopeStack::new();
 

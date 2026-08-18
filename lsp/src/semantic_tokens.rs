@@ -1,4 +1,4 @@
-use tower_lsp::lsp_types::*;
+use tower_lsp::lsp_types::{SemanticTokenType, SemanticTokensLegend};
 
 /// Token type indices - order matters!
 pub const KEYWORD: u32 = 0;
@@ -13,6 +13,7 @@ pub const COMMENT: u32 = 8;
 pub const OPERATOR: u32 = 9;
 
 /// Get the semantic token legend for LSP registration
+#[must_use]
 pub fn get_legend() -> SemanticTokensLegend {
     SemanticTokensLegend {
         token_types: vec![

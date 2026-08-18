@@ -4,15 +4,34 @@ use crate::api::{Diagnostic, Severity};
 use crate::diagnostics::context::Context;
 use crate::parser::Span;
 use crate::types::{Type, TypeClassId};
-use crate::{String, Vec, format, vec};
+use crate::{Box, String, Vec, format, vec};
 
-/// Type error with context
+/// Inner data payload for type errors
 #[derive(Debug)]
-pub struct TypeError {
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub struct TypeErrorData {
     pub kind: TypeErrorKind,
     pub source: String,
     pub span: Span,
     pub context: Vec<Context>,
+}
+
+/// Type error with context (boxed for 8-byte stack size)
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub struct TypeError(pub Box<TypeErrorData>);
+
+impl core::ops::Deref for TypeError {
+    type Target = TypeErrorData;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl core::ops::DerefMut for TypeError {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl core::fmt::Display for TypeError {
@@ -21,11 +40,11 @@ impl core::fmt::Display for TypeError {
         write!(f, "{}: {}", diagnostic.severity, diagnostic.message)?;
 
         if let Some(ref code) = diagnostic.code {
-            write!(f, " [{}]", code)?;
+            write!(f, " [{code}]")?;
         }
 
         for help_msg in &diagnostic.help {
-            write!(f, "\nhelp: {}", help_msg)?;
+            write!(f, "\nhelp: {help_msg}")?;
         }
 
         Ok(())
@@ -34,6 +53,7 @@ impl core::fmt::Display for TypeError {
 
 /// Specific kinds of type errors
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum TypeErrorKind {
     /// Type mismatch between expected and found types.
     /// `context` provides additional help about what the expected type is for.
@@ -99,17 +119,19 @@ pub enum TypeErrorKind {
 }
 
 impl TypeError {
-    /// Create a new TypeError with no context
+    /// Create a new `TypeError` with no context
+    #[must_use]
     pub fn new(kind: TypeErrorKind, source: String, span: Span) -> Self {
-        Self {
+        Self(Box::new(TypeErrorData {
             kind,
             source,
             span,
             context: Vec::new(),
-        }
+        }))
     }
 
     /// Convert to a Diagnostic for API boundary
+    #[must_use]
     pub fn to_diagnostic(&self) -> Diagnostic {
         let (message, code, help) = match &self.kind {
             TypeErrorKind::TypeMismatch {
@@ -118,27 +140,26 @@ impl TypeError {
                 context,
             } => {
                 let help_msg = context
-                    .as_ref()
-                    .cloned()
+                    .clone()
                     .unwrap_or_else(|| "Types must match in this context".to_string());
                 (
-                    format!("Type mismatch: expected {}, found {}", expected, found),
+                    format!("Type mismatch: expected {expected}, found {found}"),
                     Some("E001"),
                     vec![help_msg],
                 )
             }
             TypeErrorKind::UnboundVariable { name, .. } => (
-                format!("Undefined variable '{}'", name),
+                format!("Undefined variable '{name}'"),
                 Some("E002"),
                 vec!["Make sure the variable is declared before use".to_string()],
             ),
-            TypeErrorKind::UnhandledError { .. } => (
+            TypeErrorKind::UnhandledError => (
                 "Unhandled error type".to_string(),
                 Some("E003"),
                 vec!["Use 'otherwise' to handle potential errors".to_string()],
             ),
             TypeErrorKind::OccursCheck { type_var, ty, .. } => (
-                format!("Cannot construct infinite type: {} = {}", type_var, ty),
+                format!("Cannot construct infinite type: {type_var} = {ty}"),
                 Some("E004"),
                 vec!["This usually indicates a recursive type definition".to_string()],
             ),
@@ -173,8 +194,7 @@ impl TypeError {
                 expected, found, ..
             } => (
                 format!(
-                    "Record field count mismatch: expected {}, found {}",
-                    expected, found
+                    "Record field count mismatch: expected {expected}, found {found}"
                 ),
                 Some("E006"),
                 vec![],
@@ -183,8 +203,7 @@ impl TypeError {
                 expected, found, ..
             } => (
                 format!(
-                    "Record field name mismatch: expected '{}', found '{}'",
-                    expected, found
+                    "Record field name mismatch: expected '{expected}', found '{found}'"
                 ),
                 Some("E007"),
                 vec![],
@@ -193,14 +212,13 @@ impl TypeError {
                 expected, found, ..
             } => (
                 format!(
-                    "Function parameter count mismatch: expected {}, found {}",
-                    expected, found
+                    "Function parameter count mismatch: expected {expected}, found {found}"
                 ),
                 Some("E008"),
                 vec!["Check the number of arguments in the function call".to_string()],
             ),
             TypeErrorKind::NotIndexable { ty, .. } => (
-                format!("Cannot index into non-indexable type '{}'", ty),
+                format!("Cannot index into non-indexable type '{ty}'"),
                 Some("E009"),
                 vec!["Only arrays, maps, and bytes can be indexed".to_string()],
             ),
@@ -219,34 +237,32 @@ impl TypeError {
             ),
             TypeErrorKind::CannotInferRecordType { field, .. } => (
                 format!(
-                    "Cannot infer record type for field access '.{}'. Row polymorphism not yet supported",
-                    field
+                    "Cannot infer record type for field access '.{field}'. Row polymorphism not yet supported"
                 ),
                 Some("E011"),
                 vec!["The value must have a concrete record type. Consider restructuring the code to avoid accessing fields on polymorphic values.".to_string()],
             ),
             TypeErrorKind::NotARecord { ty, field, .. } => (
                 format!(
-                    "Cannot access field '{}' on non-record type '{}'",
-                    field, ty
+                    "Cannot access field '{field}' on non-record type '{ty}'"
                 ),
                 Some("E012"),
                 vec!["Only record types support field access".to_string()],
             ),
             TypeErrorKind::InvalidTypeExpression { message, .. } => (
-                format!("Invalid type expression: {}", message),
+                format!("Invalid type expression: {message}"),
                 Some("E013"),
                 vec![],
             ),
             TypeErrorKind::InvalidCast {
                 from, to, reason, ..
             } => (
-                format!("Cannot cast from '{}' to '{}': {}", from, to, reason),
+                format!("Cannot cast from '{from}' to '{to}': {reason}"),
                 Some("E014"),
                 vec!["Only certain type conversions are allowed".to_string()],
             ),
             TypeErrorKind::PolymorphicCast { target_type, .. } => (
-                format!("Cannot cast polymorphic value to '{}'", target_type),
+                format!("Cannot cast polymorphic value to '{target_type}'"),
                 Some("E019"),
                 vec![
                     "Casts on polymorphic types are not yet supported.".to_string(),
@@ -254,17 +270,17 @@ impl TypeError {
                 ],
             ),
             TypeErrorKind::DuplicateParameter { name, .. } => (
-                format!("Duplicate parameter name '{}'", name),
+                format!("Duplicate parameter name '{name}'"),
                 Some("E015"),
                 vec!["Each parameter must have a unique name".to_string()],
             ),
             TypeErrorKind::DuplicateBinding { name, .. } => (
-                format!("Duplicate binding name '{}'", name),
+                format!("Duplicate binding name '{name}'"),
                 Some("E016"),
                 vec!["Each binding in a where clause must have a unique name".to_string()],
             ),
             TypeErrorKind::NotFormattable { ty, .. } => (
-                format!("Cannot format type '{}' in format string", ty),
+                format!("Cannot format type '{ty}' in format string"),
                 Some("E017"),
                 vec!["Function types cannot be formatted".to_string()],
             ),
@@ -273,14 +289,13 @@ impl TypeError {
                 suggestion,
                 ..
             } => (
-                format!("{}", feature),
+                feature.clone(),
                 Some("E018"),
                 vec![suggestion.clone()],
             ),
             TypeErrorKind::NonExhaustivePatterns { ty, missing_cases, .. } => (
                 format!(
-                    "Non-exhaustive patterns: match on type '{}' does not cover all cases",
-                    ty
+                    "Non-exhaustive patterns: match on type '{ty}' does not cover all cases"
                 ),
                 Some("E020"),
                 vec![format!("Missing cases: {}", missing_cases.join(", "))],
@@ -295,14 +310,15 @@ impl TypeError {
             related: self
                 .context
                 .iter()
-                .map(|ctx| ctx.to_related_info())
+                .map(super::super::diagnostics::context::Context::to_related_info)
                 .collect(),
             help,
-            code: code.map(|s| s.to_string()),
+            code: code.map(alloc::string::ToString::to_string),
         }
     }
 
-    /// Create a TypeError from a unification error
+    /// Create a `TypeError` from a unification error
+    #[must_use]
     pub fn from_unification_error(
         err: crate::types::unification::Error,
         span: Span,
@@ -333,11 +349,12 @@ impl TypeError {
         Self::new(kind, source, span)
     }
 
-    /// Create a TypeError from a type class constraint error
+    /// Create a `TypeError` from a type class constraint error
     ///
     /// The error's spans are used as follows:
     /// - `spans[0]` is the primary span (original constraint location)
     /// - `spans[1..]` are instantiation sites added as related context
+    #[must_use]
     pub fn from_constraint_error(
         err: crate::types::type_class_resolver::ConstraintError,
         source: String,
@@ -356,9 +373,9 @@ impl TypeError {
 
         // Add call site spans as related context (spans[1..] are instantiation sites)
         for span in err.spans.iter().skip(1) {
-            error.context.push(Context::InstantiatedHere {
-                span: span.clone(),
-            });
+            error
+                .context
+                .push(Context::InstantiatedHere { span: span.clone() });
         }
 
         error
@@ -366,8 +383,9 @@ impl TypeError {
 }
 
 /// Helper function to format types for error messages
+#[must_use]
 pub fn format_type<'a>(ty: &'a Type<'a>) -> String {
-    format!("{}", ty)
+    format!("{ty}")
 }
 
 #[cfg(test)]
@@ -375,7 +393,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_type_error_to_diagnostic() {
+    fn type_error_to_diagnostic() {
         let error = TypeError::new(
             TypeErrorKind::UnboundVariable {
                 name: "x".to_string(),
@@ -391,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn test_type_mismatch_diagnostic() {
+    fn type_mismatch_diagnostic() {
         let error = TypeError::new(
             TypeErrorKind::TypeMismatch {
                 expected: "Int".to_string(),
@@ -410,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn test_non_exhaustive_patterns_diagnostic() {
+    fn non_exhaustive_patterns_diagnostic() {
         let error = TypeError::new(
             TypeErrorKind::NonExhaustivePatterns {
                 ty: "Option[Int]".to_string(),

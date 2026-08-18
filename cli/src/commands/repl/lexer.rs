@@ -14,7 +14,7 @@ use logos::Logos;
 /// Note that this lexer doesn't parse the expressions interpolated in format
 /// strings. As such, it doesn't allow indentation inside them. However, it
 /// should successfully lex any valid Melbi expression.
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, PartialEq, Eq)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum Token {
     #[token("{")]
@@ -35,7 +35,7 @@ pub enum Token {
     #[token(")")]
     RParen,
 
-    #[regex(r"//.*")]
+    #[regex(r"//.*", allow_greedy = true)]
     Comment,
 
     /// Quoted Identifier (can contain double slashes)
@@ -59,20 +59,21 @@ pub enum Token {
 ///
 /// Returns `Some(depth)` where depth is the net nesting level (≥ 0),
 /// or `None` if the buffer contains invalid/incomplete tokens.
+#[must_use]
 pub fn calculate_depth(buffer: &str) -> Option<usize> {
     let mut depth: isize = 0;
 
     for token_res in Token::lexer(buffer) {
         match token_res {
-            Ok(Token::LBrace) | Ok(Token::LBracket) | Ok(Token::LParen) => depth += 1,
-            Ok(Token::RBrace) | Ok(Token::RBracket) | Ok(Token::RParen) => depth -= 1,
+            Ok(Token::LBrace | Token::LBracket | Token::LParen) => depth += 1,
+            Ok(Token::RBrace | Token::RBracket | Token::RParen) => depth -= 1,
 
             // Valid tokens that don't affect depth
             Ok(_) => {}
 
             // STRICT BEHAVIOR:
             // If we hit an unclosed string (or any unknown char), abort immediately.
-            Err(_) => {
+            Err(()) => {
                 return None;
             }
         }

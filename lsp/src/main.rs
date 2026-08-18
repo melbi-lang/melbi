@@ -1,6 +1,14 @@
 use dashmap::DashMap;
 use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
+use tower_lsp::lsp_types::{
+    CompletionOptions, CompletionParams, CompletionResponse, DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DocumentFormattingParams, Hover,
+    HoverContents, HoverParams, HoverProviderCapability, InitializeParams, InitializeResult,
+    InitializedParams, MarkupContent, MarkupKind, MessageType, OneOf, Position, Range,
+    SemanticTokens, SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams,
+    SemanticTokensResult, SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo,
+    TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, Url,
+};
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 mod document;
@@ -71,7 +79,6 @@ impl LanguageServer for Backend {
                 name: "Melbi Language Server".to_string(),
                 version: Some(env!("CARGO_PKG_VERSION").to_string()),
             }),
-            ..Default::default()
         })
     }
 
@@ -173,40 +180,37 @@ impl LanguageServer for Backend {
                     let formatted = doc.format();
                     let source = doc.source.clone();
                     (formatted, source)
-                },
+                }
                 None => return Ok(None),
             }
         }; // DashMap reference dropped here
 
-        match formatted {
-            Some(formatted_text) => {
-                // If the formatted text is the same, no edits needed
-                if formatted_text == source {
-                    return Ok(None);
-                }
-
-                // Calculate the range of the entire document
-                // Count actual lines (including empty ones) and get the length of the last line
-                let line_count = source.chars().filter(|&c| c == '\n').count();
-                let last_line_start = source.rfind('\n').map(|pos| pos + 1).unwrap_or(0);
-                let last_line_len = source.len() - last_line_start;
-
-                let range = Range {
-                    start: Position::new(0, 0),
-                    end: Position::new(line_count as u32, last_line_len as u32),
-                };
-
-                Ok(Some(vec![TextEdit {
-                    range,
-                    new_text: formatted_text,
-                }]))
+        if let Some(formatted_text) = formatted {
+            // If the formatted text is the same, no edits needed
+            if formatted_text == source {
+                return Ok(None);
             }
-            None => {
-                self.client
-                    .log_message(MessageType::ERROR, "Format error".to_string())
-                    .await;
-                Ok(None)
-            }
+
+            // Calculate the range of the entire document
+            // Count actual lines (including empty ones) and get the length of the last line
+            let line_count = source.chars().filter(|&c| c == '\n').count();
+            let last_line_start = source.rfind('\n').map_or(0, |pos| pos + 1);
+            let last_line_len = source.len() - last_line_start;
+
+            let range = Range {
+                start: Position::new(0, 0),
+                end: Position::new(line_count as u32, last_line_len as u32),
+            };
+
+            Ok(Some(vec![TextEdit {
+                range,
+                new_text: formatted_text,
+            }]))
+        } else {
+            self.client
+                .log_message(MessageType::ERROR, "Format error".to_string())
+                .await;
+            Ok(None)
         }
     }
 
@@ -236,6 +240,6 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| Backend::new(client));
+    let (service, socket) = LspService::new(Backend::new);
     Server::new(stdin, stdout, socket).serve(service).await;
 }

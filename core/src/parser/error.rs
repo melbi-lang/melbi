@@ -30,7 +30,8 @@ pub enum ParseErrorKind {
 }
 
 impl ParseError {
-    /// Create a new ParseError with no context
+    /// Create a new `ParseError` with no context
+    #[must_use]
     pub fn new(kind: ParseErrorKind, source: String, span: Span) -> Self {
         Self {
             kind,
@@ -41,30 +42,28 @@ impl ParseError {
     }
 
     /// Convert to a Diagnostic for API boundary
+    #[must_use]
     pub fn to_diagnostic(&self) -> Diagnostic {
         let (message, code, help) = match &self.kind {
             ParseErrorKind::UnexpectedToken {
                 expected, found, ..
             } => (
-                format!("Expected {}, found {}", expected, found),
+                format!("Expected {expected}, found {found}"),
                 Some("P001"),
                 vec![],
             ),
             ParseErrorKind::UnclosedDelimiter { delimiter, .. } => (
-                format!("Unclosed delimiter '{}'", delimiter),
+                format!("Unclosed delimiter '{delimiter}'"),
                 Some("P002"),
                 vec!["Add the missing closing delimiter".to_string()],
             ),
             ParseErrorKind::InvalidNumber { text, .. } => (
-                format!("Invalid number literal '{}'", text),
+                format!("Invalid number literal '{text}'"),
                 Some("P003"),
                 vec!["Check the number format".to_string()],
             ),
             ParseErrorKind::MaxDepthExceeded { max_depth, .. } => (
-                format!(
-                    "Expression nesting depth exceeds maximum of {} levels",
-                    max_depth
-                ),
+                format!("Expression nesting depth exceeds maximum of {max_depth} levels"),
                 Some("P004"),
                 vec!["Reduce nesting or simplify the expression".to_string()],
             ),
@@ -78,10 +77,10 @@ impl ParseError {
             related: self
                 .context
                 .iter()
-                .map(|ctx| ctx.to_related_info())
+                .map(super::super::diagnostics::context::Context::to_related_info)
                 .collect(),
             help,
-            code: code.map(|s| s.to_string()),
+            code: code.map(alloc::string::ToString::to_string),
         }
     }
 }
@@ -92,18 +91,19 @@ impl core::fmt::Display for ParseError {
         write!(f, "{}: {}", diagnostic.severity, diagnostic.message)?;
 
         if let Some(ref code) = diagnostic.code {
-            write!(f, " [{}]", code)?;
+            write!(f, " [{code}]")?;
         }
 
         for help_msg in &diagnostic.help {
-            write!(f, "\nhelp: {}", help_msg)?;
+            write!(f, "\nhelp: {help_msg}")?;
         }
 
         Ok(())
     }
 }
 
-/// Convert Pest error to human-readable ParseError
+/// Convert Pest error to human-readable `ParseError`
+#[must_use]
 pub fn convert_pest_error(err: pest::error::Error<Rule>, source: &str) -> ParseError {
     use pest::error::ErrorVariant;
 
@@ -142,19 +142,19 @@ pub fn convert_pest_error(err: pest::error::Error<Rule>, source: &str) -> ParseE
                     .or_else(|| extract_number_from_message(&message, "of"));
 
                 // If we found at least the max_depth, construct the error
-                if let Some(max_depth_str) = max_depth_opt {
-                    if let Ok(max_depth) = max_depth_str.parse::<usize>() {
-                        // Try to parse depth, or use max_depth as fallback (since we exceeded it)
-                        let depth = depth_opt
-                            .and_then(|s| s.parse::<usize>().ok())
-                            .unwrap_or(max_depth);
+                if let Some(max_depth_str) = max_depth_opt
+                    && let Ok(max_depth) = max_depth_str.parse::<usize>()
+                {
+                    // Try to parse depth, or use max_depth as fallback (since we exceeded it)
+                    let depth = depth_opt
+                        .and_then(|s| s.parse::<usize>().ok())
+                        .unwrap_or(max_depth);
 
-                        return ParseError::new(
-                            ParseErrorKind::MaxDepthExceeded { depth, max_depth },
-                            source.to_string(),
-                            span,
-                        );
-                    }
+                    return ParseError::new(
+                        ParseErrorKind::MaxDepthExceeded { depth, max_depth },
+                        source.to_string(),
+                        span,
+                    );
                 }
             }
 
@@ -249,14 +249,14 @@ fn extract_number_from_message(message: &str, keyword: &str) -> Option<String> {
 
     // Skip whitespace and "of"
     let trimmed = after_keyword.trim_start();
-    let trimmed = if trimmed.starts_with("of") {
-        trimmed[2..].trim_start()
+    let trimmed = if let Some(stripped) = trimmed.strip_prefix("of") {
+        stripped.trim_start()
     } else {
         trimmed
     };
 
     // Extract digits
-    let digits: String = trimmed.chars().take_while(|c| c.is_ascii_digit()).collect();
+    let digits: String = trimmed.chars().take_while(char::is_ascii_digit).collect();
 
     if digits.is_empty() {
         None
@@ -268,7 +268,7 @@ fn extract_number_from_message(message: &str, keyword: &str) -> Option<String> {
 /// Extract the first number found in a string
 fn extract_first_number(s: &str) -> Option<String> {
     let trimmed = s.trim_start();
-    let digits: String = trimmed.chars().take_while(|c| c.is_ascii_digit()).collect();
+    let digits: String = trimmed.chars().take_while(char::is_ascii_digit).collect();
 
     if digits.is_empty() {
         None
@@ -282,7 +282,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_error_to_diagnostic() {
+    fn parse_error_to_diagnostic() {
         let error = ParseError::new(
             ParseErrorKind::UnexpectedToken {
                 expected: "expression".to_string(),
@@ -300,14 +300,14 @@ mod tests {
     }
 
     #[test]
-    fn test_format_expected_rules() {
+    fn format_expected_rules_works() {
         let rules = vec![Rule::integer, Rule::float];
         let formatted = format_expected_rules(&rules);
         assert_eq!(formatted, "literal");
     }
 
     #[test]
-    fn test_extract_number_from_message() {
+    fn extract_number_from_message_works() {
         let message = "nesting depth 150 exceeds maximum of 100 levels";
         assert_eq!(
             extract_number_from_message(message, "depth"),
@@ -320,7 +320,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_error_conversion_with_both_numbers() {
+    fn depth_error_conversion_with_both_numbers() {
         // Test with format that includes both current depth and max depth
         let pest_err = pest::error::Error::<Rule>::new_from_pos(
             pest::error::ErrorVariant::CustomError {
@@ -342,7 +342,7 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_error_conversion_with_only_max() {
+    fn depth_error_conversion_with_only_max() {
         // Test with format that only includes max depth (actual parser format)
         let pest_err = pest::error::Error::<Rule>::new_from_pos(
             pest::error::ErrorVariant::CustomError {

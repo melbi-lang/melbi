@@ -112,7 +112,7 @@ struct ParsedSignature {
     fn_name: syn::Ident,
     /// Lifetime from the function (if any). None means use default '__a.
     lifetime: Option<syn::Lifetime>,
-    /// Whether the first parameter is &FfiContext
+    /// Whether the first parameter is &`FfiContext`
     has_context: bool,
     /// Business logic parameters (excluding context params)
     params: Vec<ParsedParam>,
@@ -203,7 +203,7 @@ fn parse_signature(func: &ItemFn) -> syn::Result<ParsedSignature> {
 
 /// Parse generic parameters: lifetime and type parameters.
 ///
-/// Returns (lifetime, type_params).
+/// Returns (lifetime, `type_params`).
 fn parse_generics(
     generics: &syn::Generics,
 ) -> syn::Result<(Option<syn::Lifetime>, Vec<ParsedGenericParam>)> {
@@ -239,7 +239,7 @@ fn parse_generics(
                     "[melbi] const generics are not supported",
                 ));
             }
-        };
+        }
     }
     Ok((lifetime, type_params))
 }
@@ -248,46 +248,45 @@ fn parse_generics(
 ///
 /// We only accept one trait, except for the `Melbi` trait, which doesn't impose
 /// any constraints on the type, so we ignore it. For compound bounds like
-/// `T: Numeric + Ord, for instance, we'll return an error.
+/// `T: Numeric + Ord`, for instance, we'll return an error.
 fn parse_type_param(type_param: &syn::TypeParam) -> syn::Result<ParsedGenericParam> {
     let mut traits = Vec::new();
 
     // Collect all recognized trait bounds
     for bound in &type_param.bounds {
-        if let syn::TypeParamBound::Trait(trait_bound) = bound {
-            if let Some(last_seg) = trait_bound.path.segments.last() {
-                let trait_name = last_seg.ident.to_string();
-                match trait_name.as_str() {
-                    // Type must be a number.
-                    "Numeric" => traits.push("Numeric"),
-                    // Type doesn't have any special constraints.
-                    // So we don't even care about adding it.
-                    "Melbi" => {}
-                    other => {
-                        return Err(syn::Error::new_spanned(
-                            &trait_bound.path,
-                            format!(
-                                "[melbi] trait bound '{}' is not supported. \
-                                 Supported: Melbi, Numeric",
-                                other
-                            ),
-                        ));
-                    }
+        if let syn::TypeParamBound::Trait(trait_bound) = bound
+            && let Some(last_seg) = trait_bound.path.segments.last()
+        {
+            let trait_name = last_seg.ident.to_string();
+            match trait_name.as_str() {
+                // Type must be a number.
+                "Numeric" => traits.push("Numeric"),
+                // Type doesn't have any special constraints.
+                // So we don't even care about adding it.
+                "Melbi" => {}
+                other => {
+                    return Err(syn::Error::new_spanned(
+                        &trait_bound.path,
+                        format!(
+                            "[melbi] trait bound '{other}' is not supported. \
+                                 Supported: Melbi, Numeric"
+                        ),
+                    ));
                 }
             }
         }
     }
 
-    match traits.as_slice() {
-        &[] => Err(syn::Error::new_spanned(
+    match *traits.as_slice() {
+        [] => Err(syn::Error::new_spanned(
             type_param,
             "[melbi] generic type parameter must have a trait bound (e.g., T: Melbi or T: Numeric)",
         )),
-        &[trait_name] => Ok(ParsedGenericParam {
+        [trait_name] => Ok(ParsedGenericParam {
             ident: type_param.ident.clone(),
             trait_name: trait_name.to_string(),
         }),
-        &[..] => Err(syn::Error::new_spanned(
+        [..] => Err(syn::Error::new_spanned(
             type_param,
             "[melbi] multiple traits are not supported",
         )),
@@ -306,7 +305,7 @@ fn parse_return_type(sig: &syn::Signature) -> syn::Result<Box<Type>> {
 }
 
 /// Check if a type is `Result<T, E>` and extract the Ok type `T`.
-/// Returns (ok_type, is_fallible).
+/// Returns (`ok_type`, `is_fallible`).
 fn analyze_return_type(ty: &Type) -> (Box<Type>, bool) {
     if let Some(ok_type) = extract_result_ok_type(ty) {
         (ok_type, true)
@@ -317,22 +316,18 @@ fn analyze_return_type(ty: &Type) -> (Box<Type>, bool) {
 
 /// Check if a type is `Result<T, E>` and extract the Ok type `T`.
 fn extract_result_ok_type(ty: &Type) -> Option<Box<Type>> {
-    if let Type::Path(type_path) = ty {
-        let segments = &type_path.path.segments;
-        if let Some(last_segment) = segments.last() {
-            if last_segment.ident == "Result" {
-                if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
-                    if let Some(GenericArgument::Type(ok_type)) = args.args.first() {
-                        return Some(Box::new(ok_type.clone()));
-                    }
-                }
-            }
-        }
+    if let Type::Path(type_path) = ty
+        && let Some(last_segment) = type_path.path.segments.last()
+        && last_segment.ident == "Result"
+        && let PathArguments::AngleBracketed(args) = &last_segment.arguments
+        && let Some(GenericArgument::Type(ok_type)) = args.args.first()
+    {
+        return Some(Box::new(ok_type.clone()));
     }
     None
 }
 
-/// Detect if first param is FfiContext and extract business params.
+/// Detect if first param is `FfiContext` and extract business params.
 fn parse_params(
     sig: &syn::Signature,
     type_params: &[ParsedGenericParam],
@@ -396,13 +391,13 @@ fn classify_type(ty: &Type, type_params: &[ParsedGenericParam]) -> syn::Result<T
         for seg in &type_path.path.segments {
             if let PathArguments::AngleBracketed(args) = &seg.arguments {
                 for arg in &args.args {
-                    if let GenericArgument::Type(inner_ty) = arg {
-                        if contains_type_var(inner_ty, type_params) {
-                            return Err(syn::Error::new_spanned(
-                                ty,
-                                "[melbi] type variables inside containers (e.g., Array<T>) not yet supported",
-                            ));
-                        }
+                    if let GenericArgument::Type(inner_ty) = arg
+                        && contains_type_var(inner_ty, type_params)
+                    {
+                        return Err(syn::Error::new_spanned(
+                            ty,
+                            "[melbi] type variables inside containers (e.g., Array<T>) not yet supported",
+                        ));
                     }
                 }
             }
@@ -425,10 +420,10 @@ fn contains_type_var(ty: &Type, type_params: &[ParsedGenericParam]) -> bool {
         for seg in &type_path.path.segments {
             if let PathArguments::AngleBracketed(args) = &seg.arguments {
                 for arg in &args.args {
-                    if let GenericArgument::Type(inner_ty) = arg {
-                        if contains_type_var(inner_ty, type_params) {
-                            return true;
-                        }
+                    if let GenericArgument::Type(inner_ty) = arg
+                        && contains_type_var(inner_ty, type_params)
+                    {
+                        return true;
                     }
                 }
             }
@@ -437,16 +432,16 @@ fn contains_type_var(ty: &Type, type_params: &[ParsedGenericParam]) -> bool {
     false
 }
 
-/// Check if a type looks like FfiContext (contains "FfiContext" in path).
+/// Check if a type looks like `FfiContext` (contains "`FfiContext`" in path).
 fn is_ffi_context_type(ty: &Type) -> bool {
-    if let Type::Reference(type_ref) = ty {
-        if let Type::Path(type_path) = &*type_ref.elem {
-            return type_path
-                .path
-                .segments
-                .iter()
-                .any(|s| s.ident == "FfiContext");
-        }
+    if let Type::Reference(type_ref) = ty
+        && let Type::Path(type_path) = &*type_ref.elem
+    {
+        return type_path
+            .path
+            .segments
+            .iter()
+            .any(|s| s.ident == "FfiContext");
     }
     false
 }
@@ -498,7 +493,7 @@ fn generate_output(
                 self.__fn_type
             }
 
-            #[allow(unused_variables)]
+            #[allow(clippy::allow_attributes, unused_variables, reason = "macro generated code")]
             unsafe fn call_unchecked(
                 &self,
                 __ctx: &::melbi_core::values::function::FfiContext<#lt, #lt>,
@@ -584,7 +579,7 @@ fn generate_type_signature(sig: &ParsedSignature) -> TokenStream2 {
     }
 }
 
-/// Generate the call_unchecked body.
+/// Generate the `call_unchecked` body.
 fn generate_call_body(sig: &ParsedSignature) -> TokenStream2 {
     if sig.generic_params.is_empty() {
         generate_monomorphic_call(sig)
@@ -686,7 +681,7 @@ fn generate_polymorphic_call(sig: &ParsedSignature) -> TokenStream2 {
 }
 
 /// Generate dispatch arms for a specific trait bound.
-/// Returns (match_arms, trait_display_name).
+/// Returns (`match_arms`, `trait_display_name`).
 fn generate_dispatch_arms_for_trait(
     sig: &ParsedSignature,
     type_param: &ParsedGenericParam,
@@ -696,7 +691,7 @@ fn generate_dispatch_arms_for_trait(
             generate_numeric_dispatch_arms(sig, &type_param.ident),
             "Numeric (Int or Float)",
         ),
-        other => panic!("Unsupported trait: {}", other),
+        other => panic!("Unsupported trait: {other}"),
     }
 }
 
@@ -706,15 +701,15 @@ fn generate_numeric_dispatch_arms(sig: &ParsedSignature, type_var: &syn::Ident) 
         sig,
         type_var,
         "Int",
-        quote!(i64),
-        quote!(__ctx.type_mgr().int()),
+        &quote!(i64),
+        &quote!(__ctx.type_mgr().int()),
     );
     let float_arm = generate_dispatch_arm(
         sig,
         type_var,
         "Float",
-        quote!(f64),
-        quote!(__ctx.type_mgr().float()),
+        &quote!(f64),
+        &quote!(__ctx.type_mgr().float()),
     );
 
     quote! {
@@ -728,8 +723,8 @@ fn generate_dispatch_arm(
     sig: &ParsedSignature,
     type_var: &syn::Ident,
     _type_name: &str,
-    rust_type: TokenStream2,
-    type_constructor: TokenStream2,
+    rust_type: &TokenStream2,
+    type_constructor: &TokenStream2,
 ) -> TokenStream2 {
     let fn_name = &sig.fn_name;
     let ok_ty = &sig.ok_return_type;

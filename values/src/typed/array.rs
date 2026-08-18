@@ -28,9 +28,8 @@ use core::marker::PhantomData;
 
 use melbi_types::{Ty, TyKind};
 
-use crate::traits::{ArrayView, RawValue, Val, ValueBuilder};
-
 use super::Marshal;
+use crate::traits::{ArrayView, RawValue, Val, ValueBuilder};
 
 /// A statically-typed array view.
 ///
@@ -48,7 +47,7 @@ pub struct Array<B: ValueBuilder, E> {
 
 impl<B: ValueBuilder, E> Clone for Array<B, E> {
     fn clone(&self) -> Self {
-        Array {
+        Self {
             handle: self.handle.clone(),
             _marker: PhantomData,
         }
@@ -79,7 +78,7 @@ impl<B: ValueBuilder, E: Marshal<B>> Array<B, E> {
     ) -> Self {
         let handles = elements.into_iter().map(|e| e.into_val_handle(builder));
         let handle = builder.alloc_array(handles);
-        Array {
+        Self {
             handle,
             _marker: PhantomData,
         }
@@ -117,13 +116,13 @@ impl<B: ValueBuilder, E: Marshal<B>> Marshal<B> for Array<B, E> {
 
     fn matches_ty_kind(kind: &TyKind<B::TB>) -> bool {
         match kind {
-            TyKind::Array(elem_ty) => E::matches_ty_kind(&elem_ty.kind()),
+            TyKind::Array(elem_ty) => E::matches_ty_kind(elem_ty.kind()),
             _ => false,
         }
     }
 
     fn from_val_unchecked(val: &Val<B>) -> Self {
-        Array {
+        Self {
             handle: val.as_array_unchecked().clone(),
             _marker: PhantomData,
         }

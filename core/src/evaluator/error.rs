@@ -20,10 +20,8 @@
 use alloc::string::ToString;
 use core::fmt;
 
-use crate::String;
-use crate::format;
 use crate::parser::Span;
-use crate::vec;
+use crate::{String, format, vec};
 
 /// Execution error.
 #[derive(Debug)]
@@ -34,7 +32,7 @@ pub struct ExecutionError {
 }
 
 /// Variants of execution error.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ExecutionErrorKind {
     /// Runtime error that can be caught by the `otherwise` operator.
     Runtime(RuntimeError),
@@ -51,12 +49,12 @@ pub enum ExecutionErrorKind {
 /// These represent validation/logic errors during expression evaluation
 /// that are part of normal program flow and can be recovered from using
 /// the `otherwise` operator.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RuntimeError {
     /// Division by zero (integer or float division).
     DivisionByZero {},
 
-    /// Integer overflow (e.g., i64::MIN / -1).
+    /// Integer overflow (e.g., `i64::MIN` / -1).
     IntegerOverflow {},
 
     /// Array index out of bounds.
@@ -77,7 +75,7 @@ pub enum RuntimeError {
 /// These represent fatal resource exhaustion that terminates evaluation.
 /// The `otherwise` operator does not catch these errors to prevent hiding
 /// serious resource issues like stack overflow.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ResourceExceededError {
     /// Evaluation recursion depth exceeded.
     StackOverflow { depth: usize, max_depth: usize },
@@ -93,7 +91,7 @@ pub enum ResourceExceededError {
 /// prevent masking serious compiler bugs that need to be reported and fixed.
 ///
 /// If you encounter these errors, please report them as bugs.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum InternalError {
     /// Internal invariant violation (indicates a bug in the type checker or evaluator).
     ///
@@ -119,17 +117,17 @@ impl ExecutionError {
                 vec!["The operation would overflow the integer range".to_string()],
             ),
             ExecutionErrorKind::Runtime(RuntimeError::IndexOutOfBounds { index, len }) => (
-                format!("Index {} out of bounds (length: {})", index, len),
+                format!("Index {index} out of bounds (length: {len})"),
                 Some("R002"),
                 vec!["Ensure index is within valid range [0, length)".to_string()],
             ),
             ExecutionErrorKind::Runtime(RuntimeError::KeyNotFound { key_display }) => (
-                format!("Key not found: {}", key_display),
+                format!("Key not found: {key_display}"),
                 Some("R003"),
                 vec!["Use 'otherwise' to provide a fallback value for missing keys".to_string()],
             ),
             ExecutionErrorKind::Runtime(RuntimeError::CastError { message }) => (
-                format!("Cast error: {}", message),
+                format!("Cast error: {message}"),
                 Some("R004"),
                 vec!["Verify the value can be safely converted to the target type".to_string()],
             ),
@@ -137,15 +135,12 @@ impl ExecutionError {
                 depth,
                 max_depth,
             }) => (
-                format!(
-                    "Stack overflow: depth {} exceeds maximum of {}",
-                    depth, max_depth
-                ),
+                format!("Stack overflow: depth {depth} exceeds maximum of {max_depth}"),
                 Some("R005"),
                 vec!["Reduce recursion depth or increase stack limit".to_string()],
             ),
             ExecutionErrorKind::Internal(InternalError::InvariantViolation { message }) => (
-                format!("Internal error: {}", message),
+                format!("Internal error: {message}"),
                 Some("R006"),
                 vec!["This is a bug in the compiler/interpreter - please report it".to_string()],
             ),
@@ -157,7 +152,7 @@ impl ExecutionError {
             span: self.span.clone(),
             related: crate::Vec::new(),
             help,
-            code: code.map(|s| String::from(s)),
+            code: code.map(String::from),
         }
     }
 }
@@ -171,9 +166,9 @@ impl fmt::Display for ExecutionError {
 impl fmt::Display for ExecutionErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ExecutionErrorKind::Runtime(e) => write!(f, "{}", e),
-            ExecutionErrorKind::ResourceExceeded(e) => write!(f, "{}", e),
-            ExecutionErrorKind::Internal(e) => write!(f, "{}", e),
+            Self::Runtime(e) => write!(f, "{e}"),
+            Self::ResourceExceeded(e) => write!(f, "{e}"),
+            Self::Internal(e) => write!(f, "{e}"),
         }
     }
 }
@@ -181,20 +176,20 @@ impl fmt::Display for ExecutionErrorKind {
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeError::DivisionByZero {} => {
+            Self::DivisionByZero {} => {
                 write!(f, "Division by zero")
             }
-            RuntimeError::IntegerOverflow {} => {
+            Self::IntegerOverflow {} => {
                 write!(f, "Integer overflow")
             }
-            RuntimeError::IndexOutOfBounds { index, len } => {
-                write!(f, "Index {} out of bounds (length: {})", index, len)
+            Self::IndexOutOfBounds { index, len } => {
+                write!(f, "Index {index} out of bounds (length: {len})")
             }
-            RuntimeError::KeyNotFound { key_display } => {
-                write!(f, "Key not found: {}", key_display)
+            Self::KeyNotFound { key_display } => {
+                write!(f, "Key not found: {key_display}")
             }
-            RuntimeError::CastError { message } => {
-                write!(f, "Cast error: {}", message)
+            Self::CastError { message } => {
+                write!(f, "Cast error: {message}")
             }
         }
     }
@@ -203,11 +198,10 @@ impl fmt::Display for RuntimeError {
 impl fmt::Display for ResourceExceededError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ResourceExceededError::StackOverflow { depth, max_depth } => {
+            Self::StackOverflow { depth, max_depth } => {
                 write!(
                     f,
-                    "Evaluation stack overflow: depth {} exceeds maximum of {}",
-                    depth, max_depth
+                    "Evaluation stack overflow: depth {depth} exceeds maximum of {max_depth}"
                 )
             }
         }
@@ -217,8 +211,8 @@ impl fmt::Display for ResourceExceededError {
 impl fmt::Display for InternalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InternalError::InvariantViolation { message } => {
-                write!(f, "Internal error: {}", message)
+            Self::InvariantViolation { message } => {
+                write!(f, "Internal error: {message}")
             }
         }
     }
@@ -256,7 +250,7 @@ impl From<crate::casting::CastError> for ExecutionErrorKind {
     fn from(e: crate::casting::CastError) -> Self {
         // Convert CastError to RuntimeError::CastError for uniform error handling
         Self::Runtime(RuntimeError::CastError {
-            message: alloc::format!("{}", e),
+            message: alloc::format!("{e}"),
         })
     }
 }

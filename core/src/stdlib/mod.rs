@@ -11,9 +11,10 @@
 //! Packages are built using native Rust functions (FFI) and registered in the
 //! global environment before user code executes.
 
+use bumpalo::Bump;
+
 use crate::types::manager::TypeManager;
 use crate::values::binder::Binder;
-use bumpalo::Bump;
 
 pub mod array;
 pub mod int;
@@ -47,11 +48,7 @@ pub use string::{register_string_functions, register_string_package};
 ///
 /// Panics if there are duplicate bindings within a package. This indicates a bug
 /// in the stdlib implementation (e.g., two functions with the same name).
-pub fn register_stdlib<'a, B>(
-    arena: &'a Bump,
-    type_mgr: &'a TypeManager<'a>,
-    env: B,
-) -> B
+pub fn register_stdlib<'a, B>(arena: &'a Bump, type_mgr: &'a TypeManager<'a>, env: B) -> B
 where
     B: Binder<'a, 'a>,
 {
@@ -73,7 +70,7 @@ mod tests {
     use crate::api::{CompileOptionsOverride, Engine, EngineOptions};
 
     #[test]
-    fn test_register_stdlib() {
+    fn register_stdlib_works() {
         // Test that register_stdlib successfully registers all packages
         let options = EngineOptions::default();
         let arena = Bump::new();
@@ -105,7 +102,7 @@ mod tests {
     }
 
     #[test]
-    fn test_register_stdlib_both_packages_work_together() {
+    fn register_stdlib_both_packages_work_together() {
         // Test that both packages can be used in the same expression
         let options = EngineOptions::default();
         let arena = Bump::new();

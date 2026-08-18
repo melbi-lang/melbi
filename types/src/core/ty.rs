@@ -43,7 +43,7 @@ impl<B: TyBuilder> Eq for Ty<B> {}
 
 impl<B: TyBuilder> hash::Hash for Ty<B> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        B::ty_hash(self, state)
+        B::ty_hash(self, state);
     }
 }
 
@@ -101,8 +101,8 @@ impl<B: TyBuilder> TyNode<B> {
     }
 }
 
-impl<B: TyBuilder> AsRef<TyNode<B>> for TyNode<B> {
-    fn as_ref(&self) -> &TyNode<B> {
+impl<B: TyBuilder> AsRef<Self> for TyNode<B> {
+    fn as_ref(&self) -> &Self {
         self
     }
 }
@@ -133,7 +133,7 @@ impl<B: TyBuilder> Eq for Ident<B> {}
 
 impl<B: TyBuilder> hash::Hash for Ident<B> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        B::ident_hash(self, state)
+        B::ident_hash(self, state);
     }
 }
 

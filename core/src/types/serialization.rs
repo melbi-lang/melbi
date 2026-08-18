@@ -2,8 +2,9 @@ use postcard::to_allocvec;
 use serde::Deserialize as _;
 use serde::de::{DeserializeSeed, Deserializer, EnumAccess, VariantAccess, Visitor};
 
+use crate::types::Type;
 use crate::types::manager::TypeManager;
-use crate::{Vec, format, types::Type};
+use crate::{Vec, format};
 
 impl<'de, 's, 'a> DeserializeSeed<'de> for &'s TypeManager<'a>
 where
@@ -98,8 +99,7 @@ where
                 variant.newtype_variant_seed(SymbolPartsSeed { mgr: self.mgr })
             }
             _ => Err(Error::custom(format!(
-                "unknown Type variant: {}",
-                discriminant
+                "unknown Type variant: {discriminant}"
             ))),
         }
     }
@@ -207,7 +207,7 @@ where
             fields.push((s, t));
         }
 
-        let result = self.mgr.record(fields);
+        let result = self.mgr.record(&fields);
         Ok(result)
     }
 }
@@ -278,8 +278,9 @@ where
     where
         A: serde::de::SeqAccess<'de>,
     {
-        use crate::Vec;
         use serde::de::Error;
+
+        use crate::Vec;
 
         // Deserialize params as Vec
         let params_vec: Vec<&'a Type<'a>> = seq
@@ -361,7 +362,7 @@ where
         D: Deserializer<'de>,
     {
         let parts = deserializer.deserialize_seq(SymbolPartsVisitor)?;
-        Ok(self.mgr.symbol(parts))
+        Ok(self.mgr.symbol(&parts))
     }
 }
 
