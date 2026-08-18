@@ -28,10 +28,9 @@ use core::cell::Cell;
 
 use pest::Parser as _;
 use pest::iterators::{Pair, Pairs};
-use pest::pratt_parser::PrattParser;
 
 use super::error::{ParseError, ParseErrorKind};
-use super::grammar::{ExpressionParser, Rule, pattern_pratt_parser, pratt_parser};
+use super::grammar::{ExpressionParser, PATTERN_PRATT_PARSER, PRATT_PARSER, Rule};
 use crate::ast::parsed::{
     Binding, BindingKind, Data, Expr, ExprKind, LiteralKind, MapEntry, MapEntryKind, MatchArm,
     MatchArmKind, Pattern, PatternKind, TypeExpr, TypeExprKind, TypeField, TypeFieldKind,
@@ -91,8 +90,6 @@ pub fn parse_with_options<B: TreeBuilder>(
 /// The state threaded through the walk.
 struct ParseContext<'builder, B: TreeBuilder> {
     builder: &'builder B,
-    pratt: PrattParser<Rule>,
-    pattern_pratt: PrattParser<Rule>,
     /// How many levels of [`parse_expr`](Self::parse_expr) are currently on the
     /// stack. A `Cell` because the walk takes `&self` throughout.
     depth: Cell<usize>,
@@ -103,8 +100,6 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
     fn new(builder: &'builder B, options: ParseOptions) -> Self {
         Self {
             builder,
-            pratt: pratt_parser(),
-            pattern_pratt: pattern_pratt_parser(),
             depth: Cell::new(0),
             max_depth: options.max_depth,
         }
@@ -272,7 +267,7 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
         let inner = pair.into_inner();
         self.charge_prefix_run(&inner, is_expression_prefix)?;
 
-        self.pratt
+        PRATT_PARSER
             .map_primary(|primary| {
                 // The extent is taken from the *pair*, so a `grouped` primary
                 // reports its parentheses even though the tree it builds does
@@ -617,8 +612,7 @@ impl<'builder, B: TreeBuilder> ParseContext<'builder, B> {
             return Err(error);
         }
 
-        let result = self
-            .pattern_pratt
+        let result = PATTERN_PRATT_PARSER
             .map_primary(|primary| {
                 // As for expressions: a `pattern_grouped` primary reports its
                 // brackets even though the tree it builds does not.
