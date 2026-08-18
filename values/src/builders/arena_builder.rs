@@ -26,15 +26,22 @@ pub union ArenaRaw<'arena> {
     int: i64,
     bool: bool,
     float: f64,
-    // TODO: This is wrong. The elements of the array should not be borrowed.
-    array: ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>,
+    // Elements are stored inline: the allocation holds the `Val`s themselves
+    // (one word each, since `Val<ArenaValueBuilder>` *is* an `ArenaRaw`), not
+    // references to separately allocated ones.
+    array: ThinRef<'arena, [Val<ArenaValueBuilder<'arena>>]>,
 }
 
-// 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data).
-// Only asserted on architectures where we care about this layout guarantee
-// (e.g., wasm32 has different pointer sizes and is excluded intentionally).
-#[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+// 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data),
+// and the widest field (`i64`/`f64`) is 8 bytes too. Only asserted where a word is
+// 8 bytes; on 32-bit targets the `i64`/`f64` fields make this two words, which is
+// still correct, just not what the equation below says.
+#[cfg(target_pointer_width = "64")]
 static_assertions::assert_eq_size!(ArenaRaw<'static>, usize);
+
+// An array element is therefore one word too — no pointer indirection per element.
+#[cfg(target_pointer_width = "64")]
+static_assertions::assert_eq_size!(Val<ArenaValueBuilder<'static>>, usize);
 
 // Union can't derive Copy/Clone — implement manually.
 // SAFETY: All fields are Copy types, so bitwise copy is always valid
@@ -58,7 +65,7 @@ impl fmt::Debug for ArenaRaw<'_> {
     reason = "Union field access requires unsafe; each use has a SAFETY comment."
 )]
 impl<'arena> RawValue for ArenaRaw<'arena> {
-    type ArrayHandle = ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>;
+    type ArrayHandle = ThinRef<'arena, [Val<ArenaValueBuilder<'arena>>]>;
 
     fn from_int(value: i64) -> Self {
         ArenaRaw { int: value }
@@ -104,7 +111,7 @@ impl<'arena> RawValue for ArenaRaw<'arena> {
 /// Value builder that uses arena allocation.
 ///
 /// Values are allocated in a [`Bump`] arena — no reference counting needed.
-/// Handles are plain references (`&'arena`), making them `Copy`.
+/// Handles are thin arena pointers, making them `Copy`.
 ///
 /// Mirrors [`ArenaBuilder`] from the types crate.
 ///
@@ -140,20 +147,15 @@ impl<'arena> ArenaValueBuilder<'arena> {
 impl<'arena> ValueBuilder for ArenaValueBuilder<'arena> {
     type TB = ArenaBuilder<'arena>;
     type Raw = ArenaRaw<'arena>;
-    type ValHandle = &'arena Val<Self>;
-    type ArrayHandle = ThinRef<'arena, [Self::ValHandle]>;
+    type ArrayHandle = ThinRef<'arena, [Val<Self>]>;
 
     fn ty_builder(&self) -> &ArenaBuilder<'arena> {
         &self.type_builder
     }
 
-    fn alloc_val(&self, raw: ArenaRaw<'arena>) -> Self::ValHandle {
-        self.arena.alloc(Val::new(raw))
-    }
-
     fn alloc_array(
         &self,
-        elements: impl IntoIterator<Item = Self::ValHandle, IntoIter: ExactSizeIterator>,
+        elements: impl IntoIterator<Item = Val<Self>, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle {
         ThinRef::from_slice(self.arena, elements)
     }

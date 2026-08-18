@@ -10,8 +10,19 @@
 //! - Prevents invalid states (heterogeneous arrays are impossible)
 //!
 //! The type is only stored at the outermost level in [`Value`]. When values are
-//! stored in collections, only the raw handles are kept. The type is re-attached
-//! when elements are accessed.
+//! stored in collections, only the raw [`Val`] storage is kept. The type is
+//! re-attached when elements are accessed.
+//!
+//! # Storage is inline, never borrowed
+//!
+//! A [`Val`] is the storage cell for a single value: a small, cheaply cloned bag
+//! of bytes (one storage cell — a single word on 64-bit targets — for the arena
+//! builder). Collections hold their elements *inline* as `[Val<B>]`, so an
+//! `Array[Int]` with three elements is one allocation of three cells — not three
+//! separate allocations plus a slice of pointers to them. [`Value`] holds its
+//! `Val` inline for the same reason, so a scalar needs no value-storage
+//! allocation at all (its [`Ty`](melbi_types::Ty) is still built by the type
+//! builder).
 //!
 //! # No Footguns
 //!
@@ -39,7 +50,7 @@ use melbi_types::TyBuilder;
 /// The accessor methods are unchecked — the caller must verify the type first
 /// (via [`Value`]'s type field) before calling these.
 pub trait RawValue: Clone + Debug {
-    /// The handle type for arrays of value handles.
+    /// The handle type for arrays of values.
     type ArrayHandle;
 
     // --- Constructors ---
@@ -97,13 +108,10 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     /// - For `ArenaValueBuilder`: a union (`ArenaRaw`) where the arena handles cleanup
     type Raw: RawValue<ArrayHandle = Self::ArrayHandle>;
 
-    /// Handle to allocated raw value storage.
-    /// Examples: `Rc<Val<Self>>`, `&'a Val<Self>`.
-    type ValHandle: AsRef<Val<Self>> + Clone + Debug;
-
-    /// Handle to an array of value handles (no per-element types).
-    /// Examples: `Rc<[Self::ValHandle]>`, `&'a [Self::ValHandle]`.
-    type ArrayHandle: AsRef<[Self::ValHandle]> + Clone + Debug;
+    /// Handle to an array of values, stored inline (no per-element types and no
+    /// per-element indirection).
+    /// Examples: `Rc<[Val<Self>]>`, `ThinRef<'a, [Val<Self>]>`.
+    type ArrayHandle: AsRef<[Val<Self>]> + Clone + Debug;
 
     // TODO: StringHandle, BytesHandle, MapHandle, RecordHandle, etc.
     //
@@ -115,54 +123,61 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     /// Get the type builder.
     fn ty_builder(&self) -> &Self::TB;
 
-    /// Internal: Allocate a raw value and return a handle to it.
+    /// Internal: Allocate storage for an array of values.
     ///
-    /// This is the core allocation method. The convenience methods (`alloc_int`,
-    /// `alloc_bool`, etc.) delegate to this by default.
-    fn alloc_val(&self, raw: Self::Raw) -> Self::ValHandle;
-
-    /// Internal: Allocate storage for an array of value handles.
-    ///
-    /// Returns an `ArrayHandle`, not a `ValueHandle`. To create a full array value,
-    /// use [`Value::array()`] which calls this internally.
+    /// The elements are stored inline in the returned handle. To create a full
+    /// array value, use [`Value::array()`] which calls this internally.
     fn alloc_array(
         &self,
-        elements: impl IntoIterator<Item = Self::ValHandle, IntoIter: ExactSizeIterator>,
+        elements: impl IntoIterator<Item = Val<Self>, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle;
-
-    /// Internal: Allocate storage for an integer value.
-    fn alloc_int(&self, value: i64) -> Self::ValHandle {
-        self.alloc_val(Self::Raw::from_int(value))
-    }
-
-    /// Internal: Allocate storage for a boolean value.
-    fn alloc_bool(&self, value: bool) -> Self::ValHandle {
-        self.alloc_val(Self::Raw::from_bool(value))
-    }
-
-    /// Internal: Allocate storage for a float value.
-    fn alloc_float(&self, value: f64) -> Self::ValHandle {
-        self.alloc_val(Self::Raw::from_float(value))
-    }
 }
 
 // =============================================================================
 // Val - Internal raw value storage
 // =============================================================================
 
-/// Internal: Raw value storage (what [`ValHandle`](ValueBuilder::ValHandle) points to).
+/// Internal: Raw storage for a single value.
 ///
 /// Contains only raw data, no type information. The type is tracked externally
 /// via [`Value`]. Users never interact with `Val` directly.
+///
+/// `Val` is what collections store, so it is deliberately small and stored
+/// inline: `[Val<B>]` for arrays, and the payload of [`Value`] itself.
 #[derive(Debug, Clone)]
 pub struct Val<B: ValueBuilder> {
     raw: B::Raw,
 }
 
+// Copy when the raw storage is Copy (e.g., `ArenaRaw`, where the arena owns the
+// data and nothing needs cleanup).
+impl<B: ValueBuilder> Copy for Val<B> where B::Raw: Copy {}
+
 impl<B: ValueBuilder> Val<B> {
     /// Internal: Create a new Val from raw data.
-    pub(crate) fn new(raw: B::Raw) -> Self {
+    fn new(raw: B::Raw) -> Self {
         Self { raw }
+    }
+
+    /// Internal: Storage for an integer value.
+    pub(crate) fn int(value: i64) -> Self {
+        Self::new(B::Raw::from_int(value))
+    }
+
+    /// Internal: Storage for a boolean value.
+    pub(crate) fn bool(value: bool) -> Self {
+        Self::new(B::Raw::from_bool(value))
+    }
+
+    /// Internal: Storage for a float value.
+    pub(crate) fn float(value: f64) -> Self {
+        Self::new(B::Raw::from_float(value))
+    }
+
+    /// Internal: Storage for an array value, from a handle built by
+    /// [`ValueBuilder::alloc_array`].
+    pub(crate) fn array(handle: B::ArrayHandle) -> Self {
+        Self::new(B::Raw::from_array(handle))
     }
 
     /// Internal: Access the raw integer. Only valid when the type is `Int`.
@@ -183,11 +198,5 @@ impl<B: ValueBuilder> Val<B> {
     /// Internal: Access the raw array handle. Only valid when the type is `Array[T]`.
     pub(crate) fn as_array_unchecked(&self) -> &B::ArrayHandle {
         self.raw.as_array_unchecked()
-    }
-}
-
-impl<B: ValueBuilder> AsRef<Self> for Val<B> {
-    fn as_ref(&self) -> &Self {
-        self
     }
 }

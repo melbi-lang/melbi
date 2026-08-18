@@ -40,14 +40,17 @@ pub trait Marshal<B: ValueBuilder>: Sized {
     /// `matches_ty_kind`). Calling this on a mismatched type is a logic error.
     fn from_val_unchecked(val: &Val<B>) -> Self;
 
-    /// Allocate this value in the builder and return a handle.
-    fn into_val_handle(self, builder: &B) -> B::ValHandle;
+    /// Move this value into the builder's raw storage.
+    ///
+    /// The `builder` is needed by types that own an allocation (strings, maps,
+    /// arrays built from a Rust collection); scalars ignore it.
+    fn into_val(self, builder: &B) -> Val<B>;
 
     /// Convert this Rust value into a dynamic [`Value`].
     fn into_value(self, builder: &B) -> Value<B> {
         let ty = Self::ty(builder.ty_builder());
-        let handle = self.into_val_handle(builder);
-        Value::new(ty, handle)
+        let val = self.into_val(builder);
+        Value::new(ty, val)
     }
 
     /// Try to extract this Rust type from a dynamic [`Value`].
@@ -79,8 +82,8 @@ impl<B: ValueBuilder> Marshal<B> for i64 {
         val.as_int_unchecked()
     }
 
-    fn into_val_handle(self, builder: &B) -> B::ValHandle {
-        builder.alloc_int(self)
+    fn into_val(self, _builder: &B) -> Val<B> {
+        Val::int(self)
     }
 }
 
@@ -97,8 +100,8 @@ impl<B: ValueBuilder> Marshal<B> for bool {
         val.as_bool_unchecked()
     }
 
-    fn into_val_handle(self, builder: &B) -> B::ValHandle {
-        builder.alloc_bool(self)
+    fn into_val(self, _builder: &B) -> Val<B> {
+        Val::bool(self)
     }
 }
 
@@ -115,7 +118,7 @@ impl<B: ValueBuilder> Marshal<B> for f64 {
         val.as_float_unchecked()
     }
 
-    fn into_val_handle(self, builder: &B) -> B::ValHandle {
-        builder.alloc_float(self)
+    fn into_val(self, _builder: &B) -> Val<B> {
+        Val::float(self)
     }
 }

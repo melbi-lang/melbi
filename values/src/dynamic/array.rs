@@ -28,17 +28,17 @@ impl<B: ValueBuilder> ArrayView<Value<B>> for Array<B> {
     }
 
     fn get(&self, index: usize) -> Option<Value<B>> {
-        let elem_handle = self.handle.as_ref().get(index)?;
+        let val = self.handle.as_ref().get(index)?;
         // element_ty is cloned per access: free for arena (Copy) but involves
         // Rc ref-count bumps for box builders. Intentional trade-off to store
         // the type once and re-attach per element.
-        Some(Value::new(self.element_ty.clone(), elem_handle.clone()))
+        Some(Value::new(self.element_ty.clone(), val.clone()))
     }
 
     fn iter(&self) -> impl Iterator<Item = Value<B>> + '_ {
         self.handle
             .as_ref()
             .iter()
-            .map(|h| Value::new(self.element_ty.clone(), h.clone()))
+            .map(|val| Value::new(self.element_ty.clone(), val.clone()))
     }
 }

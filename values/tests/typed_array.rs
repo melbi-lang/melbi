@@ -7,7 +7,7 @@ use bumpalo::Bump;
 use melbi_types::ty;
 use melbi_values::builders::{ArenaValueBuilder, BoxValueBuilder};
 use melbi_values::dynamic::Value;
-use melbi_values::traits::{ArrayView, ValueBuilder, ValueView};
+use melbi_values::traits::{ArrayView, Val, ValueBuilder, ValueView};
 use melbi_values::typed::{Array, Marshal};
 
 /// Generates `#[test]` wrappers that run a generic test function against both
@@ -302,4 +302,65 @@ fn arena_nested_array_is_copy() {
     let outer2 = outer;
     assert_eq!(outer.get(0).unwrap().get(0), Some(1));
     assert_eq!(outer2.get(0).unwrap().get(0), Some(1));
+}
+
+// =============================================================================
+// Storage layout — elements live inline, not behind a per-element reference
+// =============================================================================
+
+// An array element is a `Val`, which for the arena builder is one word on 64-bit
+// targets. The byte-count tests below spell out their expectations in words, so
+// they carry the same gate: on a 32-bit target a `Val` is still two words (it
+// holds an `i64`/`f64`) and the equations would not hold even though the layout
+// is correct.
+#[cfg(target_pointer_width = "64")]
+static_assertions::assert_eq_size!(Val<ArenaValueBuilder<'static>>, usize);
+
+/// Bytes the arena has handed out so far.
+///
+/// `Bump::allocated_bytes` counts the capacity of the chunks it has claimed, not
+/// the bytes it has handed out, so subtract what is still free in the current
+/// chunk. Exact as long as no new chunk is started — true for a fresh arena and
+/// allocations this small; a chunk switch would also count the abandoned tail of
+/// the previous chunk.
+#[cfg(target_pointer_width = "64")]
+fn arena_bytes_used(arena: &Bump) -> usize {
+    arena.allocated_bytes() - arena.chunk_capacity()
+}
+
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn arena_array_stores_elements_inline() {
+    let arena = Bump::new();
+    let b = ArenaValueBuilder::new(&arena);
+
+    let before = arena_bytes_used(&arena);
+    let arr = Array::<_, i64>::new(&b, vec![1i64, 2, 3]);
+    let used = arena_bytes_used(&arena) - before;
+
+    // One allocation: the inline length plus the three inline elements.
+    // With elements allocated separately and referenced, this would instead be
+    // 4 words for the slice of references plus 3 words for the elements.
+    assert_eq!(used, size_of::<usize>() * 4);
+
+    assert_eq!(arr.get(0), Some(1));
+    assert_eq!(arr.get(2), Some(3));
+}
+
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn arena_nested_array_stores_elements_inline() {
+    let arena = Bump::new();
+    let b = ArenaValueBuilder::new(&arena);
+    let inner = Array::<_, i64>::new(&b, vec![1i64, 2]);
+
+    let before = arena_bytes_used(&arena);
+    let outer = Array::<_, Array<_, i64>>::new(&b, vec![inner]);
+    let used = arena_bytes_used(&arena) - before;
+
+    // The outer array stores the inner array's one-word handle inline:
+    // one word of length plus one word of element.
+    assert_eq!(used, size_of::<usize>() * 2);
+
+    assert_eq!(outer.get(0).unwrap().get(1), Some(2));
 }
