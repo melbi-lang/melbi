@@ -26,7 +26,8 @@ pub union ArenaRaw<'arena> {
     int: i64,
     bool: bool,
     float: f64,
-    array: ThinRef<'arena, [Val<ArenaValueBuilder<'arena>>]>,
+    // TODO: This is wrong. The elements of the array should not be borrowed.
+    array: ThinRef<'arena, [&'arena Val<ArenaValueBuilder<'arena>>]>,
 }
 
 // 8 bytes on 64-bit: ThinRef is pointer-sized (length stored inline before data).
