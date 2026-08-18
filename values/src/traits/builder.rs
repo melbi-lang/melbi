@@ -106,6 +106,11 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     type ArrayHandle: AsRef<[Self::ValHandle]> + Clone + Debug;
 
     // TODO: StringHandle, BytesHandle, MapHandle, RecordHandle, etc.
+    //
+    // `MapHandle` is the one with a design behind it: a map has to compare keys,
+    // and the values it stores carry no type, so the key type has to reach the
+    // comparison from somewhere. See `docs/design/maps.md` — it also covers why
+    // this cannot work the way `core/src/values/dynamic.rs` does.
 
     /// Get the type builder.
     fn ty_builder(&self) -> &Self::TB;

@@ -25,6 +25,6 @@ pub trait ValueView<VB: ValueBuilder>: Sized {
     /// Returns an array view, or `None` if not an `Array`.
     fn as_array(&self) -> Option<impl ArrayView<Value<VB>>>;
 
-    // TODO: fn as_map(&self) -> Option<...>;
+    // TODO: fn as_map(&self) -> Option<...>;  // see `docs/design/maps.md`
     // TODO: fn as_string(&self) -> Option<...>;
 }
