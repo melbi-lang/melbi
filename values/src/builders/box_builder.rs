@@ -18,7 +18,9 @@ pub enum BoxRaw {
     Int(i64),
     Bool(bool),
     Float(f64),
-    Array(Rc<[Rc<Val<BoxValueBuilder>>]>),
+    // Elements are stored inline in the `Rc` allocation, not as a slice of
+    // pointers to individually allocated elements.
+    Array(Rc<[Val<BoxValueBuilder>]>),
 }
 static_assertions::assert_eq_size!(BoxRaw, [usize; 3]);
 
@@ -34,7 +36,7 @@ impl fmt::Debug for BoxRaw {
 }
 
 impl RawValue for BoxRaw {
-    type ArrayHandle = Rc<[Rc<Val<BoxValueBuilder>>]>;
+    type ArrayHandle = Rc<[Val<BoxValueBuilder>]>;
 
     fn from_int(value: i64) -> Self {
         Self::Int(value)
@@ -127,20 +129,15 @@ impl Default for BoxValueBuilder {
 impl ValueBuilder for BoxValueBuilder {
     type TB = BoxBuilder;
     type Raw = BoxRaw;
-    type ValHandle = Rc<Val<Self>>;
-    type ArrayHandle = Rc<[Self::ValHandle]>;
+    type ArrayHandle = Rc<[Val<Self>]>;
 
     fn ty_builder(&self) -> &BoxBuilder {
         &self.type_builder
     }
 
-    fn alloc_val(&self, raw: BoxRaw) -> Self::ValHandle {
-        Rc::new(Val::new(raw))
-    }
-
     fn alloc_array(
         &self,
-        elements: impl IntoIterator<Item = Self::ValHandle, IntoIter: ExactSizeIterator>,
+        elements: impl IntoIterator<Item = Val<Self>, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle {
         elements.into_iter().collect()
     }

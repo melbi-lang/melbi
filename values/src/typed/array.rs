@@ -29,7 +29,7 @@ use core::marker::PhantomData;
 use melbi_types::{Ty, TyKind};
 
 use super::Marshal;
-use crate::traits::{ArrayView, RawValue, Val, ValueBuilder};
+use crate::traits::{ArrayView, Val, ValueBuilder};
 
 /// A statically-typed array view.
 ///
@@ -71,13 +71,13 @@ impl<B: ValueBuilder, E: Marshal<B>> Array<B, E> {
     /// Create a typed array from a list of elements.
     ///
     /// Each element is marshalled into the builder's storage via
-    /// [`Marshal::into_val_handle`].
+    /// [`Marshal::into_val`] and stored inline in the array.
     pub fn new(
         builder: &B,
         elements: impl IntoIterator<Item = E, IntoIter: ExactSizeIterator>,
     ) -> Self {
-        let handles = elements.into_iter().map(|e| e.into_val_handle(builder));
-        let handle = builder.alloc_array(handles);
+        let vals = elements.into_iter().map(|e| e.into_val(builder));
+        let handle = builder.alloc_array(vals);
         Self {
             handle,
             _marker: PhantomData,
@@ -95,15 +95,12 @@ impl<B: ValueBuilder, E: Marshal<B>> ArrayView<E> for Array<B, E> {
     }
 
     fn get(&self, index: usize) -> Option<E> {
-        let elem_handle = self.handle.as_ref().get(index)?;
-        Some(E::from_val_unchecked(elem_handle.as_ref()))
+        let val = self.handle.as_ref().get(index)?;
+        Some(E::from_val_unchecked(val))
     }
 
     fn iter(&self) -> impl Iterator<Item = E> + '_ {
-        self.handle
-            .as_ref()
-            .iter()
-            .map(|h| E::from_val_unchecked(h.as_ref()))
+        self.handle.as_ref().iter().map(E::from_val_unchecked)
     }
 }
 
@@ -128,7 +125,7 @@ impl<B: ValueBuilder, E: Marshal<B>> Marshal<B> for Array<B, E> {
         }
     }
 
-    fn into_val_handle(self, builder: &B) -> B::ValHandle {
-        builder.alloc_val(B::Raw::from_array(self.handle))
+    fn into_val(self, _builder: &B) -> Val<B> {
+        Val::array(self.handle)
     }
 }

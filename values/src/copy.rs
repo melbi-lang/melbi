@@ -30,7 +30,7 @@
 use melbi_types::{Scalar, Ty, TyBuilder, TyKind};
 
 use crate::dynamic::Value;
-use crate::traits::{ArrayView, RawValue, ValueBuilder, ValueView};
+use crate::traits::{ArrayView, Val, ValueBuilder, ValueView};
 
 /// Copy a type from one builder to another.
 ///
@@ -63,12 +63,10 @@ pub fn copy_value<Src: ValueBuilder, Dst: ValueBuilder>(
             let dst_elem_ty = copy_type(elem_ty, dst.ty_builder());
             let array = value.as_array().unwrap();
             // Stream elements directly through alloc_array (no Vec)
-            let handles =
-                (0..array.len()).map(|i| copy_value(&array.get(i).unwrap(), dst).into_handle());
-            let array_handle = dst.alloc_array(handles);
-            let val_handle = dst.alloc_val(Dst::Raw::from_array(array_handle));
+            let vals = (0..array.len()).map(|i| copy_value(&array.get(i).unwrap(), dst).into_val());
+            let array_handle = dst.alloc_array(vals);
             let ty = TyKind::Array(dst_elem_ty).alloc(dst.ty_builder());
-            Value::new(ty, val_handle)
+            Value::new(ty, Val::array(array_handle))
         }
         other => unimplemented!("value type not yet supported for copying: {other:?}"),
     }
