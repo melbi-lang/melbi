@@ -134,13 +134,13 @@ coverage-report compact='':
 [group('build')]
 build +args='--workspace':
     {{ MUTE }} {{ CARGO }} build {{ args }}
-    [ -f target/debug ] && ln -sfh debug target/latest-build
+    [ -d target/debug ] && ln -sfh debug target/latest-build
 
 [doc('Build release binaries optimized for size')]
 [group('build')]
 release +args='--workspace':
     {{ MUTE }} {{ CARGO_NIGHTLY }} -Zbuild-std-features=panic_immediate_abort build {{ args }} --bins --release
-    [ -f target/release ] && ln -sfh release target/latest-build
+    [ -d target/release ] && ln -sfh release target/latest-build
 
 [doc('Build documentation, treating warnings as errors')]
 [group('build')]
