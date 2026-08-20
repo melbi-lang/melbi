@@ -1,0 +1,17 @@
+---
+source: cli/tests/repl_test.rs
+expression: repl.screen().with_styles()
+---
+size: 52x7  cursor: 6,0
+Melbi REPL. Ctrl+D to exit; Ctrl+C to abort entry
+  > 1 + 2
+3
+  >
+
+Goodbye!
+
+
+styles:
+0: 12-48 dim
+1: 0-1 fg=10; 2-3 fg=14; 4 fg=6; 5-7 fg=7; 8 fg=6
+3: 0-1 fg=10; 2-3 fg=14

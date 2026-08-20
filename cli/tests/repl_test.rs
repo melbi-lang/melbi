@@ -1,102 +1,152 @@
-//! Integration tests for the `repl` command.
-//!
-//! These tests use rexpect to interact with the REPL.
-//!
-//! **NOTE**: These tests are currently ignored because reedline's terminal handling
-//! (cursor position queries, etc.) doesn't work well with rexpect's pseudo-terminal.
-//! The tests are kept here as documentation of intended REPL behavior and may be
-//! enabled if we find a way to make reedline work with rexpect, or if we switch
-//! to a different testing approach.
+//! Integration tests for the `repl` command using termlens.
 
 use std::time::Duration;
 
-use rexpect::spawn;
+use termlens::{Key, Terminal};
 
-const TIMEOUT: u64 = 5000; // 5 seconds
-
-fn spawn_repl() -> Result<rexpect::session::PtySession, rexpect::error::Error> {
+fn spawn_repl() -> Result<Terminal, termlens::Error> {
     let bin = env!("CARGO_BIN_EXE_melbi");
-    spawn(&format!("{bin} repl"), Some(TIMEOUT))
+    Terminal::builder()
+        .size(80, 24)
+        .env("TERM", "xterm-256color")
+        .timeout(Duration::from_secs(5))
+        .args(["repl"])
+        .spawn(bin)
 }
 
 #[test]
-#[ignore = "rexpect tests may not work in all environments"]
+fn validator_completeness() {
+    use melbi_cli::commands::repl::MelbiValidator;
+
+    // Complete expressions
+    assert!(!MelbiValidator::is_incomplete("1 + 2"));
+    assert!(!MelbiValidator::is_incomplete("if true then 1 else 2"));
+    assert!(!MelbiValidator::is_incomplete(
+        "1 + 1 where { a = 1, b = 2 }"
+    ));
+    assert!(!MelbiValidator::is_incomplete(""));
+
+    // Incomplete expressions requiring more input
+    assert!(MelbiValidator::is_incomplete("1 + 1 where {"));
+    assert!(MelbiValidator::is_incomplete("1 + 1 where {\n    a = 1,"));
+    assert!(MelbiValidator::is_incomplete("[1, 2,"));
+    assert!(MelbiValidator::is_incomplete("(\"hello"));
+}
+
+#[test]
+fn repl_multiline_where_expression() {
+    let mut repl = spawn_repl().expect("Failed to spawn REPL");
+    repl.resize(52, 10).expect("Failed to resize REPL");
+
+    repl.wait_until(|screen| screen.contains("Melbi REPL"))
+        .unwrap();
+
+    repl.send_str("1 + 1 where {").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.send_str("a = 1,").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.send_str("b = 2,").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.send_str("}").unwrap();
+    repl.send(Key::Enter).unwrap();
+
+    repl.wait_until(|screen| screen.contains("2")).unwrap();
+
+    repl.send(Key::Ctrl('d')).unwrap();
+    repl.wait_until(|screen| screen.contains("Goodbye"))
+        .unwrap();
+
+    insta::assert_snapshot!(repl.screen().with_styles());
+}
+
+#[test]
 fn repl_simple_expression() {
     let mut repl = spawn_repl().expect("Failed to spawn REPL");
+    repl.resize(52, 7).expect("Failed to resize REPL");
 
-    // Wait for prompt
-    repl.exp_string("Melbi REPL").unwrap();
+    repl.wait_until(|screen| screen.contains("Melbi REPL"))
+        .unwrap();
 
-    // Send expression
-    repl.send_line("1 + 2").unwrap();
+    repl.send_str("1 + 2").unwrap();
+    repl.send(Key::Enter).unwrap();
 
-    // Expect result
-    repl.exp_string("3").unwrap();
+    repl.wait_until(|screen| screen.contains("3")).unwrap();
 
-    // Exit
-    repl.send_control('d').unwrap();
-    repl.exp_string("Goodbye").unwrap();
+    repl.send(Key::Ctrl('d')).unwrap();
+    repl.wait_until(|screen| screen.contains("Goodbye"))
+        .unwrap();
+
+    insta::assert_snapshot!(repl.screen().with_styles());
 }
 
 #[test]
-#[ignore = "rexpect tests may not work in all environments"]
 fn repl_multiple_expressions() {
     let mut repl = spawn_repl().expect("Failed to spawn REPL");
 
-    repl.exp_string("Melbi REPL").unwrap();
+    repl.wait_until(|screen| screen.contains("Melbi REPL"))
+        .unwrap();
 
-    repl.send_line("10 * 5").unwrap();
-    repl.exp_string("50").unwrap();
+    repl.send_str("10 * 5").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.wait_until(|screen| screen.contains("50")).unwrap();
 
-    repl.send_line("true and false").unwrap();
-    repl.exp_string("false").unwrap();
+    repl.send_str("true and false").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.wait_until(|screen| screen.contains("false")).unwrap();
 
-    repl.send_control('d').unwrap();
+    repl.send(Key::Ctrl('d')).unwrap();
+    repl.wait_until(|screen| screen.contains("Goodbye"))
+        .unwrap();
 }
 
 #[test]
-#[ignore = "rexpect tests may not work in all environments"]
 fn repl_where_binding() {
     let mut repl = spawn_repl().expect("Failed to spawn REPL");
 
-    repl.exp_string("Melbi REPL").unwrap();
+    repl.wait_until(|screen| screen.contains("Melbi REPL"))
+        .unwrap();
 
-    repl.send_line("x + y where { x = 1, y = 2 }").unwrap();
-    repl.exp_string("3").unwrap();
+    repl.send_str("x + y where { x = 1, y = 2 }").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.wait_until(|screen| screen.contains("3")).unwrap();
 
-    repl.send_control('d').unwrap();
+    repl.send(Key::Ctrl('d')).unwrap();
 }
 
 #[test]
-#[ignore = "rexpect tests may not work in all environments"]
 fn repl_ctrl_c_aborts_entry() {
     let mut repl = spawn_repl().expect("Failed to spawn REPL");
 
-    repl.exp_string("Melbi REPL").unwrap();
+    repl.wait_until(|screen| screen.contains("Melbi REPL"))
+        .unwrap();
 
-    // Start typing something
-    repl.send("1 + ").unwrap();
-    // Allow time for partial input to be processed before sending abort signal
-    std::thread::sleep(Duration::from_millis(100));
+    repl.send_str("1 + ").unwrap();
+    repl.wait_until(|screen| screen.contains("1 +")).unwrap();
 
-    // Abort with Ctrl+C
-    repl.send_control('c').unwrap();
+    repl.send(Key::Ctrl('c')).unwrap();
+    repl.wait_until(|screen| screen.text().contains("  > 1 +\n  >"))
+        .unwrap();
 
-    // Should still be able to enter new expressions
-    repl.send_line("42").unwrap();
-    repl.exp_string("42").unwrap();
+    repl.send_str("42").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.wait_until(|screen| screen.contains("42")).unwrap();
 
-    repl.send_control('d').unwrap();
+    repl.send(Key::Ctrl('d')).unwrap();
 }
 
 #[test]
-#[ignore = "rexpect tests may not work in all environments"]
 fn repl_recovers_from_type_error() {
     let mut repl = spawn_repl().expect("Failed to spawn REPL");
-    repl.exp_string("Melbi REPL").unwrap();
-    repl.send_line("1 + true").unwrap();
-    repl.exp_string("Type").unwrap(); // Should show type error
-    repl.send_line("1 + 2").unwrap();
-    repl.exp_string("3").unwrap(); // Should recover
-    repl.send_control('d').unwrap();
+    repl.wait_until(|screen| screen.contains("Melbi REPL"))
+        .unwrap();
+
+    repl.send_str("1 + true").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.wait_until(|screen| screen.contains("Type")).unwrap();
+
+    repl.send_str("1 + 2").unwrap();
+    repl.send(Key::Enter).unwrap();
+    repl.wait_until(|screen| screen.contains("3")).unwrap();
+
+    repl.send(Key::Ctrl('d')).unwrap();
 }

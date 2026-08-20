@@ -1,13 +1,15 @@
 //! The `repl` command - interactive REPL.
 
+pub mod edit_mode;
 pub mod highlighter;
 pub mod lexer;
 
 use std::process::ExitCode;
+use std::sync::{Arc, Mutex};
 
 use bumpalo::Bump;
+use edit_mode::{BufferState, MelbiEditMode};
 use highlighter::Highlighter;
-use lexer::calculate_depth;
 use melbi_core::parser::{ExpressionParser, Rule};
 use melbi_core::types::manager::TypeManager;
 use nu_ansi_term::Style;
@@ -42,26 +44,42 @@ use crate::common::panic as panic_handler;
 ///
 /// To split a complete expression across multiple lines for readability,
 /// users can press `Alt + Enter` to insert a newline manually.
-struct MelbiValidator;
+pub struct MelbiValidator;
+
+impl MelbiValidator {
+    /// Returns `true` if the given input buffer is incomplete and expects more lines.
+    #[must_use]
+    pub fn is_incomplete(input: &str) -> bool {
+        if input.trim().is_empty() {
+            return false;
+        }
+
+        match ExpressionParser::parse(Rule::main, input) {
+            Ok(_) => false,
+            Err(e) => {
+                let pest::error::InputLocation::Pos(pos) = e.location else {
+                    return false;
+                };
+                if pos >= input.len() {
+                    true
+                } else if input[pos..].starts_with(['"', '\'']) {
+                    // Assume its an unterminated string literal.
+                    true
+                } else {
+                    // Syntax error within complete input
+                    false
+                }
+            }
+        }
+    }
+}
 
 impl reedline::Validator for MelbiValidator {
     fn validate(&self, input: &str) -> ValidationResult {
-        match ExpressionParser::parse(Rule::main, input) {
-            Ok(_) => ValidationResult::Complete,
-            Err(e) => {
-                let pest::error::InputLocation::Pos(pos) = e.location else {
-                    return ValidationResult::Complete;
-                };
-                if pos >= input.len() {
-                    ValidationResult::Incomplete
-                } else if input[pos..].starts_with(['"', '\'']) {
-                    // Assume its an unterminated string literal.
-                    ValidationResult::Incomplete
-                } else {
-                    // Assume it's complete, but contains a syntax error.
-                    ValidationResult::Complete
-                }
-            }
+        if Self::is_incomplete(input) {
+            ValidationResult::Incomplete
+        } else {
+            ValidationResult::Complete
         }
     }
 }
@@ -110,21 +128,13 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 
     let mut keybindings = default_emacs_keybindings();
     add_menu_keybindings(&mut keybindings);
-    keybindings.add_binding(
-        KeyModifiers::NONE,
-        KeyCode::Enter,
-        ReedlineEvent::Multiple(vec![
-            ReedlineEvent::Enter,
-            ReedlineEvent::ExecuteHostCommand("!indent".into()),
-        ]),
-    );
-    keybindings.add_binding(
-        KeyModifiers::NONE,
-        KeyCode::Char('}'),
-        ReedlineEvent::ExecuteHostCommand("!dedent".into()),
-    );
 
-    let edit_mode = Box::new(Emacs::new(keybindings));
+    let buffer_state = Arc::new(Mutex::new(BufferState::default()));
+
+    let edit_mode = Box::new(MelbiEditMode::new(
+        Emacs::new(keybindings),
+        Arc::clone(&buffer_state),
+    ));
 
     let history: Box<dyn reedline::History> = if let Some(h) = dirs::config_dir()
         .map(|p| p.join("melbi/history"))
@@ -139,7 +149,9 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
     let validator = Box::new(MelbiValidator);
 
     let line_editor = Reedline::create()
-        .with_highlighter(Box::new(Highlighter::new()))
+        .with_highlighter(Box::new(Highlighter::with_buffer_state(Arc::clone(
+            &buffer_state,
+        ))))
         .with_history(history)
         .with_validator(validator)
         .with_completer(completer)
@@ -179,41 +191,11 @@ pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
         };
 
         match sig {
-            Signal::Success(cmd) if cmd == "!indent" => {
-                let buffer = line_editor.current_buffer_contents();
-                if let Some(depth) = calculate_depth(buffer)
-                    && depth > 0
-                {
-                    line_editor
-                        .run_edit_commands(&[EditCommand::InsertString("    ".repeat(depth))]);
-                }
-                continue;
-            }
-            Signal::Success(cmd) if cmd == "!dedent" => {
-                let buffer = line_editor.current_buffer_contents();
-
-                // Check if line is effectively empty (only whitespace)
-                let is_blank_line = buffer.lines().last().is_some_and(|l| l.trim().is_empty());
-
-                if is_blank_line {
-                    let Some(current_depth) = calculate_depth(buffer) else {
-                        continue;
-                    };
-                    let target_depth = current_depth.saturating_sub(1); // Dedent level
-
-                    line_editor.run_edit_commands(&[
-                        EditCommand::MoveToLineStart { select: false },
-                        EditCommand::ClearToLineEnd,
-                        EditCommand::InsertString("    ".repeat(target_depth)),
-                        EditCommand::InsertChar('}'),
-                    ]);
-                } else {
-                    // Cursor is after code (e.g. `let x = {`), just insert `}`
-                    line_editor.run_edit_commands(&[EditCommand::InsertChar('}')]);
-                }
-                continue;
-            }
             Signal::Success(buffer) => {
+                if buffer.trim().is_empty() {
+                    continue;
+                }
+
                 // Set current expression for panic handler (crash reports)
                 panic_handler::set_current_expression(&buffer);
 

@@ -1,8 +1,12 @@
 //! Syntax highlighter for the REPL using tree-sitter.
 
+use std::sync::{Arc, Mutex};
+
 use nu_ansi_term::{Color, Style};
 use reedline::StyledText;
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent};
+
+use super::edit_mode::BufferState;
 
 #[derive(Debug)]
 struct PaletteItem<'a> {
@@ -88,6 +92,7 @@ const HIGHLIGHTS_QUERY: &str = include_str!("../../../../zed/languages/melbi/hig
 
 pub struct Highlighter {
     config: HighlightConfiguration,
+    buffer_state: Option<Arc<Mutex<BufferState>>>,
 }
 
 impl Default for Highlighter {
@@ -104,6 +109,20 @@ impl Highlighter {
     /// Panics if the tree-sitter highlight configuration fails to initialize.
     #[must_use]
     pub fn new() -> Self {
+        Self::with_optional_buffer_state(None)
+    }
+
+    /// Creates a new syntax highlighter with shared buffer state tracking.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the tree-sitter highlight configuration fails to initialize.
+    #[must_use]
+    pub fn with_buffer_state(buffer_state: Arc<Mutex<BufferState>>) -> Self {
+        Self::with_optional_buffer_state(Some(buffer_state))
+    }
+
+    fn with_optional_buffer_state(buffer_state: Option<Arc<Mutex<BufferState>>>) -> Self {
         let highlight_names = PALETTE.iter().map(|item| item.name).collect::<Vec<_>>();
 
         let mut config = HighlightConfiguration::new(
@@ -115,12 +134,22 @@ impl Highlighter {
         )
         .expect("Failed to create highlight configuration");
         config.configure(&highlight_names);
-        Self { config }
+        Self {
+            config,
+            buffer_state,
+        }
     }
 }
 
 impl reedline::Highlighter for Highlighter {
-    fn highlight(&self, line: &str, _: usize) -> StyledText {
+    fn highlight(&self, line: &str, cursor: usize) -> StyledText {
+        if let Some(state) = &self.buffer_state
+            && let Ok(mut lock) = state.lock()
+        {
+            lock.buffer = line.to_string();
+            lock.cursor = cursor;
+        }
+
         let mut output = StyledText::new();
 
         let mut highlighter = tree_sitter_highlight::Highlighter::new();
