@@ -2,9 +2,10 @@
 
 use alloc::string::ToString;
 
+use crate::parser::{Tree, TypeExpr, TypeExprKind};
 use crate::types::Type;
 use crate::types::manager::TypeManager;
-use crate::{String, Vec, parser};
+use crate::{String, Vec};
 
 /// Error returned when converting a `TypeExpr` to a Type.
 #[derive(Debug)]
@@ -51,10 +52,10 @@ impl core::error::Error for TypeConversionError {}
 /// annotate this error with the appropriate source span using the Error type.
 pub fn type_expr_to_type<'types>(
     type_manager: &'types TypeManager<'types>,
-    type_expr: &parser::TypeExpr<'_>,
+    type_expr: &Tree<'_, TypeExpr>,
 ) -> Result<&'types Type<'types>, TypeConversionError> {
-    match type_expr {
-        parser::TypeExpr::Path(path) => {
+    match type_expr.kind() {
+        TypeExprKind::Path(path) => {
             // Map type path to built-in types
             match *path {
                 "Int" => Ok(type_manager.int()),
@@ -67,7 +68,7 @@ pub fn type_expr_to_type<'types>(
                 }),
             }
         }
-        parser::TypeExpr::Parametrized { path, params } => match *path {
+        TypeExprKind::Parametrized { path, params } => match *path {
             "Array" => {
                 if params.len() != 1 {
                     return Err(TypeConversionError::WrongParameterCount {
@@ -106,13 +107,13 @@ pub fn type_expr_to_type<'types>(
                 name: path.to_string(),
             }),
         },
-        parser::TypeExpr::Record(fields) => {
+        TypeExprKind::Record(fields) => {
             let field_types: Result<Vec<(&str, &'types Type<'types>)>, TypeConversionError> =
                 fields
                     .iter()
-                    .map(|(name, type_expr)| {
-                        let field_ty = type_expr_to_type(type_manager, type_expr)?;
-                        Ok::<_, TypeConversionError>((*name, field_ty))
+                    .map(|field| {
+                        let field_ty = type_expr_to_type(type_manager, &field.kind().ty)?;
+                        Ok::<_, TypeConversionError>((field.kind().name, field_ty))
                     })
                     .collect();
             let field_types = field_types?;
@@ -126,25 +127,38 @@ mod tests {
     use bumpalo::Bump;
 
     use super::*;
-    use crate::parser::TypeExpr;
+    use crate::parser::{ExprKind, parse};
+
+    /// Convert the type written in `type_source`, parsed as the target of a cast.
+    fn convert<'types>(
+        type_manager: &'types TypeManager<'types>,
+        type_source: &str,
+    ) -> Result<&'types Type<'types>, TypeConversionError> {
+        let arena = Bump::new();
+        let source = arena.alloc_str(&alloc::format!("x as {type_source}"));
+        let parsed = parse(&arena, source).expect("type should parse");
+        let ExprKind::Cast { ty, .. } = parsed.expr.kind() else {
+            panic!("expected a cast, got {:?}", parsed.expr.kind());
+        };
+        type_expr_to_type(type_manager, ty)
+    }
 
     #[test]
     fn simple_types() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
-        // Test all built-in types
         let test_cases = [
-            (TypeExpr::Path("Int"), type_manager.int()),
-            (TypeExpr::Path("Float"), type_manager.float()),
-            (TypeExpr::Path("Bool"), type_manager.bool()),
-            (TypeExpr::Path("String"), type_manager.str()),
-            (TypeExpr::Path("Bytes"), type_manager.bytes()),
+            ("Int", type_manager.int()),
+            ("Float", type_manager.float()),
+            ("Bool", type_manager.bool()),
+            ("String", type_manager.str()),
+            ("Bytes", type_manager.bytes()),
         ];
 
-        for (type_expr, expected) in test_cases {
-            let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-            assert!(core::ptr::eq(result, expected));
+        for (type_source, expected) in test_cases {
+            let result = convert(type_manager, type_source).unwrap();
+            assert!(core::ptr::eq(result, expected), "{type_source}");
         }
     }
 
@@ -152,64 +166,39 @@ mod tests {
     fn unknown_type() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Path("UnknownType");
-        let result = type_expr_to_type(type_manager, &type_expr);
-        assert!(result.is_err());
+        assert!(convert(type_manager, "UnknownType").is_err());
     }
 
     #[test]
-    fn array_type() {
+    fn parametrized_types() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
-        let type_expr = TypeExpr::Parametrized {
-            path: "Array",
-            params: &[TypeExpr::Path("Int")],
-        };
+        let test_cases = [
+            ("Array[Int]", type_manager.array(type_manager.int())),
+            (
+                "Map[String, Int]",
+                type_manager.map(type_manager.str(), type_manager.int()),
+            ),
+            (
+                "Array[Array[Int]]",
+                type_manager.array(type_manager.array(type_manager.int())),
+            ),
+            ("Option[Int]", type_manager.option(type_manager.int())),
+            (
+                "Option[Array[String]]",
+                type_manager.option(type_manager.array(type_manager.str())),
+            ),
+            (
+                "Option[Option[Bool]]",
+                type_manager.option(type_manager.option(type_manager.bool())),
+            ),
+        ];
 
-        let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        assert!(core::ptr::eq(
-            result,
-            type_manager.array(type_manager.int())
-        ));
-    }
-
-    #[test]
-    fn map_type() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Map",
-            params: &[TypeExpr::Path("String"), TypeExpr::Path("Int")],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        assert!(core::ptr::eq(
-            result,
-            type_manager.map(type_manager.str(), type_manager.int())
-        ));
-    }
-
-    #[test]
-    fn nested_parametrized_type() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Array",
-            params: &[TypeExpr::Parametrized {
-                path: "Array",
-                params: &[TypeExpr::Path("Int")],
-            }],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        assert!(core::ptr::eq(
-            result,
-            type_manager.array(type_manager.array(type_manager.int()))
-        ));
+        for (type_source, expected) in test_cases {
+            let result = convert(type_manager, type_source).unwrap();
+            assert!(core::ptr::eq(result, expected), "{type_source}");
+        }
     }
 
     #[test]
@@ -217,127 +206,26 @@ mod tests {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
-        let type_expr = TypeExpr::Record(&[
-            ("name", TypeExpr::Path("String")),
-            ("age", TypeExpr::Path("Int")),
-        ]);
-
-        let result = type_expr_to_type(type_manager, &type_expr).unwrap();
+        let result = convert(type_manager, "Record[name: String, age: Int]").unwrap();
         let expected =
             type_manager.record(&[("name", type_manager.str()), ("age", type_manager.int())]);
         assert!(core::ptr::eq(result, expected));
     }
 
     #[test]
-    fn array_wrong_param_count() {
+    fn wrong_parameter_count() {
         let bump = Bump::new();
         let type_manager = TypeManager::new(&bump);
 
-        let type_expr = TypeExpr::Parametrized {
-            path: "Array",
-            params: &[TypeExpr::Path("Int"), TypeExpr::Path("String")],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn map_wrong_param_count() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Map",
-            params: &[TypeExpr::Path("Int")],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn option_type() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Option",
-            params: &[TypeExpr::Path("Int")],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        assert!(core::ptr::eq(
-            result,
-            type_manager.option(type_manager.int())
-        ));
-    }
-
-    #[test]
-    fn option_with_complex_inner_type() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Option",
-            params: &[TypeExpr::Parametrized {
-                path: "Array",
-                params: &[TypeExpr::Path("String")],
-            }],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        assert!(core::ptr::eq(
-            result,
-            type_manager.option(type_manager.array(type_manager.str()))
-        ));
-    }
-
-    #[test]
-    fn nested_option() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Option",
-            params: &[TypeExpr::Parametrized {
-                path: "Option",
-                params: &[TypeExpr::Path("Bool")],
-            }],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr).unwrap();
-        assert!(core::ptr::eq(
-            result,
-            type_manager.option(type_manager.option(type_manager.bool()))
-        ));
-    }
-
-    #[test]
-    fn option_wrong_param_count_zero() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Option",
-            params: &[],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn option_wrong_param_count_multiple() {
-        let bump = Bump::new();
-        let type_manager = TypeManager::new(&bump);
-
-        let type_expr = TypeExpr::Parametrized {
-            path: "Option",
-            params: &[TypeExpr::Path("Int"), TypeExpr::Path("String")],
-        };
-
-        let result = type_expr_to_type(type_manager, &type_expr);
-        assert!(result.is_err());
+        // `Option[]` is a syntax error, so zero parameters cannot reach the conversion.
+        for type_source in ["Array[Int, String]", "Map[Int]", "Option[Int, String]"] {
+            assert!(
+                matches!(
+                    convert(type_manager, type_source),
+                    Err(TypeConversionError::WrongParameterCount { .. })
+                ),
+                "{type_source}"
+            );
+        }
     }
 }

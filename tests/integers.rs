@@ -8,14 +8,12 @@
  * Last reviewed: October 15, 2025
  */
 
-use melbi_core::parser::{Expr, Literal};
-
 mod cases;
 
 test_case! {
     name: simple_int,
     input: { "42" },
-    ast: { &Expr::Literal(Literal::Int { value: 42, suffix: None }) },
+    ast: { "(Lit Int 42)" },
     formatted: { "42" },
 }
 // Simple integer literal
@@ -23,7 +21,7 @@ test_case! {
 test_case! {
     name: binary_int,
     input: { "0b101010" },
-    ast: { &Expr::Literal(Literal::Int { value: 0b101010, suffix: None }) },
+    ast: { "(Lit Int 42)" },
     formatted: { "0b101010" },
 }
 // Simple integer literal
@@ -31,7 +29,7 @@ test_case! {
 test_case! {
     name: oct_int,
     input: { "0o52" },
-    ast: { &Expr::Literal(Literal::Int { value: 0o52, suffix: None }) },
+    ast: { "(Lit Int 42)" },
     formatted: { "0o52" },
 }
 // Simple integer literal
@@ -39,7 +37,7 @@ test_case! {
 test_case! {
     name: hex_int,
     input: { "0x2A" },
-    ast: { &Expr::Literal(Literal::Int { value: 0x2A, suffix: None }) },
+    ast: { "(Lit Int 42)" },
     formatted: { "0x2A" },
 }
 // Simple integer literal

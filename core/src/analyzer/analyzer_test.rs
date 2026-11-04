@@ -1491,7 +1491,6 @@ fn span_tracking_binary_expr() {
 }
 
 #[test]
-#[ignore = "Span tracking logic needs to be fixed in parser"]
 fn span_tracking_nested_expr() {
     let bump = Bump::new();
     let type_manager = TypeManager::new(&bump);

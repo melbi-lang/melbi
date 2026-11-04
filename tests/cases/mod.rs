@@ -64,7 +64,8 @@ macro_rules! handle_case {
         #[test]
         fn validate_ast() {
             let arena = bumpalo::Bump::new();
-            let result = melbi_core::parser::parse(&arena, input()).map(|p| p.expr);
+            let result = melbi_core::parser::parse(&arena, input())
+                .map(|p| melbi_core::parser::Sexpr(&p.expr).to_string());
             assert_case!(result, $expected);
         }
     };

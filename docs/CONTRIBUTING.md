@@ -169,11 +169,12 @@ Substantial features requiring deeper understanding of Melbi's architecture.
 - Pattern matching
 
 **Files to Modify**:
-1. **Parser** (`core/src/parser/expression.pest`):
+1. **Parser** (`parser/src/grammar/expression.pest`):
    - Add comparison operator grammar rules
    - Define precedence (lower than arithmetic, higher than logical)
+   - Mirror the change in `tree-sitter/grammar.js`
 
-2. **Parser** (`core/src/parser/parser.rs`):
+2. **Parser** (`parser/src/parse/`):
    - Add operator precedence handling
    - Add to Pratt parser
 

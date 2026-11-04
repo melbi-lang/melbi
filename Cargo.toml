@@ -104,6 +104,7 @@ melbi-lsp = { version = "0.1.0" }
 melbi-cli = { version = "0.1.0" }
 melbi-fmt = { version = "0.1.0" }
 melbi-macros = { version = "0.1.0" }
+melbi-parser = { version = "0.1.0" }
 melbi-small-str = { version = "0.1.0" }
 melbi-teeny-vec = { version = "0.1.0" }
 melbi-thin-ref = { version = "0.1.0" }
@@ -161,6 +162,7 @@ melbi-lsp = { path = "lsp" }
 melbi-cli = { path = "cli" }
 melbi-fmt = { path = "fmt" }
 melbi-macros = { path = "macros" }
+melbi-parser = { path = "parser" }
 melbi-small-str = { path = "support/small-str" }
 melbi-teeny-vec = { path = "support/teeny-vec" }
 melbi-thin-ref = { path = "support/thin-ref" }

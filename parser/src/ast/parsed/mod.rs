@@ -49,11 +49,13 @@ mod expr;
 pub mod fold;
 mod literal;
 mod pattern;
+mod sexpr;
 mod type_expr;
 
 pub use expr::{BindingKind, ExprKind, MapEntryKind};
 pub use literal::LiteralKind;
 pub use pattern::{MatchArmKind, PatternKind};
+pub use sexpr::Sexpr;
 pub use type_expr::{TypeExprKind, TypeFieldKind};
 
 /// Data on every node of the parsed AST.

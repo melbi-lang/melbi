@@ -3,14 +3,6 @@
 // IMPORTANT: Keep this grammar in sync with tree-sitter/grammar.js
 // Changes to syntax must be reflected in both grammars.
 //
-// KNOWN DIVERGENCE from core/src/parser/expression.pest: `pattern_grouped` is
-// named here and inline there. It accepts exactly the same language — it only
-// gives the brackets a pair so they can have a span — but core's parser matches
-// `Rule::pattern` for that case and would hit its `unreachable!` on the named
-// rule, so the two copies are deliberately not synced. Nilton's call: core's
-// parser is to be deleted, and no language features are being added meanwhile.
-// The copies collapse into one when melbi-core starts using this crate.
-//
 // This file is organized into the following logical sections:
 //
 // * Top-level entry point and control structure

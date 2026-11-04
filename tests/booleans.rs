@@ -8,8 +8,6 @@
  * Last reviewed: October 15, 2025
  */
 
-use melbi_core::parser::Expr;
-
 mod cases;
 
 test_case! {
@@ -33,14 +31,14 @@ test_case! {
 test_case! {
     name: boolean_mixed_case,
     input: "True", // Not really a boolean, just an identifier
-    ast: { &Expr::Ident("True") },
+    ast: { r#"(Ident "True")"# },
     formatted: { "True" },
 }
 
 test_case! {
     name: boolean_uppercase,
     input: "FALSE", // Not really a boolean, just an identifier
-    ast: { &Expr::Ident("FALSE") },
+    ast: { r#"(Ident "FALSE")"# },
     formatted: { "FALSE" },
 }
 

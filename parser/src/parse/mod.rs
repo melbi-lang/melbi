@@ -25,3 +25,7 @@ pub use grammar::{ExpressionParser, Rule};
 #[cfg(test)]
 #[path = "parse_test.rs"]
 mod parse_test;
+
+#[cfg(test)]
+#[path = "tree_shape_test.rs"]
+mod tree_shape_test;

@@ -10,7 +10,10 @@ use crate::analyzer::error::{TypeError, TypeErrorKind};
 use crate::analyzer::typed_expr::{
     self as typed_expr, Expr, ExprInner, LambdaInstantiations, TypedExpr,
 };
-use crate::parser::{self, BinaryOp, ComparisonOp, Span, UnaryOp};
+use crate::parser::{
+    self, BinaryOp, BindingKind, ComparisonOp, ExprKind, MapEntryKind, MatchArmKind, PatternKind,
+    Span, UnaryOp,
+};
 use crate::scope_stack::{self, Lookup, ScopeStack};
 use crate::types::manager::TypeManager;
 use crate::types::traits::{TypeKind, TypeView};
@@ -35,7 +38,7 @@ pub fn analyze<'types, 'arena>(
 
     // Create annotation map for typed expressions
     // We reuse the same source string since both ParsedExpr and TypedExpr are in the same arena
-    let typed_ann = arena.alloc(parser::AnnotatedSource::new(arena, expr.ann.source));
+    let typed_ann = arena.alloc(parser::AnnotatedSource::new(arena, expr.source));
 
     let mut analyzer = Analyzer {
         type_manager,
@@ -43,7 +46,7 @@ pub fn analyze<'types, 'arena>(
         scope_stack: ScopeStack::new(),
         unification: Unification::new(type_manager),
         type_class_resolver: TypeClassResolver::new(),
-        parsed_ann: expr.ann,
+        source: expr.source,
         typed_ann,
         current_span: None, // Initialize to None
         env_vars_stack: Vec::new(),
@@ -121,7 +124,7 @@ struct Analyzer<'types, 'arena> {
     scope_stack: ScopeStack<'arena, TypeScheme<'types, 'arena>>,
     unification: Unification<'types, &'types TypeManager<'types>>,
     type_class_resolver: TypeClassResolver<'types>,
-    parsed_ann: &'arena parser::AnnotatedSource<'arena, parser::Expr<'arena>>,
+    source: &'arena str,
     typed_ann: &'arena parser::AnnotatedSource<'arena, Expr<'types, 'arena>>,
     current_span: Option<Span>, // Track current expression span
     /// Stack of environment type variables from outer scopes.
@@ -132,7 +135,7 @@ struct Analyzer<'types, 'arena> {
     /// `where` blocks whose bindings are being analyzed, innermost last: all of
     /// the block's bindings, and the index of the one being analyzed. Used to
     /// explain lookups of names that are declared but not yet defined.
-    where_bindings_in_progress: Vec<(&'arena [(&'arena str, &'arena parser::Expr<'arena>)], usize)>,
+    where_bindings_in_progress: Vec<(&'arena [parser::Tree<'arena, parser::Binding>], usize)>,
     /// Track polymorphic lambdas (lambda pointer -> type scheme)
     polymorphic_lambdas:
         hashbrown::HashMap<*const Expr<'types, 'arena>, TypeScheme<'types, 'arena>>,
@@ -190,7 +193,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     // Get source code as String
     fn get_source(&self) -> String {
-        self.parsed_ann.source.to_string()
+        self.source.to_string()
     }
 
     /// Helper to create a `TypeError` with the current span and source
@@ -277,41 +280,38 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze(
         &mut self,
-        expr: &'arena parser::Expr<'arena>,
+        expr: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         // Set current span for this expression from parsed annotations
         let old_span = self.current_span.clone();
-        self.current_span = self.parsed_ann.span_of(expr);
+        self.current_span = Some(expr.data().span.into());
 
-        let result = match expr {
-            parser::Expr::Binary { op, left, right } => self.analyze_binary(*op, left, right),
-            parser::Expr::Boolean { op, left, right } => self.analyze_boolean(*op, left, right),
-            parser::Expr::Comparison { op, left, right } => {
-                self.analyze_comparison(*op, left, right)
-            }
-            parser::Expr::Unary { op, expr } => self.analyze_unary(*op, expr),
-            parser::Expr::Call { callable, args } => self.analyze_call(callable, args),
-            parser::Expr::Index { value, index } => self.analyze_index(value, index),
-            parser::Expr::Field { value, field } => self.analyze_field(value, field),
-            parser::Expr::Cast { ty, expr } => self.analyze_cast(ty, expr),
-            parser::Expr::Lambda { params, body } => self.analyze_lambda(params, body),
-            parser::Expr::If {
+        let result = match *expr.kind() {
+            ExprKind::Binary { op, left, right } => self.analyze_binary(op, left, right),
+            ExprKind::Boolean { op, left, right } => self.analyze_boolean(op, left, right),
+            ExprKind::Comparison { op, left, right } => self.analyze_comparison(op, left, right),
+            ExprKind::Unary { op, expr } => self.analyze_unary(op, expr),
+            ExprKind::Call { callable, args } => self.analyze_call(callable, args),
+            ExprKind::Index { value, index } => self.analyze_index(value, index),
+            ExprKind::Field { value, field } => self.analyze_field(value, field),
+            ExprKind::Cast { expr, ref ty } => self.analyze_cast(ty, expr),
+            ExprKind::Lambda { params, body } => self.analyze_lambda(params, body),
+            ExprKind::If {
                 cond,
                 then_branch,
                 else_branch,
             } => self.analyze_if(cond, then_branch, else_branch),
-            parser::Expr::Where { expr, bindings } => self.analyze_where(expr, bindings),
-            parser::Expr::Otherwise { primary, fallback } => {
-                self.analyze_otherwise(primary, fallback)
-            }
-            parser::Expr::Option { inner } => self.analyze_option(*inner),
-            parser::Expr::Match { expr, arms } => self.analyze_match(expr, arms),
-            parser::Expr::Record(items) => self.analyze_record(items),
-            parser::Expr::Map(items) => self.analyze_map(items),
-            parser::Expr::Array(exprs) => self.analyze_array(exprs),
-            parser::Expr::FormatStr { strs, exprs } => self.analyze_format_str(strs, exprs),
-            parser::Expr::Literal(literal) => self.analyze_literal(literal),
-            parser::Expr::Ident(ident) => self.analyze_ident(ident),
+            ExprKind::Where { expr, bindings } => self.analyze_where(expr, bindings),
+            ExprKind::Otherwise { primary, fallback } => self.analyze_otherwise(primary, fallback),
+            ExprKind::Some(inner) => self.analyze_option(Some(inner)),
+            ExprKind::None => self.analyze_option(None),
+            ExprKind::Match { scrutinee, arms } => self.analyze_match(scrutinee, arms),
+            ExprKind::Record(fields) => self.analyze_record(fields),
+            ExprKind::Map(entries) => self.analyze_map(entries),
+            ExprKind::Array(elements) => self.analyze_array(elements),
+            ExprKind::FormatStr { strs, exprs } => self.analyze_format_str(strs, exprs),
+            ExprKind::Literal(ref literal) => self.analyze_literal(literal),
+            ExprKind::Ident(ident) => self.analyze_ident(ident),
         };
 
         // Restore previous span
@@ -323,8 +323,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     fn analyze_binary(
         &mut self,
         op: BinaryOp,
-        left: &'arena parser::Expr<'arena>,
-        right: &'arena parser::Expr<'arena>,
+        left: parser::Tree<'arena, parser::Expr>,
+        right: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let left = self.analyze(left)?;
         let right = self.analyze(right)?;
@@ -349,8 +349,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     fn analyze_boolean(
         &mut self,
         op: parser::BoolOp,
-        left: &'arena parser::Expr<'arena>,
-        right: &'arena parser::Expr<'arena>,
+        left: parser::Tree<'arena, parser::Expr>,
+        right: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let left = self.analyze(left)?;
         let right = self.analyze(right)?;
@@ -377,8 +377,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     fn analyze_comparison(
         &mut self,
         op: ComparisonOp,
-        left: &'arena parser::Expr<'arena>,
-        right: &'arena parser::Expr<'arena>,
+        left: parser::Tree<'arena, parser::Expr>,
+        right: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let left = self.analyze(left)?;
         let right = self.analyze(right)?;
@@ -429,7 +429,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     fn analyze_unary(
         &mut self,
         op: UnaryOp,
-        expr: &'arena parser::Expr<'arena>,
+        expr: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let expr = self.analyze(expr)?;
 
@@ -460,14 +460,14 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_call(
         &mut self,
-        callable: &'arena parser::Expr<'arena>,
-        args: &'arena [&'arena parser::Expr<'arena>],
+        callable: parser::Tree<'arena, parser::Expr>,
+        args: &'arena [parser::Tree<'arena, parser::Expr>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         // 1. Analyze callable and its arguments.
         let callable = self.analyze(callable)?;
         let args_typed = self
             .arena
-            .alloc_slice_try_fill_iter(args.iter().map(|arg| self.analyze(arg)))?;
+            .alloc_slice_try_fill_iter(args.iter().map(|arg| self.analyze(*arg)))?;
 
         // 2. Extract actual argument types.
         let arg_types: Vec<_> = args_typed.iter().map(|arg| arg.0).collect();
@@ -515,8 +515,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_index(
         &mut self,
-        value: &'arena parser::Expr<'arena>,
-        index: &'arena parser::Expr<'arena>,
+        value: parser::Tree<'arena, parser::Expr>,
+        index: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let value = self.analyze(value)?;
         let index = self.analyze(index)?;
@@ -580,7 +580,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_field(
         &mut self,
-        value: &'arena parser::Expr<'arena>,
+        value: parser::Tree<'arena, parser::Expr>,
         field: &'arena str,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let value = self.analyze(value)?;
@@ -627,8 +627,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_cast(
         &mut self,
-        ty_expr: &'arena parser::TypeExpr<'arena>,
-        expr: &'arena parser::Expr<'arena>,
+        ty_expr: &parser::Tree<'arena, parser::TypeExpr>,
+        expr: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let analyzed_expr = self.analyze(expr)?;
         let source_type = analyzed_expr.0;
@@ -679,7 +679,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     fn analyze_lambda(
         &mut self,
         params: &'arena [&'arena str],
-        body: &'arena parser::Expr<'arena>,
+        body: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let ty = self.type_manager;
 
@@ -755,9 +755,9 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_if(
         &mut self,
-        cond: &'arena parser::Expr<'arena>,
-        then_branch: &'arena parser::Expr<'arena>,
-        else_branch: &'arena parser::Expr<'arena>,
+        cond: parser::Tree<'arena, parser::Expr>,
+        then_branch: parser::Tree<'arena, parser::Expr>,
+        else_branch: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let cond = self.analyze(cond)?;
         let then_branch = self.analyze(then_branch)?;
@@ -786,11 +786,11 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_where(
         &mut self,
-        expr: &'arena parser::Expr<'arena>,
-        bindings: &'arena [(&'arena str, &'arena parser::Expr<'arena>)],
+        expr: parser::Tree<'arena, parser::Expr>,
+        bindings: &'arena [parser::Tree<'arena, parser::Binding>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         // Extract binding names
-        let names: Vec<&'arena str> = bindings.iter().map(|(name, _)| *name).collect();
+        let names: Vec<&'arena str> = bindings.iter().map(|binding| binding.kind().name).collect();
 
         // Push incomplete scope with all binding names
         self.scope_stack.push(
@@ -802,7 +802,11 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         let mut analyzed_bindings: Vec<(&'arena str, &'arena mut Expr<'types, 'arena>)> =
             Vec::new();
         self.where_bindings_in_progress.push((bindings, 0));
-        for (index, (name, value_expr)) in bindings.iter().enumerate() {
+        for (index, binding) in bindings.iter().enumerate() {
+            let BindingKind {
+                name,
+                value: value_expr,
+            } = *binding.kind();
             if let Some(in_progress) = self.where_bindings_in_progress.last_mut() {
                 in_progress.1 = index;
             }
@@ -824,7 +828,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
             self.scope_stack
                 .bind_in_current(name, scheme)
                 .map_err(|e| self.internal_error(format!("Failed to bind in where: {e:?}")))?;
-            analyzed_bindings.push((*name, analyzed));
+            analyzed_bindings.push((name, analyzed));
         }
         self.where_bindings_in_progress.pop();
 
@@ -847,8 +851,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_otherwise(
         &mut self,
-        primary: &'arena parser::Expr<'arena>,
-        fallback: &'arena parser::Expr<'arena>,
+        primary: parser::Tree<'arena, parser::Expr>,
+        fallback: parser::Tree<'arena, parser::Expr>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let primary = self.analyze(primary)?;
         let fallback = self.analyze(fallback)?;
@@ -861,7 +865,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_option(
         &mut self,
-        inner: Option<&'arena parser::Expr<'arena>>,
+        inner: Option<parser::Tree<'arena, parser::Expr>>,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         if let Some(expr) = inner {
             // Analyze inner expression
@@ -888,8 +892,8 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_match(
         &mut self,
-        expr: &'arena parser::Expr<'arena>,
-        arms: &'arena [parser::MatchArm<'arena>],
+        expr: parser::Tree<'arena, parser::Expr>,
+        arms: &'arena [parser::Tree<'arena, parser::MatchArm>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         // Analyze the matched expression
         let typed_expr = self.analyze(expr)?;
@@ -907,9 +911,11 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         let mut result_ty: Option<&'types Type<'types>> = None;
 
         for arm in arms {
+            let MatchArmKind { pattern, body } = *arm.kind();
+
             // First pass: collect all variable names from the pattern
             let mut pattern_vars = Vec::new();
-            self.collect_pattern_vars(arm.pattern, &mut pattern_vars);
+            self.collect_pattern_vars(pattern, &mut pattern_vars);
 
             // Create a new scope with the pattern variables pre-declared
             self.scope_stack.push(
@@ -918,10 +924,10 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
             );
 
             // Analyze pattern and bind variables
-            let typed_pattern = self.analyze_pattern(arm.pattern, matched_ty)?;
+            let typed_pattern = self.analyze_pattern(pattern, matched_ty)?;
 
             // Analyze the arm body with pattern bindings in scope
-            let typed_body = self.analyze(arm.body)?;
+            let typed_body = self.analyze(body)?;
 
             // Pop pattern binding scope
             self.scope_stack
@@ -1067,29 +1073,28 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn collect_pattern_vars(
         &self,
-        pattern: &'arena parser::Pattern<'arena>,
+        pattern: parser::Tree<'arena, parser::Pattern>,
         vars: &mut Vec<&'arena str>,
     ) {
-        use parser::Pattern::*;
-        match pattern {
-            Var(name) => vars.push(name),
-            Some(inner) => self.collect_pattern_vars(inner, vars),
-            Wildcard | Literal(_) | None => {}
+        match *pattern.kind() {
+            PatternKind::Binding(name) => vars.push(name),
+            PatternKind::Some(inner) => self.collect_pattern_vars(inner, vars),
+            PatternKind::Wildcard | PatternKind::Literal(_) | PatternKind::None => {}
         }
     }
 
     fn analyze_pattern(
         &mut self,
-        pattern: &'arena parser::Pattern<'arena>,
+        pattern: parser::Tree<'arena, parser::Pattern>,
         expected_ty: &'types Type<'types>,
     ) -> Result<&'arena typed_expr::TypedPattern<'types, 'arena>, TypeError> {
-        match pattern {
-            parser::Pattern::Wildcard => {
+        match *pattern.kind() {
+            PatternKind::Wildcard => {
                 // Wildcard matches anything, no bindings
                 Ok(self.arena.alloc(typed_expr::TypedPattern::Wildcard))
             }
 
-            parser::Pattern::Var(name) => {
+            PatternKind::Binding(name) => {
                 // Variable pattern binds the matched value to a name
                 // Create a monomorphic type scheme (no quantified variables)
                 let type_scheme = TypeScheme::new(&[], expected_ty);
@@ -1106,7 +1111,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                 Ok(self.arena.alloc(typed_expr::TypedPattern::Var(name)))
             }
 
-            parser::Pattern::Literal(lit) => {
+            PatternKind::Literal(ref lit) => {
                 // Convert literal to Value for pattern matching
                 let value = match lit {
                     parser::Literal::Int {
@@ -1161,7 +1166,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                 Ok(self.arena.alloc(typed_expr::TypedPattern::Literal(value)))
             }
 
-            parser::Pattern::Some(inner_pattern) => {
+            PatternKind::Some(inner_pattern) => {
                 // Create a fresh type variable for the inner type
                 let inner_ty_var = self.type_manager.fresh_type_var();
 
@@ -1187,7 +1192,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                     .alloc(typed_expr::TypedPattern::Some(typed_inner)))
             }
 
-            parser::Pattern::None => {
+            PatternKind::None => {
                 // Create a fresh type variable for the inner type
                 let inner_ty_var = self.type_manager.fresh_type_var();
 
@@ -1210,15 +1215,16 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_record(
         &mut self,
-        items: &'arena [(&'arena str, &'arena parser::Expr<'arena>)],
+        items: &'arena [parser::Tree<'arena, parser::Binding>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         let mut fields: Vec<(&'arena str, &'arena mut Expr<'types, 'arena>)> = Vec::new();
         let mut field_types: Vec<(&'arena str, &'types Type<'types>)> = Vec::new();
 
-        for (name, value_expr) in items {
-            let value = self.analyze(value_expr)?;
-            field_types.push((*name, value.0));
-            fields.push((*name, value));
+        for field in items {
+            let BindingKind { name, value } = *field.kind();
+            let value = self.analyze(value)?;
+            field_types.push((name, value.0));
+            fields.push((name, value));
         }
 
         let record_ty = self.type_manager.record(&field_types);
@@ -1235,7 +1241,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_map(
         &mut self,
-        items: &'arena [(&'arena parser::Expr<'arena>, &'arena parser::Expr<'arena>)],
+        items: &'arena [parser::Tree<'arena, parser::MapEntry>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         if items.is_empty() {
             // Empty map - use fresh type variables for key and value
@@ -1252,9 +1258,10 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
             &'arena mut Expr<'types, 'arena>,
         )> = Vec::new();
 
-        for (key_expr, value_expr) in items {
-            let key = self.analyze(key_expr)?;
-            let value = self.analyze(value_expr)?;
+        for entry in items {
+            let MapEntryKind { key, value } = *entry.kind();
+            let key = self.analyze(key)?;
+            let value = self.analyze(value)?;
             entries.push((key, value));
         }
 
@@ -1292,7 +1299,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
 
     fn analyze_array(
         &mut self,
-        exprs: &'arena [&'arena parser::Expr<'arena>],
+        exprs: &'arena [parser::Tree<'arena, parser::Expr>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         if exprs.is_empty() {
             // Empty array - use a fresh type variable for the element type
@@ -1305,7 +1312,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         // Analyze all elements
         let elements: Vec<&'arena mut Expr<'types, 'arena>> = exprs
             .iter()
-            .map(|e| self.analyze(e))
+            .map(|e| self.analyze(*e))
             .collect::<Result<_, _>>()?;
 
         // Allocate in arena first, then do type checks on arena-allocated slice
@@ -1332,12 +1339,12 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
     fn analyze_format_str(
         &mut self,
         strs: &'arena [&'arena str],
-        exprs: &'arena [&'arena parser::Expr<'arena>],
+        exprs: &'arena [parser::Tree<'arena, parser::Expr>],
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         // Analyze all interpolated expressions
         let exprs_typed: Vec<&'arena mut Expr<'types, 'arena>> = exprs
             .iter()
-            .map(|e| self.analyze(e))
+            .map(|e| self.analyze(*e))
             .collect::<Result<_, _>>()?;
 
         // Check that all expressions are formattable (not functions)
@@ -1462,17 +1469,17 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
             .where_bindings_in_progress
             .iter()
             .rev()
-            .find(|(bindings, _)| bindings.iter().any(|(name, _)| *name == ident));
+            .find(|(bindings, _)| bindings.iter().any(|binding| binding.kind().name == ident));
 
         match declaring_block {
-            Some((bindings, current)) if bindings[*current].0 == ident => {
+            Some((bindings, current)) if bindings[*current].kind().name == ident => {
                 TypeErrorKind::SelfReferentialBinding {
                     name: ident.to_string(),
                 }
             }
             Some((bindings, current)) => TypeErrorKind::UsedBeforeDefinition {
                 name: ident.to_string(),
-                used_in: bindings[*current].0.to_string(),
+                used_in: bindings[*current].kind().name.to_string(),
             },
             None => TypeErrorKind::Other {
                 message: format!(

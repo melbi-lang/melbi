@@ -1,5 +1,3 @@
-use melbi_core::parser::{BinaryOp, ComparisonOp, Expr, Literal};
-
 mod cases;
 
 // ======== Equality Operators (==, !=) ========
@@ -7,26 +5,14 @@ mod cases;
 test_case! {
     name: integer_equality,
     input: "5 == 5",
-    ast: {
-        Ok(Expr::Comparison {
-            op: ComparisonOp::Eq,
-            left: Expr::Literal(Literal::Int { value: 5, suffix: None }),
-            right: Expr::Literal(Literal::Int { value: 5, suffix: None }),
-        })
-    },
+    ast: { "(Comparison Eq (Lit Int 5) (Lit Int 5))" },
     formatted: { "5 == 5" },
 }
 
 test_case! {
     name: integer_inequality,
     input: "5 != 3",
-    ast: {
-        Ok(Expr::Comparison {
-            op: ComparisonOp::Neq,
-            left: Expr::Literal(Literal::Int { value: 5, suffix: None }),
-            right: Expr::Literal(Literal::Int { value: 3, suffix: None }),
-        })
-    },
+    ast: { "(Comparison Neq (Lit Int 5) (Lit Int 3))" },
     formatted: { "5 != 3" },
 }
 
@@ -53,52 +39,28 @@ test_case! {
 test_case! {
     name: less_than,
     input: "3 < 5",
-    ast: {
-        Ok(Expr::Comparison {
-            op: ComparisonOp::Lt,
-            left: Expr::Literal(Literal::Int { value: 3, suffix: None }),
-            right: Expr::Literal(Literal::Int { value: 5, suffix: None }),
-        })
-    },
+    ast: { "(Comparison Lt (Lit Int 3) (Lit Int 5))" },
     formatted: { "3 < 5" },
 }
 
 test_case! {
     name: greater_than,
     input: "10 > 5",
-    ast: {
-        Ok(Expr::Comparison {
-            op: ComparisonOp::Gt,
-            left: Expr::Literal(Literal::Int { value: 10, suffix: None }),
-            right: Expr::Literal(Literal::Int { value: 5, suffix: None }),
-        })
-    },
+    ast: { "(Comparison Gt (Lit Int 10) (Lit Int 5))" },
     formatted: { "10 > 5" },
 }
 
 test_case! {
     name: less_than_or_equal,
     input: "5 <= 5",
-    ast: {
-        Ok(Expr::Comparison {
-            op: ComparisonOp::Le,
-            left: Expr::Literal(Literal::Int { value: 5, suffix: None }),
-            right: Expr::Literal(Literal::Int { value: 5, suffix: None }),
-        })
-    },
+    ast: { "(Comparison Le (Lit Int 5) (Lit Int 5))" },
     formatted: { "5 <= 5" },
 }
 
 test_case! {
     name: greater_than_or_equal,
     input: "7 >= 3",
-    ast: {
-        Ok(Expr::Comparison {
-            op: ComparisonOp::Ge,
-            left: Expr::Literal(Literal::Int { value: 7, suffix: None }),
-            right: Expr::Literal(Literal::Int { value: 3, suffix: None }),
-        })
-    },
+    ast: { "(Comparison Ge (Lit Int 7) (Lit Int 3))" },
     formatted: { "7 >= 3" },
 }
 
@@ -177,17 +139,7 @@ test_case! {
 test_case! {
     name: comparison_lower_precedence_than_arithmetic,
     input: "1 + 2 == 3",
-    ast: {
-        Ok(Expr::Comparison {
-            op: ComparisonOp::Eq,
-            left: Expr::Binary {
-                op: BinaryOp::Add,
-                left: Expr::Literal(Literal::Int { value: 1, suffix: None }),
-                right: Expr::Literal(Literal::Int { value: 2, suffix: None }),
-            },
-            right: Expr::Literal(Literal::Int { value: 3, suffix: None }),
-        })
-    },
+    ast: { "(Comparison Eq (Binary Add (Lit Int 1) (Lit Int 2)) (Lit Int 3))" },
     formatted: { "1 + 2 == 3" },
 }
 

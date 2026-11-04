@@ -1,11 +1,10 @@
-// These are common syntax structures used in ParsedExpr and TypedExpr.
+// Source annotations shared by the typed tree and diagnostics.
 
 use core::cell::RefCell;
 use core::ops::Range;
 
 use bumpalo::Bump;
 use hashbrown::{DefaultHashBuilder, HashMap};
-use serde::Serialize;
 
 #[derive(Debug)]
 pub struct AnnotatedSource<'a, T> {
@@ -51,45 +50,8 @@ impl Span {
     }
 }
 
-impl From<pest::Span<'_>> for Span {
-    fn from(s: pest::Span<'_>) -> Self {
-        Self(s.start()..s.end())
+impl From<melbi_parser::Span> for Span {
+    fn from(span: melbi_parser::Span) -> Self {
+        Self(span.start() as usize..span.end() as usize)
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
-#[repr(u8)]
-pub enum BinaryOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Pow,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
-#[repr(u8)]
-pub enum BoolOp {
-    And,
-    Or,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
-#[repr(u8)]
-pub enum UnaryOp {
-    Neg,
-    Not,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
-#[repr(u8)]
-pub enum ComparisonOp {
-    Eq = 1,    // ==
-    Neq = 2,   // !=
-    Lt = 3,    // <
-    Gt = 4,    // >
-    Le = 5,    // <=
-    Ge = 6,    // >=
-    In = 7,    // in
-    NotIn = 8, // not in
 }

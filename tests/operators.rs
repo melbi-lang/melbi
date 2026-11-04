@@ -8,40 +8,26 @@
  * Last reviewed: October 15, 2025
  */
 
-use melbi_core::parser::{Expr, Literal, UnaryOp};
-
 mod cases;
 
 test_case! {
     name: otherwise_operator,
     input: "x otherwise 0".trim_start(),
-    ast: {
-        Ok(
-            Expr::Otherwise {
-                primary: Expr::Ident("x"),
-                fallback: Expr::Literal(Literal::Int { value: 0, suffix: None })
-            }
-        )
-    },
+    ast: { r#"(Otherwise (Ident "x") (Lit Int 0))"# },
     formatted: { "x otherwise 0" },
 }
 
 test_case! {
     name: negation,
     input: "-5",
-    ast: { Ok(Expr::Literal(Literal::Int { value: -5, suffix: None })) },
+    ast: { "(Lit Int -5)" },
     formatted: { "-5" },
 }
 
 test_case! {
     name: negation_with_spaces,
     input: "  -  x  ",
-    ast: {
-        Ok(Expr::Unary {
-            op: UnaryOp::Neg,
-            expr: Expr::Ident("x")
-        })
-    },
+    ast: { r#"(Unary Neg (Ident "x"))"# },
     formatted: { "-x" },
     // Trim spaces around unary minus
 }
