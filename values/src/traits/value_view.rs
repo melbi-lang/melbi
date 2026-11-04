@@ -1,7 +1,7 @@
 use melbi_types::Ty;
 
 use crate::dynamic::Value;
-use crate::traits::{ArrayView, ValueBuilder};
+use crate::traits::{ArrayView, MapView, ValueBuilder};
 
 /// A read-only view over a dynamically typed value.
 ///
@@ -29,5 +29,6 @@ pub trait ValueView<VB: ValueBuilder>: Sized {
     /// Returns an array view, or `None` if not an `Array`.
     fn as_array(&self) -> Option<impl ArrayView<Value<VB>>>;
 
-    // TODO: fn as_map(&self) -> Option<...>;  // see `docs/design/maps.md`
+    /// Returns a map view, or `None` if not a `Map`.
+    fn as_map(&self) -> Option<impl MapView<Value<VB>, Value<VB>>>;
 }

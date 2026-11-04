@@ -14,7 +14,7 @@ use core::hash::{Hash, Hasher};
 use melbi_types::{Scalar, Ty, TyKind};
 
 use crate::float;
-use crate::traits::{Val, ValueBuilder};
+use crate::traits::{MapStorage, Val, ValueBuilder, map_hasher};
 
 /// Whether `a` and `b`, both of type `ty`, are equal.
 pub(crate) fn values_equal<B: ValueBuilder>(ty: &Ty<B::TB>, a: &Val<B>, b: &Val<B>) -> bool {
@@ -31,11 +31,16 @@ pub(crate) fn values_equal<B: ValueBuilder>(ty: &Ty<B::TB>, a: &Val<B>, b: &Val<
             );
             a.len() == b.len() && a.iter().zip(b).all(|(x, y)| values_equal(element_ty, x, y))
         }
-        TyKind::Map(..)
-        | TyKind::Record(_)
-        | TyKind::Function { .. }
-        | TyKind::Symbol(_)
-        | TyKind::TypeVar(_) => unreachable!("no values of type {ty:?} exist yet"),
+        TyKind::Map(key_ty, value_ty) => {
+            let (a, b) = (&**a.as_map_unchecked(), &**b.as_map_unchecked());
+            a.len() == b.len()
+                && a.iter().all(|(key, value)| {
+                    lookup(b, key_ty, key).is_some_and(|other| values_equal(value_ty, value, other))
+                })
+        }
+        TyKind::Record(_) | TyKind::Function { .. } | TyKind::Symbol(_) | TyKind::TypeVar(_) => {
+            unreachable!("no values of type {ty:?} exist yet")
+        }
     }
 }
 
@@ -57,10 +62,39 @@ pub(crate) fn hash_value<B: ValueBuilder>(ty: &Ty<B::TB>, value: &Val<B>, state:
                 hash_value(element_ty, element, state);
             }
         }
-        TyKind::Map(..)
-        | TyKind::Record(_)
-        | TyKind::Function { .. }
-        | TyKind::Symbol(_)
-        | TyKind::TypeVar(_) => unreachable!("no values of type {ty:?} exist yet"),
+        // Order-independent, because equal maps need not store their entries
+        // in the same order: the length, then the sum of each entry's own hash.
+        TyKind::Map(key_ty, value_ty) => {
+            let map = &**value.as_map_unchecked();
+            state.write_usize(map.len());
+            let sum = map.iter().fold(0u64, |sum, (key, value)| {
+                let mut entry = map_hasher();
+                hash_value(key_ty, key, &mut entry);
+                hash_value(value_ty, value, &mut entry);
+                sum.wrapping_add(entry.finish())
+            });
+            state.write_u64(sum);
+        }
+        TyKind::Record(_) | TyKind::Function { .. } | TyKind::Symbol(_) | TyKind::TypeVar(_) => {
+            unreachable!("no values of type {ty:?} exist yet")
+        }
     }
+}
+
+/// The hash a map stores `key`, of type `key_ty`, under.
+pub(crate) fn key_hash<B: ValueBuilder>(key_ty: &Ty<B::TB>, key: &Val<B>) -> u64 {
+    let mut state = map_hasher();
+    hash_value(key_ty, key, &mut state);
+    state.finish()
+}
+
+/// The value `map`, with keys of type `key_ty`, stores for `key`.
+pub(crate) fn lookup<'m, B: ValueBuilder>(
+    map: &'m MapStorage<B>,
+    key_ty: &Ty<B::TB>,
+    key: &Val<B>,
+) -> Option<&'m Val<B>> {
+    map.get(key_hash(key_ty, key), |stored| {
+        values_equal(key_ty, stored, key)
+    })
 }

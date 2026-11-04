@@ -16,7 +16,7 @@ use bumpalo::Bump;
 use melbi_values::builders::{ArenaValueBuilder, BoxValueBuilder};
 use melbi_values::dynamic::Value;
 use melbi_values::traits::ValueBuilder;
-use melbi_values::typed::{Array, Bool, Bytes, Float, Hashable, Int, Str};
+use melbi_values::typed::{Array, Bool, Bytes, Float, Hashable, Int, Map, Str};
 
 macro_rules! test_both_builders {
     ($name:ident) => {
@@ -212,6 +212,29 @@ fn arrays_agree<B: ValueBuilder>(b: &B) {
     assert_typed_matches_dynamic(b, &nested);
 }
 test_both_builders!(arrays_agree);
+
+fn maps_agree<B: ValueBuilder>(b: &B) {
+    let s = |text: &str| Str::new(b, text);
+    let maps: Vec<Map<B, Int, Str<B>>> = vec![
+        Map::empty(b),
+        Map::new(b, [(1, s("a"))]),
+        Map::new(b, [(1, s("b"))]),
+        Map::new(b, [(2, s("a"))]),
+        // Equal maps built in different orders: equal, and hashed alike.
+        Map::new(b, [(1, s("a")), (2, s("b"))]),
+        Map::new(b, [(2, s("b")), (1, s("a"))]),
+    ];
+    assert_typed_matches_dynamic(b, &maps);
+
+    let float_keys: Vec<Map<B, Float, Int>> = vec![
+        Map::new(b, [(f64::NAN, 1)]),
+        Map::new(b, [(NEGATIVE_NAN, 1)]),
+        Map::new(b, [(0.0, 1)]),
+        Map::new(b, [(-0.0, 1)]),
+    ];
+    assert_typed_matches_dynamic(b, &float_keys);
+}
+test_both_builders!(maps_agree);
 
 // =============================================================================
 // The float rule

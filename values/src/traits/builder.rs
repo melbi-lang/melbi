@@ -36,7 +36,10 @@
 use core::fmt::Debug;
 use core::ops::Deref;
 
+use allocator_api2::alloc::Allocator;
 use melbi_types::TyBuilder;
+
+use super::MapStorage;
 
 // =============================================================================
 // RawValue - Trait for builder-specific raw storage
@@ -60,6 +63,9 @@ pub trait RawValue: Clone + Debug {
     /// The handle type for byte strings.
     type BytesHandle;
 
+    /// The handle type for maps.
+    type MapHandle;
+
     // --- Constructors ---
 
     /// Create raw storage for an integer.
@@ -80,6 +86,9 @@ pub trait RawValue: Clone + Debug {
     /// Create raw storage for a byte string handle.
     fn from_bytes(handle: Self::BytesHandle) -> Self;
 
+    /// Create raw storage for a map handle.
+    fn from_map(handle: Self::MapHandle) -> Self;
+
     // --- Accessors (unchecked) ---
 
     /// Access the raw integer value. Only valid when the type is `Int`.
@@ -99,6 +108,9 @@ pub trait RawValue: Clone + Debug {
 
     /// Access the raw byte string handle. Only valid when the type is `Bytes`.
     fn as_bytes_unchecked(&self) -> &Self::BytesHandle;
+
+    /// Access the raw map handle. Only valid when the type is `Map[K, V]`.
+    fn as_map_unchecked(&self) -> &Self::MapHandle;
 }
 
 // =============================================================================
@@ -129,6 +141,7 @@ pub trait ValueBuilder: Sized + Clone + Debug {
             ArrayHandle = Self::ArrayHandle,
             StrHandle = Self::StrHandle,
             BytesHandle = Self::BytesHandle,
+            MapHandle = Self::MapHandle,
         >;
 
     /// Handle to an array of values, stored inline (no per-element types and no
@@ -144,12 +157,7 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     /// Examples: `Rc<[u8]>`, `ThinRef<'a, [u8]>`.
     type BytesHandle: Deref<Target = [u8]> + Clone + Debug;
 
-    // TODO: MapHandle, RecordHandle, etc.
-    //
-    // `MapHandle` is the one with a design behind it: a map has to compare keys,
-    // and the values it stores carry no type, so the key type has to reach the
-    // comparison from somewhere. See `docs/design/maps.md` — it also covers why
-    // this cannot work the way `core/src/values/dynamic.rs` does.
+    // TODO: RecordHandle, OptionHandle, etc.
 
     /// Get the type builder.
     fn ty_builder(&self) -> &Self::TB;
@@ -174,6 +182,20 @@ pub trait ValueBuilder: Sized + Clone + Debug {
     /// To create a full bytes value, use [`Value::bytes()`] which calls this
     /// internally.
     fn alloc_bytes(&self, value: &[u8]) -> Self::BytesHandle;
+
+    /// Allocator for map storage while a map is being built.
+    /// Examples: `&'arena Bump`, `Global`.
+    type MapAllocator: Allocator + Clone;
+
+    /// Handle to a map's storage.
+    /// Examples: `ThinRef<'a, MapStorage<Self>>`, `Rc<MapStorage<Self>>`.
+    type MapHandle: Deref<Target = MapStorage<Self>> + Clone + Debug;
+
+    /// Internal: The allocator for a map under construction.
+    fn map_allocator(&self) -> Self::MapAllocator;
+
+    /// Internal: Allocate a finished map. Use `MapMaker` or `typed::Map::new`.
+    fn alloc_map(&self, storage: MapStorage<Self>) -> Self::MapHandle;
 }
 
 // =============================================================================
@@ -235,6 +257,12 @@ impl<B: ValueBuilder> Val<B> {
         Self::new(B::Raw::from_bytes(handle))
     }
 
+    /// Internal: Storage for a map value, from a handle built by
+    /// [`ValueBuilder::alloc_map`].
+    pub(crate) fn map(handle: B::MapHandle) -> Self {
+        Self::new(B::Raw::from_map(handle))
+    }
+
     /// Internal: Access the raw integer. Only valid when the type is `Int`.
     pub(crate) fn as_int_unchecked(&self) -> i64 {
         self.raw.as_int_unchecked()
@@ -263,5 +291,10 @@ impl<B: ValueBuilder> Val<B> {
     /// Internal: Access the raw byte string handle. Only valid when the type is `Bytes`.
     pub(crate) fn as_bytes_unchecked(&self) -> &B::BytesHandle {
         self.raw.as_bytes_unchecked()
+    }
+
+    /// Internal: Access the raw map handle. Only valid when the type is `Map[K, V]`.
+    pub(crate) fn as_map_unchecked(&self) -> &B::MapHandle {
+        self.raw.as_map_unchecked()
     }
 }

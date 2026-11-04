@@ -3,7 +3,9 @@ use core::fmt;
 
 use melbi_types::BoxBuilder;
 
-use crate::traits::{RawValue, Val, ValueBuilder};
+use allocator_api2::alloc::Global;
+
+use crate::traits::{MapStorage, RawValue, Val, ValueBuilder};
 
 // =============================================================================
 // BoxRaw - Enum-based raw storage for heap allocation
@@ -20,6 +22,7 @@ pub enum BoxRaw {
     Float(f64),
     Str(Rc<str>),
     Bytes(Rc<[u8]>),
+    Map(Rc<MapStorage<BoxValueBuilder>>),
     // Elements are stored inline in the `Rc` allocation, not as a slice of
     // pointers to individually allocated elements.
     Array(Rc<[Val<BoxValueBuilder>]>),
@@ -35,6 +38,7 @@ impl fmt::Debug for BoxRaw {
             Self::Float(v) => write!(f, "Float({v})"),
             Self::Str(s) => write!(f, "Str({s:?})"),
             Self::Bytes(b) => write!(f, "Bytes(len={})", b.len()),
+            Self::Map(map) => write!(f, "Map(len={})", map.len()),
             Self::Array(arr) => write!(f, "Array(len={})", arr.len()),
         }
     }
@@ -44,6 +48,7 @@ impl RawValue for BoxRaw {
     type ArrayHandle = Rc<[Val<BoxValueBuilder>]>;
     type StrHandle = Rc<str>;
     type BytesHandle = Rc<[u8]>;
+    type MapHandle = Rc<MapStorage<BoxValueBuilder>>;
 
     fn from_int(value: i64) -> Self {
         Self::Int(value)
@@ -67,6 +72,10 @@ impl RawValue for BoxRaw {
 
     fn from_bytes(handle: Self::BytesHandle) -> Self {
         Self::Bytes(handle)
+    }
+
+    fn from_map(handle: Self::MapHandle) -> Self {
+        Self::Map(handle)
     }
 
     fn as_int_unchecked(&self) -> i64 {
@@ -108,6 +117,13 @@ impl RawValue for BoxRaw {
         match self {
             Self::Bytes(v) => v,
             _ => unreachable!("as_bytes_unchecked called on non-bytes value"),
+        }
+    }
+
+    fn as_map_unchecked(&self) -> &Self::MapHandle {
+        match self {
+            Self::Map(v) => v,
+            _ => unreachable!("as_map_unchecked called on non-map value"),
         }
     }
 }
@@ -179,5 +195,16 @@ impl ValueBuilder for BoxValueBuilder {
 
     fn alloc_bytes(&self, value: &[u8]) -> Self::BytesHandle {
         Rc::from(value)
+    }
+
+    type MapAllocator = Global;
+    type MapHandle = Rc<MapStorage<Self>>;
+
+    fn map_allocator(&self) -> Self::MapAllocator {
+        Global
+    }
+
+    fn alloc_map(&self, storage: MapStorage<Self>) -> Self::MapHandle {
+        Rc::new(storage)
     }
 }

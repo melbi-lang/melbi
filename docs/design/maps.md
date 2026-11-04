@@ -6,7 +6,8 @@ title: Maps - Design and Implementation
 
 **Date**: 2026-08-02
 
-**Status**: designed, not implemented. Written up from design discussions;
+**Status**: implemented in `melbi-values` (2026-11-04); VM integration
+(`MapAdapter`) not started. Written up from design discussions;
 the decisions are @NiltonVolpato's. Updated 2026-11-03: one float comparison
 rule for the whole language, hashed representation, `Hashable` trait.
 
