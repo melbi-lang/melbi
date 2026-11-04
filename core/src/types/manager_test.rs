@@ -414,7 +414,6 @@ fn symbol_with_dynamic_strings() {
 
 #[test]
 fn symbol_with_strings_in_vec() {
-    use alloc::format;
     use alloc::string::String;
 
     let bump = Bump::new();
@@ -424,7 +423,7 @@ fn symbol_with_strings_in_vec() {
     // Create Vec<String>, then immediately convert to Vec<&str> and call symbol()
     let parts: crate::Vec<crate::String> = vec![
         String::from("success"),
-        format!("error"),
+        "error".to_string(),
         String::from("pending"),
     ];
     let parts_ref: crate::Vec<&str> = parts.iter().map(std::string::String::as_str).collect();
@@ -433,7 +432,7 @@ fn symbol_with_strings_in_vec() {
     // Do it again with fresh Strings
     let parts_2: crate::Vec<crate::String> = vec![
         String::from("success"),
-        format!("error"),
+        "error".to_string(),
         String::from("pending"),
     ];
     let parts_ref_2: crate::Vec<&str> = parts_2.iter().map(std::string::String::as_str).collect();
