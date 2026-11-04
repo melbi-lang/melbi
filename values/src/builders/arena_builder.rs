@@ -4,7 +4,7 @@ use bumpalo::Bump;
 use melbi_thin_ref::ThinRef;
 use melbi_types::ArenaBuilder;
 
-use crate::traits::{RawValue, Val, ValueBuilder};
+use crate::traits::{MapStorage, RawValue, Val, ValueBuilder};
 
 // =============================================================================
 // ArenaRaw - Union-based raw storage for arena allocation
@@ -26,6 +26,9 @@ pub union ArenaRaw<'arena> {
     int: i64,
     bool: bool,
     float: f64,
+    str: ThinRef<'arena, str>,
+    bytes: ThinRef<'arena, [u8]>,
+    map: ThinRef<'arena, MapStorage<ArenaValueBuilder<'arena>>>,
     // Elements are stored inline: the allocation holds the `Val`s themselves
     // (one word each, since `Val<ArenaValueBuilder>` *is* an `ArenaRaw`), not
     // references to separately allocated ones.
@@ -66,6 +69,9 @@ impl fmt::Debug for ArenaRaw<'_> {
 )]
 impl<'arena> RawValue for ArenaRaw<'arena> {
     type ArrayHandle = ThinRef<'arena, [Val<ArenaValueBuilder<'arena>>]>;
+    type StrHandle = ThinRef<'arena, str>;
+    type BytesHandle = ThinRef<'arena, [u8]>;
+    type MapHandle = ThinRef<'arena, MapStorage<ArenaValueBuilder<'arena>>>;
 
     fn from_int(value: i64) -> Self {
         ArenaRaw { int: value }
@@ -81,6 +87,18 @@ impl<'arena> RawValue for ArenaRaw<'arena> {
 
     fn from_array(handle: Self::ArrayHandle) -> Self {
         ArenaRaw { array: handle }
+    }
+
+    fn from_str(handle: Self::StrHandle) -> Self {
+        ArenaRaw { str: handle }
+    }
+
+    fn from_bytes(handle: Self::BytesHandle) -> Self {
+        ArenaRaw { bytes: handle }
+    }
+
+    fn from_map(handle: Self::MapHandle) -> Self {
+        ArenaRaw { map: handle }
     }
 
     fn as_int_unchecked(&self) -> i64 {
@@ -101,6 +119,21 @@ impl<'arena> RawValue for ArenaRaw<'arena> {
     fn as_array_unchecked(&self) -> &Self::ArrayHandle {
         // SAFETY: Caller guarantees this is an Array value (checked via Value's type field).
         unsafe { &self.array }
+    }
+
+    fn as_str_unchecked(&self) -> &Self::StrHandle {
+        // SAFETY: Caller guarantees this is a Str value (checked via Value's type field).
+        unsafe { &self.str }
+    }
+
+    fn as_bytes_unchecked(&self) -> &Self::BytesHandle {
+        // SAFETY: Caller guarantees this is a Bytes value (checked via Value's type field).
+        unsafe { &self.bytes }
+    }
+
+    fn as_map_unchecked(&self) -> &Self::MapHandle {
+        // SAFETY: Caller guarantees this is a Map value (checked via Value's type field).
+        unsafe { &self.map }
     }
 }
 
@@ -148,6 +181,8 @@ impl<'arena> ValueBuilder for ArenaValueBuilder<'arena> {
     type TB = ArenaBuilder<'arena>;
     type Raw = ArenaRaw<'arena>;
     type ArrayHandle = ThinRef<'arena, [Val<Self>]>;
+    type StrHandle = ThinRef<'arena, str>;
+    type BytesHandle = ThinRef<'arena, [u8]>;
 
     fn ty_builder(&self) -> &ArenaBuilder<'arena> {
         &self.type_builder
@@ -158,5 +193,26 @@ impl<'arena> ValueBuilder for ArenaValueBuilder<'arena> {
         elements: impl IntoIterator<Item = Val<Self>, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle {
         ThinRef::from_slice(self.arena, elements)
+    }
+
+    fn alloc_str(&self, value: &str) -> Self::StrHandle {
+        ThinRef::from_str(self.arena, value)
+    }
+
+    fn alloc_bytes(&self, value: &[u8]) -> Self::BytesHandle {
+        ThinRef::from_slice(self.arena, value.iter().copied())
+    }
+
+    type MapAllocator = &'arena Bump;
+    type MapHandle = ThinRef<'arena, MapStorage<Self>>;
+
+    fn map_allocator(&self) -> Self::MapAllocator {
+        self.arena
+    }
+
+    // The table lives in the arena, which never runs destructors. Nothing
+    // leaks: its memory and everything its entries point to are arena memory.
+    fn alloc_map(&self, storage: MapStorage<Self>) -> Self::MapHandle {
+        ThinRef::new(self.arena, storage)
     }
 }

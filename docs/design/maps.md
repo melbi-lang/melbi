@@ -6,8 +6,10 @@ title: Maps - Design and Implementation
 
 **Date**: 2026-08-02
 
-**Status**: designed, not implemented. Written up from a design discussion;
-the decisions are @NiltonVolpato's.
+**Status**: implemented in `melbi-values` (2026-11-04); VM integration
+(`MapAdapter`) not started. Written up from design discussions;
+the decisions are @NiltonVolpato's. Updated 2026-11-03: one float comparison
+rule for the whole language, hashed representation, `Hashable` trait.
 
 **Scope**: how `Map` values are represented and constructed in the new
 `melbi-values` crate, and how the VM builds one without having types. Covers
@@ -38,29 +40,48 @@ from, at the moment a key must be compared?**
 
 ### Key types
 
-Any type with structural equality may be a key, including composite types and
-floats. Function values may not.
+Keys must be `Hashable`: every type except functions, including records and
+other composite types, and floats. Function values may not be keys.
 
-### Floats are allowed, with canonicalization
+### One comparison rule for floats
 
-`Float` keys are permitted, on the condition that keys are canonicalized on
-**both insertion and lookup**:
+Floats are compared the same way everywhere — `==`, `<`, sorting, and map
+keys — by canonicalizing and then using a total order:
 
-- `-0.0` becomes `0.0`
-- every `NaN` bit pattern becomes one canonical `NaN`
+```rust
+fn float_cmp(a: f64, b: f64) -> Ordering {
+    canonical(a).total_cmp(&canonical(b))
+}
 
-After canonicalization, equality and hashing are bitwise. Two consequences are
-deliberate and user-visible:
+fn canonical(x: f64) -> f64 {
+    if x.is_nan() { f64::NAN }   // one NaN, positive
+    else if x == 0.0 { 0.0 }     // -0.0 → 0.0
+    else { x }
+}
+```
 
-- `0.0` and `-0.0` are the same key. This *matches* `==`.
-- `NaN` is a usable key and equals itself. This *differs* from `==`, where
-  `NaN != NaN`. Without it, a `NaN` key could be inserted and never retrieved,
-  which is worse than the inconsistency.
+This matches IEEE except for `NaN`:
 
-Note this is only tractable because lookup needs **equality**, not a total
-order. A sorted representation would need `NaN` to sit somewhere in a total
-order, and getting that subtly wrong yields silently missed lookups rather
-than a visible failure. See "Representation" below.
+| | IEEE | Melbi |
+|---|---|---|
+| `-0.0 == 0.0` | true | true |
+| `NaN == NaN` | false | **true** |
+| `NaN` vs numbers | unordered | **greater than all** |
+
+The deviation buys one rule with no exceptions: no separate key equality, no
+separate sort order, and `NaN` is a usable map key. `x != x` no longer detects
+`NaN`, so the standard library needs an explicit `IsNaN`.
+
+Rejected alternatives:
+
+- **IEEE everywhere.** Sorting then has no defined result once a `NaN` is
+  present (and Rust's `sort_by` may panic on a non-total comparator), and a
+  `NaN` key could be inserted but never found.
+- **IEEE for `<`, a total order for sorting and keys.** Two rules for the same
+  values.
+- **Raw `total_cmp`.** `-0.0 == 0.0` becomes false, which common arithmetic
+  produces (`0.0 * -1.0`), and `NaN`'s position depends on its sign bit, which
+  differs between x86 and ARM for `0.0 / 0.0`.
 
 ### Duplicate keys: last wins
 
@@ -91,15 +112,27 @@ a composition rule (`witness(Array[T])` from `witness(T)`), interning, and a
 lifetime story. Types already have all of that, because type composition *is*
 witness composition.
 
-Operations are therefore type-directed native functions:
+Dynamic values use type-directed native functions, recursing structurally with
+the type as the guide, exactly as `Array::get` re-attaches `element_ty` when
+reading an element. Typed Rust values implement a trait named after the type
+class:
 
 ```rust
-fn hash(key_ty: &Ty<B::TB>, value: &Val<B>) -> u64;
-fn eq(key_ty: &Ty<B::TB>, a: &Val<B>, b: &Val<B>) -> bool;
+// Dynamic, type-directed: the reference implementations
+// (values/src/dynamic/equality.rs), behind `Value`'s `Eq` and `Hash`.
+fn values_equal<B: ValueBuilder>(ty: &Ty<B::TB>, a: &Val<B>, b: &Val<B>) -> bool;
+fn hash_value<B: ValueBuilder>(ty: &Ty<B::TB>, value: &Val<B>, state: &mut impl Hasher);
+
+// Typed keys: Melbi newtypes (Int, Float, Str, Array<B, E>, ...) implement
+// Rust's own Eq and Hash with Melbi semantics, and are marked Hashable.
+pub trait Hashable<B: ValueBuilder>: Marshal<B> + Eq + Hash {}
 ```
 
-recursing structurally with the type as the guide, exactly as `Array::get`
-re-attaches `element_ty` when reading an element.
+A map built by typed code and one built dynamically share one layout, so the
+typed implementations **must agree exactly** with the dynamic ones — same
+equality, and the same sequence of hasher calls. `values/tests/equality.rs`
+checks every typed implementation against the dynamic one with a hasher that
+records each call.
 
 `Display` has the same shape — fully dynamic on the type — which is the
 argument that one mechanism should cover all of them rather than maps getting
@@ -226,22 +259,34 @@ budget.
 
 ## Representation
 
-Chosen inside `build()`; both remain viable and the choice is not
-load-bearing for anything else in this document.
+**`hashbrown::HashTable`**, with a fixed-seed hasher so iteration order is
+reproducible between runs. Note `HashTable`, not `HashMap`: it takes hash and
+eq **closures per operation**, so type-erased keys need no `Hash`/`Eq` impls,
+and it is generic over `A: Allocator`, so the arena works through
+`allocator-api2` (already a workspace dependency).
 
-- **Sorted array + binary search.** What `core/src/values/dynamic.rs:1213`
-  does today. Needs a *total order*, which is what makes float keys awkward.
-- **`hashbrown::HashTable`.** Note `HashTable`, not `HashMap`: it takes hash
-  and eq **closures per operation**, so type-erased keys need no `Hash`/`Eq`
-  impls, and it is generic over `A: Allocator`, so the arena works through
-  `allocator-api2` (already a workspace dependency). Needs only equality, not
-  an order.
+The previous implementation (`core/src/values/dynamic.rs`) used a sorted array,
+which made every value orderable just to support it, and mixed IEEE `==` for
+deduplication with `total_cmp` for lookup. Hashing needs only equality, so key
+types need `Hashable`, not an order.
 
 Since Melbi values are immutable, a map is built once and never mutated, so
-either structure can be finalized at `build()` time. Small maps may not justify
-hashing at all.
+the table is finalized at `build()` time. Small maps may not justify hashing at
+all; that remains an implementation choice inside `build()`.
 
----
+## Ordering
+
+`Ord` is one type class used by both `<` and sorting, so they cannot disagree.
+Its instances extend structurally:
+
+| Type | Ordered |
+|---|---|
+| `Int`, `Float`, `Str`, `Bytes` | yes (floats by the rule above) |
+| `Bool` | `false < true` |
+| `Option[e: Ord]` | `none < some x` |
+| `Array[e: Ord]` | lexicographic |
+| Record with all fields `Ord` | field by field, in field-name order |
+| `Map`, `Function` | no |
 
 ## See also
 

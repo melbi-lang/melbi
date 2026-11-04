@@ -1,8 +1,10 @@
 use alloc::vec::Vec;
+use core::hash::{Hash, Hasher};
 
 use melbi_types::{Scalar, Ty, TyKind};
 
-use super::Array;
+use super::equality::{hash_value, values_equal};
+use super::{Array, Map, MapMaker};
 use crate::traits::{Val, ValueBuilder, ValueView};
 
 /// A dynamically typed value that provides a safe API for access.
@@ -67,6 +69,18 @@ impl<B: ValueBuilder> Value<B> {
         Self::new(ty, Val::float(value))
     }
 
+    /// Create a string value.
+    pub fn str(builder: &B, value: &str) -> Self {
+        let ty = TyKind::Scalar(Scalar::Str).alloc(builder.ty_builder());
+        Self::new(ty, Val::str(builder.alloc_str(value)))
+    }
+
+    /// Create a byte string value.
+    pub fn bytes(builder: &B, value: &[u8]) -> Self {
+        let ty = TyKind::Scalar(Scalar::Bytes).alloc(builder.ty_builder());
+        Self::new(ty, Val::bytes(builder.alloc_bytes(value)))
+    }
+
     /// Create an array value from a list of elements.
     ///
     /// All elements must have the same type (the given `element_ty`). Their raw
@@ -82,6 +96,24 @@ impl<B: ValueBuilder> Value<B> {
         Self::new(ty, Val::array(array_handle))
     }
 
+    /// Create a map value from a list of entries. Later entries win over
+    /// earlier ones with an equal key.
+    ///
+    /// Every key must have type `key_ty` and every value type `value_ty`. To
+    /// add entries one at a time, use [`MapMaker`].
+    pub fn map(
+        builder: &B,
+        key_ty: Ty<B::TB>,
+        value_ty: Ty<B::TB>,
+        entries: Vec<(Self, Self)>,
+    ) -> Self {
+        let mut maker = MapMaker::new(builder, key_ty, value_ty);
+        for (key, value) in entries {
+            maker.insert(key, value);
+        }
+        maker.build()
+    }
+
     /// Internal: Access the raw value storage.
     pub(crate) fn val(&self) -> &Val<B> {
         &self.val
@@ -90,6 +122,24 @@ impl<B: ValueBuilder> Value<B> {
     /// Internal: Consume and return the raw value storage.
     pub(crate) fn into_val(self) -> Val<B> {
         self.val
+    }
+}
+
+/// Values are equal when they have the same type and equal contents, by
+/// Melbi's rules: structural, with `NaN == NaN` for floats.
+impl<B: ValueBuilder> PartialEq for Value<B> {
+    fn eq(&self, other: &Self) -> bool {
+        self.ty == other.ty && values_equal(&self.ty, &self.val, &other.val)
+    }
+}
+
+impl<B: ValueBuilder> Eq for Value<B> {}
+
+/// Hashes the contents only, exactly as the typed value would (see
+/// [`Hashable`](crate::typed::Hashable)).
+impl<B: ValueBuilder> Hash for Value<B> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        hash_value(&self.ty, &self.val, state);
     }
 }
 
@@ -119,6 +169,20 @@ impl<B: ValueBuilder> ValueView<B> for Value<B> {
         }
     }
 
+    fn as_str(&self) -> Option<&str> {
+        match self.ty.kind() {
+            TyKind::Scalar(Scalar::Str) => Some(self.val().as_str_unchecked()),
+            _ => None,
+        }
+    }
+
+    fn as_bytes(&self) -> Option<&[u8]> {
+        match self.ty.kind() {
+            TyKind::Scalar(Scalar::Bytes) => Some(self.val().as_bytes_unchecked()),
+            _ => None,
+        }
+    }
+
     fn as_array(&self) -> Option<impl crate::traits::ArrayView<Self>> {
         let TyKind::Array(element_ty) = self.ty.kind() else {
             return None;
@@ -126,5 +190,14 @@ impl<B: ValueBuilder> ValueView<B> for Value<B> {
 
         let handle = self.val().as_array_unchecked().clone();
         Some(Array::<B>::new(element_ty.clone(), handle))
+    }
+
+    fn as_map(&self) -> Option<impl crate::traits::MapView<Self, Self>> {
+        let TyKind::Map(key_ty, value_ty) = self.ty.kind() else {
+            return None;
+        };
+
+        let handle = self.val().as_map_unchecked().clone();
+        Some(Map::<B>::new(key_ty.clone(), value_ty.clone(), handle))
     }
 }

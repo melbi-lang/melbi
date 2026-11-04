@@ -8,7 +8,7 @@ use melbi_types::ty;
 use melbi_values::builders::{ArenaValueBuilder, BoxValueBuilder};
 use melbi_values::dynamic::Value;
 use melbi_values::traits::{ArrayView, Val, ValueBuilder, ValueView};
-use melbi_values::typed::{Array, Marshal};
+use melbi_values::typed::{Array, Bool, Bytes, Float, Int, Marshal, Str};
 
 /// Generates `#[test]` wrappers that run a generic test function against both
 /// `BoxValueBuilder` and `ArenaValueBuilder`.
@@ -36,18 +36,18 @@ macro_rules! test_both_builders {
 // =============================================================================
 
 fn int_array_create_and_access<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, i64>::new(b, vec![10, 20, 30]);
+    let arr = Array::<_, Int>::new(b, vec![10, 20, 30]);
 
     assert_eq!(arr.len(), 3);
     assert!(!arr.is_empty());
-    assert_eq!(arr.get(0), Some(10));
-    assert_eq!(arr.get(1), Some(20));
-    assert_eq!(arr.get(2), Some(30));
+    assert_eq!(arr.get(0), Some(Int(10)));
+    assert_eq!(arr.get(1), Some(Int(20)));
+    assert_eq!(arr.get(2), Some(Int(30)));
 }
 test_both_builders!(int_array_create_and_access);
 
 fn int_array_out_of_bounds<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, i64>::new(b, vec![1, 2]);
+    let arr = Array::<_, Int>::new(b, vec![1, 2]);
 
     assert_eq!(arr.get(2), None);
     assert_eq!(arr.get(100), None);
@@ -55,7 +55,7 @@ fn int_array_out_of_bounds<B: ValueBuilder>(b: &B) {
 test_both_builders!(int_array_out_of_bounds);
 
 fn int_array_empty<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, i64>::new(b, vec![]);
+    let arr = Array::<_, Int>::empty(b);
 
     assert_eq!(arr.len(), 0);
     assert!(arr.is_empty());
@@ -68,12 +68,12 @@ test_both_builders!(int_array_empty);
 // =============================================================================
 
 fn bool_array<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, bool>::new(b, vec![true, false, true]);
+    let arr = Array::<_, Bool>::new(b, vec![true, false, true]);
 
     assert_eq!(arr.len(), 3);
-    assert_eq!(arr.get(0), Some(true));
-    assert_eq!(arr.get(1), Some(false));
-    assert_eq!(arr.get(2), Some(true));
+    assert_eq!(arr.get(0), Some(Bool(true)));
+    assert_eq!(arr.get(1), Some(Bool(false)));
+    assert_eq!(arr.get(2), Some(Bool(true)));
 }
 test_both_builders!(bool_array);
 
@@ -82,12 +82,12 @@ test_both_builders!(bool_array);
 // =============================================================================
 
 fn float_array<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, f64>::new(b, vec![1.5, 2.5, 3.5]);
+    let arr = Array::<_, Float>::new(b, vec![1.5, 2.5, 3.5]);
 
     assert_eq!(arr.len(), 3);
-    assert_eq!(arr.get(0), Some(1.5));
-    assert_eq!(arr.get(1), Some(2.5));
-    assert_eq!(arr.get(2), Some(3.5));
+    assert_eq!(arr.get(0).map(|f| f.0), Some(1.5));
+    assert_eq!(arr.get(1).map(|f| f.0), Some(2.5));
+    assert_eq!(arr.get(2).map(|f| f.0), Some(3.5));
 }
 test_both_builders!(float_array);
 
@@ -96,20 +96,20 @@ test_both_builders!(float_array);
 // =============================================================================
 
 fn nested_array<B: ValueBuilder>(b: &B) {
-    let inner1 = Array::<_, i64>::new(b, vec![1, 2]);
-    let inner2 = Array::<_, i64>::new(b, vec![3, 4]);
-    let outer = Array::<_, Array<_, i64>>::new(b, vec![inner1, inner2]);
+    let inner1 = Array::<_, Int>::new(b, vec![1, 2]);
+    let inner2 = Array::<_, Int>::new(b, vec![3, 4]);
+    let outer = Array::<_, Array<_, Int>>::new(b, vec![inner1, inner2]);
 
     assert_eq!(outer.len(), 2);
 
     let first = outer.get(0).unwrap();
     assert_eq!(first.len(), 2);
-    assert_eq!(first.get(0), Some(1));
-    assert_eq!(first.get(1), Some(2));
+    assert_eq!(first.get(0), Some(Int(1)));
+    assert_eq!(first.get(1), Some(Int(2)));
 
     let second = outer.get(1).unwrap();
-    assert_eq!(second.get(0), Some(3));
-    assert_eq!(second.get(1), Some(4));
+    assert_eq!(second.get(0), Some(Int(3)));
+    assert_eq!(second.get(1), Some(Int(4)));
 }
 test_both_builders!(nested_array);
 
@@ -118,7 +118,7 @@ test_both_builders!(nested_array);
 // =============================================================================
 
 fn into_value_preserves_values<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, i64>::new(b, vec![10, 20, 30]);
+    let arr = Array::<_, Int>::new(b, vec![10, 20, 30]);
     let value = arr.into_value(b);
 
     let dyn_arr = value.as_array().unwrap();
@@ -131,7 +131,7 @@ test_both_builders!(into_value_preserves_values);
 
 fn into_value_has_correct_type<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
-    let arr = Array::<_, i64>::new(b, vec![1, 2]);
+    let arr = Array::<_, Int>::new(b, vec![1, 2]);
     let value = arr.into_value(b);
 
     assert_eq!(*value.ty(), ty!(tb, Array[Int]));
@@ -140,8 +140,8 @@ test_both_builders!(into_value_has_correct_type);
 
 fn nested_into_value_has_correct_type<B: ValueBuilder>(b: &B) {
     let tb = b.ty_builder().clone();
-    let inner = Array::<_, i64>::new(b, vec![1]);
-    let outer = Array::<_, Array<_, i64>>::new(b, vec![inner]);
+    let inner = Array::<_, Int>::new(b, vec![1]);
+    let outer = Array::<_, Array<_, Int>>::new(b, vec![inner]);
     let value = outer.into_value(b);
 
     assert_eq!(*value.ty(), ty!(tb, Array[Array[Int]]));
@@ -157,10 +157,10 @@ fn from_value_succeeds<B: ValueBuilder>(b: &B) {
     let elements = vec![Value::int(b, 10), Value::int(b, 20)];
     let value = Value::array(b, ty!(tb, Int), elements);
 
-    let arr = Array::<_, i64>::from_value(&value).unwrap();
+    let arr = Array::<_, Int>::from_value(&value).unwrap();
     assert_eq!(arr.len(), 2);
-    assert_eq!(arr.get(0), Some(10));
-    assert_eq!(arr.get(1), Some(20));
+    assert_eq!(arr.get(0), Some(Int(10)));
+    assert_eq!(arr.get(1), Some(Int(20)));
 }
 test_both_builders!(from_value_succeeds);
 
@@ -170,7 +170,7 @@ fn from_value_wrong_element_type_returns_none<B: ValueBuilder>(b: &B) {
     let value = Value::array(b, ty!(tb, Bool), elements);
 
     // Try to interpret Array[Bool] as Array[Int]
-    let result = Array::<_, i64>::from_value(&value);
+    let result = Array::<_, Int>::from_value(&value);
     assert!(result.is_none());
 }
 test_both_builders!(from_value_wrong_element_type_returns_none);
@@ -178,7 +178,7 @@ test_both_builders!(from_value_wrong_element_type_returns_none);
 fn from_value_non_array_returns_none<B: ValueBuilder>(b: &B) {
     let value = Value::int(b, 42);
 
-    let result = Array::<_, i64>::from_value(&value);
+    let result = Array::<_, Int>::from_value(&value);
     assert!(result.is_none());
 }
 test_both_builders!(from_value_non_array_returns_none);
@@ -192,15 +192,15 @@ fn from_value_nested<B: ValueBuilder>(b: &B) {
     let inner_ty = ty!(tb, Array[Int]);
     let outer = Value::array(b, inner_ty, vec![inner1, inner2]);
 
-    let arr = Array::<_, Array<_, i64>>::from_value(&outer).unwrap();
+    let arr = Array::<_, Array<_, Int>>::from_value(&outer).unwrap();
     assert_eq!(arr.len(), 2);
 
     let first = arr.get(0).unwrap();
-    assert_eq!(first.get(0), Some(1));
-    assert_eq!(first.get(1), Some(2));
+    assert_eq!(first.get(0), Some(Int(1)));
+    assert_eq!(first.get(1), Some(Int(2)));
 
     let second = arr.get(1).unwrap();
-    assert_eq!(second.get(0), Some(3));
+    assert_eq!(second.get(0), Some(Int(3)));
 }
 test_both_builders!(from_value_nested);
 
@@ -209,28 +209,28 @@ test_both_builders!(from_value_nested);
 // =============================================================================
 
 fn round_trip<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, i64>::new(b, vec![10, 20, 30]);
+    let arr = Array::<_, Int>::new(b, vec![10, 20, 30]);
 
     let value = arr.into_value(b);
-    let arr2 = Array::<_, i64>::from_value(&value).unwrap();
+    let arr2 = Array::<_, Int>::from_value(&value).unwrap();
 
     assert_eq!(arr2.len(), 3);
-    assert_eq!(arr2.get(0), Some(10));
-    assert_eq!(arr2.get(1), Some(20));
-    assert_eq!(arr2.get(2), Some(30));
+    assert_eq!(arr2.get(0), Some(Int(10)));
+    assert_eq!(arr2.get(1), Some(Int(20)));
+    assert_eq!(arr2.get(2), Some(Int(30)));
 }
 test_both_builders!(round_trip);
 
 fn round_trip_nested<B: ValueBuilder>(b: &B) {
-    let inner = Array::<_, i64>::new(b, vec![1, 2]);
-    let outer = Array::<_, Array<_, i64>>::new(b, vec![inner]);
+    let inner = Array::<_, Int>::new(b, vec![1, 2]);
+    let outer = Array::<_, Array<_, Int>>::new(b, vec![inner]);
 
     let value = outer.into_value(b);
-    let outer2 = Array::<_, Array<_, i64>>::from_value(&value).unwrap();
+    let outer2 = Array::<_, Array<_, Int>>::from_value(&value).unwrap();
 
     let inner2 = outer2.get(0).unwrap();
-    assert_eq!(inner2.get(0), Some(1));
-    assert_eq!(inner2.get(1), Some(2));
+    assert_eq!(inner2.get(0), Some(Int(1)));
+    assert_eq!(inner2.get(1), Some(Int(2)));
 }
 test_both_builders!(round_trip_nested);
 
@@ -239,17 +239,17 @@ test_both_builders!(round_trip_nested);
 // =============================================================================
 
 fn iter_values<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, i64>::new(b, vec![10, 20, 30]);
+    let arr = Array::<_, Int>::new(b, vec![10, 20, 30]);
 
-    let collected: Vec<i64> = arr.iter().collect();
-    assert_eq!(collected, vec![10, 20, 30]);
+    let collected: Vec<Int> = arr.iter().collect();
+    assert_eq!(collected, vec![Int(10), Int(20), Int(30)]);
 }
 test_both_builders!(iter_values);
 
 fn iter_empty<B: ValueBuilder>(b: &B) {
-    let arr = Array::<_, i64>::new(b, vec![]);
+    let arr = Array::<_, Int>::empty(b);
 
-    let collected: Vec<i64> = arr.iter().collect();
+    let collected: Vec<Int> = arr.iter().collect();
     assert!(collected.is_empty());
 }
 test_both_builders!(iter_empty);
@@ -259,11 +259,11 @@ test_both_builders!(iter_empty);
 // =============================================================================
 
 fn clone_is_independent<B: ValueBuilder>(b: &B) {
-    let arr1 = Array::<_, i64>::new(b, vec![1, 2, 3]);
+    let arr1 = Array::<_, Int>::new(b, vec![1, 2, 3]);
     let arr2 = arr1.clone();
 
-    assert_eq!(arr1.get(0), Some(1));
-    assert_eq!(arr2.get(0), Some(1));
+    assert_eq!(arr1.get(0), Some(Int(1)));
+    assert_eq!(arr2.get(0), Some(Int(1)));
     assert_eq!(arr1.len(), arr2.len());
 }
 test_both_builders!(clone_is_independent);
@@ -272,7 +272,7 @@ test_both_builders!(clone_is_independent);
 // Copy — arena arrays are Copy, box arrays are not
 // =============================================================================
 
-static_assertions::assert_not_impl_any!(Array<BoxValueBuilder, i64>: Copy);
+static_assertions::assert_not_impl_any!(Array<BoxValueBuilder, Int>: Copy);
 
 fn assert_copy<T: Copy>(_: &T) {}
 
@@ -280,29 +280,78 @@ fn assert_copy<T: Copy>(_: &T) {}
 fn arena_array_is_copy() {
     let arena = Bump::new();
     let b = ArenaValueBuilder::new(&arena);
-    let arr = Array::<_, i64>::new(&b, vec![1, 2, 3]);
+    let arr = Array::<_, Int>::new(&b, vec![1, 2, 3]);
 
     assert_copy(&arr);
 
     // Use after implicit copy — original remains valid
     let arr2 = arr;
-    assert_eq!(arr.get(0), Some(1));
-    assert_eq!(arr2.get(0), Some(1));
+    assert_eq!(arr.get(0), Some(Int(1)));
+    assert_eq!(arr2.get(0), Some(Int(1)));
 }
 
 #[test]
 fn arena_nested_array_is_copy() {
     let arena = Bump::new();
     let b = ArenaValueBuilder::new(&arena);
-    let inner = Array::<_, i64>::new(&b, vec![1, 2]);
-    let outer = Array::<_, Array<_, i64>>::new(&b, vec![inner]);
+    let inner = Array::<_, Int>::new(&b, vec![1, 2]);
+    let outer = Array::<_, Array<_, Int>>::new(&b, vec![inner]);
 
     assert_copy(&outer);
 
     let outer2 = outer;
-    assert_eq!(outer.get(0).unwrap().get(0), Some(1));
-    assert_eq!(outer2.get(0).unwrap().get(0), Some(1));
+    assert_eq!(outer.get(0).unwrap().get(0), Some(Int(1)));
+    assert_eq!(outer2.get(0).unwrap().get(0), Some(Int(1)));
 }
+
+// =============================================================================
+// Element conversion (`T: Into<E>`)
+// =============================================================================
+
+fn new_accepts_convertible_elements<B: ValueBuilder>(b: &B) {
+    let arr = Array::<_, Int>::new(b, [1, 2, 3]);
+
+    assert_eq!(arr.len(), 3);
+    assert_eq!(arr.get(2), Some(Int(3)));
+}
+test_both_builders!(new_accepts_convertible_elements);
+
+fn str_array<B: ValueBuilder>(b: &B) {
+    let arr = Array::<_, Str<_>>::new(b, vec![Str::new(b, "a"), Str::new(b, "βγ")]);
+
+    assert_eq!(arr.len(), 2);
+    assert_eq!(&*arr.get(0).unwrap(), "a");
+    assert_eq!(&*arr.get(1).unwrap(), "βγ");
+}
+test_both_builders!(str_array);
+
+fn bytes_array<B: ValueBuilder>(b: &B) {
+    let arr = Array::<_, Bytes<_>>::new(b, vec![Bytes::new(b, &[0x00]), Bytes::new(b, &[0xff])]);
+
+    assert_eq!(&*arr.get(1).unwrap(), &[0xff][..]);
+}
+test_both_builders!(bytes_array);
+
+fn str_array_round_trip<B: ValueBuilder>(b: &B) {
+    let tb = b.ty_builder().clone();
+    let arr = Array::<_, Str<_>>::new(b, vec![Str::new(b, "x")]);
+    let value = arr.into_value(b);
+    assert_eq!(*value.ty(), ty!(tb, Array[Str]));
+
+    let arr2 = Array::<_, Str<_>>::from_value(&value).unwrap();
+    assert_eq!(&*arr2.get(0).unwrap(), "x");
+}
+test_both_builders!(str_array_round_trip);
+
+fn nested_int_array_still_works<B: ValueBuilder>(b: &B) {
+    let inner = Array::<_, Int>::new(b, [1, 2]);
+    let outer = Array::<_, Array<_, Int>>::new(b, vec![inner]);
+    let value = outer.into_value(b);
+
+    let outer2 = Array::<_, Array<_, Int>>::from_value(&value).unwrap();
+    assert_eq!(outer2.get(0).unwrap().get(1), Some(Int(2)));
+}
+test_both_builders!(nested_int_array_still_works);
 
 // =============================================================================
 // Storage layout — elements live inline, not behind a per-element reference
@@ -335,7 +384,7 @@ fn arena_array_stores_elements_inline() {
     let b = ArenaValueBuilder::new(&arena);
 
     let before = arena_bytes_used(&arena);
-    let arr = Array::<_, i64>::new(&b, vec![1i64, 2, 3]);
+    let arr = Array::<_, Int>::new(&b, vec![1i64, 2, 3]);
     let used = arena_bytes_used(&arena) - before;
 
     // One allocation: the inline length plus the three inline elements.
@@ -343,8 +392,8 @@ fn arena_array_stores_elements_inline() {
     // 4 words for the slice of references plus 3 words for the elements.
     assert_eq!(used, size_of::<usize>() * 4);
 
-    assert_eq!(arr.get(0), Some(1));
-    assert_eq!(arr.get(2), Some(3));
+    assert_eq!(arr.get(0), Some(Int(1)));
+    assert_eq!(arr.get(2), Some(Int(3)));
 }
 
 #[cfg(target_pointer_width = "64")]
@@ -352,15 +401,15 @@ fn arena_array_stores_elements_inline() {
 fn arena_nested_array_stores_elements_inline() {
     let arena = Bump::new();
     let b = ArenaValueBuilder::new(&arena);
-    let inner = Array::<_, i64>::new(&b, vec![1i64, 2]);
+    let inner = Array::<_, Int>::new(&b, vec![1i64, 2]);
 
     let before = arena_bytes_used(&arena);
-    let outer = Array::<_, Array<_, i64>>::new(&b, vec![inner]);
+    let outer = Array::<_, Array<_, Int>>::new(&b, vec![inner]);
     let used = arena_bytes_used(&arena) - before;
 
     // The outer array stores the inner array's one-word handle inline:
     // one word of length plus one word of element.
     assert_eq!(used, size_of::<usize>() * 2);
 
-    assert_eq!(outer.get(0).unwrap().get(1), Some(2));
+    assert_eq!(outer.get(0).unwrap().get(1), Some(Int(2)));
 }
