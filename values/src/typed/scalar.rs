@@ -14,12 +14,15 @@
 //! assert_eq!(Int::from_value(&value), Some(Int(42)));
 //! ```
 
+use core::cmp::Ordering;
+use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 
 use melbi_types::{Scalar, Ty, TyKind};
 
 use super::Marshal;
 use super::marshal::Sealed;
+use crate::float;
 use crate::traits::{Val, ValueBuilder};
 
 /// Melbi `Int`, backed by `i64`.
@@ -52,6 +55,35 @@ impl Deref for Float {
 
     fn deref(&self) -> &f64 {
         &self.0
+    }
+}
+
+// Comparisons follow Melbi's float rule, not IEEE: every `NaN` equals every
+// other `NaN` and is greater than every number. See `crate::float`.
+
+impl PartialEq for Float {
+    fn eq(&self, other: &Self) -> bool {
+        float::eq(self.0, other.0)
+    }
+}
+
+impl Eq for Float {}
+
+impl PartialOrd for Float {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Float {
+    fn cmp(&self, other: &Self) -> Ordering {
+        float::cmp(self.0, other.0)
+    }
+}
+
+impl Hash for Float {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        float::hash(self.0, state);
     }
 }
 

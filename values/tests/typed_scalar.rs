@@ -33,9 +33,9 @@ static_assertions::assert_not_impl_any!(i64: Marshal<BoxValueBuilder>);
 static_assertions::assert_not_impl_any!(f64: Marshal<BoxValueBuilder>);
 static_assertions::assert_not_impl_any!(bool: Marshal<BoxValueBuilder>);
 
-// Melbi's float comparison is its own rule, so `Float` must not expose IEEE
-// comparisons.
-static_assertions::assert_not_impl_any!(Float: PartialEq, PartialOrd, Eq, core::hash::Hash);
+// `Float` compares by Melbi's float rule (tested in `tests/equality.rs`), which
+// is total, so it can be a map key and be sorted.
+static_assertions::assert_impl_all!(Float: Eq, Ord, core::hash::Hash);
 
 // =============================================================================
 // Int, Float, Bool

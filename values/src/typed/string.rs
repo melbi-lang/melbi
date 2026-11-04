@@ -15,7 +15,9 @@
 //! assert_eq!(&*text, "hello");
 //! ```
 
+use core::cmp::Ordering;
 use core::fmt::{self, Debug};
+use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 
 use melbi_types::{Scalar, Ty, TyKind};
@@ -71,6 +73,24 @@ impl<B: ValueBuilder> PartialEq for Str<B> {
 
 impl<B: ValueBuilder> Eq for Str<B> {}
 
+impl<B: ValueBuilder> PartialOrd for Str<B> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<B: ValueBuilder> Ord for Str<B> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (**self).cmp(&**other)
+    }
+}
+
+impl<B: ValueBuilder> Hash for Str<B> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (**self).hash(state);
+    }
+}
+
 /// Melbi `Bytes`: a byte string, stored by the builder.
 pub struct Bytes<B: ValueBuilder>(B::BytesHandle);
 
@@ -117,6 +137,24 @@ impl<B: ValueBuilder> PartialEq for Bytes<B> {
 }
 
 impl<B: ValueBuilder> Eq for Bytes<B> {}
+
+impl<B: ValueBuilder> PartialOrd for Bytes<B> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<B: ValueBuilder> Ord for Bytes<B> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (**self).cmp(&**other)
+    }
+}
+
+impl<B: ValueBuilder> Hash for Bytes<B> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (**self).hash(state);
+    }
+}
 
 // --- Marshal ---
 

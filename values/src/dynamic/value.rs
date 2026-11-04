@@ -1,8 +1,10 @@
 use alloc::vec::Vec;
+use core::hash::{Hash, Hasher};
 
 use melbi_types::{Scalar, Ty, TyKind};
 
 use super::Array;
+use super::equality::{hash_value, values_equal};
 use crate::traits::{Val, ValueBuilder, ValueView};
 
 /// A dynamically typed value that provides a safe API for access.
@@ -102,6 +104,24 @@ impl<B: ValueBuilder> Value<B> {
     /// Internal: Consume and return the raw value storage.
     pub(crate) fn into_val(self) -> Val<B> {
         self.val
+    }
+}
+
+/// Values are equal when they have the same type and equal contents, by
+/// Melbi's rules: structural, with `NaN == NaN` for floats.
+impl<B: ValueBuilder> PartialEq for Value<B> {
+    fn eq(&self, other: &Self) -> bool {
+        self.ty == other.ty && values_equal(&self.ty, &self.val, &other.val)
+    }
+}
+
+impl<B: ValueBuilder> Eq for Value<B> {}
+
+/// Hashes the contents only, exactly as the typed value would (see
+/// [`Hashable`](crate::typed::Hashable)).
+impl<B: ValueBuilder> Hash for Value<B> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        hash_value(&self.ty, &self.val, state);
     }
 }
 

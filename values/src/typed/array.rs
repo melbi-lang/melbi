@@ -23,7 +23,9 @@
 //! assert_eq!(arr2.get(0), Some(Int(1)));
 //! ```
 
+use core::cmp::Ordering;
 use core::fmt::Debug;
+use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
 
 use melbi_types::{Ty, TyKind};
@@ -113,6 +115,40 @@ impl<B: ValueBuilder, E: Marshal<B>> ArrayView<E> for Array<B, E> {
 }
 
 // --- Marshal (enables nesting: Array<B, Array<B, Int>>) ---
+
+// --- Equality, ordering and hashing, element by element ---
+
+impl<B: ValueBuilder, E: Marshal<B> + PartialEq> PartialEq for Array<B, E> {
+    fn eq(&self, other: &Self) -> bool {
+        self.len() == other.len() && self.iter().eq(other.iter())
+    }
+}
+
+impl<B: ValueBuilder, E: Marshal<B> + Eq> Eq for Array<B, E> {}
+
+impl<B: ValueBuilder, E: Marshal<B> + Ord> PartialOrd for Array<B, E> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Lexicographic, so a shorter array sorts before a longer one it prefixes.
+impl<B: ValueBuilder, E: Marshal<B> + Ord> Ord for Array<B, E> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.iter().cmp(other.iter())
+    }
+}
+
+/// Must feed the hasher exactly what `dynamic::equality::hash_value` feeds
+/// for an array: the length, then each element.
+impl<B: ValueBuilder, E: Marshal<B> + Hash> Hash for Array<B, E> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_usize(self.len());
+        for element in self.iter() {
+            element.hash(state);
+        }
+    }
+}
 
 impl<B: ValueBuilder, E: Marshal<B>> Sealed for Array<B, E> {}
 

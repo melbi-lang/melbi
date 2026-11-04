@@ -117,21 +117,21 @@ reading an element. Typed Rust values implement a trait named after the type
 class:
 
 ```rust
-// Dynamic, type-directed: the reference implementation.
-fn key_eq<B: ValueBuilder>(ty: &Ty<B::TB>, a: &Val<B>, b: &Val<B>) -> bool;
-fn key_hash<B: ValueBuilder>(ty: &Ty<B::TB>, value: &Val<B>, state: &mut impl Hasher);
+// Dynamic, type-directed: the reference implementations
+// (values/src/dynamic/equality.rs), behind `Value`'s `Eq` and `Hash`.
+fn values_equal<B: ValueBuilder>(ty: &Ty<B::TB>, a: &Val<B>, b: &Val<B>) -> bool;
+fn hash_value<B: ValueBuilder>(ty: &Ty<B::TB>, value: &Val<B>, state: &mut impl Hasher);
 
-// Typed keys, e.g. i64, f64, typed Str, typed Array<B, E>.
-pub trait Hashable<B: ValueBuilder>: Marshal<B> {
-    fn key_eq(&self, other: &Self) -> bool;
-    fn key_hash(&self, state: &mut impl Hasher);
-}
+// Typed keys: Melbi newtypes (Int, Float, Str, Array<B, E>, ...) implement
+// Rust's own Eq and Hash with Melbi semantics, and are marked Hashable.
+pub trait Hashable<B: ValueBuilder>: Marshal<B> + Eq + Hash {}
 ```
 
 A map built by typed code and one built dynamically share one layout, so the
 typed implementations **must agree exactly** with the dynamic ones — same
-equality, same hash. Tests check every typed implementation against the
-dynamic function on the same values.
+equality, and the same sequence of hasher calls. `values/tests/equality.rs`
+checks every typed implementation against the dynamic one with a hasher that
+records each call.
 
 `Display` has the same shape — fully dynamic on the type — which is the
 argument that one mechanism should cover all of them rather than maps getting
