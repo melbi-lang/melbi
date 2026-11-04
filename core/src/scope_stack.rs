@@ -10,6 +10,10 @@
 //! ```melbi
 //! b where { a = 1, b = a + 1 }  // `b` can see `a`
 //! ```
+//!
+//! A name declared in an incomplete scope hides outer bindings with the same
+//! name even before it is bound. Looking it up then yields `Lookup::Unbound`
+//! instead of falling through to an outer scope.
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeSet;
@@ -21,6 +25,29 @@ use core::fmt;
 
 use bumpalo::Bump;
 
+/// Result of looking up a name.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Lookup<'s, T> {
+    /// The name is bound to a value.
+    Bound(&'s T),
+    /// The name is declared in an incomplete scope but has no value yet,
+    /// e.g. a `where` binding used in or before its own definition.
+    Unbound,
+    /// The name is not declared.
+    NotFound,
+}
+
+impl<'s, T> Lookup<'s, T> {
+    /// The bound value, if any.
+    #[must_use]
+    pub fn bound(self) -> Option<&'s T> {
+        match self {
+            Lookup::Bound(value) => Some(value),
+            Lookup::Unbound | Lookup::NotFound => None,
+        }
+    }
+}
+
 /// Trait for scopes that can be pushed onto the `ScopeStack`.
 ///
 /// All scopes must implement lookup and bind operations.
@@ -31,9 +58,8 @@ use bumpalo::Bump;
 pub trait Scope<'a, T> {
     /// Look up a name in this scope.
     ///
-    /// Returns Some(&value) if the name is bound, None otherwise.
     /// The name must have the same lifetime as the scope data.
-    fn lookup(&self, name: &'a str) -> Option<&T>;
+    fn lookup(&self, name: &'a str) -> Lookup<'_, T>;
 
     /// Bind a value to a name in this scope.
     ///
@@ -60,11 +86,11 @@ impl<'a, T> CompleteScope<'a, T> {
 }
 
 impl<'a, T> Scope<'a, T> for CompleteScope<'a, T> {
-    fn lookup(&self, name: &'a str) -> Option<&T> {
-        self.0
-            .binary_search_by_key(&name, |(n, _)| *n)
-            .ok()
-            .map(|idx| &self.0[idx].1)
+    fn lookup(&self, name: &'a str) -> Lookup<'_, T> {
+        match self.0.binary_search_by_key(&name, |(n, _)| *n) {
+            Ok(idx) => Lookup::Bound(&self.0[idx].1),
+            Err(_) => Lookup::NotFound,
+        }
     }
 
     fn bind(&mut self, _name: &'a str, _value: T) -> Result<(), BindError> {
@@ -101,11 +127,14 @@ impl<'a, T> IncompleteScope<'a, T> {
 }
 
 impl<'a, T> Scope<'a, T> for IncompleteScope<'a, T> {
-    fn lookup(&self, name: &'a str) -> Option<&T> {
-        self.0
-            .binary_search_by_key(&name, |(n, _)| *n)
-            .ok()
-            .and_then(|idx| self.0[idx].1.as_ref())
+    fn lookup(&self, name: &'a str) -> Lookup<'_, T> {
+        match self.0.binary_search_by_key(&name, |(n, _)| *n) {
+            Ok(idx) => self.0[idx]
+                .1
+                .as_ref()
+                .map_or(Lookup::Unbound, Lookup::Bound),
+            Err(_) => Lookup::NotFound,
+        }
     }
 
     fn bind(&mut self, name: &'a str, value: T) -> Result<(), BindError> {
@@ -126,7 +155,7 @@ impl<'a, T> Scope<'a, T> for IncompleteScope<'a, T> {
 /// A recording scope that tracks variable lookups without binding any values.
 ///
 /// Used during lambda analysis to detect which variables need to be captured.
-/// All lookups return None (delegating to outer scopes), but the names are recorded.
+/// All lookups return `NotFound` (delegating to outer scopes), but the names are recorded.
 ///
 /// The recorded names are shared via `Rc<RefCell<>>` so the analyzer can access them
 /// after the scope is pushed onto the stack.
@@ -148,10 +177,10 @@ impl<'a, T> RecordingScope<'a, T> {
 }
 
 impl<'a, T> Scope<'a, T> for RecordingScope<'a, T> {
-    fn lookup(&self, name: &'a str) -> Option<&T> {
-        // Record the lookup but return None (delegate to outer scopes)
+    fn lookup(&self, name: &'a str) -> Lookup<'_, T> {
+        // Record the lookup but delegate to outer scopes
         self.recorded.borrow_mut().insert(name);
-        None
+        Lookup::NotFound
     }
 
     fn bind(&mut self, _name: &'a str, _value: T) -> Result<(), BindError> {
@@ -197,16 +226,17 @@ impl<'a, T: Copy> ScopeStack<'a, T> {
 
     /// Look up a name, searching scopes from innermost to outermost.
     ///
-    /// Returns the first matching value found, or None if not found in any scope.
-    /// The name must have the same lifetime as the scope data.
+    /// Stops at the first scope that declares the name, even if it is not bound
+    /// there yet. The name must have the same lifetime as the scope data.
     #[must_use]
-    pub fn lookup(&self, name: &'a str) -> Option<&T> {
+    pub fn lookup(&self, name: &'a str) -> Lookup<'_, T> {
         for scope in self.scopes.iter().rev() {
-            if let Some(val) = scope.lookup(name) {
-                return Some(val);
+            match scope.lookup(name) {
+                Lookup::NotFound => {}
+                found => return found,
             }
         }
-        None
+        Lookup::NotFound
     }
 
     /// Bind a value in the topmost scope.
@@ -296,10 +326,10 @@ mod tests {
         let bindings = bump.alloc_slice_copy(&[("a", 1), ("b", 2), ("c", 3)]);
         stack.push(CompleteScope::from_sorted(bindings));
 
-        assert_eq!(stack.lookup("a"), Some(&1));
-        assert_eq!(stack.lookup("b"), Some(&2));
-        assert_eq!(stack.lookup("c"), Some(&3));
-        assert_eq!(stack.lookup("d"), None);
+        assert_eq!(stack.lookup("a"), Lookup::Bound(&1));
+        assert_eq!(stack.lookup("b"), Lookup::Bound(&2));
+        assert_eq!(stack.lookup("c"), Lookup::Bound(&3));
+        assert_eq!(stack.lookup("d"), Lookup::NotFound);
     }
 
     #[test]
@@ -310,19 +340,19 @@ mod tests {
         // Push incomplete scope with names
         stack.push(IncompleteScope::new(&bump, &["a", "b"]).unwrap());
 
-        // Before binding, lookup returns None
-        assert_eq!(stack.lookup("a"), None);
-        assert_eq!(stack.lookup("b"), None);
+        // Before binding, names are declared but unbound
+        assert_eq!(stack.lookup("a"), Lookup::Unbound);
+        assert_eq!(stack.lookup("b"), Lookup::Unbound);
 
         // Bind 'a'
         stack.bind_in_current("a", 1).unwrap();
-        assert_eq!(stack.lookup("a"), Some(&1));
-        assert_eq!(stack.lookup("b"), None);
+        assert_eq!(stack.lookup("a"), Lookup::Bound(&1));
+        assert_eq!(stack.lookup("b"), Lookup::Unbound);
 
         // Bind 'b'
         stack.bind_in_current("b", 2).unwrap();
-        assert_eq!(stack.lookup("a"), Some(&1));
-        assert_eq!(stack.lookup("b"), Some(&2));
+        assert_eq!(stack.lookup("a"), Lookup::Bound(&1));
+        assert_eq!(stack.lookup("b"), Lookup::Bound(&2));
     }
 
     #[test]
@@ -339,14 +369,48 @@ mod tests {
         stack.bind_in_current("a", 10).unwrap();
 
         // 'a' is shadowed, 'b' is not
-        assert_eq!(stack.lookup("a"), Some(&10));
-        assert_eq!(stack.lookup("b"), Some(&2));
+        assert_eq!(stack.lookup("a"), Lookup::Bound(&10));
+        assert_eq!(stack.lookup("b"), Lookup::Bound(&2));
 
         // Pop incomplete scope
         stack.pop().unwrap();
 
         // Original 'a' is visible again
-        assert_eq!(stack.lookup("a"), Some(&1));
+        assert_eq!(stack.lookup("a"), Lookup::Bound(&1));
+    }
+
+    #[test]
+    fn unbound_name_hides_outer_binding() {
+        let bump = Bump::new();
+        let mut stack = ScopeStack::new();
+
+        let bindings = bump.alloc_slice_copy(&[("a", 1)]);
+        stack.push(CompleteScope::from_sorted(bindings));
+
+        // Declaring 'a' in an inner scope hides the outer 'a' even before it is bound
+        stack.push(IncompleteScope::new(&bump, &["a"]).unwrap());
+        assert_eq!(stack.lookup("a"), Lookup::Unbound);
+
+        stack.bind_in_current("a", 10).unwrap();
+        assert_eq!(stack.lookup("a"), Lookup::Bound(&10));
+    }
+
+    #[test]
+    fn recording_scope_delegates_to_outer_scopes() {
+        let bump = Bump::new();
+        let mut stack = ScopeStack::new();
+
+        let bindings = bump.alloc_slice_copy(&[("a", 1)]);
+        stack.push(CompleteScope::from_sorted(bindings));
+        stack.push(IncompleteScope::new(&bump, &["b"]).unwrap());
+
+        let recorded = Rc::new(RefCell::new(BTreeSet::new()));
+        stack.push(RecordingScope::new(Rc::clone(&recorded)));
+
+        assert_eq!(stack.lookup("a"), Lookup::Bound(&1));
+        assert_eq!(stack.lookup("b"), Lookup::Unbound);
+        assert_eq!(stack.lookup("c"), Lookup::NotFound);
+        assert_eq!(*recorded.borrow(), BTreeSet::from(["a", "b", "c"]));
     }
 
     #[test]

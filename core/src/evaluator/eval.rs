@@ -186,7 +186,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
 
     fn eval_ident(&self, name: &'arena str) -> Result<Value<'types, 'arena>, ExecutionError> {
         // Look up variable in scope stack
-        if let Some(value) = self.scope_stack.lookup(name) {
+        if let Some(value) = self.scope_stack.lookup(name).bound() {
             Ok(*value)
         } else {
             // This should never happen if the expression was type-checked
@@ -750,7 +750,7 @@ impl<'types, 'arena> Evaluator<'types, 'arena> {
         // Capture the values of free variables from the current scope
         let mut capture_values = Vec::new();
         for &name in captures {
-            if let Some(value) = self.scope_stack.lookup(name) {
+            if let Some(value) = self.scope_stack.lookup(name).bound() {
                 // TODO: Filter out globals (they should be accessed during call, not captured)
                 capture_values.push((name, *value));
             }

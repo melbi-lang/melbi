@@ -11,7 +11,7 @@ use crate::analyzer::typed_expr::{
     self as typed_expr, Expr, ExprInner, LambdaInstantiations, TypedExpr,
 };
 use crate::parser::{self, BinaryOp, ComparisonOp, Span, UnaryOp};
-use crate::scope_stack::{self, ScopeStack};
+use crate::scope_stack::{self, Lookup, ScopeStack};
 use crate::types::manager::TypeManager;
 use crate::types::traits::{TypeKind, TypeView};
 use crate::types::unification::Unification;
@@ -47,6 +47,7 @@ pub fn analyze<'types, 'arena>(
         typed_ann,
         current_span: None, // Initialize to None
         env_vars_stack: Vec::new(),
+        where_bindings_in_progress: Vec::new(),
         polymorphic_lambdas: hashbrown::HashMap::new(),
         pending_instantiations: hashbrown::HashMap::new(),
     };
@@ -128,6 +129,10 @@ struct Analyzer<'types, 'arena> {
     /// When entering a lambda or let-binding, we push the free vars from parameters.
     /// When exiting, we pop them.
     env_vars_stack: Vec<hashbrown::HashSet<u16>>,
+    /// `where` blocks whose bindings are being analyzed, innermost last: all of
+    /// the block's bindings, and the index of the one being analyzed. Used to
+    /// explain lookups of names that are declared but not yet defined.
+    where_bindings_in_progress: Vec<(&'arena [(&'arena str, &'arena parser::Expr<'arena>)], usize)>,
     /// Track polymorphic lambdas (lambda pointer -> type scheme)
     polymorphic_lambdas:
         hashbrown::HashMap<*const Expr<'types, 'arena>, TypeScheme<'types, 'arena>>,
@@ -796,7 +801,11 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         // Analyze and bind each expression sequentially
         let mut analyzed_bindings: Vec<(&'arena str, &'arena mut Expr<'types, 'arena>)> =
             Vec::new();
-        for (name, value_expr) in bindings {
+        self.where_bindings_in_progress.push((bindings, 0));
+        for (index, (name, value_expr)) in bindings.iter().enumerate() {
+            if let Some(in_progress) = self.where_bindings_in_progress.last_mut() {
+                in_progress.1 = index;
+            }
             let analyzed = self.analyze(value_expr)?;
 
             // Generalize the type to a type scheme
@@ -817,6 +826,7 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
                 .map_err(|e| self.internal_error(format!("Failed to bind in where: {e:?}")))?;
             analyzed_bindings.push((*name, analyzed));
         }
+        self.where_bindings_in_progress.pop();
 
         let expr_typed = self.analyze(expr)?;
 
@@ -1400,44 +1410,76 @@ impl<'types, 'arena> Analyzer<'types, 'arena> {
         ident: &'arena str,
     ) -> Result<&'arena mut Expr<'types, 'arena>, TypeError> {
         // Look up the identifier in the scope stack
-        if let Some(scheme) = self.scope_stack.lookup(ident) {
-            // Instantiate the type scheme with fresh type variables
-            // Pass the current span as the instantiation site for constraint tracking
-            let instantiation_span = self.get_span();
-            let (ty, inst_subst) = self.unification.instantiate_with_subst(
-                scheme,
-                &mut self.type_class_resolver,
-                instantiation_span,
-            );
+        let scheme = match self.scope_stack.lookup(ident) {
+            Lookup::Bound(scheme) => scheme,
+            Lookup::Unbound => return self.error(self.unbound_where_binding_error(ident)),
+            Lookup::NotFound => {
+                return self.error(TypeErrorKind::UnboundVariable {
+                    name: ident.to_string(),
+                });
+            }
+        };
 
-            // If this identifier refers to a polymorphic lambda, record the instantiation
-            // The lambda pointer is stored in the TypeScheme itself
-            if let Some(lambda_ptr) = scheme.lambda_expr
-                && !inst_subst.is_empty()
-            {
-                // Build reverse mapping: fresh var ID -> generalized var ID
-                let mut fresh_to_gen = hashbrown::HashMap::new();
-                for (gen_var_id, fresh_ty) in &inst_subst {
-                    // Extract fresh var ID from the type (should be TypeVar)
-                    use crate::types::traits::{TypeKind, TypeView};
-                    if let TypeKind::TypeVar(fresh_var_id) = fresh_ty.view() {
-                        fresh_to_gen.insert(fresh_var_id, *gen_var_id);
-                    }
+        // Instantiate the type scheme with fresh type variables
+        // Pass the current span as the instantiation site for constraint tracking
+        let instantiation_span = self.get_span();
+        let (ty, inst_subst) = self.unification.instantiate_with_subst(
+            scheme,
+            &mut self.type_class_resolver,
+            instantiation_span,
+        );
+
+        // If this identifier refers to a polymorphic lambda, record the instantiation
+        // The lambda pointer is stored in the TypeScheme itself
+        if let Some(lambda_ptr) = scheme.lambda_expr
+            && !inst_subst.is_empty()
+        {
+            // Build reverse mapping: fresh var ID -> generalized var ID
+            let mut fresh_to_gen = hashbrown::HashMap::new();
+            for (gen_var_id, fresh_ty) in &inst_subst {
+                // Extract fresh var ID from the type (should be TypeVar)
+                use crate::types::traits::{TypeKind, TypeView};
+                if let TypeKind::TypeVar(fresh_var_id) = fresh_ty.view() {
+                    fresh_to_gen.insert(fresh_var_id, *gen_var_id);
                 }
-
-                // Add to pending instantiations
-                self.pending_instantiations
-                    .entry(lambda_ptr)
-                    .or_insert_with(Vec::new)
-                    .push(fresh_to_gen);
             }
 
-            return Ok(self.alloc(ty, ExprInner::Ident(ident)));
+            // Add to pending instantiations
+            self.pending_instantiations
+                .entry(lambda_ptr)
+                .or_insert_with(Vec::new)
+                .push(fresh_to_gen);
         }
 
-        self.error(TypeErrorKind::UnboundVariable {
-            name: ident.to_string(),
-        })
+        Ok(self.alloc(ty, ExprInner::Ident(ident)))
+    }
+
+    /// Explain a lookup of `ident` that found it declared but not yet defined.
+    fn unbound_where_binding_error(&self, ident: &'arena str) -> TypeErrorKind {
+        // Only `where` blocks leave names unbound while analyzing other code.
+        // The innermost block declaring `ident` is the scope the lookup stopped at.
+        let declaring_block = self
+            .where_bindings_in_progress
+            .iter()
+            .rev()
+            .find(|(bindings, _)| bindings.iter().any(|(name, _)| *name == ident));
+
+        match declaring_block {
+            Some((bindings, current)) if bindings[*current].0 == ident => {
+                TypeErrorKind::SelfReferentialBinding {
+                    name: ident.to_string(),
+                }
+            }
+            Some((bindings, current)) => TypeErrorKind::UsedBeforeDefinition {
+                name: ident.to_string(),
+                used_in: bindings[*current].0.to_string(),
+            },
+            None => TypeErrorKind::Other {
+                message: format!(
+                    "Internal error: no `where` block declares unbound name '{ident}'"
+                ),
+            },
+        }
     }
 
     /// Build final lambda instantiation substitutions by resolving fresh vars to concrete types.

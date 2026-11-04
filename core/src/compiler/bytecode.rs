@@ -356,7 +356,7 @@ impl<'types, 'arena> BytecodeCompiler<'types, 'arena> {
     /// Lookup order is determined by scope stack: locals -> captures -> globals.
     /// Emits the appropriate load instruction.
     fn compile_variable_load(&mut self, name: &'arena str) -> Result<(), CompileError> {
-        match self.scope_stack.lookup(name) {
+        match self.scope_stack.lookup(name).bound() {
             Some(ScopeEntry::Local(index)) => {
                 self.emit_with_arg(Instruction::LoadLocal, *index);
             }

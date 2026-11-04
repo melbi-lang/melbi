@@ -967,6 +967,96 @@ fn where_duplicate_binding_fails() {
     assert!(result.is_err());
 }
 
+/// Analyze `source` and return the kind of the error it must produce.
+fn analyze_error_kind(source: &str) -> TypeErrorKind {
+    let bump = Bump::new();
+    let type_manager = TypeManager::new(&bump);
+    let source = bump.alloc_str(source);
+    match analyze_source(source, type_manager, &bump) {
+        Ok(_) => panic!("Expected an error for: {source}"),
+        Err(err) => err.0.kind,
+    }
+}
+
+fn self_referential(name: &str) -> TypeErrorKind {
+    TypeErrorKind::SelfReferentialBinding {
+        name: name.to_string(),
+    }
+}
+
+fn used_before_definition(name: &str, used_in: &str) -> TypeErrorKind {
+    TypeErrorKind::UsedBeforeDefinition {
+        name: name.to_string(),
+        used_in: used_in.to_string(),
+    }
+}
+
+#[test]
+fn where_recursive_function_fails() {
+    assert_eq!(
+        analyze_error_kind(
+            "factorial(5) where { factorial = (n) => if n <= 1 then 1 else n * factorial(n - 1) }"
+        ),
+        self_referential("factorial"),
+    );
+}
+
+#[test]
+fn where_self_reference_hides_outer_binding() {
+    // The inner `x` is in scope for its whole `where` block, so `x + 1` doesn't
+    // see the outer `x`.
+    assert_eq!(
+        analyze_error_kind("(x where { x = x + 1 }) where { x = 1 }"),
+        self_referential("x"),
+    );
+}
+
+#[test]
+fn where_self_reference_through_nested_where() {
+    assert_eq!(
+        analyze_error_kind("a where { a = (x where { x = a }) }"),
+        self_referential("a"),
+    );
+}
+
+#[test]
+fn where_forward_reference_fails() {
+    assert_eq!(
+        analyze_error_kind("f(1) where { f = (n) => g(n), g = (n) => n }"),
+        used_before_definition("g", "f"),
+    );
+}
+
+#[test]
+fn where_forward_reference_hides_outer_binding() {
+    assert_eq!(
+        analyze_error_kind("(y where { y = x, x = 2 }) where { x = 1 }"),
+        used_before_definition("x", "y"),
+    );
+}
+
+#[test]
+fn where_forward_reference_in_inner_block() {
+    // `a` in `b = a` refers to the inner `a`, which is defined below `b`.
+    assert_eq!(
+        analyze_error_kind("a where { a = (b where { b = a, a = 1 }) }"),
+        used_before_definition("a", "b"),
+    );
+}
+
+#[test]
+fn where_binding_shadows_outer_binding_after_definition() {
+    let bump = Bump::new();
+    let type_manager = TypeManager::new(&bump);
+
+    let result = analyze_source(
+        r#"(y where { x = "inner", y = x }) where { x = 1 }"#,
+        type_manager,
+        &bump,
+    );
+    assert_eq!(result.unwrap().expr.0, type_manager.str());
+}
+
 // ============================================================================
 // Lambdas and Functions
 // ============================================================================

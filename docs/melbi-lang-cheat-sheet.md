@@ -192,6 +192,12 @@ where { a = 5, b = 2, c = 3 }    // Complex expression
 { a = z, b = z + y } where { x = 2, y = 3, z = x + y } // In records
 ```
 
+Each binding can only use the bindings that come before it, so recursion is not supported:
+```melbi
+f(5) where { f = (n) => f(n - 1) }  // Error: 'f' refers to itself
+b where { b = a, a = 1 }            // Error: 'a' is used before it is defined
+```
+
 ### Pattern Matching
 ```melbi
 // Option patterns

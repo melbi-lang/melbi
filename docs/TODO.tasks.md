@@ -51,20 +51,11 @@ _Re-evaluate priorities periodically as needs change_
   - Related files: `core/src/errors.rs`, `core/src/evaluator/error.rs`
   - This would improve error handling consistency across the codebase
 
-- [ ] **Improve recursive closure error messages** (P3)
-  - Currently recursive closures are impossible (analyzer correctly rejects them)
-  - Error message could be more helpful: "Undefined variable 'factorial'" should suggest that recursive functions need special support
-  - Test case: `factorial(5) where { factorial = (n) => if n <= 1 then 1 else n * factorial(n - 1) }`
-  - Current behavior: Analyzer reports "Undefined variable 'factorial'" because the lambda body is analyzed before the binding is complete
-  - Better error: "Recursive closures are not supported. Consider using a named function instead."
-  - Related: Phase 4 Milestone 4.1 in lambda-closure-implementation-plan.md
-  
-- [ ] **Add RecursiveClosure and UndefinedVariable error variants** (P3)
-  - Deferred from lambda implementation - handle as part of broader error reporting improvements
-  - `RecursiveClosure` variant for when lambda references itself
-  - `UndefinedVariable` variant as defensive error (should be caught by analyzer)
-  - These would provide better error messages than generic type checking errors
-  - Related files: `core/src/evaluator/error.rs`
+- [x] **Improve recursive closure error messages** (P3)
+  - A `where` binding that uses itself reports E021 ("'factorial' refers to itself in its own definition")
+  - A binding used before its definition reports E022 ("'g' is used before it is defined", suggesting to move it)
+  - A name declared in a `where` hides outer bindings for the whole block, even before it is defined
+  - No evaluator error variants needed: the analyzer rejects these programs
 
 ---
 

@@ -2595,29 +2595,6 @@ fn lambda_with_format_string() {
     assert_eq!(result.as_str().unwrap(), "Hello, World!");
 }
 
-// Milestone 4.1: Recursive Closure Detection
-#[test]
-#[ignore = "needs recursive closure detection in analyzer"]
-fn recursive_closure_direct_self_reference() {
-    let arena = Bump::new();
-    let result = Runner::new(&arena).run("f(5) where { f = (n) => f(n - 1) }", &[], &[]);
-    // Should fail with RecursiveClosure error
-    assert!(result.is_err());
-}
-
-#[test]
-#[ignore = "needs recursive closure detection in analyzer"]
-fn recursive_closure_factorial() {
-    let arena = Bump::new();
-    let result = Runner::new(&arena).run(
-        "factorial(5) where { factorial = (n) => if n <= 1 then 1 else n * factorial(n - 1) }",
-        &[],
-        &[],
-    );
-    // Should fail with RecursiveClosure error
-    assert!(result.is_err());
-}
-
 // Milestone 4.3: Edge Cases
 #[test]
 fn lambda_unused_argument_evaluated() {

@@ -64,6 +64,10 @@ pub enum TypeErrorKind {
     },
     /// Unbound/undefined variable
     UnboundVariable { name: String },
+    /// A `where` binding refers to itself (recursion is not supported)
+    SelfReferentialBinding { name: String },
+    /// A `where` binding is used before its definition
+    UsedBeforeDefinition { name: String, used_in: String },
     /// Unhandled error type
     UnhandledError,
     /// Occurs check failed (infinite type)
@@ -152,6 +156,21 @@ impl TypeError {
                 format!("Undefined variable '{name}'"),
                 Some("E002"),
                 vec!["Make sure the variable is declared before use".to_string()],
+            ),
+            TypeErrorKind::SelfReferentialBinding { name } => (
+                format!("'{name}' refers to itself in its own definition"),
+                Some("E021"),
+                vec![
+                    "Recursion is not supported: a binding can only use the bindings that come before it"
+                        .to_string(),
+                ],
+            ),
+            TypeErrorKind::UsedBeforeDefinition { name, used_in } => (
+                format!("'{name}' is used before it is defined"),
+                Some("E022"),
+                vec![format!(
+                    "A binding can only use the bindings that come before it. Move '{name}' before '{used_in}'"
+                )],
             ),
             TypeErrorKind::UnhandledError => (
                 "Unhandled error type".to_string(),
@@ -425,6 +444,43 @@ mod tests {
         assert!(diagnostic.message.contains("expected Int"));
         assert!(diagnostic.message.contains("found String"));
         assert_eq!(diagnostic.code, Some("E001".to_string()));
+    }
+
+    #[test]
+    fn self_referential_binding_diagnostic() {
+        let error = TypeError::new(
+            TypeErrorKind::SelfReferentialBinding {
+                name: "f".to_string(),
+            },
+            "test source".to_string(),
+            Span(0..1),
+        );
+
+        let diagnostic = error.to_diagnostic();
+        assert_eq!(diagnostic.code, Some("E021".to_string()));
+        assert!(diagnostic.message.contains("'f' refers to itself"));
+        assert!(diagnostic.help[0].contains("Recursion is not supported"));
+    }
+
+    #[test]
+    fn used_before_definition_diagnostic() {
+        let error = TypeError::new(
+            TypeErrorKind::UsedBeforeDefinition {
+                name: "g".to_string(),
+                used_in: "f".to_string(),
+            },
+            "test source".to_string(),
+            Span(0..1),
+        );
+
+        let diagnostic = error.to_diagnostic();
+        assert_eq!(diagnostic.code, Some("E022".to_string()));
+        assert!(
+            diagnostic
+                .message
+                .contains("'g' is used before it is defined")
+        );
+        assert!(diagnostic.help[0].contains("Move 'g' before 'f'"));
     }
 
     #[test]
