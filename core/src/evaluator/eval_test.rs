@@ -491,7 +491,6 @@ fn operator_precedence() {
 // ============================================================================
 
 #[test]
-#[ignore = "TODO(investigage): this is actually overflowing the stack"]
 fn stack_depth_limit() {
     let arena = Bump::new();
     let runner = Runner::new(&arena);
