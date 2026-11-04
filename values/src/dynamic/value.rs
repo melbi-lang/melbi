@@ -67,6 +67,18 @@ impl<B: ValueBuilder> Value<B> {
         Self::new(ty, Val::float(value))
     }
 
+    /// Create a string value.
+    pub fn str(builder: &B, value: &str) -> Self {
+        let ty = TyKind::Scalar(Scalar::Str).alloc(builder.ty_builder());
+        Self::new(ty, Val::str(builder.alloc_str(value)))
+    }
+
+    /// Create a byte string value.
+    pub fn bytes(builder: &B, value: &[u8]) -> Self {
+        let ty = TyKind::Scalar(Scalar::Bytes).alloc(builder.ty_builder());
+        Self::new(ty, Val::bytes(builder.alloc_bytes(value)))
+    }
+
     /// Create an array value from a list of elements.
     ///
     /// All elements must have the same type (the given `element_ty`). Their raw
@@ -115,6 +127,20 @@ impl<B: ValueBuilder> ValueView<B> for Value<B> {
     fn as_float(&self) -> Option<f64> {
         match self.ty.kind() {
             TyKind::Scalar(Scalar::Float) => Some(self.val().as_float_unchecked()),
+            _ => None,
+        }
+    }
+
+    fn as_str(&self) -> Option<&str> {
+        match self.ty.kind() {
+            TyKind::Scalar(Scalar::Str) => Some(self.val().as_str_unchecked()),
+            _ => None,
+        }
+    }
+
+    fn as_bytes(&self) -> Option<&[u8]> {
+        match self.ty.kind() {
+            TyKind::Scalar(Scalar::Bytes) => Some(self.val().as_bytes_unchecked()),
             _ => None,
         }
     }

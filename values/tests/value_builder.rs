@@ -270,6 +270,88 @@ fn array_of_floats<B: ValueBuilder>(b: &B) {
 test_both_builders!(array_of_floats);
 
 // =============================================================================
+// String and byte string values
+// =============================================================================
+
+fn str_value<B: ValueBuilder>(b: &B) {
+    let v = Value::str(b, "hello");
+    assert_eq!(v.as_str(), Some("hello"));
+}
+test_both_builders!(str_value);
+
+fn str_empty<B: ValueBuilder>(b: &B) {
+    let v = Value::str(b, "");
+    assert_eq!(v.as_str(), Some(""));
+}
+test_both_builders!(str_empty);
+
+fn str_non_ascii<B: ValueBuilder>(b: &B) {
+    let text = "héllo — 日本語 🦀";
+    let v = Value::str(b, text);
+    assert_eq!(v.as_str(), Some(text));
+}
+test_both_builders!(str_non_ascii);
+
+fn str_wrong_type_returns_none<B: ValueBuilder>(b: &B) {
+    let v = Value::str(b, "hello");
+    assert_eq!(v.as_int(), None);
+    assert_eq!(v.as_bool(), None);
+    assert_eq!(v.as_float(), None);
+    assert_eq!(v.as_bytes(), None);
+    assert!(v.as_array().is_none());
+}
+test_both_builders!(str_wrong_type_returns_none);
+
+fn str_has_correct_type<B: ValueBuilder>(b: &B) {
+    let v = Value::str(b, "hello");
+    let tb = b.ty_builder().clone();
+    assert_eq!(*v.ty(), ty!(tb, Str));
+}
+test_both_builders!(str_has_correct_type);
+
+fn bytes_value<B: ValueBuilder>(b: &B) {
+    let v = Value::bytes(b, &[0x00, 0x7f, 0xff]);
+    assert_eq!(v.as_bytes(), Some(&[0x00, 0x7f, 0xff][..]));
+}
+test_both_builders!(bytes_value);
+
+fn bytes_empty<B: ValueBuilder>(b: &B) {
+    let v = Value::bytes(b, &[]);
+    assert_eq!(v.as_bytes(), Some(&[][..]));
+}
+test_both_builders!(bytes_empty);
+
+fn bytes_wrong_type_returns_none<B: ValueBuilder>(b: &B) {
+    let v = Value::bytes(b, &[0x01]);
+    assert_eq!(v.as_int(), None);
+    assert_eq!(v.as_bool(), None);
+    assert_eq!(v.as_float(), None);
+    assert_eq!(v.as_str(), None);
+    assert!(v.as_array().is_none());
+}
+test_both_builders!(bytes_wrong_type_returns_none);
+
+fn bytes_has_correct_type<B: ValueBuilder>(b: &B) {
+    let v = Value::bytes(b, &[0x01]);
+    let tb = b.ty_builder().clone();
+    assert_eq!(*v.ty(), ty!(tb, Bytes));
+}
+test_both_builders!(bytes_has_correct_type);
+
+// Arena values are one word of raw storage plus one word of type handle, even
+// when they hold a string.
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn arena_str_value_is_two_words() {
+    let arena = Bump::new();
+    let b = ArenaValueBuilder::new(&arena);
+    let v = Value::str(&b, "hello");
+
+    assert_eq!(size_of_val(&v), size_of::<usize>() * 2);
+    assert_eq!(v.as_str(), Some("hello"));
+}
+
+// =============================================================================
 // Clone semantics
 // =============================================================================
 

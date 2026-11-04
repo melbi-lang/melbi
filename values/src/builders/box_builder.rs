@@ -18,10 +18,13 @@ pub enum BoxRaw {
     Int(i64),
     Bool(bool),
     Float(f64),
+    Str(Rc<str>),
+    Bytes(Rc<[u8]>),
     // Elements are stored inline in the `Rc` allocation, not as a slice of
     // pointers to individually allocated elements.
     Array(Rc<[Val<BoxValueBuilder>]>),
 }
+// A tag plus the widest payload, which is a fat `Rc` (two words).
 static_assertions::assert_eq_size!(BoxRaw, [usize; 3]);
 
 impl fmt::Debug for BoxRaw {
@@ -30,6 +33,8 @@ impl fmt::Debug for BoxRaw {
             Self::Int(v) => write!(f, "Int({v})"),
             Self::Bool(v) => write!(f, "Bool({v})"),
             Self::Float(v) => write!(f, "Float({v})"),
+            Self::Str(s) => write!(f, "Str({s:?})"),
+            Self::Bytes(b) => write!(f, "Bytes(len={})", b.len()),
             Self::Array(arr) => write!(f, "Array(len={})", arr.len()),
         }
     }
@@ -37,6 +42,8 @@ impl fmt::Debug for BoxRaw {
 
 impl RawValue for BoxRaw {
     type ArrayHandle = Rc<[Val<BoxValueBuilder>]>;
+    type StrHandle = Rc<str>;
+    type BytesHandle = Rc<[u8]>;
 
     fn from_int(value: i64) -> Self {
         Self::Int(value)
@@ -52,6 +59,14 @@ impl RawValue for BoxRaw {
 
     fn from_array(handle: Self::ArrayHandle) -> Self {
         Self::Array(handle)
+    }
+
+    fn from_str(handle: Self::StrHandle) -> Self {
+        Self::Str(handle)
+    }
+
+    fn from_bytes(handle: Self::BytesHandle) -> Self {
+        Self::Bytes(handle)
     }
 
     fn as_int_unchecked(&self) -> i64 {
@@ -79,6 +94,20 @@ impl RawValue for BoxRaw {
         match self {
             Self::Array(v) => v,
             _ => unreachable!("as_array_unchecked called on non-array value"),
+        }
+    }
+
+    fn as_str_unchecked(&self) -> &Self::StrHandle {
+        match self {
+            Self::Str(v) => v,
+            _ => unreachable!("as_str_unchecked called on non-str value"),
+        }
+    }
+
+    fn as_bytes_unchecked(&self) -> &Self::BytesHandle {
+        match self {
+            Self::Bytes(v) => v,
+            _ => unreachable!("as_bytes_unchecked called on non-bytes value"),
         }
     }
 }
@@ -130,6 +159,8 @@ impl ValueBuilder for BoxValueBuilder {
     type TB = BoxBuilder;
     type Raw = BoxRaw;
     type ArrayHandle = Rc<[Val<Self>]>;
+    type StrHandle = Rc<str>;
+    type BytesHandle = Rc<[u8]>;
 
     fn ty_builder(&self) -> &BoxBuilder {
         &self.type_builder
@@ -140,5 +171,13 @@ impl ValueBuilder for BoxValueBuilder {
         elements: impl IntoIterator<Item = Val<Self>, IntoIter: ExactSizeIterator>,
     ) -> Self::ArrayHandle {
         elements.into_iter().collect()
+    }
+
+    fn alloc_str(&self, value: &str) -> Self::StrHandle {
+        Rc::from(value)
+    }
+
+    fn alloc_bytes(&self, value: &[u8]) -> Self::BytesHandle {
+        Rc::from(value)
     }
 }

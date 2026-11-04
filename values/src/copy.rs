@@ -59,6 +59,8 @@ pub fn copy_value<Src: ValueBuilder, Dst: ValueBuilder>(
         TyKind::Scalar(Scalar::Int) => Value::int(dst, value.as_int().unwrap()),
         TyKind::Scalar(Scalar::Bool) => Value::bool(dst, value.as_bool().unwrap()),
         TyKind::Scalar(Scalar::Float) => Value::float(dst, value.as_float().unwrap()),
+        TyKind::Scalar(Scalar::Str) => Value::str(dst, value.as_str().unwrap()),
+        TyKind::Scalar(Scalar::Bytes) => Value::bytes(dst, value.as_bytes().unwrap()),
         TyKind::Array(elem_ty) => {
             let dst_elem_ty = copy_type(elem_ty, dst.ty_builder());
             let array = value.as_array().unwrap();

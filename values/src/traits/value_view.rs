@@ -20,9 +20,14 @@ pub trait ValueView<VB: ValueBuilder>: Sized {
     /// Returns the float value, or `None` if not a `Float`.
     fn as_float(&self) -> Option<f64>;
 
+    /// Returns the string value, or `None` if not a `Str`.
+    fn as_str(&self) -> Option<&str>;
+
+    /// Returns the byte string value, or `None` if not `Bytes`.
+    fn as_bytes(&self) -> Option<&[u8]>;
+
     /// Returns an array view, or `None` if not an `Array`.
     fn as_array(&self) -> Option<impl ArrayView<Value<VB>>>;
 
     // TODO: fn as_map(&self) -> Option<...>;  // see `docs/design/maps.md`
-    // TODO: fn as_string(&self) -> Option<...>;
 }

@@ -6,15 +6,32 @@
 //!
 //! # Implemented for
 //!
-//! - `i64` (Melbi `Int`)
-//! - `bool` (Melbi `Bool`)
-//! - `f64` (Melbi `Float`)
+//! - [`Int`](super::Int) (Melbi `Int`)
+//! - [`Float`](super::Float) (Melbi `Float`)
+//! - [`Bool`](super::Bool) (Melbi `Bool`)
+//! - [`Str`](super::Str) (Melbi `Str`)
+//! - [`Bytes`](super::Bytes) (Melbi `Bytes`)
 //! - [`Array<B, E>`](super::Array) (Melbi `Array[E]`) — see `typed/array.rs`
+//!
+//! Only Melbi types implement `Marshal`; Rust primitives are wrapped in the
+//! newtypes above instead.
 
-use melbi_types::{Scalar, Ty, TyKind};
+use melbi_types::{Ty, TyKind};
 
 use crate::dynamic::Value;
 use crate::traits::{Val, ValueBuilder, ValueView};
+
+/// Seals [`Marshal`]: only types in this crate can implement it.
+///
+/// Melbi supports only types that marshal efficiently into the one-word `Val`
+/// storage cell, which is what lets collections store elements inline. How
+/// embedders map their own Rust types belongs to the design of user-defined
+/// types; until then, new marshalled types are added here.
+mod sealed {
+    pub trait Sealed {}
+}
+
+pub(crate) use sealed::Sealed;
 
 /// Marshalling between a Rust type and a builder's raw value storage.
 ///
@@ -23,8 +40,8 @@ use crate::traits::{Val, ValueBuilder, ValueView};
 /// - Check if a `TyKind` matches (allocation-free)
 /// - Extract a value from raw storage (unchecked — type must be verified first)
 /// - Store a value into the builder
-pub trait Marshal<B: ValueBuilder>: Sized {
-    /// Construct the `Ty` for this type (e.g., `Scalar::Int` for `i64`).
+pub trait Marshal<B: ValueBuilder>: Sized + Sealed {
+    /// Construct the `Ty` for this type (e.g., `Scalar::Int` for [`Int`](super::Int)).
     fn ty(tb: &B::TB) -> Ty<B::TB>;
 
     /// Allocation-free structural type check.
@@ -62,63 +79,5 @@ pub trait Marshal<B: ValueBuilder>: Sized {
             return None;
         }
         Some(Self::from_val_unchecked(value.val()))
-    }
-}
-
-// =============================================================================
-// Primitive implementations
-// =============================================================================
-
-impl<B: ValueBuilder> Marshal<B> for i64 {
-    fn ty(tb: &B::TB) -> Ty<B::TB> {
-        TyKind::Scalar(Scalar::Int).alloc(tb)
-    }
-
-    fn matches_ty_kind(kind: &TyKind<B::TB>) -> bool {
-        matches!(kind, TyKind::Scalar(Scalar::Int))
-    }
-
-    fn from_val_unchecked(val: &Val<B>) -> Self {
-        val.as_int_unchecked()
-    }
-
-    fn into_val(self, _builder: &B) -> Val<B> {
-        Val::int(self)
-    }
-}
-
-impl<B: ValueBuilder> Marshal<B> for bool {
-    fn ty(tb: &B::TB) -> Ty<B::TB> {
-        TyKind::Scalar(Scalar::Bool).alloc(tb)
-    }
-
-    fn matches_ty_kind(kind: &TyKind<B::TB>) -> bool {
-        matches!(kind, TyKind::Scalar(Scalar::Bool))
-    }
-
-    fn from_val_unchecked(val: &Val<B>) -> Self {
-        val.as_bool_unchecked()
-    }
-
-    fn into_val(self, _builder: &B) -> Val<B> {
-        Val::bool(self)
-    }
-}
-
-impl<B: ValueBuilder> Marshal<B> for f64 {
-    fn ty(tb: &B::TB) -> Ty<B::TB> {
-        TyKind::Scalar(Scalar::Float).alloc(tb)
-    }
-
-    fn matches_ty_kind(kind: &TyKind<B::TB>) -> bool {
-        matches!(kind, TyKind::Scalar(Scalar::Float))
-    }
-
-    fn from_val_unchecked(val: &Val<B>) -> Self {
-        val.as_float_unchecked()
-    }
-
-    fn into_val(self, _builder: &B) -> Val<B> {
-        Val::float(self)
     }
 }

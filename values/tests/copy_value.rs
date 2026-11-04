@@ -429,6 +429,120 @@ fn nested_array_arena_to_arena() {
 }
 
 // =============================================================================
+// Strings and byte strings
+// =============================================================================
+
+#[test]
+fn str_box_to_arena() {
+    let arena = Bump::new();
+    let dst = ArenaValueBuilder::new(&arena);
+    let copied = {
+        let src = box_builder();
+        let v = Value::str(&src, "héllo 🦀");
+        copy_value(&v, &dst)
+    };
+
+    assert_eq!(copied.as_str(), Some("héllo 🦀"));
+}
+
+#[test]
+fn str_arena_to_box() {
+    let copied = {
+        let arena = Bump::new();
+        let src = ArenaValueBuilder::new(&arena);
+        let v = Value::str(&src, "hello");
+        copy_value(&v, &box_builder())
+    };
+
+    assert_eq!(copied.as_str(), Some("hello"));
+}
+
+#[test]
+fn bytes_box_to_arena() {
+    let arena = Bump::new();
+    let dst = ArenaValueBuilder::new(&arena);
+    let copied = {
+        let src = box_builder();
+        let v = Value::bytes(&src, &[0x00, 0xff]);
+        copy_value(&v, &dst)
+    };
+
+    assert_eq!(copied.as_bytes(), Some(&[0x00, 0xff][..]));
+}
+
+#[test]
+fn bytes_arena_to_box() {
+    let copied = {
+        let arena = Bump::new();
+        let src = ArenaValueBuilder::new(&arena);
+        let v = Value::bytes(&src, &[0x00, 0xff]);
+        copy_value(&v, &box_builder())
+    };
+
+    assert_eq!(copied.as_bytes(), Some(&[0x00, 0xff][..]));
+}
+
+#[test]
+fn empty_str_box_to_arena() {
+    let arena = Bump::new();
+    let dst = ArenaValueBuilder::new(&arena);
+    let copied = {
+        let src = box_builder();
+        let v = Value::str(&src, "");
+        copy_value(&v, &dst)
+    };
+
+    assert_eq!(copied.as_str(), Some(""));
+}
+
+#[test]
+fn array_of_strs_box_to_arena() {
+    let arena = Bump::new();
+    let dst = ArenaValueBuilder::new(&arena);
+    let copied = {
+        let src = box_builder();
+        let src_tb = *src.ty_builder();
+        let elements = vec![Value::str(&src, "a"), Value::str(&src, "βγ")];
+        let v = Value::array(&src, ty!(src_tb, Str), elements);
+        copy_value(&v, &dst)
+    };
+
+    let array = copied.as_array().expect("should be an array");
+    assert_eq!(array.len(), 2);
+    assert_eq!(
+        array.get(0).and_then(|e| e.as_str().map(str::to_owned)),
+        Some("a".to_owned())
+    );
+    assert_eq!(
+        array.get(1).and_then(|e| e.as_str().map(str::to_owned)),
+        Some("βγ".to_owned())
+    );
+}
+
+#[test]
+fn array_of_strs_arena_to_box() {
+    let copied = {
+        let arena = Bump::new();
+        let src = ArenaValueBuilder::new(&arena);
+        let src_tb = *src.ty_builder();
+        let elements = vec![Value::str(&src, "a"), Value::str(&src, "βγ")];
+        let v = Value::array(&src, ty!(src_tb, Str), elements);
+        copy_value(&v, &box_builder())
+    };
+
+    let array = copied.as_array().expect("should be an array");
+    assert_eq!(array.len(), 2);
+    assert_eq!(
+        array.get(0).and_then(|e| e.as_str().map(str::to_owned)),
+        Some("a".to_owned())
+    );
+    assert_eq!(
+        array.get(1).and_then(|e| e.as_str().map(str::to_owned)),
+        Some("βγ".to_owned())
+    );
+}
+
+// =============================================================================
 // Round-trips (each intermediate stage is scoped and dropped)
 // =============================================================================
 

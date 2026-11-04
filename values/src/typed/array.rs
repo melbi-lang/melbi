@@ -1,26 +1,26 @@
 //! Statically-typed array view for zero-cost interop.
 //!
 //! `Array<B, E>` wraps the builder's `ArrayHandle` directly — no deep conversion
-//! or runtime type tags. Element access returns `E` (e.g., `i64`) without runtime
-//! type checking.
+//! or runtime type tags. Element access returns `E` (e.g., [`Int`](super::Int))
+//! without runtime type checking.
 //!
 //! # Example
 //!
 //! ```
 //! use melbi_values::builders::BoxValueBuilder;
-//! use melbi_values::typed::{Array, Marshal};
+//! use melbi_values::typed::{Array, Int, Marshal};
 //! use melbi_values::traits::ArrayView;
 //!
 //! let builder = BoxValueBuilder::new();
-//! let arr = Array::<_, i64>::new(&builder, vec![1, 2, 3]);
+//! let arr = Array::<_, Int>::new(&builder, [1, 2, 3]);
 //!
-//! assert_eq!(arr.get(0), Some(1));
+//! assert_eq!(arr.get(0), Some(Int(1)));
 //! assert_eq!(arr.len(), 3);
 //!
 //! // Convert to dynamic Value and back
 //! let value = arr.clone().into_value(&builder);
-//! let arr2 = Array::<_, i64>::from_value(&value).unwrap();
-//! assert_eq!(arr2.get(0), Some(1));
+//! let arr2 = Array::<_, Int>::from_value(&value).unwrap();
+//! assert_eq!(arr2.get(0), Some(Int(1)));
 //! ```
 
 use core::fmt::Debug;
@@ -29,6 +29,7 @@ use core::marker::PhantomData;
 use melbi_types::{Ty, TyKind};
 
 use super::Marshal;
+use super::marshal::Sealed;
 use crate::traits::{ArrayView, Val, ValueBuilder};
 
 /// A statically-typed array view.
@@ -70,18 +71,25 @@ impl<B: ValueBuilder, E> Debug for Array<B, E> {
 impl<B: ValueBuilder, E: Marshal<B>> Array<B, E> {
     /// Create a typed array from a list of elements.
     ///
-    /// Each element is marshalled into the builder's storage via
-    /// [`Marshal::into_val`] and stored inline in the array.
-    pub fn new(
+    /// Each element is converted into `E` and then marshalled into the builder's
+    /// storage via [`Marshal::into_val`], stored inline in the array.
+    pub fn new<T: Into<E>>(
         builder: &B,
-        elements: impl IntoIterator<Item = E, IntoIter: ExactSizeIterator>,
+        elements: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
     ) -> Self {
-        let vals = elements.into_iter().map(|e| e.into_val(builder));
+        let vals = elements
+            .into_iter()
+            .map(|element| element.into().into_val(builder));
         let handle = builder.alloc_array(vals);
         Self {
             handle,
             _marker: PhantomData,
         }
+    }
+
+    /// Create an empty typed array.
+    pub fn empty(builder: &B) -> Self {
+        Self::new(builder, core::iter::empty::<E>())
     }
 
     // `from_value` and `into_value` are provided by `Marshal<B>` default methods.
@@ -104,7 +112,9 @@ impl<B: ValueBuilder, E: Marshal<B>> ArrayView<E> for Array<B, E> {
     }
 }
 
-// --- Marshal (enables nesting: Array<B, Array<B, i64>>) ---
+// --- Marshal (enables nesting: Array<B, Array<B, Int>>) ---
+
+impl<B: ValueBuilder, E: Marshal<B>> Sealed for Array<B, E> {}
 
 impl<B: ValueBuilder, E: Marshal<B>> Marshal<B> for Array<B, E> {
     fn ty(tb: &B::TB) -> Ty<B::TB> {
