@@ -99,7 +99,7 @@ pub enum TypeErrorKind {
         to: String,
         reason: String,
     },
-    /// Cast operation on polymorphic type (not yet supported)
+    /// Cast operation on a value whose type is not known at the cast
     PolymorphicCast { target_type: String },
     /// Duplicate parameter name in lambda
     DuplicateParameter { name: String },
@@ -265,7 +265,7 @@ impl TypeError {
                 format!("Cannot cast polymorphic value to '{target_type}'"),
                 Some("E019"),
                 vec![
-                    "Casts on polymorphic types are not yet supported.".to_string(),
+                    "A cast is checked where it is written, so the value's type must already be known there.".to_string(),
                     "The value must have a concrete type to be cast.".to_string(),
                 ],
             ),
