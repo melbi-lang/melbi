@@ -29,8 +29,8 @@
 
 use melbi_types::{Scalar, Ty, TyBuilder, TyKind};
 
-use crate::dynamic::Value;
-use crate::traits::{ArrayView, Val, ValueBuilder, ValueView};
+use crate::dynamic::{MapMaker, Value};
+use crate::traits::{ArrayView, MapView, Val, ValueBuilder, ValueView};
 
 /// Copy a type from one builder to another.
 ///
@@ -59,6 +59,8 @@ pub fn copy_value<Src: ValueBuilder, Dst: ValueBuilder>(
         TyKind::Scalar(Scalar::Int) => Value::int(dst, value.as_int().unwrap()),
         TyKind::Scalar(Scalar::Bool) => Value::bool(dst, value.as_bool().unwrap()),
         TyKind::Scalar(Scalar::Float) => Value::float(dst, value.as_float().unwrap()),
+        TyKind::Scalar(Scalar::Str) => Value::str(dst, value.as_str().unwrap()),
+        TyKind::Scalar(Scalar::Bytes) => Value::bytes(dst, value.as_bytes().unwrap()),
         TyKind::Array(elem_ty) => {
             let dst_elem_ty = copy_type(elem_ty, dst.ty_builder());
             let array = value.as_array().unwrap();
@@ -67,6 +69,17 @@ pub fn copy_value<Src: ValueBuilder, Dst: ValueBuilder>(
             let array_handle = dst.alloc_array(vals);
             let ty = TyKind::Array(dst_elem_ty).alloc(dst.ty_builder());
             Value::new(ty, Val::array(array_handle))
+        }
+        // Rebuilt rather than copied slot by slot: hashes depend only on key
+        // contents, so the destination table ends up equivalent.
+        TyKind::Map(key_ty, value_ty) => {
+            let key_ty = copy_type(key_ty, dst.ty_builder());
+            let value_ty = copy_type(value_ty, dst.ty_builder());
+            let mut maker = MapMaker::new(dst, key_ty, value_ty);
+            for (key, value) in value.as_map().unwrap().iter() {
+                maker.insert(copy_value(&key, dst), copy_value(&value, dst));
+            }
+            maker.build()
         }
         other => unimplemented!("value type not yet supported for copying: {other:?}"),
     }

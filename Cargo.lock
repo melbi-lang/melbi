@@ -1547,7 +1547,10 @@ dependencies = [
 name = "melbi-values"
 version = "0.1.0"
 dependencies = [
+ "allocator-api2",
  "bumpalo",
+ "foldhash 0.2.0",
+ "hashbrown 0.17.1",
  "melbi-thin-ref",
  "melbi-types",
  "static_assertions",
