@@ -10,7 +10,6 @@ use crate::cli::FmtArgs;
 use crate::common::input::{is_stdin, read_input};
 
 /// Run the fmt command.
-#[must_use]
 pub fn run(args: FmtArgs, no_color: bool) -> ExitCode {
     let mut has_errors = false;
     let mut needs_formatting = false;

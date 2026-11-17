@@ -13,7 +13,6 @@ use crate::cli::{DebugArgs, DebugCommand, DebugInputArgs};
 use crate::common::engine::build_stdlib;
 
 /// Run the debug command.
-#[must_use]
 pub fn run(args: DebugArgs, no_color: bool) -> ExitCode {
     match args.command {
         DebugCommand::Parser(input) => run_parser(input, no_color),

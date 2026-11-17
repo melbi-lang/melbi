@@ -13,7 +13,6 @@ use crate::common::engine::build_stdlib;
 use crate::common::input::read_input;
 
 /// Run the check command.
-#[must_use]
 pub fn run(args: CheckArgs, no_color: bool) -> ExitCode {
     let mut has_errors = false;
 

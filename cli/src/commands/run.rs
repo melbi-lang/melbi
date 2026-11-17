@@ -11,7 +11,6 @@ use crate::common::engine::build_stdlib;
 use crate::common::input::{read_input, strip_shebang};
 
 /// Run the run command.
-#[must_use]
 pub fn run(args: RunArgs, no_color: bool) -> ExitCode {
     let (content, display_name) = match read_input(&args.file) {
         Ok(c) => c,

@@ -97,17 +97,14 @@ authors = ["Nilton Volpato <nilton@volpa.to>"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-melbi = { version = "0.1.0" }
-melbi-core = { version = "0.1.0" }
-melbi-types = { version = "0.1.0" }
-melbi-lsp = { version = "0.1.0" }
-melbi-cli = { version = "0.1.0" }
-melbi-fmt = { version = "0.1.0" }
-melbi-macros = { version = "0.1.0" }
-melbi-parser = { version = "0.1.0" }
-melbi-small-str = { version = "0.1.0" }
-melbi-teeny-vec = { version = "0.1.0" }
-melbi-thin-ref = { version = "0.1.0" }
+melbi = { version = "0.1.0", path = "." }
+melbi-core = { version = "0.1.0", path = "core" }
+melbi-types = { version = "0.1.0", path = "types" }
+melbi-fmt = { version = "0.1.0", path = "fmt" }
+melbi-macros = { version = "0.1.0", path = "macros" }
+melbi-parser = { version = "0.1.0", path = "parser" }
+melbi-small-str = { version = "0.1.0", path = "support/small-str" }
+melbi-thin-ref = { version = "0.1.0", path = "support/thin-ref" }
 tree-sitter-melbi = { path = "tree-sitter" }
 
 allocator-api2 = { version = "0.2.21", default-features = false, features = ["alloc"] } # Match bumpalo and hashbrown
@@ -139,11 +136,11 @@ license.workspace = true
 ariadne = "0.6.0"
 bumpalo.workspace = true
 melbi-core.workspace = true
-melbi-fmt = { workspace = true, optional = true }
 thiserror.workspace = true
 
 [dev-dependencies]
 expect-test.workspace = true
+melbi-fmt.workspace = true
 pretty_assertions.workspace = true
 once_cell.workspace = true
 indoc = "2"
@@ -151,23 +148,6 @@ pest.workspace = true
 
 [lib]
 proc-macro = false
-
-[features]
-default = ["fmt"]
-fmt = ["dep:melbi-fmt"]
-
-[patch.crates-io]
-melbi = { path = "." }
-melbi-core = { path = "core" }
-melbi-types = { path = "types" }
-melbi-lsp = { path = "lsp" }
-melbi-cli = { path = "cli" }
-melbi-fmt = { path = "fmt" }
-melbi-macros = { path = "macros" }
-melbi-parser = { path = "parser" }
-melbi-small-str = { path = "support/small-str" }
-melbi-teeny-vec = { path = "support/teeny-vec" }
-melbi-thin-ref = { path = "support/thin-ref" }
 
 [profile.release]
 codegen-units = 1           # reduces binary size by ~2%

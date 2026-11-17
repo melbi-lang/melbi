@@ -167,7 +167,6 @@ fn setup_reedline() -> (Reedline, DefaultPrompt) {
 }
 
 /// Run the REPL command.
-#[must_use]
 pub fn run(args: ReplArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);

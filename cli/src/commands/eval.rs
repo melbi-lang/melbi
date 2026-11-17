@@ -18,7 +18,6 @@ use crate::cli::{EvalArgs, Runtime};
 use crate::common::engine::{StdlibEnv, build_stdlib};
 
 /// Run the eval command.
-#[must_use]
 pub fn run(args: EvalArgs, no_color: bool) -> ExitCode {
     let arena = Bump::new();
     let type_manager = TypeManager::new(&arena);
