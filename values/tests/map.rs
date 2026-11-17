@@ -243,6 +243,7 @@ fn copy_maps_between_builders() {
     assert!(back == original);
 }
 
+#[cfg(target_pointer_width = "64")]
 #[test]
 fn arena_maps_are_one_word() {
     use core::mem::size_of;

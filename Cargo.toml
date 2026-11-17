@@ -110,6 +110,7 @@ melbi-teeny-vec = { version = "0.1.0" }
 melbi-thin-ref = { version = "0.1.0" }
 tree-sitter-melbi = { path = "tree-sitter" }
 
+allocator-api2 = { version = "0.2.21", default-features = false, features = ["alloc"] } # Match bumpalo and hashbrown
 bumpalo = { version = "3.19.0", features = ["allocator-api2"] }
 criterion = { version = "0.8", features = ["html_reports"] }
 expect-test = "1.5"

@@ -1,7 +1,7 @@
 /// A read-only view over a map.
 ///
-/// Iteration order is not part of the language: it is unspecified, but the
-/// same on every run for the same entries inserted in the same order.
+/// Iteration order is not part of the language: it is unspecified, and
+/// changes from run to run.
 pub trait MapView<K, V> {
     /// Returns the number of entries.
     fn len(&self) -> usize;

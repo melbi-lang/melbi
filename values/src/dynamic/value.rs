@@ -86,8 +86,12 @@ impl<B: ValueBuilder> Value<B> {
     /// All elements must have the same type (the given `element_ty`). Their raw
     /// storage is moved into the array; the per-element types are dropped and
     /// re-attached on access.
+    ///
+    /// # Panics
+    ///
+    /// If an element does not have type `element_ty`.
     pub fn array(builder: &B, element_ty: Ty<B::TB>, elements: Vec<Self>) -> Self {
-        debug_assert!(
+        assert!(
             elements.iter().all(|e| *e.ty() == element_ty),
             "all array elements must match element_ty",
         );
@@ -101,6 +105,10 @@ impl<B: ValueBuilder> Value<B> {
     ///
     /// Every key must have type `key_ty` and every value type `value_ty`. To
     /// add entries one at a time, use [`MapMaker`].
+    ///
+    /// # Panics
+    ///
+    /// If a key or value does not have the given type.
     pub fn map(
         builder: &B,
         key_ty: Ty<B::TB>,

@@ -45,8 +45,9 @@ impl From<i64> for Int {
 
 /// Melbi `Float`, backed by `f64`.
 ///
-/// Deliberately does not implement `PartialEq`, `PartialOrd` or `Hash`: Melbi
-/// defines its own float comparison rules, which are not the IEEE ones.
+/// `PartialEq`, `Eq`, `PartialOrd`, `Ord` and `Hash` follow Melbi's float rule,
+/// not IEEE: every `NaN` equals every other `NaN` and is greater than every
+/// number, and `-0.0` equals `0.0`. See `crate::float`.
 #[derive(Debug, Clone, Copy)]
 pub struct Float(pub f64);
 

@@ -8,6 +8,10 @@
 use core::cmp::Ordering;
 use core::hash::Hasher;
 
+/// The quiet `NaN` with a clear sign bit. `f64::NAN` does not guarantee its
+/// bit pattern, and `total_cmp` puts a negative `NaN` below every number.
+const CANONICAL_NAN: f64 = f64::from_bits(0x7ff8_0000_0000_0000);
+
 /// Map `-0.0` to `0.0` and every `NaN` to one positive `NaN`.
 ///
 /// After this, `total_cmp` agrees with IEEE on every pair of numbers, and the
@@ -15,7 +19,7 @@ use core::hash::Hasher;
 /// longer matters.
 fn canonical(x: f64) -> f64 {
     if x.is_nan() {
-        f64::NAN
+        CANONICAL_NAN
     } else if x == 0.0 {
         0.0
     } else {

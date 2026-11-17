@@ -7,15 +7,14 @@ pub mod error;
 mod syntax;
 
 use bumpalo::Bump;
-use melbi_parser::ArenaBuilder;
-use melbi_parser::parse::{DEFAULT_MAX_PARSE_DEPTH, ParseOptions};
-
 pub use error::ParseError;
+use melbi_parser::ArenaBuilder;
 pub use melbi_parser::ast::parsed::{
     Binding, BindingKind, Expr, ExprKind, LiteralKind, MapEntry, MapEntryKind, MatchArm,
     MatchArmKind, Pattern, PatternKind, Sexpr, TypeExpr, TypeExprKind, TypeField, TypeFieldKind,
 };
 pub use melbi_parser::ast::{BinaryOp, BoolOp, ComparisonOp, UnaryOp};
+use melbi_parser::parse::{DEFAULT_MAX_PARSE_DEPTH, ParseOptions};
 pub use melbi_parser::parse::{ExpressionParser, ParseErrorKind, Rule};
 pub use syntax::{AnnotatedSource, Span};
 

@@ -94,12 +94,16 @@ impl<B: ValueBuilder> MapMaker<B> {
     }
 
     /// Add an entry, replacing the value if the key is already present.
+    ///
+    /// # Panics
+    ///
+    /// If `key` or `value` does not have the map's key or value type.
     pub fn insert(&mut self, key: Value<B>, value: Value<B>) {
-        debug_assert!(
+        assert!(
             *key.ty() == self.key_ty,
             "key must match the map's key type"
         );
-        debug_assert!(
+        assert!(
             *value.ty() == self.value_ty,
             "value must match the map's value type"
         );

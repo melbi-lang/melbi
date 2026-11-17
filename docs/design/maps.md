@@ -43,6 +43,10 @@ from, at the moment a key must be compared?**
 Keys must be `Hashable`: every type except functions, including records and
 other composite types, and floats. Function values may not be keys.
 
+> The type checker in `core` does not implement all of this yet: its
+> `has_instance` gives `Hashable` only to scalars, `Symbol` and `Array` of
+> `Hashable`. Records and maps as keys are still to do.
+
 ### One comparison rule for floats
 
 Floats are compared the same way everywhere — `==`, `<`, sorting, and map
@@ -54,7 +58,7 @@ fn float_cmp(a: f64, b: f64) -> Ordering {
 }
 
 fn canonical(x: f64) -> f64 {
-    if x.is_nan() { f64::NAN }   // one NaN, positive
+    if x.is_nan() { f64::from_bits(0x7ff8_0000_0000_0000) }   // one NaN, positive
     else if x == 0.0 { 0.0 }     // -0.0 → 0.0
     else { x }
 }
@@ -95,9 +99,18 @@ Last-wins also falls out of repeated insertion for free.
 
 ### Iteration order
 
-Not guaranteed by the language. If the implementation uses hashing, iteration
-order must still be *reproducible within a run* so that display, serialization
-and test output are stable.
+Not guaranteed by the language, and deliberately unstable: the hash seed is
+random per process, so iteration order changes from run to run. A fixed seed
+would make the order reproducible, and code and tests would come to depend on
+it whether or not it was documented, blocking any later change of hasher. It
+would also let an attacker who controls the keys precompute collisions.
+
+Output that must be stable — display, serialization, test snapshots — sorts
+entries by key with a total order private to the implementation, as Go's
+`fmt` does. Every key type has one (scalars, symbols, and arrays and records
+structurally; functions, the only unorderable type, cannot be keys), so this
+needs no `Ord` constraint on keys. Map equality and hashing are already
+order-independent.
 
 ---
 
@@ -259,8 +272,8 @@ budget.
 
 ## Representation
 
-**`hashbrown::HashTable`**, with a fixed-seed hasher so iteration order is
-reproducible between runs. Note `HashTable`, not `HashMap`: it takes hash and
+**`hashbrown::HashTable`**, with a hasher seeded at random once per process
+(see *Iteration order*). Note `HashTable`, not `HashMap`: it takes hash and
 eq **closures per operation**, so type-erased keys need no `Hash`/`Eq` impls,
 and it is generic over `A: Allocator`, so the arena works through
 `allocator-api2` (already a workspace dependency).
@@ -287,6 +300,9 @@ Its instances extend structurally:
 | `Array[e: Ord]` | lexicographic |
 | Record with all fields `Ord` | field by field, in field-name order |
 | `Map`, `Function` | no |
+
+> The type checker in `core` gives `Ord` only to `Int`, `Float`, `Str` and
+> `Bytes` so far; the structural rows are still to do.
 
 ## See also
 

@@ -12,6 +12,7 @@
 //! - [`Str`](super::Str) (Melbi `Str`)
 //! - [`Bytes`](super::Bytes) (Melbi `Bytes`)
 //! - [`Array<B, E>`](super::Array) (Melbi `Array[E]`) — see `typed/array.rs`
+//! - [`Map<B, K, V>`](super::Map) (Melbi `Map[K, V]`) — see `typed/map.rs`
 //!
 //! Only Melbi types implement `Marshal`; Rust primitives are wrapped in the
 //! newtypes above instead.

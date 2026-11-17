@@ -1,9 +1,8 @@
 use alloc::rc::Rc;
 use core::fmt;
 
-use melbi_types::BoxBuilder;
-
 use allocator_api2::alloc::Global;
+use melbi_types::BoxBuilder;
 
 use crate::traits::{MapStorage, RawValue, Val, ValueBuilder};
 

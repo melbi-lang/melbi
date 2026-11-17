@@ -36,8 +36,8 @@ impl<B: ValueBuilder> MapStorage<B> {
             .map(|(_, value)| value)
     }
 
-    /// All entries, in the table's order: unspecified, but the same on every
-    /// run for the same entries inserted in the same order.
+    /// All entries, in the table's order, which is unspecified: it changes from
+    /// run to run, because the hash seed does.
     pub(crate) fn iter(&self) -> impl Iterator<Item = &(Val<B>, Val<B>)> {
         self.table.iter()
     }
@@ -53,11 +53,19 @@ impl<B: ValueBuilder> fmt::Debug for MapStorage<B> {
 
 /// The hasher for map keys.
 ///
-/// The seed is fixed so that iteration order is reproducible from run to run,
-/// which keeps display, serialization and test output stable.
+/// Seeded at random once per process, so that nobody can rely on iteration
+/// order, and so that colliding keys cannot be precomputed. Every map in the
+/// process shares the seed, so a key hashes the same in all of them.
+///
+/// Output that must be stable, such as display, sorts the entries by key
+/// instead of relying on iteration order.
 pub(crate) fn map_hasher() -> impl Hasher {
-    const SEED: u64 = 0x6d65_6c62_695f_6d61; // "melbi_ma"
-    foldhash::fast::FixedState::with_seed(SEED).build_hasher()
+    const PER_HASHER_SEED: u64 = 0x6d65_6c62_695f_6d61; // "melbi_ma"
+    foldhash::fast::SeedableRandomState::with_seed(
+        PER_HASHER_SEED,
+        foldhash::SharedSeed::global_random(),
+    )
+    .build_hasher()
 }
 
 /// Accumulates a map's entries. Inserting a key that is already present
