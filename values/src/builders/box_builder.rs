@@ -26,7 +26,10 @@ pub enum BoxRaw {
     // pointers to individually allocated elements.
     Array(Rc<[Val<BoxValueBuilder>]>),
 }
-// A tag plus the widest payload, which is a fat `Rc` (two words).
+// A tag plus the widest payload, which is a fat `Rc` (two words). Only asserted
+// where a word is 8 bytes: on 32-bit targets the `i64`/`f64` fields set the
+// alignment to 8, so the tag is padded and this is four words.
+#[cfg(target_pointer_width = "64")]
 static_assertions::assert_eq_size!(BoxRaw, [usize; 3]);
 
 impl fmt::Debug for BoxRaw {

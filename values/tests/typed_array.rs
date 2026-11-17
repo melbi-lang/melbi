@@ -7,7 +7,7 @@ use bumpalo::Bump;
 use melbi_types::ty;
 use melbi_values::builders::{ArenaValueBuilder, BoxValueBuilder};
 use melbi_values::dynamic::Value;
-use melbi_values::traits::{ArrayView, Val, ValueBuilder, ValueView};
+use melbi_values::traits::{ArrayView, ValueBuilder, ValueView};
 use melbi_values::typed::{Array, Bool, Bytes, Float, Int, Marshal, Str};
 
 /// Generates `#[test]` wrappers that run a generic test function against both
@@ -363,7 +363,7 @@ test_both_builders!(nested_int_array_still_works);
 // holds an `i64`/`f64`) and the equations would not hold even though the layout
 // is correct.
 #[cfg(target_pointer_width = "64")]
-static_assertions::assert_eq_size!(Val<ArenaValueBuilder<'static>>, usize);
+static_assertions::assert_eq_size!(melbi_values::traits::Val<ArenaValueBuilder<'static>>, usize);
 
 /// Bytes the arena has handed out so far.
 ///
