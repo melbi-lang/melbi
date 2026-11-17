@@ -59,13 +59,21 @@ When working on specific components, refer to dedicated instruction files in `.g
 **Consistency requirements:**
 
 - Follow Rust idioms and best practices
-- Comprehensive documentation for public APIs
+- Comprehensive documentation, with examples, for the public API
 - Examples for all major features
+
+**The public API** is what the `melbi` crate (at the workspace root) exports,
+including items it re-exports from other crates. Items that are `pub` in an
+internal workspace crate (`melbi-core`, `melbi-values`, `melbi-types`,
+`melbi-parser`, …) only organize the workspace and are not public API: the
+rules here that mention the public API do not apply to them. Documenting them is
+welcome but optional; weigh it against the cost of keeping docs current in code
+that changes quickly.
 
 **Review requirements:**
 
-- Changes to or affecting public APIs require design review
-- Breaking changes require migration guide
+- Changes to or affecting the public API require design review
+- Breaking changes to the public API require a migration guide
 - Performance-critical code requires benchmarks
 
 **Module boundaries:**
